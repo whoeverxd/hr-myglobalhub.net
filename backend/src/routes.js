@@ -21,6 +21,7 @@ const contractorsController = require('./controllers/contractors.controller');
 const agileController = require('./controllers/agile.controller');
 const { authenticate, requireRole } = require('./middleware/auth.middleware');
 const firebaseService = require('./services/firebase.service');
+const payrollEngine = require('./services/payroll-engine.service');
 const db = require('./db');
 
 const router = express.Router();
@@ -446,6 +447,18 @@ router.get('/payroll/export/nacha', authenticate, requireRole('finance', 'admin'
 router.get('/payroll/export/bhd', authenticate, requireRole('finance', 'admin'), bankingRailsController.exportBhd);
 router.get('/payroll/export/usdc', authenticate, requireRole('finance', 'admin'), bankingRailsController.exportUsdcBatch);
 router.post('/payroll/rails/usdc/confirm', authenticate, requireRole('finance', 'admin'), bankingRailsController.confirmUsdcTransaction);
+// Pay stubs issued from saved payroll runs. Payroll staff see any employee and any run status;
+// everyone else only sees their own stubs from approved runs.
+router.get('/payroll/paystubs', authenticate, (req, res, next) => {
+  try {
+    const payrollStaff = req.user && ['admin', 'pm', 'hr', 'finance'].includes(req.user.role);
+    const empId = payrollStaff ? (req.query.empId || req.query.employeeId) : (req.user && (req.user.employeeId || req.user.id));
+    if (!empId) return res.json([]);
+    res.json(payrollEngine.listEmployeePaystubs(empId, { issuedOnly: !payrollStaff }));
+  } catch (err) {
+    next(err);
+  }
+});
 router.get('/payroll/paystub/:employeeId/:periodId', authenticate, (req, res, next) => {
   if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
     const myEmpId = req.user.employeeId || req.user.id;

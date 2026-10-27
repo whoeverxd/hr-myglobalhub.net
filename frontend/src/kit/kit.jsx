@@ -1434,49 +1434,69 @@ function PayrollProcessing({ notify }) {
   </Page>;
 }
 
-function PayStubPreview(props) { return EMPLOYEES.length ? <PayStubPreviewInner {...props} /> : window.__mghEmpty('Pay Stubs', ['Payroll & Finance', 'Pay Stubs']); }
-function PayStubPreviewInner({ notify, empId }) {
-  const curPeriod = getCurrentPeriod();
-  const PE = MGH_RBAC.visible(EMPLOYEES, 'payslips.view'); const empOpts = PE.map(x => x.id + ' • ' + x.name);
-  const [who, setWho] = React.useState(() => empOpts.find(o => o.startsWith(empId || '')) || empOpts[0]);
-  const e = PE.find(x => (who || '').startsWith(x.id)) || PE[0] || EMPLOYEES[0];
-  const calc = DEDUCT(e), ded = calc.lines, net = calc.net, dedTotal = calc.total;
-  const [period, setPeriod] = React.useState(curPeriod.code);
-  React.useEffect(() => { window.__mghStub = { id: e.id, name: e.name, period, net }; window.dispatchEvent(new Event('mgh-stub')); }, [e.id, period, net]);
+// Pay stubs come only from saved payroll runs (GET /payroll/paystubs); nothing is shown until a run includes the employee.
+function PayStubPreview({ notify, empId }) {
+  const self = MGH_RBAC.scopeOf('payslips.view') === 'self';
+  const PE = self ? [] : MGH_RBAC.visible(EMPLOYEES, 'payslips.view'); const empOpts = PE.map(x => x.id + ' • ' + x.name);
+  const [who, setWho] = React.useState(() => empOpts.find(o => empId && o.startsWith(empId)) || empOpts[0] || '');
+  const target = self ? MGH_RBAC.me().emp : (who.split(' • ')[0] || null);
+  const [stubs, setStubs] = React.useState(null);
+  const [stubId, setStubId] = React.useState(null);
+  React.useEffect(() => {
+    let cancel = false; setStubs(null);
+    if (!target || !window.api) { setStubs([]); return; }
+    window.api.paystubs(self ? undefined : target)
+      .then(r => { if (cancel) return; const L = Array.isArray(r) ? r : []; setStubs(L); setStubId(L[0] ? L[0].id : null); })
+      .catch(err => { if (!cancel) { setStubs([]); notify('Could not load pay stubs • ' + err.message); } });
+    return () => { cancel = true; };
+  }, [target]);
+  const s = stubs && (stubs.find(x => x.id === stubId) || stubs[0]);
+  React.useEffect(() => { window.__mghStub = s ? { id: s.employeeId, name: s.employeeName, period: s.periodId, net: s.netPay } : null; window.dispatchEvent(new Event('mgh-stub')); }, [s && s.id]);
+  React.useEffect(() => () => { window.__mghStub = null; window.dispatchEvent(new Event('mgh-stub')); }, []);
+
+  const crumbs = ['Payroll & Finance', 'Pay Stubs'];
+  const picker = empOpts.length > 1 ? <Select size="sm" icon="person" value={who} onChange={setWho} options={empOpts} /> : null;
+  if (!target) return window.__mghEmpty('Pay Stubs', crumbs, self ? 'Your account is not linked to an employee record yet.' : undefined);
+  if (!stubs) return window.__mghEmpty('Pay Stubs', crumbs, 'Loading pay stubs…');
+  if (!s) return <Page><PageHeader breadcrumbs={crumbs} title="Pay Stubs" description={self ? 'You have no pay stubs yet. They appear here once a payroll run that includes you is approved.' : 'No payroll run includes this employee yet.'} actions={picker} /></Page>;
+
   const row = (l, a, b, c, bold) => <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 90px 110px', gap: 8, padding: '8px 0', borderBottom: '1px solid var(--mgh-surface-2)', font: `${bold ? 700 : 500} 13px var(--font-sans)`, color: bold ? 'var(--mgh-ink)' : 'var(--mgh-ink-2)' }}><span>{l}</span><span style={{ textAlign: 'right' }}>{a}</span><span style={{ textAlign: 'right' }}>{b}</span><span style={{ textAlign: 'right', color: 'var(--mgh-ink)' }}>{c}</span></div>;
+  const dateStr = d => d ? new Date(d + 'T00:00:00Z').toLocaleDateString(LOC(), { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) : '—';
+  const adjAdd = s.adjustments.reduce((sum, a) => sum + (a.amount > 0 ? a.amount : 0), 0);
+  const ytd = stubs.filter(x => x.year === s.year && x.periodNumber <= s.periodNumber);
+  const ytdGross = ytd.reduce((sum, x) => sum + x.grossPay, 0), ytdDed = ytd.reduce((sum, x) => sum + x.totalDeductions, 0);
+  const issued = ['Approved', 'Paid', 'Closed', 'Archived'].includes(s.status);
+  const COLORS = ['var(--mgh-primary)', 'var(--mgh-navy)', 'var(--mgh-accent)'];
 
   const handleDownloadPdf = () => {
-    const w = window.open(`/api/payroll/paystub/${e.id}/${period}/html`, '_blank');
-    if (w) {
-      notify(`Opening official statement for ${e.name} (${period})`);
-    } else {
-      window.print();
-    }
+    const w = window.open(`/api/payroll/paystub/${s.employeeId}/${s.periodId}/html`, '_blank');
+    if (w) notify(`Opening official statement for ${s.employeeName} (${s.periodId})`);
+    else window.print();
   };
 
   return <Page>
-    <PageHeader breadcrumbs={['Payroll & Finance', 'Pay Stubs', e.id]} title="Pay Stub Preview" actions={<><Select size="sm" icon="person" value={who} onChange={setWho} options={empOpts} /><Select size="sm" value={period} onChange={setPeriod} options={[curPeriod.code, `PP-${curPeriod.year}-${String(Math.max(1, curPeriod.periodNumber - 1)).padStart(2, '0')}`, `PP-${curPeriod.year}-${String(Math.max(1, curPeriod.periodNumber - 2)).padStart(2, '0')}`]} /><Button variant="secondary" icon="mail" onClick={() => notify('Pay stub emailed to employee')}>Email</Button><Button variant="secondary" icon="print" onClick={() => window.print()}>Print</Button><Button variant="dark" icon="picture_as_pdf" onClick={handleDownloadPdf}>Download PDF</Button></>} />
+    <PageHeader breadcrumbs={[...crumbs, s.employeeId]} title="Pay Stub Preview" actions={<>{picker}<Select size="sm" value={s.periodId} onChange={p => { const m = stubs.find(x => x.periodId === p); if (m) setStubId(m.id); }} options={stubs.map(x => x.periodId)} /><Button variant="secondary" icon="print" onClick={() => window.print()}>Print</Button><Button variant="dark" icon="picture_as_pdf" onClick={handleDownloadPdf}>Download PDF</Button></>} />
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 20, alignItems: 'start' }}>
       <div style={{ background: 'var(--mgh-surface-1)', borderRadius: 16, padding: 28, display: 'flex', justifyContent: 'center' }}>
         <div style={{ width: '100%', maxWidth: 720, background: '#fff', borderRadius: 4, boxShadow: 'var(--shadow-lg)', overflow: 'hidden' }}>
           <div style={{ height: 6, background: 'var(--mgh-navy)' }} />
           <div style={{ padding: 36, display: 'flex', flexDirection: 'column', gap: 22 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}><img src="assets/logo-mgh.png" alt="My Global Hub" style={{ height: 52 }} /><div style={{ textAlign: 'right' }}><div className="mgh-overline">Earnings statement</div><div className="mgh-h3">{period}</div><div className="mgh-body">Pay date Apr 19, 2025</div></div></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}><img src="assets/logo-mgh.png" alt="My Global Hub" style={{ height: 52 }} /><div style={{ textAlign: 'right' }}><div className="mgh-overline">Earnings statement</div><div className="mgh-h3">{s.periodId}</div><div className="mgh-body">Pay date {dateStr(s.payDate)}</div></div></div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, padding: 14, borderRadius: 8, background: 'var(--mgh-surface-page)' }}>
-              <div><div className="mgh-overline">Employee</div><div className="mgh-lg">{e.name}</div><div className="mgh-body">{e.id} • {e.role}</div></div>
-              <div><div className="mgh-overline">Employer</div><div className="mgh-lg">My Global Hub Dominicana SRL</div><div className="mgh-body">RNC 1-31-88421-7 • Punta Cana</div></div>
+              <div><div className="mgh-overline">Employee</div><div className="mgh-lg">{s.employeeName}</div><div className="mgh-body">{s.employeeId}{s.employeeRole ? ' • ' + s.employeeRole : ''}</div></div>
+              <div><div className="mgh-overline">Employer</div><div className="mgh-lg">{s.entity}</div>{/dominicana/i.test(s.entity) && <div className="mgh-body">RNC 133-474018 • Punta Cana</div>}</div>
             </div>
-            <div><div className="mgh-overline" style={{ marginBottom: 4 }}>Earnings</div>{row('Description', 'Hours', 'Rate', 'Amount', true)}{row('Regular', '80.0', fmt$(e.rate), fmt$(e.reg * e.rate))}{row('Overtime 1.5×', e.ot.toFixed(1), fmt$(e.rate * 1.5), fmt$(e.ot * e.rate * 1.5))}{row('Gross pay', '', '', fmt$(e.gross), true)}</div>
-            <div><div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}><span className="mgh-overline">Deductions</span><Badge size="sm" tone={calc.exempt ? 'success' : 'info'}>{e.tax.split(' — ')[0]}</Badge></div>{calc.exempt ? row('Tax deductions', '', '', 'Exempt') : ded.map(([l, v]) => row(l, '', '', '−' + fmt$(v)))}{row('Total deductions', '', '', '−' + fmt$(dedTotal), true)}</div>
-            <div><div className="mgh-overline" style={{ marginBottom: 8 }}>Direct deposit allocation</div><ProgressBar height={16} segments={[{ value: 80, color: 'var(--mgh-primary)', label: 'Banco BHD León 80%' }, { value: 20, color: 'var(--mgh-navy)', label: 'Chase 20%' }]} /></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderRadius: 8, background: 'var(--mgh-navy)', color: '#fff' }}><span className="mgh-overline" style={{ color: 'var(--mgh-nav-text)' }}>Net pay</span><span style={{ font: '800 28px var(--font-sans)', letterSpacing: '-0.56px' }}>{fmt$(net)}</span></div>
-            <div style={{ font: '400 11px/16px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>{calc.exempt ? 'Tax-exempt profile — no statutory withholdings applied. The payee is responsible for their own tax obligations.' : /DGII/.test(e.tax) ? 'Withholdings computed under Dominican Law 87-01 and the Dominican Tax Code.' : /W-4/.test(e.tax) ? 'Withholdings computed from the employee W-4 and IRS Pub. 15-T tables.' : 'Withholdings computed under HMRC PAYE and NI thresholds.'} Document ID MGH-PS-{period.slice(3)}-{e.id.slice(4)} • SHA-256 verified.</div>
+            <div><div className="mgh-overline" style={{ marginBottom: 4 }}>Earnings</div>{row('Description', 'Hours', 'Rate', 'Amount', true)}{row('Regular', s.regHours.toFixed(1), fmt$(s.rate), fmt$(s.regHours * s.rate))}{s.otHours > 0 && row('Overtime 1.5×', s.otHours.toFixed(1), fmt$(s.rate * 1.5), fmt$(s.otHours * s.rate * 1.5))}{s.ptoHours > 0 && row('PTO', s.ptoHours.toFixed(1), fmt$(s.rate), fmt$(s.ptoHours * s.rate))}{adjAdd > 0 && row('Adjustments', '', '', fmt$(adjAdd))}{row('Gross pay', '', '', fmt$(s.grossPay), true)}</div>
+            <div><div className="mgh-overline" style={{ marginBottom: 4 }}>Deductions</div>{s.deductions.length ? s.deductions.map(d => row(d.label, '', '', '−' + fmt$(d.amount))) : row('Tax deductions', '', '', 'Exempt')}{row('Total deductions', '', '', '−' + fmt$(s.totalDeductions), true)}</div>
+            {s.payoutDistribution.length > 0 && <div><div className="mgh-overline" style={{ marginBottom: 8 }}>Direct deposit allocation</div><ProgressBar height={16} segments={s.payoutDistribution.map((p, i) => ({ value: p.percentage, color: COLORS[i % COLORS.length], label: `${p.target} ${p.percentage}%` }))} /></div>}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderRadius: 8, background: 'var(--mgh-navy)', color: '#fff' }}><span className="mgh-overline" style={{ color: 'var(--mgh-nav-text)' }}>Net pay</span><span style={{ font: '800 28px var(--font-sans)', letterSpacing: '-0.56px' }}>{fmt$(s.netPay)}</span></div>
+            <div style={{ font: '400 11px/16px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>Document ID PS-{s.periodId}-{s.employeeId} • Payroll run {s.runId}</div>
           </div>
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <Card title="Summary" padding={20}><div style={{ display: 'grid', gap: 8 }}><KeyValue label="Gross" value={fmt$(e.gross)} /><KeyValue label="Deductions" value={calc.exempt ? 'Exempt' : '−' + fmt$(dedTotal)} /><KeyValue label="Net" value={fmt$(net)} aside={<Badge tone="success">Verified</Badge>} /></div></Card>
-        <Card title="Year to date" padding={20}><div style={{ display: 'grid', gap: 8 }}><KeyValue label="YTD gross" value="$36,329.75" /><KeyValue label="YTD withholding" value={fmt$(dedTotal * 8)} /></div></Card>
+        <Card title="Summary" padding={20}><div style={{ display: 'grid', gap: 8 }}><KeyValue label="Gross" value={fmt$(s.grossPay)} /><KeyValue label="Deductions" value={s.deductions.length ? '−' + fmt$(s.totalDeductions) : 'Exempt'} /><KeyValue label="Net" value={fmt$(s.netPay)} aside={<Badge tone={issued ? 'success' : 'warning'}>{s.status}</Badge>} /></div></Card>
+        <Card title="Year to date" padding={20}><div style={{ display: 'grid', gap: 8 }}><KeyValue label="YTD gross" value={fmt$(ytdGross)} /><KeyValue label="YTD withholding" value={fmt$(ytdDed)} /></div></Card>
       </div>
     </div>
   </Page>;

@@ -402,6 +402,50 @@ function getPayrollRunDetails(runId) {
   };
 }
 
+const ISSUED_RUN_STATUSES = ['Approved', 'Paid', 'Closed', 'Archived'];
+
+/**
+ * Pay stubs actually produced by saved payroll runs for one employee.
+ * issuedOnly limits the result to runs that have been approved (what an employee may see).
+ */
+function listEmployeePaystubs(employeeId, { issuedOnly = true } = {}) {
+  const items = db.query(`SELECT * FROM payroll_run_items WHERE employee_id = ?`, [employeeId]);
+  const stubs = [];
+  for (const i of items) {
+    const run = db.getOne(`SELECT * FROM payroll_runs WHERE id = ?`, [i.run_id]);
+    if (!run || (issuedOnly && !ISSUED_RUN_STATUSES.includes(run.status))) continue;
+    const period = db.getOne(`SELECT * FROM pay_periods WHERE id = ?`, [run.period_id]) || {};
+    stubs.push({
+      id: i.id,
+      runId: run.id,
+      periodId: run.period_id,
+      year: run.year,
+      periodNumber: run.period_number,
+      status: run.status,
+      entity: run.entity,
+      currency: run.currency || 'USD',
+      startDate: period.start_date || null,
+      endDate: period.end_date || null,
+      payDate: period.pay_date || null,
+      paidAt: run.paid_at || null,
+      employeeId: i.employee_id,
+      employeeName: i.employee_name,
+      employeeRole: i.employee_role,
+      rate: Number(i.rate) || 0,
+      regHours: Number(i.reg_hours) || 0,
+      otHours: Number(i.ot_hours) || 0,
+      ptoHours: Number(i.pto_hours) || 0,
+      grossPay: Number(i.gross_pay) || 0,
+      totalDeductions: Number(i.total_deductions) || 0,
+      netPay: Number(i.net_pay) || 0,
+      deductions: JSON.parse(i.deductions_json || '[]'),
+      adjustments: JSON.parse(i.adjustments_json || '[]'),
+      payoutDistribution: JSON.parse(i.payout_json || '[]'),
+    });
+  }
+  return stubs.sort((a, b) => (b.year - a.year) || (b.periodNumber - a.periodNumber));
+}
+
 module.exports = {
   calculateEmployeePeriodPayroll,
   calculatePeriodPayroll,
@@ -409,4 +453,5 @@ module.exports = {
   approvePayrollRun,
   listPayrollRuns,
   getPayrollRunDetails,
+  listEmployeePaystubs,
 };

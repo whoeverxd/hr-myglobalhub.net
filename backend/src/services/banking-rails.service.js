@@ -408,12 +408,32 @@ const bankingRailsService = {
       pay_date: '2025-05-02',
     };
 
-    const calc = payrollEngine.calculateEmployeePeriodPayroll(employee, {
-      regHours: employee.type?.includes('Part-time') ? 40 : 80,
-      otHours: 4.5,
-      ptoHours: 0,
-      adjustments: [],
-    });
+    // Prefer the stub saved by an actual payroll run; fall back to an estimate when none exists
+    const saved = payrollEngine
+      .listEmployeePaystubs(employee.id, { issuedOnly: false })
+      .find((s) => s.periodId === period.id);
+    const calc = saved
+      ? {
+          hours: { regular: saved.regHours, overtime: saved.otHours, pto: saved.ptoHours, total: saved.regHours + saved.otHours + saved.ptoHours },
+          earnings: {
+            regular: +(saved.regHours * saved.rate).toFixed(2),
+            overtime: +(saved.otHours * saved.rate * 1.5).toFixed(2),
+            pto: +(saved.ptoHours * saved.rate).toFixed(2),
+            adjustments: +saved.adjustments.reduce((sum, a) => sum + (a.amount > 0 ? a.amount : 0), 0).toFixed(2),
+            grossPay: saved.grossPay,
+          },
+          deductions: { lines: saved.deductions, total: saved.totalDeductions },
+          netPay: saved.netPay,
+          payoutDistribution: saved.payoutDistribution,
+        }
+      : payrollEngine.calculateEmployeePeriodPayroll(employee, {
+          regHours: employee.type?.includes('Part-time') ? 40 : 80,
+          otHours: 4.5,
+          ptoHours: 0,
+          adjustments: [],
+        });
+    const entity = (saved && saved.entity) || employee.entity || 'My Global Hub';
+    const isDR = /dominicana/i.test(entity);
 
     const stubFingerprint = crypto
       .createHash('sha256')
@@ -426,10 +446,11 @@ const bankingRailsService = {
       paystubId: `PS-${period.id}-${employee.id}`,
       fingerprint: stubFingerprint,
       issuedAt: new Date().toISOString(),
+      issued: Boolean(saved),
       company: {
-        name: 'My Global Hub SRL / LLC',
-        taxId: '131-98765-4',
-        address: 'Av. Winston Churchill #1099, BlueMall Piso 18, Santo Domingo / Miami FL',
+        name: entity,
+        taxId: isDR ? '133-474018' : '—',
+        address: isDR ? 'Punta Cana, República Dominicana' : '',
       },
       employee: {
         id: employee.id,

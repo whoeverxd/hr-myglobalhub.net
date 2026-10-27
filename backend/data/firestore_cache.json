@@ -21671,6 +21671,17 @@
       "created_at": "2026-10-27T23:01:15.334Z",
       "id": "1816"
     },
+    "1817": {
+      "actor": "Carmen Perez De La Matta",
+      "action": "USER_LOGIN",
+      "entity_type": "user",
+      "entity_id": "usr_1793141848610_ilsyi",
+      "old_values": null,
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"employee\",\"provider\":\"google\",\"googleUid\":\"jkSExeoyUNMU4HkHTnmpfC7378R2\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-27T23:25:55.331Z",
+      "id": "1817"
+    },
     "audit_test_1793052942079": {
       "id": "audit_test_1793052942079",
       "actor": "Test Runner",
@@ -28554,6 +28565,14 @@
       "expires_at": "2026-11-03T22:57:28.613Z",
       "created_at": "2026-10-27T22:57:28.613Z",
       "id": "doc_1793141848613_y58by"
+    },
+    "doc_1793143555331_n4hnk": {
+      "token": "ff1901dfd6f3abcc4f1b0689dbb87c19f96cf228bcf5e4bb0661b7e1164270bb",
+      "user_id": "usr_1793141848610_ilsyi",
+      "ip_address": "127.0.0.1",
+      "expires_at": "2026-11-03T23:25:55.330Z",
+      "created_at": "2026-10-27T23:25:55.331Z",
+      "id": "doc_1793143555331_n4hnk"
     }
   },
   "test_sandbox": {
@@ -29408,7 +29427,7 @@
       "avatar": "https://lh3.googleusercontent.com/a/ACg8ocJbltZrUJYYEvRsMA8dllgtnOfxuiS_EM9EiuumDibY4vqHuL4=s96-c",
       "is_active": 1,
       "created_at": "2026-10-27T22:57:28.611Z",
-      "last_login_at": "2026-10-27T22:57:28.903Z",
+      "last_login_at": "2026-10-27T23:25:55.331Z",
       "updated_at": "2026-10-27T23:01:15.335Z"
     }
   },

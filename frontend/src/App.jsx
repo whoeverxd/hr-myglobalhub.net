@@ -95,6 +95,7 @@ export default class App extends React.Component {
     this._lang = () => this.forceUpdate();
     this._miss = () => { if (this.state.route === 'languages') this.forceUpdate(); };
     window.addEventListener('mgh-lang', this._lang);
+    window.addEventListener('mgh-stub', this._lang);
     window.addEventListener('mgh-i18n-missing', this._miss);
 
     this._iv = setInterval(() => { if (this.state.route === 'mytime') this.forceUpdate(); }, 15000);
@@ -622,6 +623,7 @@ export default class App extends React.Component {
     window.removeEventListener('mgh-att-leave', this._attLeave);
     window.removeEventListener('mgh-att-punch', this._attPunch);
     window.removeEventListener('mgh-lang', this._lang);
+    window.removeEventListener('mgh-stub', this._lang);
     window.removeEventListener('mgh-i18n-missing', this._miss);
     window.removeEventListener('hashchange', this.onHash);
   }
@@ -862,7 +864,7 @@ export default class App extends React.Component {
     const t=TR[s.pf.transfer],f=s.pfFile;
     const val=v=>typeof v==='string'?v:(v&&v.target?v.target.value:'');
     return {
-      isStub:s.route==='paystub',
+      isStub:s.route==='paystub'&&!!window.__mghStub&&window.MGH_RBAC.can('payroll.generate'),
       proofBadge:this.el('Badge',{tone:has('bhd')&&has('chase')?'success':'warning',dot:true},has('bhd')&&has('chase')?'All transfers confirmed':((has('bhd')?1:0)+(has('chase')?1:0))+' of 2 transfers confirmed'),
       transfers:['bhd','chase'].map(k=>({...TR[k],status:has(k)?'Proof Attached':'Awaiting Proof',tone:has(k)?'success':'warning',bg:has(k)?'var(--mgh-success-bg)':'var(--mgh-surface-1)'})),
       transferOpts:[{value:'bhd',label:'Banco BHD León • ACH • 80%'},{value:'chase',label:'Chase Bank USA • FedWire • 20%'},{value:'coinbase',label:'Coinbase • USDC transaction hash'}],
