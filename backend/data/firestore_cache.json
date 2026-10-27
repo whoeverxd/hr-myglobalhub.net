@@ -21649,6 +21649,28 @@
       "created_at": "2026-10-27T20:26:42.004Z",
       "id": "1814"
     },
+    "1815": {
+      "actor": "Carmen Perez De La Matta",
+      "action": "USER_LOGIN",
+      "entity_type": "user",
+      "entity_id": "usr_1793141848610_ilsyi",
+      "old_values": null,
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"employee\",\"provider\":\"google\",\"googleUid\":\"jkSExeoyUNMU4HkHTnmpfC7378R2\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-27T22:57:28.904Z",
+      "id": "1815"
+    },
+    "1816": {
+      "actor": "Carmen Perez De La Matta",
+      "action": "CREATE_EMPLOYEE",
+      "entity_type": "employee",
+      "entity_id": "MGH-1179",
+      "old_values": null,
+      "new_values": "{\"id\":\"MGH-1179\",\"name\":\"Carmen Perez De La Matta\",\"email\":\"info@myglobalhub.net\",\"project\":\"\",\"status\":\"Active\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-27T23:01:15.334Z",
+      "id": "1816"
+    },
     "audit_test_1793052942079": {
       "id": "audit_test_1793052942079",
       "actor": "Test Runner",
@@ -23235,6 +23257,43 @@
       "acct": "••••9012",
       "entity": "My Global Hub Dominicana SRL",
       "status": "Active"
+    },
+    "MGH-1179": {
+      "id": "MGH-1179",
+      "first_name": "",
+      "last_name": "",
+      "name": "Carmen Perez De La Matta",
+      "email": "info@myglobalhub.net",
+      "phone": null,
+      "nid": null,
+      "dob": null,
+      "entity": "MGH Dominicana SRL",
+      "dept": "Engineering",
+      "role": "Contributor",
+      "mgr": "Unassigned",
+      "type": "Full-time",
+      "start_date": "2026-10-27",
+      "loc": "Punta Cana, DR",
+      "freq": "Bi-Weekly",
+      "rate": 0,
+      "cur": "USD",
+      "ot": 1,
+      "tax": null,
+      "pmethod": "Bank Deposit",
+      "bank": null,
+      "acct": null,
+      "routing": null,
+      "alloc": 100,
+      "crypto_wallet": null,
+      "crypto_asset": null,
+      "crypto_network": null,
+      "crypto_alloc": 0,
+      "jira": null,
+      "project": "",
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocJbltZrUJYYEvRsMA8dllgtnOfxuiS_EM9EiuumDibY4vqHuL4=s96-c",
+      "status": "Active",
+      "raw_meta": "{\"pending\":[]}",
+      "created_at": "2026-10-27T23:01:15.331Z"
     }
   },
   "holidays": {
@@ -28487,6 +28546,14 @@
       "expires_at": "2026-11-03T20:26:42.003Z",
       "created_at": "2026-10-27T20:26:42.003Z",
       "id": "doc_1793132802003_5zqhh"
+    },
+    "doc_1793141848613_y58by": {
+      "token": "fad0b712aaef72d4a9d2b9ffb5b4cfc7fdfb105b4e90cc4c7d55953665884184",
+      "user_id": "usr_1793141848610_ilsyi",
+      "ip_address": "127.0.0.1",
+      "expires_at": "2026-11-03T22:57:28.613Z",
+      "created_at": "2026-10-27T22:57:28.613Z",
+      "id": "doc_1793141848613_y58by"
     }
   },
   "test_sandbox": {
@@ -29328,6 +29395,21 @@
       "is_active": 1,
       "created_at": "2026-10-27T20:06:58.129Z",
       "last_login_at": "2026-10-27T20:26:42.004Z"
+    },
+    "usr_1793141848610_ilsyi": {
+      "id": "usr_1793141848610_ilsyi",
+      "email": "info@myglobalhub.net",
+      "password_hash": "54456dacd25e85f49709dc75a4a012140e967bc5f6cad0f1e1150e475e1c5c1d6969d731b30ac0e0dc4c4b4af23aa6edae4fcc49ef2c8416286def56b53cadf7",
+      "salt": "ddbfd7267e8e8f42d7dd8536d34df83d",
+      "name": "Carmen Perez De La Matta",
+      "role": "employee",
+      "entity": "MGH Dominicana SRL",
+      "employee_id": "MGH-1179",
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocJbltZrUJYYEvRsMA8dllgtnOfxuiS_EM9EiuumDibY4vqHuL4=s96-c",
+      "is_active": 1,
+      "created_at": "2026-10-27T22:57:28.611Z",
+      "last_login_at": "2026-10-27T22:57:28.903Z",
+      "updated_at": "2026-10-27T23:01:15.335Z"
     }
   },
   "worklogs": {

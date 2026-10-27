@@ -354,9 +354,15 @@ router.put('/employees/:id', authenticate, (req, res, next) => {
         return res.status(403).json({ error: 'Forbidden: you cannot modify other employees' });
       }
     }
+    let body = req.body || {};
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      // Self-service edits are limited to personal contact details; pay, role and org data stay with HR
+      const SELF_FIELDS = ['name', 'first_name', 'last_name', 'phone', 'loc'];
+      body = Object.fromEntries(Object.entries(body).filter(([k]) => SELF_FIELDS.includes(k)));
+    }
     const result = employeesController.updateEmployee(
       req.params.id,
-      req.body || {},
+      body,
       { user: getUserName(req), ip: getClientIp(req) }
     );
     res.json(result);
@@ -587,7 +593,7 @@ router.get('/attendance/holidays', authenticate, (req, res, next) => {
 router.post(
   '/attendance/holidays',
   authenticate,
-  requireRole('hr', 'finance', 'admin'),
+  requireRole('hr', 'pm', 'admin'),
   (req, res, next) => {
     try {
       const holiday = attendanceController.createHoliday(req.body || {}, getUserName(req), getClientIp(req));
@@ -601,7 +607,7 @@ router.post(
 router.delete(
   '/attendance/holidays/:id',
   authenticate,
-  requireRole('hr', 'finance', 'admin'),
+  requireRole('hr', 'pm', 'admin'),
   (req, res, next) => {
     try {
       const result = attendanceController.deleteHoliday(req.params.id, getUserName(req), getClientIp(req));

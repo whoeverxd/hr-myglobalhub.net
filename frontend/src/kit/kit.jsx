@@ -1111,8 +1111,11 @@ function EmployeeProfileInner({ empId, go, notify }) {
   const [sync, setSync] = React.useState(true);
   const [editOpen, setEditOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const canEdit = MGH_RBAC.can('employees.edit', e);
+  const selfEdit = !canEdit && MGH_RBAC.can('profile.edit', e);
   const [form, setForm] = React.useState({
     name: e.name || '',
+    phone: e.phone || '',
     role: e.role || '',
     dept: e.dept || 'Engineering',
     type: e.type || 'Full-time',
@@ -1128,6 +1131,7 @@ function EmployeeProfileInner({ empId, go, notify }) {
   React.useEffect(() => {
     setForm({
       name: e.name || '',
+      phone: e.phone || '',
       role: e.role || '',
       dept: e.dept || 'Engineering',
       type: e.type || 'Full-time',
@@ -1144,8 +1148,16 @@ function EmployeeProfileInner({ empId, go, notify }) {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const payload = selfEdit ? { name: form.name, phone: form.phone, loc: form.loc } : form;
       if (window.api && window.api.updateEmployee) {
-        await window.api.updateEmployee(e.id, form);
+        await window.api.updateEmployee(e.id, payload);
+      }
+      if (selfEdit) {
+        Object.assign(e, payload);
+        notify('Profile updated');
+        setEditOpen(false);
+        window.dispatchEvent(new Event('mgh-wf'));
+        return;
       }
       Object.assign(e, form, { rate: Number(form.rate) || e.rate });
       e.total = e.reg + e.ot + e.pto;
@@ -1174,7 +1186,7 @@ function EmployeeProfileInner({ empId, go, notify }) {
           <div style={{ font: '400 14px/20px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>{e.dept} • {e.project}</div>
           <div style={{ display: 'flex', gap: 14, marginTop: 8, flexWrap: 'wrap', font: '500 13px var(--font-sans)', color: 'var(--mgh-ink-2)' }}><span style={{ display: 'flex', gap: 4 }}><Icon name="domain" size={16} />{e.entity}</span><span style={{ display: 'flex', gap: 4 }}><Icon name="work" size={16} />{e.type}</span><span style={{ display: 'flex', gap: 4 }}><Icon name="calendar_today" size={16} />Joined {e.joined}</span></div>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{MGH_RBAC.can('employees.edit', e) && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit Employee</Button>}{MGH_RBAC.can('payslips.view', e) && <Button variant="secondary" icon="receipt_long" onClick={() => go('paystub', e.id)}>Generate Pay Statement</Button>}{MGH_RBAC.can('employees.edit', e) && <Button variant="dark" icon="sync_lock" onClick={() => notify('Jira API token reset')}>Reset Jira API Token</Button>}</div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{canEdit && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit Employee</Button>}{selfEdit && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit My Profile</Button>}{MGH_RBAC.can('payslips.view', e) && <Button variant="secondary" icon="receipt_long" onClick={() => go('paystub', e.id)}>Generate Pay Statement</Button>}{MGH_RBAC.can('employees.edit', e) && <Button variant="dark" icon="sync_lock" onClick={() => notify('Jira API token reset')}>Reset Jira API Token</Button>}</div>
       </div>
       <Tabs style={{ marginTop: 20 }} value={tab} onChange={setTab} tabs={[{ value: 'overview', label: 'Overview & Profile' }, { value: 'bank', label: 'Multi-Bank Allocations', dot: true }, { value: 'comp', label: 'Compensation & Tax' }, { value: 'jira', label: 'Jira Integration', tag: 'LIVE' }, { value: 'pto', label: 'Time Off & PTO' }, { value: 'docs', label: 'Documents' }]} />
     </Card>
@@ -1183,7 +1195,7 @@ function EmployeeProfileInner({ empId, go, notify }) {
         <Card icon="badge" title="Employment details">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}><KeyValue label="Preferred language" value="Español" /><KeyValue label="Manager" value={e.mgr} /><KeyValue label="Work location" value={e.loc} /><KeyValue label="Pay frequency" value="Bi-weekly" /><KeyValue label="Tax profile" value={e.tax.split(' — ')[0]} aside={<Badge tone={/^Exempt/.test(e.tax) ? 'success' : 'info'} size="sm">{/^Exempt/.test(e.tax) ? 'No withholdings' : 'Withholding'}</Badge>} /><KeyValue label="Primary bank" value={e.bank} /><KeyValue label="RNC / Cédula Personal" value={e.nid || '001-1829472-3'} mono aside={<Badge tone="success" size="sm">Active</Badge>} /><KeyValue label="TSS Registry" value="ARS Primera, AFP Crecer" aside={<Icon name="verified_user" size={18} color="var(--mgh-success)" />} /></div>
         </Card>
-        <Card icon="payments" title="Compensation & Overtime Rules" actions={<Button size="sm" variant="ghost" onClick={() => setEditOpen(true)}>Edit Tariff</Button>}>
+        <Card icon="payments" title="Compensation & Overtime Rules" actions={canEdit && <Button size="sm" variant="ghost" onClick={() => setEditOpen(true)}>Edit Tariff</Button>}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}><MetricTile label="Base hourly" value={fmt$(e.rate)} sub="USD / hr" align="center" /><MetricTile tone="success" label="Overtime 1.5×" value={fmt$(e.rate * 1.5)} sub="> 44h regular" align="center" /><MetricTile tone="warning" label="Sunday / Holiday" value={fmt$(e.rate * 2)} sub="Double rate" align="center" /></div>
           <ProgressBar style={{ marginTop: 14 }} value={96.4} tone="success" label="Billable efficiency — target ≥ 95%" valueLabel="96.4% Compliant" />
         </Card>
@@ -1223,13 +1235,18 @@ function EmployeeProfileInner({ empId, go, notify }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}><WFPill status={liveStatus(e)} /><span className="mgh-body">{fmtH(e.reg)} regular • {fmtH(e.ot)} overtime • {fmtH(e.pto)} PTO</span></div>
     </Card>
 
-    <Modal open={editOpen} title={`Edit Employee • ${e.name} (${e.id})`} onClose={() => setEditOpen(false)} width={620}
+    <Modal open={editOpen} title={`${selfEdit ? 'Edit My Profile' : 'Edit Employee'} • ${e.name} (${e.id})`} onClose={() => setEditOpen(false)} width={620}
       actions={<>
         <Button variant="secondary" onClick={() => setEditOpen(false)} disabled={saving}>Cancel</Button>
         <Button variant="primary" icon="save" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</Button>
       </>}
     >
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      {selfEdit ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))', gap: 14 }}>
+        <TextField label="Full Name" value={form.name} onChange={x => setForm(f => ({ ...f, name: typeof x === 'string' ? x : x.target.value }))} />
+        <TextField label="Phone" value={form.phone} onChange={x => setForm(f => ({ ...f, phone: typeof x === 'string' ? x : x.target.value }))} />
+        <TextField label="Work Location" value={form.loc} onChange={x => setForm(f => ({ ...f, loc: typeof x === 'string' ? x : x.target.value }))} />
+        <div style={{ gridColumn: '1 / -1', font: '400 13px/18px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>Role, compensation, bank and organization details are managed by HR.</div>
+      </div> : <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <TextField label="Full Name" value={form.name} onChange={x => setForm(f => ({ ...f, name: typeof x === 'string' ? x : x.target.value }))} />
         <TextField label="Job Title / Role" value={form.role} onChange={x => setForm(f => ({ ...f, role: typeof x === 'string' ? x : x.target.value }))} />
         <Select label="Department" value={form.dept} onChange={x => setForm(f => ({ ...f, dept: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Executive', 'Engineering', 'Product', 'Design', 'Operations', 'Finance', 'Human Resources']} />
@@ -1240,7 +1257,7 @@ function EmployeeProfileInner({ empId, go, notify }) {
         <TextField label="RNC / Cédula Personal" value={form.nid} mono onChange={x => setForm(f => ({ ...f, nid: typeof x === 'string' ? x : x.target.value }))} />
         <TextField label="Work Location" value={form.loc} onChange={x => setForm(f => ({ ...f, loc: typeof x === 'string' ? x : x.target.value }))} />
         <TextField label="Assigned Project" value={form.project} onChange={x => setForm(f => ({ ...f, project: typeof x === 'string' ? x : x.target.value }))} />
-      </div>
+      </div>}
     </Modal>
   </Page>;
 }
@@ -5012,6 +5029,16 @@ function Leave({ notify }) {
 function Holidays({ notify }) {
   const [org, setOrg] = React.useState(A.ORGS[0]); const [n, setN] = React.useState({ date: '', desc: '', country: 'Dominican Republic', region: 'National', paid: true, working: false });
   const H = A.holidays(org), C = { 'MGH Dominicana SRL': 'Dominican Republic', 'MGH USA Inc.': 'United States', 'MGH UK Ltd.': 'United Kingdom' };
+  const canManage = MGH_RBAC.can('holidays.manage');
+  const fmt = h => new Date(h.date + 'T00:00:00Z').toLocaleDateString(LOC(), { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  if (!canManage) return <Card padding={20}>
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'end' }}>
+      <Select label="Organization" value={org} onChange={x => setOrg(v(x))} options={A.ORGS} />
+    </div>
+    <div style={{ height: 14 }} />
+    <Table cols={[['Date'], ['Description'], ['Country'], ['Region'], ['Paid', 'center'], ['Working holiday', 'center']]} empty="No holidays configured."
+      rows={H.map(h => [fmt(h), h.desc, h.country, h.region, h.paid ? 'Yes' : 'No', h.working ? 'Yes' : 'No'])} />
+  </Card>;
   return <Card padding={20}>
     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'end' }}>
       <Select label="Organization" value={org} onChange={x => { const o = v(x); setOrg(o); setN(p => ({ ...p, country: C[o] })); }} options={A.ORGS} />
@@ -5043,7 +5070,7 @@ function Holidays({ notify }) {
     </div>
     <div style={{ height: 14 }} />
     <Table cols={[['Date'], ['Description'], ['Country'], ['Region'], ['Organization'], ['Paid', 'center'], ['Working holiday', 'center'], ['', 'right']]} empty="No holidays configured."
-      rows={H.map(h => [new Date(h.date + 'T00:00:00Z').toLocaleDateString(LOC(), { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }), h.desc, h.country, h.region, h.org, <Toggle checked={h.paid} onChange={() => A.updateHoliday(h.id, { paid: !h.paid })} />, <Toggle checked={h.working} onChange={() => A.updateHoliday(h.id, { working: !h.working })} />, <IconButton icon="delete" title="Remove" onClick={async () => {
+      rows={H.map(h => [fmt(h), h.desc, h.country, h.region, h.org, <Toggle checked={h.paid} onChange={() => A.updateHoliday(h.id, { paid: !h.paid })} />, <Toggle checked={h.working} onChange={() => A.updateHoliday(h.id, { working: !h.working })} />, <IconButton icon="delete" title="Remove" onClick={async () => {
         A.removeHoliday(h.id);
         try {
           if (window.api) await window.api.deleteHoliday(h.id);

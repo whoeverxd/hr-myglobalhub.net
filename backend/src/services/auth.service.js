@@ -16,6 +16,31 @@ function resolveEmployeeForEmail(email) {
   return emp;
 }
 
+// Self-registered employees/contractors (Google or Firebase sign-up) need an employee record so they can
+// open and edit their own profile. Links an existing record by email, otherwise creates a minimal one.
+const SELF_ROLES = ['employee', 'contractor'];
+function ensureEmployeeForUser(user) {
+  if (!user || user.employee_id || !SELF_ROLES.includes(String(user.role || '').toLowerCase())) return user;
+  let emp = resolveEmployeeForEmail(user.email);
+  if (!emp) {
+    // Lazy require: employees.controller depends on this module (ensureUserForEmployee)
+    const { createEmployee } = require('../controllers/employees.controller');
+    emp = createEmployee({
+      name: user.name,
+      email: user.email,
+      entity: user.entity || 'MGH Dominicana SRL',
+      type: user.role === 'contractor' ? 'Contractor' : 'Full-time',
+      role: 'Contributor',
+      mgr: 'Unassigned',
+      project: '',
+      avatar: user.avatar || null,
+      systemRole: user.role,
+    }, user.name || 'Self-registration');
+  }
+  db.execute(`UPDATE users SET employee_id = ? WHERE id = ?`, [emp.id, user.id]);
+  return db.getOne(`SELECT * FROM users WHERE id = ?`, [user.id]);
+}
+
 async function verifyFirebasePassword(email, password) {
   const apiKey =
     process.env.FIREBASE_WEB_API_KEY ||
@@ -115,6 +140,7 @@ async function login({ email, password, ip = '127.0.0.1' }) {
     err.status = 401;
     throw err;
   }
+  user = ensureEmployeeForUser(user);
 
   // Token valid for 7 days
   const token = generateToken();
@@ -231,11 +257,11 @@ async function loginWithGoogle({ idToken, ip = '127.0.0.1' }) {
     if (picture) {
       db.execute(`UPDATE users SET avatar = ? WHERE id = ?`, [picture, user.id]);
       user.avatar = picture;
-      const targetEmpId = user.employee_id || (emp && emp.id);
-      if (targetEmpId) {
-        db.execute(`UPDATE employees SET avatar = ? WHERE id = ?`, [picture, targetEmpId]);
-      }
     }
+  }
+  user = ensureEmployeeForUser(user);
+  if (picture && user.employee_id) {
+    db.execute(`UPDATE employees SET avatar = ? WHERE id = ?`, [picture, user.employee_id]);
   }
 
   // Token valid for 7 days
@@ -283,6 +309,11 @@ function validateSession(token) {
   );
 
   if (!session) return null;
+  if (!session.employee_id && SELF_ROLES.includes(String(session.role || '').toLowerCase())) {
+    // Sessions opened before the employee record existed get linked on their next request
+    const linked = ensureEmployeeForUser({ id: session.u_id, email: session.email, name: session.name, role: session.role, entity: session.entity, avatar: session.avatar });
+    if (linked) session.employee_id = linked.employee_id;
+  }
 
   let avatar = session.avatar;
   if (avatar && (avatar.includes('assets/avatars/person-') || avatar.includes('carlos-mendez'))) {

@@ -101,6 +101,9 @@ You do not have permission to open this page in the active organization.|No tien
 Go to my home page|Ir a mi página de inicio
 Switch user|Cambiar de usuario
 My Profile|Mi perfil
+Edit My Profile|Editar mi perfil
+Profile updated|Perfil actualizado
+Role, compensation, bank and organization details are managed by HR.|El cargo, la compensación, el banco y los datos de la organización los gestiona RR. HH.
 My Payslips|Mis volantes de pago
 View as (demo) • changes the permission set|Ver como (demo) • cambia el conjunto de permisos
 Active organization • data never crosses organizations|Organización activa • los datos nunca cruzan organizaciones

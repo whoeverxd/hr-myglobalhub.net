@@ -175,6 +175,7 @@ export default class App extends React.Component {
             type: e.type || 'Full-time',
             entity: e.entity || 'MGH Dominicana SRL',
             loc: e.loc || 'Punta Cana, DR',
+            phone: e.phone || '',
             mgr: e.mgr || 'Elena Rostova',
             project: e.project || 'Atlas Core',
             rate,
@@ -886,7 +887,8 @@ export default class App extends React.Component {
   renderVals(){
     const o=this._rv(),R=window.MGH_RBAC;if(!R)return o;
     const route=this.state.route,emp=this.state.empId;
-    const denied=!R.canRoute(route)||(route==='profile'&&emp&&!R.can('employees.view',emp));
+    // Self-scoped users always land on their own profile (the kit screen ignores empId for them)
+    const denied=!R.canRoute(route)||(route==='profile'&&emp&&R.scopeOf('employees.view')!=='self'&&!R.can('employees.view',emp));
     if(denied)Object.keys(o).forEach(k=>{if(/^is[A-Z]/.test(k))o[k]=false});
     const perms=R.routePerms(route);
     if(!R.can('timesheets.self')){o.myStatusBadge=null;o.myActions=null;o.myDesc='Timesheets waiting at your approval step in '+R.org+'. Open one to review hours, worklogs and punches.'}else o.myDesc='Clock in and out, record breaks, log project work and review your bi-weekly timesheet before submission.';

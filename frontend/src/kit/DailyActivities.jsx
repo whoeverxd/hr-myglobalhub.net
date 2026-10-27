@@ -1,19 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 
-/**
- * Backlog de tickets de Jira corporativos para autocompletado
- */
-export const JIRA_BACKLOG = [
-  { key: 'MSH-214', summary: 'Implementación del backend relacional SQLite y sesiones', project: 'Core Backend' },
-  { key: 'MSH-215', summary: 'Módulo de registro por actividades y equivalencia de jornada', project: 'Frontend & UI' },
-  { key: 'MSH-218', summary: 'Flujo de aprobación quincenal y firma electrónica', project: 'Approvals' },
-  { key: 'ATLAS-412', summary: 'GraphQL API Optimization & Batching queries', project: 'Atlas Core' },
-  { key: 'ATLAS-420', summary: 'Hotfix: Redis Cluster Failover y reconciliación', project: 'Atlas Core' },
-  { key: 'CORE-108', summary: 'Database Sharding Pipeline & índices transaccionales', project: 'Infrastructure' },
-  { key: 'CORE-111', summary: 'Billing Event Stream & integración de pagos NACHA', project: 'Payments' },
-  { key: 'ATLAS-398', summary: 'Sprint 24 Release Prep & pruebas end-to-end', project: 'Atlas Core' },
-];
-
 export const WORK_TYPES = [
   { value: 'Desarrollo', label: 'Desarrollo / Implementación', tone: 'info', icon: 'code' },
   { value: 'QA', label: 'Pruebas / QA', tone: 'neutral', icon: 'bug_report' },
@@ -22,62 +8,18 @@ export const WORK_TYPES = [
   { value: 'Soporte', label: 'Soporte / Hotfix', tone: 'danger', icon: 'build' },
 ];
 
-// Semillas iniciales demostrativas para el día activo
-const INITIAL_ACTIVITIES = [
-  {
-    id: 'act-1',
-    empId: 'MGH-1042',
-    date: '2025-04-15',
-    jiraKey: 'MSH-214',
-    jiraSummary: 'Implementación del backend relacional SQLite y sesiones',
-    hours: 3.5,
-    workType: 'Desarrollo',
-    description: 'Implementación de esquema ACID relacional en SQLite para timesheets y punches. Creación de controladores desacoplados con soporte multi-tenancy.',
-    files: [
-      { name: 'schema_architecture.png', size: '1.2 MB', type: 'image', url: 'assets/screenshots/schema.png' }
-    ],
-    links: [
-      { label: 'PR #42 - Backend SQLite Integration', url: 'https://github.com/mgh/payroll/pull/42' }
-    ],
-    createdAt: '2025-04-15T11:30:00Z'
-  },
-  {
-    id: 'act-2',
-    empId: 'MGH-1042',
-    date: '2025-04-15',
-    jiraKey: 'ATLAS-412',
-    jiraSummary: 'GraphQL API Optimization & Batching queries',
-    hours: 2.0,
-    workType: 'Pruebas',
-    description: 'Ejecución de suite de 18 pruebas automatizadas de cálculo fiscal y validación de transiciones de estados.',
-    files: [
-      { name: 'test_run_green.mp4', size: '4.8 MB', type: 'video', url: 'assets/videos/test_demo.mp4' }
-    ],
-    links: [
-      { label: 'Loom Demo - 18 Tests Passing', url: 'https://loom.com/share/demo-tests' }
-    ],
-    createdAt: '2025-04-15T16:00:00Z'
-  }
-];
-
 export default function DailyActivities({ f, setF, go, notify, empId }) {
   const DS = window.MyGlobalHubDesignSystem_2a603d || {};
   const { Button, IconButton, Badge, Card, ProgressBar, Icon } = DS;
   const A = typeof window !== 'undefined' ? window.MGH_ATT : null;
   const rbac = typeof window !== 'undefined' ? window.MGH_RBAC : null;
   const isSelf = rbac && (rbac.role === 'Employee' || rbac.role === 'Contractor');
-  const myEmpId = (rbac && rbac.me() ? rbac.me().emp : null) || 'MGH-1042';
+  const myEmpId = (rbac && rbac.me() ? rbac.me().emp : null) || null;
   const activeEmpId = isSelf ? myEmpId : (empId || myEmpId);
 
-  // Estado local sincronizado con localStorage para persistencia inmediata
-  const [activities, setActivities] = useState(() => {
-    try {
-      const saved = localStorage.getItem('mgh-activities');
-      return saved ? JSON.parse(saved) : INITIAL_ACTIVITIES;
-    } catch (e) {
-      return INITIAL_ACTIVITIES;
-    }
-  });
+  // Actividades del empleado activo; el backend es la única fuente de verdad
+  const [activities, setActivities] = useState([]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState(null);
@@ -96,40 +38,34 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
   const [linkLabelInput, setLinkLabelInput] = useState('');
   const [dragActive, setDragActive] = useState(false);
 
-  // Guardar actividades en localStorage
+  // Limpia datos de demostración que versiones anteriores guardaban en el navegador
   useEffect(() => {
-    try {
-      localStorage.setItem('mgh-activities', JSON.stringify(activities));
-    } catch (e) {
-      console.warn('Could not save activities to localStorage', e);
-    }
-  }, [activities]);
+    try { localStorage.removeItem('mgh-activities'); } catch (_) {}
+  }, []);
 
   const todayStr = (A && A.TODAY) || '2025-04-15';
   const activeDate = f && f.d ? f.d : todayStr;
 
-  // Sincronizar en caliente desde la base de datos backend al cambiar de fecha
+  // Cargar desde el backend las actividades del empleado activo para la fecha seleccionada
   useEffect(() => {
-    async function loadApi() {
-      if (window.api) {
-        try {
-          const res = await window.api.activities({ empId: activeEmpId, date: activeDate });
-          if (Array.isArray(res) && res.length > 0) {
-            setActivities(prev => {
-              const others = prev.filter(a => a.date !== activeDate);
-              return [...res, ...others];
-            });
-          }
-        } catch (_) {}
-      }
-    }
-    loadApi();
-  }, [activeDate]);
+    let cancel = false;
+    setActivities([]);
+    if (!activeEmpId || !window.api) return;
+    setLoadingActivities(true);
+    window.api.activities({ empId: activeEmpId, date: activeDate })
+      .then(res => { if (!cancel) setActivities(Array.isArray(res) ? res : []); })
+      .catch(e => {
+        console.warn('[DailyActivities] No se pudieron cargar las actividades:', e.message);
+        if (!cancel && notify) notify('No se pudieron cargar las actividades del día');
+      })
+      .finally(() => { if (!cancel) setLoadingActivities(false); });
+    return () => { cancel = true; };
+  }, [activeEmpId, activeDate]);
 
   // Filtrar actividades por fecha y empleado activo
   const dayActivities = useMemo(() => {
-    return activities.filter(act => act.date === activeDate);
-  }, [activities, activeDate]);
+    return activities.filter(act => act.date === activeDate && act.empId === activeEmpId);
+  }, [activities, activeDate, activeEmpId]);
 
   // Cómputo de horas del día
   const totalHours = useMemo(() => {
@@ -231,7 +167,7 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
           }
         }
 
-        if (!cancel && results.length > 0) {
+        if (!cancel) {
           setLiveJiraTickets(results);
         }
       } catch (err) {
@@ -248,14 +184,9 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
   }, [jiraSearch]);
 
   const filteredJira = useMemo(() => {
-    if (liveJiraTickets.length > 0) {
-      if (!jiraSearch.trim()) return liveJiraTickets.slice(0, 8);
-      const q = jiraSearch.toLowerCase();
-      return liveJiraTickets.filter(j => j.key.toLowerCase().includes(q) || j.summary.toLowerCase().includes(q));
-    }
-    if (!jiraSearch.trim()) return JIRA_BACKLOG.slice(0, 6);
+    if (!jiraSearch.trim()) return liveJiraTickets.slice(0, 8);
     const q = jiraSearch.toLowerCase();
-    return JIRA_BACKLOG.filter(j => j.key.toLowerCase().includes(q) || j.summary.toLowerCase().includes(q));
+    return liveJiraTickets.filter(j => j.key.toLowerCase().includes(q) || (j.summary || '').toLowerCase().includes(q));
   }, [jiraSearch, liveJiraTickets]);
 
   // Manejo de drag & drop de archivos
@@ -371,8 +302,12 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
   };
 
   // Guardar actividad
-  const handleSaveActivity = (e) => {
+  const handleSaveActivity = async (e) => {
     e.preventDefault();
+    if (!activeEmpId || !window.api) {
+      if (notify) notify('Tu usuario no tiene un empleado asociado; no se puede registrar la actividad');
+      return;
+    }
     const parsedHours = parseFloat(hours);
     if (isNaN(parsedHours) || parsedHours <= 0) {
       if (notify) notify('Ingresa una duración en horas válida (ej. 2.0)');
@@ -387,52 +322,47 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
       return;
     }
 
-    if (editingActivity) {
-      // Editar
-      setActivities(prev => prev.map(a => a.id === editingActivity.id ? {
-        ...a,
-        jiraKey: ticketKey,
-        jiraSummary: ticketSummary,
-        hours: parsedHours,
-        workType,
-        description,
-        files,
-        links
-      } : a));
-      if (notify) notify(`Actividad ${ticketKey} actualizada (${parsedHours}h)`);
-    } else {
-      // Crear
-      const newAct = {
-        id: 'act-' + Date.now(),
-        empId: activeEmpId,
-        date: activeDate,
-        jiraKey: ticketKey,
-        jiraSummary: ticketSummary,
-        hours: parsedHours,
-        workType,
-        description,
-        files,
-        links,
-        createdAt: new Date().toISOString()
-      };
-      setActivities(prev => [newAct, ...prev]);
-      if (window.api) {
-        window.api.createActivity(newAct).catch(e => console.warn('[DailyActivities] API create fallback:', e.message));
-      }
-      if (notify) notify(`Actividad ${ticketKey} registrada (+${parsedHours}h)`);
-    }
+    const payload = {
+      empId: editingActivity ? editingActivity.empId : activeEmpId,
+      date: editingActivity ? editingActivity.date : activeDate,
+      jiraKey: ticketKey,
+      jiraSummary: ticketSummary,
+      hours: parsedHours,
+      workType,
+      description,
+      files,
+      links
+    };
 
-    setDrawerOpen(false);
+    try {
+      if (editingActivity) {
+        // No hay endpoint de actualización: se reemplaza conservando el id
+        await window.api.deleteActivity(editingActivity.id);
+        const saved = await window.api.createActivity({ ...payload, id: editingActivity.id });
+        setActivities(prev => prev.map(a => a.id === editingActivity.id ? saved : a));
+        if (notify) notify(`Actividad ${ticketKey} actualizada (${parsedHours}h)`);
+      } else {
+        const saved = await window.api.createActivity(payload);
+        setActivities(prev => [saved, ...prev]);
+        if (notify) notify(`Actividad ${ticketKey} registrada (+${parsedHours}h)`);
+      }
+      setDrawerOpen(false);
+    } catch (err) {
+      console.warn('[DailyActivities] Error al guardar la actividad:', err.message);
+      if (notify) notify(`No se pudo guardar la actividad: ${err.message}`);
+    }
   };
 
   // Eliminar actividad
-  const handleDeleteActivity = (id, key) => {
-    if (window.confirm(`¿Eliminar la actividad ${key}? Se recalcularán las horas del día.`)) {
+  const handleDeleteActivity = async (id, key) => {
+    if (!window.confirm(`¿Eliminar la actividad ${key}? Se recalcularán las horas del día.`)) return;
+    try {
+      await window.api.deleteActivity(id);
       setActivities(prev => prev.filter(a => a.id !== id));
-      if (window.api) {
-        window.api.deleteActivity(id).catch(e => console.warn('[DailyActivities] API delete fallback:', e.message));
-      }
       if (notify) notify(`Actividad ${key} eliminada`);
+    } catch (err) {
+      console.warn('[DailyActivities] Error al eliminar la actividad:', err.message);
+      if (notify) notify(`No se pudo eliminar la actividad: ${err.message}`);
     }
   };
 
@@ -596,7 +526,7 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
               <Icon name="assignment" size={28} />
             </div>
             <div style={{ font: '600 15px/20px var(--font-sans)', color: 'var(--mgh-ink)' }}>
-              No hay actividades registradas para esta fecha
+              {loadingActivities ? 'Cargando actividades…' : !activeEmpId ? 'Tu usuario no tiene un empleado asociado' : 'No hay actividades registradas para esta fecha'}
             </div>
             <div style={{ font: '400 13px/18px var(--font-sans)', color: 'var(--mgh-ink-3)', maxWidth: 440 }}>
               Registra los tickets de Jira, tiempo dedicado y evidencias en las que trabajaste hoy para completar tu jornada.
