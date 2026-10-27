@@ -1,0 +1,1046 @@
+<!DOCTYPE html><html lang="en" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "on-background": "#131b2e",
+          "primary-fixed": "#d2e4ff",
+          "secondary-fixed-dim": "#71dba6",
+          "surface-dim": "#d2d9f4",
+          "outline": "#74777e",
+          "surface-variant": "#dae2fd",
+          "on-tertiary-container": "#be7e00",
+          "tertiary": "#180c00",
+          "on-secondary": "#ffffff",
+          "surface-container-highest": "#dae2fd",
+          "on-tertiary-fixed-variant": "#633f00",
+          "on-primary-container": "#768dad",
+          "surface-container": "#eaedff",
+          "tertiary-container": "#352000",
+          "tertiary-fixed-dim": "#ffb951",
+          "inverse-surface": "#283044",
+          "on-primary": "#ffffff",
+          "surface-bright": "#faf8ff",
+          "background": "#faf8ff",
+          "on-primary-fixed-variant": "#314865",
+          "surface-container-high": "#e2e7ff",
+          "on-secondary-fixed-variant": "#005235",
+          "secondary-fixed": "#8df7c1",
+          "on-secondary-fixed": "#002113",
+          "primary-fixed-dim": "#b0c8eb",
+          "on-tertiary-fixed": "#291800",
+          "error": "#ba1a1a",
+          "on-error-container": "#93000a",
+          "secondary-container": "#8af5be",
+          "on-error": "#ffffff",
+          "primary": "#000f22",
+          "inverse-on-surface": "#eef0ff",
+          "error-container": "#ffdad6",
+          "on-secondary-container": "#00714b",
+          "inverse-primary": "#b0c8eb",
+          "surface-container-low": "#f2f3ff",
+          "tertiary-fixed": "#ffddb3",
+          "on-surface-variant": "#43474d",
+          "primary-container": "#0a2540",
+          "surface-tint": "#49607e",
+          "on-surface": "#131b2e",
+          "on-tertiary": "#ffffff",
+          "surface": "#faf8ff",
+          "on-primary-fixed": "#001c37",
+          "secondary": "#006c47",
+          "outline-variant": "#c4c6ce",
+          "surface-container-lowest": "#ffffff"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "gutter-lg": "1.75rem",
+          "margin-lg": "2.5rem",
+          "space-md": "0.875rem",
+          "space-xl": "2rem",
+          "margin-sm": "1rem",
+          "space-2xl": "3rem",
+          "space-lg": "1.25rem",
+          "space-xs": "0.25rem",
+          "space-2xs": "0.125rem",
+          "gutter": "1.25rem",
+          "space-sm": "0.5rem",
+          "margin": "2rem",
+          "gutter-sm": "0.75rem"
+        },
+        "fontFamily": {
+          "headline-md": [
+            "Plus Jakarta Sans"
+          ],
+          "body-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "label-sm": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "label-md": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-xl": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-sm": [
+            "Plus Jakarta Sans"
+          ],
+          "body-md": [
+            "Plus Jakarta Sans"
+          ],
+          "tabular-num": [
+            "Plus Jakarta Sans"
+          ],
+          "display-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "body-sm": [
+            "Plus Jakarta Sans"
+          ]
+        },
+        "fontSize": {
+          "headline-md": [
+            "18px",
+            {
+              "lineHeight": "24px",
+              "letterSpacing": "-0.01em",
+              "fontWeight": "600"
+            }
+          ],
+          "body-lg": [
+            "15px",
+            {
+              "lineHeight": "22px",
+              "letterSpacing": "0em",
+              "fontWeight": "400"
+            }
+          ],
+          "label-sm": [
+            "11px",
+            {
+              "lineHeight": "14px",
+              "letterSpacing": "0.04em",
+              "fontWeight": "700"
+            }
+          ],
+          "headline-lg": [
+            "22px",
+            {
+              "lineHeight": "28px",
+              "letterSpacing": "-0.015em",
+              "fontWeight": "700"
+            }
+          ],
+          "label-md": [
+            "13px",
+            {
+              "lineHeight": "16px",
+              "letterSpacing": "0.01em",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-xl": [
+            "28px",
+            {
+              "lineHeight": "36px",
+              "letterSpacing": "-0.02em",
+              "fontWeight": "700"
+            }
+          ],
+          "headline-sm": [
+            "16px",
+            {
+              "lineHeight": "22px",
+              "letterSpacing": "-0.005em",
+              "fontWeight": "600"
+            }
+          ],
+          "body-md": [
+            "14px",
+            {
+              "lineHeight": "20px",
+              "letterSpacing": "0em",
+              "fontWeight": "400"
+            }
+          ],
+          "tabular-num": [
+            "13px",
+            {
+              "lineHeight": "18px",
+              "letterSpacing": "-0.01em",
+              "fontWeight": "500"
+            }
+          ],
+          "display-lg": [
+            "36px",
+            {
+              "lineHeight": "44px",
+              "letterSpacing": "-0.03em",
+              "fontWeight": "800"
+            }
+          ],
+          "body-sm": [
+            "13px",
+            {
+              "lineHeight": "18px",
+              "letterSpacing": "0.005em",
+              "fontWeight": "400"
+            }
+          ]
+        }
+      },
+    },
+  }</script></head><body class="bg-background font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-primary-container text-on-primary z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.12)]"><div class="flex flex-col flex-1 overflow-y-auto"><div class="px-space-lg pt-space-lg pb-space-md flex items-center gap-space-sm"><div class="w-9 h-9 rounded-lg bg-surface-container-lowest/10 flex items-center justify-center overflow-hidden flex-shrink-0"><img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBREWlxuhMr7RuNym1qnfbrHQ4GoixDpK7v5d5Mwn83FM_-S0MLdsx9u8VVRjwQ9HkoqjS4guzsllLx3LO4e7Mq85JA3FZpG9mMNklCJmzN6Hq1xapWKI-rXZM9NHaU10s_zKwluoM7Zl_l1AaZe7VrBEu090A8mAk0aCbEWQ-JYZo6i7Z5SH4zLRrBdkHLnt5qQormZ7fVuJXqeGh32Jcnt2EAFbwhNj1pCBkJ3emXuCJBGlDbx7kpXVQqrIq32R24Iw" alt="My Global Hub Logo" class="w-full h-full object-contain rounded-lg"></div><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-surface-bright tracking-tight leading-none">My Global Hub</span><span class="font-label-sm text-label-sm text-on-primary-container tracking-wider uppercase mt-space-2xs">Enterprise Payroll</span></div></div><div class="px-space-md mb-space-md"><div class="bg-surface-container-lowest/5 hover:bg-surface-container-lowest/10 rounded-xl p-space-sm transition-colors cursor-pointer"><div class="flex items-center justify-between gap-space-xs"><div class="flex flex-col min-w-0"><span class="font-label-sm text-label-sm text-on-primary-container uppercase">Operating Entity</span><span class="font-label-md text-label-md text-surface-bright truncate">My Global Hub Dominicana SRL</span><span class="font-body-sm text-body-sm text-primary-fixed-dim truncate">(Punta Cana Operations)</span></div><div class="flex flex-col items-end gap-space-2xs flex-shrink-0"><span class="px-space-xs py-space-2xs rounded-full bg-secondary-fixed-dim/20 text-secondary-fixed font-label-sm text-label-sm">Multi-HQ</span><span class="material-symbols-outlined text-on-primary-container text-headline-sm">unfold_more</span></div></div></div></div><nav class="flex-1 px-space-md space-y-space-md" data-active-classes="bg-surface-container-lowest/15 text-surface-bright font-headline-sm rounded-lg"><div class="space-y-space-2xs"><span class="px-space-sm font-label-sm text-label-sm text-on-primary-container uppercase tracking-wider block mb-space-xs">Workforce</span><a class="flex items-center justify-between px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="bi-weekly-approval-workspace" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-headline-sm">assignment_turned_in</span><span class="font-body-md text-body-md">Approval Workspace</span></div><span class="px-space-xs py-space-2xs rounded-full bg-tertiary-fixed-dim/25 text-tertiary-fixed font-label-sm text-label-sm">12 Pending</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="team-timesheets" href="#"><span class="material-symbols-outlined text-headline-sm">more_time</span><span class="font-body-md text-body-md">Team Timesheets</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="employee-directory" href="#"><span class="material-symbols-outlined text-headline-sm">badge</span><span class="font-body-md text-body-md">Employee Directory</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="schedule" href="#"><span class="material-symbols-outlined text-headline-sm">calendar_month</span><span class="font-body-md text-body-md">Schedule</span></a></div><div class="space-y-space-2xs"><span class="px-space-sm font-label-sm text-label-sm text-on-primary-container uppercase tracking-wider block mb-space-xs">Payroll &amp; Finance</span><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="pay-periods-and-processing" href="#"><span class="material-symbols-outlined text-headline-sm">payments</span><span class="font-body-md text-body-md">Pay Periods &amp; Processing</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="payroll-adjustments" href="#"><span class="material-symbols-outlined text-headline-sm">tune</span><span class="font-body-md text-body-md">Adjustments</span></a><a aria-current="page" class="flex items-center gap-space-sm px-space-sm py-space-sm transition-colors bg-surface-container-lowest/15 text-surface-bright font-headline-sm rounded-lg" data-path="pay-stubs" href="#"><span class="material-symbols-outlined text-headline-sm">receipt_long</span><span class="font-body-md text-body-md">Pay Stubs</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="banking-and-allocations" href="#"><span class="material-symbols-outlined text-headline-sm">account_balance</span><span class="font-body-md text-body-md">Banking &amp; Allocations</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="reports-and-register" href="#"><span class="material-symbols-outlined text-headline-sm">bar_chart_4_bars</span><span class="font-body-md text-body-md">Reports &amp; Register</span></a></div><div class="space-y-space-2xs"><span class="px-space-sm font-label-sm text-label-sm text-on-primary-container uppercase tracking-wider block mb-space-xs">Integrations</span><a class="flex items-center justify-between px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="jira-cloud-sync" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-headline-sm">sync_alt</span><span class="font-body-md text-body-md">Jira Cloud Sync</span></div><div class="flex items-center gap-space-2xs"><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-fixed opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-secondary-fixed-dim"></span></span><span class="font-label-sm text-label-sm text-secondary-fixed">2m</span></div></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="webhooks" href="#"><span class="material-symbols-outlined text-headline-sm">webhook</span><span class="font-body-md text-body-md">Webhooks</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="api-access" href="#"><span class="material-symbols-outlined text-headline-sm">terminal</span><span class="font-body-md text-body-md">API</span></a></div><div class="space-y-space-2xs"><span class="px-space-sm font-label-sm text-label-sm text-on-primary-container uppercase tracking-wider block mb-space-xs">System</span><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="organization" href="#"><span class="material-symbols-outlined text-headline-sm">corporate_fare</span><span class="font-body-md text-body-md">Organization</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="departments" href="#"><span class="material-symbols-outlined text-headline-sm">domain</span><span class="font-body-md text-body-md">Departments</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="approval-workflows" href="#"><span class="material-symbols-outlined text-headline-sm">schema</span><span class="font-body-md text-body-md">Approval Workflows</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="audit-logs" href="#"><span class="material-symbols-outlined text-headline-sm">history_edu</span><span class="font-body-md text-body-md">Audit Logs</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="settings" href="#"><span class="material-symbols-outlined text-headline-sm">settings</span><span class="font-body-md text-body-md">Settings</span></a></div></nav></div><div class="p-space-md border-t border-surface-container-lowest/10 bg-primary-container/90 flex flex-col gap-space-sm"><div class="flex items-center justify-between bg-surface-container-lowest/5 rounded-lg px-space-sm py-space-xs"><div class="flex items-center gap-space-xs"><span class="h-2 w-2 rounded-full bg-secondary-fixed"></span><span class="font-label-sm text-label-sm text-surface-bright">Jira Cloud: Active</span></div><span class="font-label-sm text-label-sm text-primary-fixed-dim">14 Syncing</span></div><div class="flex items-center justify-between pt-space-xs"><div class="flex items-center gap-space-sm min-w-0"><div class="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 bg-surface-container-highest flex items-center justify-center"><span class="material-symbols-outlined text-on-surface-variant text-headline-md">person</span></div><div class="flex flex-col min-w-0"><span class="font-headline-sm text-headline-sm text-surface-bright truncate leading-tight">Elena Rostova</span><span class="font-body-sm text-body-sm text-on-primary-container truncate">Lead PM &amp; Approver</span></div></div><div class="flex items-center gap-space-2xs text-on-primary-container"><a class="p-space-2xs hover:text-surface-bright hover:bg-surface-container-lowest/10 rounded-lg transition-colors" data-path="settings" href="#" title="Settings"><span class="material-symbols-outlined text-headline-sm">tune</span></a><a class="p-space-2xs hover:text-error-container hover:bg-surface-container-lowest/10 rounded-lg transition-colors" data-path="login" href="#" title="Log Out"><span class="material-symbols-outlined text-headline-sm">logout</span></a></div></div></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-space-lg flex items-center justify-between gap-space-md"><div class="flex-1 max-w-xl"><div class="relative flex items-center w-full"><span class="material-symbols-outlined absolute left-space-md text-outline pointer-events-none text-headline-sm">search</span><input class="w-full bg-surface-container-low/70 hover:bg-surface-container-low focus:bg-surface-container-lowest text-on-surface placeholder:text-outline font-body-sm text-body-sm rounded-lg pl-10 pr-12 py-space-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="Search employee ID, Jira issue, pay period, department..." type="text"><div class="absolute right-space-sm flex items-center pointer-events-none"><kbd class="font-label-sm text-label-sm bg-surface-container px-space-xs py-space-2xs rounded text-outline-variant">⌘K</kbd></div></div></div><div class="flex items-center gap-space-md"><div class="hidden xl:flex items-center gap-space-xs bg-surface-container-low px-space-md py-space-xs rounded-lg"><span class="material-symbols-outlined text-secondary text-headline-sm">event_available</span><div class="flex flex-col"><div class="flex items-center gap-space-xs"><span class="font-headline-sm text-headline-sm text-on-surface">PP-2025-08</span><span class="font-body-sm text-body-sm text-on-surface-variant">(Apr 01 - Apr 14, 2025)</span></div><span class="font-label-sm text-label-sm text-secondary font-bold uppercase tracking-wider">Supervisor Approval Phase</span></div></div><div class="flex items-center gap-space-xs"><button class="px-space-md py-space-xs rounded-lg font-headline-sm text-headline-sm bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors flex items-center gap-space-xs" type="button"><span class="material-symbols-outlined text-headline-sm">select_all</span><span class="">Bulk Actions</span></button><button class="px-space-md py-space-xs rounded-lg font-headline-sm text-headline-sm bg-primary-container text-on-primary hover:bg-primary-container/90 transition-colors flex items-center gap-space-xs" type="button"><span class="material-symbols-outlined text-headline-sm">download</span><span class="">Export Register</span></button></div><div class="h-6 w-px bg-surface-container-high"></div><div class="flex items-center gap-space-xs"><button class="relative p-space-xs rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors" title="Notifications" type="button"><span class="material-symbols-outlined text-headline-md">notifications</span><span class="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-error text-on-error font-label-sm text-label-sm">4</span></button><button class="p-space-xs rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors" title="Help Center" type="button"><span class="material-symbols-outlined text-headline-md">help</span></button></div><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1VuyEz2WC3Nk3zE-KOu1dA3JC1k0fIvKm9uLD3-hHgBZErhabd3haI1qxP_-I1FtW718_EBVfg52WKx614BalANBQk1AyllbcGh1h_0ZWdzAYiZrgFpdVL0hYZQUsUBWPC85wu_l9D10o9d9e80Jv6vvgAHwOnb_FmdrHwHwvMTC0DUp2eoqVuKyFWKpLCHC_FPYNsy2uNnb7oW6sRr-0G2gOwIktIpUT4cj5tBHRr-ysDgH8JzHDqZoemrbg_uroflErj3lHs8iA"></div></header><main class="relative pt-16 w-full min-h-screen bg-background"><div class="flex flex-col w-full">
+<div class="px-gutter-lg py-space-lg flex flex-col gap-space-lg max-w-[1720px] mx-auto w-full">
+<!-- Top Action Breadcrumb & Global Context -->
+<div class="bg-slate-900 text-white px-4 py-2 rounded-lg flex items-center justify-between text-xs tracking-wider font-semibold uppercase mb-4 border border-slate-700 shadow-sm"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm text-cyan-400">desktop_windows</span> <span class="">SCREEN: BRANDED PAY STUB &amp; BANKING ALLOCATIONS</span> <span class="text-slate-500">•</span> <span class="text-slate-300 font-normal">Module: Payroll Documents &amp; Statutory Records</span></div><div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-[10px] font-bold">OFFICIAL DISBURSEMENT</span> <span class="text-slate-400 text-[10px]">Ref: SCREEN-13</span></div></div><div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md bg-surface-container-lowest p-space-md rounded-xl shadow-sm">
+<div class="flex items-center gap-space-md flex-wrap">
+<div class="flex items-center gap-space-xs text-on-surface-variant font-label-md text-label-md">
+<span class="hover:text-primary cursor-pointer transition-colors">Payroll &amp; Finance</span>
+<span class="material-symbols-outlined text-headline-sm text-outline-variant">chevron_right</span>
+<span class="hover:text-primary cursor-pointer transition-colors">Pay Stubs</span>
+<span class="material-symbols-outlined text-headline-sm text-outline-variant">chevron_right</span>
+<span class="text-on-surface font-headline-sm">MGH-PS-2025-08-1042</span>
+</div>
+<span class="px-space-xs py-space-2xs rounded-full bg-secondary-fixed/20 text-secondary font-label-sm text-label-sm flex items-center gap-space-2xs">
+<span class="h-2 w-2 rounded-full bg-secondary"></span>
+          Paid • Disbursed Apr 20
+        </span>
+</div>
+<!-- Tab Switcher -->
+<div class="flex items-center gap-space-xs bg-surface-container-low p-space-2xs rounded-lg self-start lg:self-auto">
+<button class="px-space-md py-space-xs rounded font-headline-sm text-headline-sm transition-all duration-150 bg-surface-container-lowest text-primary shadow-sm flex items-center gap-space-xs" id="tab-btn-stub" onclick="switchTab('stub')" type="button">
+<span class="material-symbols-outlined text-headline-sm text-secondary">receipt_long</span>
+<span class="">Pay Stub (PDF Export)</span>
+</button>
+<button class="px-space-md py-space-xs rounded font-headline-sm text-headline-sm transition-all duration-150 text-on-surface-variant hover:text-on-surface flex items-center gap-space-xs" id="tab-btn-banking" onclick="switchTab('banking')" type="button">
+<span class="material-symbols-outlined text-headline-sm">account_balance</span>
+<span class="">Multi-Bank Allocation Settings</span>
+<span class="ml-space-2xs px-space-xs py-space-2xs bg-primary-fixed text-on-primary-fixed text-label-sm font-label-sm rounded-full">Split 80/20</span>
+</button>
+</div>
+</div>
+<!-- Quick Action Toolbar -->
+<div class="flex flex-wrap items-center justify-between gap-space-md bg-primary-container text-on-primary px-space-lg py-space-md rounded-xl shadow-md">
+<div class="flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-lg bg-surface-container-lowest/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary-fixed text-headline-lg">verified_user</span>
+</div>
+<div>
+<div class="font-headline-sm text-headline-sm text-surface-bright flex items-center gap-space-xs">
+            Official Bi-Weekly Pay Record
+            <span class="px-space-xs py-space-2xs text-label-sm font-label-sm bg-surface-container-lowest/20 rounded text-surface-bright">Dominican Republic Entity</span>
+</div>
+<div class="font-body-sm text-body-sm text-primary-fixed-dim">
+            Cycle PP-2025-08 • Batch: BATCH-2025-08B • Generated: Apr 20, 2025, 08:30 AST
+          </div>
+</div>
+</div>
+<div class="flex items-center gap-space-xs flex-wrap">
+<button class="px-space-md py-space-xs bg-surface-container-lowest/10 hover:bg-surface-container-lowest/20 text-surface-bright rounded-lg font-headline-sm text-headline-sm flex items-center gap-space-xs transition-colors" onclick="window.print()" type="button">
+<span class="material-symbols-outlined text-headline-sm">print</span>
+<span class="">Print Pay Stub</span>
+</button>
+<button class="px-space-md py-space-xs bg-surface-container-lowest/10 hover:bg-surface-container-lowest/20 text-surface-bright rounded-lg font-headline-sm text-headline-sm flex items-center gap-space-xs transition-colors" onclick="triggerEmailConfirmation()" type="button">
+<span class="material-symbols-outlined text-headline-sm">forward_to_inbox</span>
+<span class="">Send to Employee Email</span>
+</button>
+<button class="px-space-md py-space-xs bg-surface-container-lowest/10 hover:bg-surface-container-lowest/20 text-surface-bright rounded-lg font-headline-sm text-headline-sm flex items-center gap-space-xs transition-colors" onclick="switchTab('banking')" type="button">
+<span class="material-symbols-outlined text-headline-sm">account_balance_wallet</span>
+<span class="">View Banking Details</span>
+</button>
+<button class="px-space-md py-space-xs bg-secondary text-on-secondary hover:bg-secondary/90 rounded-lg font-headline-sm text-headline-sm flex items-center gap-space-xs shadow-sm transition-all hover:scale-[1.01]" onclick="downloadPdfMock()" type="button">
+<span class="material-symbols-outlined text-headline-sm">download</span>
+<span class="">Download PDF</span>
+</button>
+</div>
+</div>
+<!-- Status Toast Notice (Interactive) -->
+<div class="hidden transition-all duration-300 p-space-md bg-secondary-fixed/30 rounded-xl flex items-center justify-between text-secondary" id="action-toast">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined">check_circle</span>
+<span class="font-body-md text-body-md font-semibold" id="action-toast-text">Action completed successfully.</span>
+</div>
+<button class="material-symbols-outlined text-headline-sm" onclick="document.getElementById('action-toast').classList.add('hidden')">close</button>
+</div>
+<!-- ========================================================================= -->
+<!-- TAB 1: PAY STUB (PDF EXPORT READY) -->
+<!-- ========================================================================= -->
+<div class="flex flex-col gap-space-lg" id="tab-content-stub">
+<!-- Pay Stub Paper Document Card -->
+<div class="relative bg-surface-container-lowest rounded-xl shadow-xl overflow-hidden p-space-xl lg:p-space-2xl">
+<!-- Document Watermark & Background Decor -->
+<div class="pointer-events-none absolute -right-24 -top-24 w-96 h-96 rounded-full bg-primary-fixed/20 blur-3xl -z-0"></div>
+<div class="pointer-events-none absolute left-1/3 bottom-0 w-80 h-80 rounded-full bg-secondary-fixed/15 blur-3xl -z-0"></div>
+<!-- Official Header with Brand Asset Integration -->
+<div class="relative z-10 flex flex-col gap-space-md pb-space-lg mb-space-lg">
+<div class="flex flex-col md:flex-row md:items-start justify-between gap-space-lg">
+<!-- Company Letterhead & Identity Area -->
+<div class="flex flex-col sm:flex-row items-start gap-space-md">
+<div class="w-20 h-20 sm:w-20 sm:h-20 flex-shrink-0 bg-surface-container-low p-space-xs rounded-xl overflow-hidden flex items-center justify-center shadow-sm"><img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHGAiXdnxy-e5PeT2CfXoXyEG3ZXSHfGVs11W3a_tBkwyOTt5jkkzDTLdyNS7WTDtr6-bQF5j8ZHCO2ZWp6aXIkzvIQ6Z_vbf2jU6c-TbsN6Y18NBXx0cHVAmdR2ogSEKDr2pNxh_XxkENpXbHrmBbUBM_Ox0vkkO1RgEeMaRU8JZ7-a60iBO-6ixj1DPknYIhXtSFh4xebTXWm_0QwfX5AXCuXA898ikJsKhRBphFWIHyn-e_sUKswhQWglRuLEyBZQ" alt="My Global Hub Official Brand Logo" class="w-full h-full object-contain"></div>
+<div class="flex flex-col justify-center">
+<span class="font-display-lg text-headline-xl text-primary tracking-tight leading-tight">My Global Hub</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold tracking-widest uppercase">WHERE THE WORLD CONNECTS</span>
+<div class="mt-space-xs text-on-surface-variant font-body-sm text-body-sm space-y-space-2xs">
+<div class=""><strong class="text-on-surface">RNC:</strong> 133-474018 • Multi-HQ Legal Division</div>
+<div class="">Punta Cana, República Dominicana 23000</div>
+<div class="">Tel: +1 (256) 417-2352 • administrador@myglobalhub.net</div>
+<div class="text-secondary font-medium">www.myglobalhub.net</div>
+</div>
+</div>
+</div>
+<!-- Pay Stub Meta Badge Box -->
+<div class="bg-surface-container-low p-space-md rounded-xl flex flex-col justify-between min-w-[280px]">
+<div class="flex items-center justify-between mb-space-sm">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Payroll Document</span>
+<span class="px-space-xs py-space-2xs bg-secondary-container text-on-secondary-container font-label-sm text-label-sm rounded uppercase font-bold">Official Copy</span>
+</div>
+<div class="space-y-space-xs font-body-sm text-body-sm">
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Pay Stub #:</span>
+<span class="font-tabular-num text-tabular-num font-bold text-on-surface">MGH-PS-2025-08-1042</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Payroll Batch:</span>
+<span class="font-tabular-num text-tabular-num font-semibold text-on-surface">BATCH-2025-08B</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Pay Period:</span>
+<span class="font-tabular-num text-tabular-num text-on-surface">Apr 01 - Apr 14, 2025</span>
+</div>
+<div class="flex justify-between bg-surface-container p-space-2xs rounded">
+<span class="text-on-surface font-semibold">Pay Date:</span>
+<span class="font-tabular-num text-tabular-num font-bold text-secondary">Apr 20, 2025</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Employee Info Bar -->
+<div class="relative z-10 bg-primary-container text-on-primary rounded-xl p-space-md mb-space-lg shadow-sm">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-space-md items-center">
+<div class="flex items-center gap-space-sm col-span-1 lg:col-span-2">
+<div class="w-12 h-12 rounded-xl bg-surface-container-lowest/15 flex items-center justify-center text-surface-bright flex-shrink-0">
+<span class="material-symbols-outlined text-headline-xl">person</span>
+</div>
+<div class="min-w-0">
+<div class="font-headline-lg text-headline-md text-surface-bright truncate leading-tight">Carlos Mendez</div>
+<div class="font-body-sm text-body-sm text-primary-fixed-dim">Senior Full Stack Developer</div>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-primary-container uppercase">Employee ID</span>
+<span class="font-tabular-num text-tabular-num text-surface-bright font-bold">MGH-1042</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-primary-container uppercase">Department</span>
+<span class="font-body-md text-body-md text-surface-bright">Engineering • Cloud</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-primary-container uppercase">Direct Manager</span>
+<span class="font-body-md text-body-md text-surface-bright flex items-center gap-space-2xs">
+<span class="material-symbols-outlined text-headline-sm text-secondary-fixed">verified</span>
+                Elena Rostova
+              </span>
+</div>
+</div>
+</div>
+<!-- 3-Column Core Pay Architecture: Earnings | Deductions | Net Pay Card -->
+<div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-space-lg mb-space-lg">
+<!-- Earnings Breakdown (5 cols) -->
+<div class="lg:col-span-5 bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between pb-space-xs mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-headline-md">attach_money</span>
+<span class="font-headline-md text-headline-sm text-on-surface uppercase tracking-wide">Earnings Breakdown</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold">USD Currency</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left font-body-sm text-body-sm">
+<thead>
+<tr class="text-on-surface-variant font-label-sm text-label-sm uppercase bg-surface-container-low">
+<th class="py-space-xs px-space-sm rounded-l">Pay Type</th>
+<th class="py-space-xs px-space-xs text-right">Hours</th>
+<th class="py-space-xs px-space-xs text-right">Rate</th>
+<th class="py-space-xs px-space-xs text-right">Current</th>
+<th class="py-space-xs px-space-sm text-right rounded-r">YTD</th>
+</tr>
+</thead>
+<tbody class="divide-y-0">
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-space-sm px-space-sm font-medium text-on-surface">Regular Hours</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">80.00</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">$50.00</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num font-semibold text-on-surface">$4,000.00</td>
+<td class="py-space-sm px-space-sm text-right font-tabular-num text-tabular-num text-on-surface-variant">$32,000.00</td>
+</tr>
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-space-sm px-space-sm font-medium text-on-surface flex items-center gap-space-2xs">
+<span class="">Overtime (1.5x)</span>
+<span class="material-symbols-outlined text-headline-sm text-secondary" title="Approved Jira Sprint Overtime">bolt</span>
+</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">6.50</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">$75.00</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num font-semibold text-on-surface">$487.50</td>
+<td class="py-space-sm px-space-sm text-right font-tabular-num text-tabular-num text-on-surface-variant">$2,437.50</td>
+</tr>
+<tr class="hover:bg-surface-container-low/60 transition-colors text-on-surface-variant">
+<td class="py-space-sm px-space-sm">Holiday Premium</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">0.00</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">$100.00</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">$0.00</td>
+<td class="py-space-sm px-space-sm text-right font-tabular-num text-tabular-num">$0.00</td>
+</tr>
+<tr class="hover:bg-surface-container-low/60 transition-colors text-on-surface-variant">
+<td class="py-space-sm px-space-sm">Bonuses / Stipend</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">$0.00</td>
+<td class="py-space-sm px-space-sm text-right font-tabular-num text-tabular-num">$0.00</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Gross Footer -->
+<div class="mt-space-md p-space-sm bg-surface-container-low rounded-lg flex items-center justify-between">
+<div>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">Total Gross Earnings</span>
+<span class="block font-label-sm text-label-sm text-on-surface-variant">YTD Cumulative: $34,437.50</span>
+</div>
+<span class="font-headline-lg text-headline-lg font-bold text-primary font-tabular-num text-tabular-num">$4,487.50</span>
+</div>
+</div>
+<!-- Taxes & Statutory Deductions (4 cols) -->
+<div class="lg:col-span-4 bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between pb-space-xs mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-error text-headline-md">shield_with_heart</span>
+<span class="font-headline-md text-headline-sm text-on-surface uppercase tracking-wide">Deductions &amp; Withholdings</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold">Statutory (DR)</span>
+</div>
+<div class="space-y-space-xs font-body-sm text-body-sm">
+<div class="flex items-center justify-between p-space-xs hover:bg-surface-container-low rounded transition-colors">
+<div>
+<div class="font-medium text-on-surface">Health Insurance (ARS)</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Employee 3.04% mandatory</div>
+</div>
+<span class="font-tabular-num text-tabular-num font-semibold text-on-surface">-$134.62</span>
+</div>
+<div class="flex items-center justify-between p-space-xs hover:bg-surface-container-low rounded transition-colors">
+<div>
+<div class="font-medium text-on-surface">Pension Fund (AFP)</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Employee 2.87% social fund</div>
+</div>
+<span class="font-tabular-num text-tabular-num font-semibold text-on-surface">-$128.79</span>
+</div>
+<div class="flex items-center justify-between p-space-xs hover:bg-surface-container-low rounded transition-colors">
+<div>
+<div class="font-medium text-on-surface">Income Tax Withholding (ISR)</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">DGII Progressive bracket</div>
+</div>
+<span class="font-tabular-num text-tabular-num font-semibold text-on-surface">-$421.10</span>
+</div>
+</div>
+</div>
+<!-- Deductions Footer -->
+<div class="mt-space-md p-space-sm bg-error-container/40 rounded-lg flex items-center justify-between">
+<div>
+<span class="font-headline-sm text-headline-sm text-on-error-container font-bold">Total Deductions</span>
+<span class="block font-label-sm text-label-sm text-on-error-container/80">3 statutory line items</span>
+</div>
+<span class="font-headline-lg text-headline-lg font-bold text-on-error-container font-tabular-num text-tabular-num">-$684.51</span>
+</div>
+</div>
+<!-- Highlight Net Pay Hero Card (3 cols) -->
+<div class="lg:col-span-3 bg-gradient-to-br from-primary-container via-primary-container to-primary text-on-primary rounded-xl p-space-lg shadow-lg flex flex-col justify-between relative overflow-hidden">
+<div class="absolute -right-12 -bottom-12 w-40 h-40 bg-secondary-fixed/15 rounded-full blur-2xl pointer-events-none"></div>
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary-fixed font-bold">Disbursement</span>
+<span class="material-symbols-outlined text-secondary-fixed">payments</span>
+</div>
+<div class="mt-space-sm font-headline-sm text-headline-sm text-primary-fixed-dim">Net Pay Allocation</div>
+<div class="mt-space-xs font-headline-xl text-headline-xl font-extrabold text-surface-bright tracking-tight font-tabular-num truncate" title="$3,802.99">$3,802.99</div>
+<div class="font-label-sm text-label-sm text-secondary-fixed font-semibold mt-space-2xs">
+                USD • 100% Fully Disbursed
+              </div>
+<!-- Inline Progress Gauge -->
+<div class="mt-space-md">
+<div class="flex justify-between text-label-sm font-label-sm text-primary-fixed-dim mb-space-2xs">
+<span class="">Net Efficiency</span>
+<span class="text-surface-bright font-bold">84.75% of Gross</span>
+</div>
+<div class="w-full bg-surface-container-lowest/20 h-2 rounded-full overflow-hidden flex">
+<div class="bg-secondary-fixed h-full rounded-full transition-all duration-500" style="width: 84.75%"></div>
+<div class="bg-error-container h-full rounded-full" style="width: 15.25%"></div>
+</div>
+<div class="flex justify-between items-center text-label-sm font-label-sm text-primary-fixed-dim mt-space-2xs">
+<span class="">Net: $3,802.99</span>
+<span class="">Taxes: $684.51</span>
+</div>
+</div>
+</div>
+<div class="mt-space-lg pt-space-sm bg-surface-container-lowest/10 rounded-lg p-space-sm">
+<div class="flex items-center gap-space-xs text-surface-bright font-label-md text-label-md">
+<span class="material-symbols-outlined text-secondary-fixed text-headline-sm">check_circle</span>
+<span class="">ACH &amp; Local Wire Cleared</span>
+</div>
+<p class="font-body-sm text-body-sm text-primary-fixed-dim mt-space-2xs">
+                Bank trace #TXN-99418491-CHASUS settled without exceptions.
+              </p>
+</div>
+</div>
+</div>
+<!-- 2-Column Split: Employer Statutory Contributions & PTO Bank -->
+<div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-space-lg mb-space-lg">
+<!-- Employer Contributions (Non-taxable benefit) -->
+<div class="bg-surface-container-low rounded-xl p-space-md shadow-sm">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-headline-md">corporate_fare</span>
+<span class="font-headline-md text-headline-sm text-on-surface">Employer Statutory Contributions</span>
+</div>
+<span class="font-label-sm text-label-sm bg-surface-container text-on-surface-variant px-space-xs py-space-2xs rounded">Company Paid</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-space-md">
+              Statutory social securities covered 100% by My Global Hub Dominicana SRL on behalf of employee:
+            </p>
+<div class="grid grid-cols-3 gap-space-sm">
+<div class="bg-surface-container-lowest p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Employer Health (7.09%)</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold font-tabular-num text-tabular-num mt-space-2xs">$318.16</span>
+<span class="font-label-sm text-label-sm text-secondary font-medium">ARS Regular</span>
+</div>
+<div class="bg-surface-container-lowest p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Employer Pension (7.10%)</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold font-tabular-num text-tabular-num mt-space-2xs">$318.61</span>
+<span class="font-label-sm text-label-sm text-secondary font-medium">AFP Fondo</span>
+</div>
+<div class="bg-surface-container-lowest p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Work Risk (SRL)</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold font-tabular-num text-tabular-num mt-space-2xs">$49.36</span>
+<span class="font-label-sm text-label-sm text-secondary font-medium">1.10% Coverage</span>
+</div>
+</div>
+<div class="mt-space-sm text-right font-label-sm text-label-sm text-on-surface-variant">
+              Total Employer Contribution: <strong class="text-on-surface font-tabular-num text-tabular-num">$686.13</strong>
+</div>
+</div>
+<!-- PTO & Time-off Balance -->
+<div class="bg-surface-container-low rounded-xl p-space-md shadow-sm">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-headline-md">beach_access</span>
+<span class="font-headline-md text-headline-sm text-on-surface">PTO &amp; Leave Ledger</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Good Standing</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-space-md">
+              Balances as of Apr 14, 2025 pay cycle close. Accruals credited bi-weekly:
+            </p>
+<div class="grid grid-cols-3 gap-space-sm">
+<div class="bg-surface-container-lowest p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Vacation Available</span>
+<span class="font-headline-lg text-headline-lg text-primary font-bold font-tabular-num text-tabular-num mt-space-2xs">14.5</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Days Accrued</span>
+</div>
+<div class="bg-surface-container-lowest p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Sick Leave</span>
+<span class="font-headline-lg text-headline-lg text-primary font-bold font-tabular-num text-tabular-num mt-space-2xs">8.0</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Days Paid</span>
+</div>
+<div class="bg-surface-container-lowest p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Personal Time</span>
+<span class="font-headline-lg text-headline-lg text-primary font-bold font-tabular-num text-tabular-num mt-space-2xs">2.0</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Days Floating</span>
+</div>
+</div>
+<div class="mt-space-sm text-right font-label-sm text-label-sm text-secondary">
+              Next scheduled accrual: <span class="font-semibold">+0.62 days</span> on May 01, 2025
+            </div>
+</div>
+</div>
+<!-- Direct Deposit Allocation (Multi-Bank Section) -->
+<div class="relative z-10 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm mb-space-lg">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-xs pb-space-sm mb-space-md">
+<div>
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-headline-md">alt_route</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Direct Deposit Multi-Bank Distribution</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                Disbursement split automatically routed per employee multi-currency banking profile.
+              </p>
+</div>
+<button class="text-secondary hover:text-secondary/80 font-headline-sm text-headline-sm flex items-center gap-space-2xs transition-colors self-start sm:self-auto" onclick="switchTab('banking')" type="button">
+<span class="">Modify Splits</span>
+<span class="material-symbols-outlined text-headline-sm">edit</span>
+</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<!-- Primary Account Card -->
+<div class="bg-surface-container-low p-space-md rounded-xl flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container-lowest flex items-center justify-center text-primary font-bold shadow-sm">
+                    BHD
+                  </div>
+<div>
+<div class="font-headline-sm text-headline-sm text-on-surface font-bold">Banco BHD León</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Local Checking Account • Ending in ••••8491</div>
+</div>
+</div>
+<span class="px-space-xs py-space-2xs bg-secondary-fixed/30 text-secondary font-label-sm text-label-sm rounded-full font-bold">
+                  80% Allocation
+                </span>
+</div>
+<div class="mt-space-md pt-space-sm bg-surface-container-lowest/60 rounded-lg p-space-sm flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Deposited Amount</span>
+<div class="font-headline-lg text-headline-lg font-bold text-on-surface font-tabular-num text-tabular-num">$3,042.39 USD</div>
+</div>
+<div class="text-right">
+<span class="px-space-xs py-space-2xs bg-secondary-container text-on-secondary-container rounded font-label-sm text-label-sm font-semibold">
+                    ACH Confirmed
+                  </span>
+<div class="font-label-sm text-label-sm text-on-surface-variant mt-space-2xs font-tabular-num text-tabular-num">Batch ID #BHD-8823</div>
+</div>
+</div>
+</div>
+<!-- Secondary Account Card -->
+<div class="bg-surface-container-low p-space-md rounded-xl flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-primary text-on-primary flex items-center justify-center font-bold shadow-sm">
+                    JPM
+                  </div>
+<div>
+<div class="font-headline-sm text-headline-sm text-on-surface font-bold">Chase Bank USA, N.A.</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">US Savings • Ending in ••••2910 • SWIFT: CHASUS33</div>
+</div>
+</div>
+<span class="px-space-xs py-space-2xs bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm rounded-full font-bold">
+                  20% Allocation
+                </span>
+</div>
+<div class="mt-space-md pt-space-sm bg-surface-container-lowest/60 rounded-lg p-space-sm flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Deposited Amount</span>
+<div class="font-headline-lg text-headline-lg font-bold text-on-surface font-tabular-num text-tabular-num">$760.60 USD</div>
+</div>
+<div class="text-right">
+<span class="px-space-xs py-space-2xs bg-secondary-container text-on-secondary-container rounded font-label-sm text-label-sm font-semibold">
+                    Wire Cleared
+                  </span>
+<div class="font-label-sm text-label-sm text-on-surface-variant mt-space-2xs font-tabular-num text-tabular-num">FEDWIRE #US-042119</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Security, QR & Audit Verification Footer with Letterhead Aesthetic -->
+<div class="relative z-10 bg-surface-container-low rounded-xl p-space-md flex flex-col md:flex-row items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<!-- Inline SVG QR Code Generator Mock -->
+<div class="w-20 h-20 bg-surface-container-lowest p-space-xs rounded-lg shadow-sm flex items-center justify-center flex-shrink-0">
+<svg class="w-full h-full text-primary" fill="currentColor" viewBox="0 0 100 100">
+<!-- Outer Corners -->
+<rect height="30" rx="4" width="30" x="0" y="0"></rect>
+<rect fill="white" height="18" rx="2" width="18" x="6" y="6"></rect>
+<rect height="10" rx="1" width="10" x="10" y="10"></rect>
+<rect height="30" rx="4" width="30" x="70" y="0"></rect>
+<rect fill="white" height="18" rx="2" width="18" x="76" y="6"></rect>
+<rect height="10" rx="1" width="10" x="80" y="10"></rect>
+<rect height="30" rx="4" width="30" x="0" y="70"></rect>
+<rect fill="white" height="18" rx="2" width="18" x="6" y="76"></rect>
+<rect height="10" rx="1" width="10" x="10" y="80"></rect>
+<!-- Data Matrix Dots -->
+<rect height="8" width="8" x="36" y="8"></rect>
+<rect height="8" width="8" x="50" y="8"></rect>
+<rect height="6" width="14" x="36" y="22"></rect>
+<rect height="8" width="8" x="8" y="36"></rect>
+<rect height="14" width="6" x="22" y="36"></rect>
+<rect height="12" width="12" x="36" y="36"></rect>
+<rect height="8" width="8" x="54" y="36"></rect>
+<rect height="6" width="14" x="68" y="36"></rect>
+<rect height="8" width="6" x="88" y="36"></rect>
+<rect height="8" width="8" x="36" y="54"></rect>
+<rect height="6" width="14" x="50" y="54"></rect>
+<rect height="10" width="10" x="70" y="54"></rect>
+<rect height="12" width="8" x="86" y="50"></rect>
+<rect height="8" width="10" x="36" y="70"></rect>
+<rect height="14" width="8" x="52" y="70"></rect>
+<rect height="6" width="12" x="66" y="72"></rect>
+<rect height="10" width="10" x="84" y="70"></rect>
+<rect height="8" width="8" x="70" y="86"></rect>
+<rect height="8" width="10" x="84" y="86"></rect>
+<rect height="8" width="10" x="36" y="86"></rect>
+</svg>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface">Electronically Certified by My Global Hub Payroll System</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Punta Cana, República Dominicana • Legal Tax Compliant ISO-27001 Certified</span>
+<div class="flex items-center gap-space-xs mt-space-2xs">
+<span class="font-label-sm text-label-sm text-outline-variant font-mono">HASH: 9bf2-4ca8-e190-78a01f789e023f994</span>
+<button class="text-secondary hover:text-secondary/70 material-symbols-outlined text-headline-sm" onclick="navigator.clipboard.writeText('9bf2-4ca8-e190-78a01f789e023f994'); showToast('Verification Hash copied to clipboard!')" title="Copy Hash">
+                  content_copy
+                </button>
+</div>
+</div>
+</div>
+<div class="flex flex-col sm:items-end gap-space-2xs text-right">
+<div class="flex items-center gap-space-xs">
+<span class="h-2.5 w-2.5 rounded-full bg-secondary"></span>
+<span class="font-label-sm text-label-sm text-on-surface font-bold uppercase tracking-wider">Blockchain Audit Verified</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Certificate Timestamp: 2025-04-20 12:30:00 UTC</span>
+<div class="font-body-sm text-body-sm text-secondary font-medium">Elena Rostova, Authorized Signatory</div>
+</div>
+</div>
+</div>
+<!-- Additional Visual Letterhead Reference Card -->
+<div class="bg-surface-container-low p-space-md rounded-xl flex flex-col md:flex-row items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="w-16 h-20 rounded bg-surface-container-lowest overflow-hidden shadow-sm flex items-center justify-center p-1 flex-shrink-0">
+<img alt="Official My Global Hub Corporate Stationery Reference Letterhead" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuARfByVaeud3iH0ASERuLtthsLQPxJAdJZqh7Kav09_915zK2xWxJADO5unVeURErFU4NfL75fG4cpERbd1Y-PzQp__TTfLUuJZ9CO9aqzrn_rBYnpaSxqv6YHlrxNrP1-yISlTEmYHNciz6r-yph1V2N37pSHBsqiHrdUI57KQ-1pGqmzk3jPEJYxM8_3O18gFdG4y_GtqRo_mItFZylq2783oShkqB0S9aT6ukWtnoVcOUpbjI-2Pj-FEMGiOOHwGmw">
+</div>
+<div>
+<div class="font-headline-sm text-headline-sm text-on-surface">Official Stationery Validation Reference</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">
+              This pay record corresponds to certified Letterhead format https://lh3.googleusercontent.com/aida-public/AB6AXuAnuR_2VojInPeh8y3TRddPzW0FuY7dG1CzSA57hfnpTG5UmJduDJ5k0vMTotppvfAaDQDEJfhrmNvkWn9RJrJMQK15D1W-9LKifZV4XXvBmSPZ6lEdCL6uo8NnooRD-304PmOAkOoJs9iy4hDzAGKkWEHw8sAYYahyEM8in3FdtVkG-Qmjz_i9eikF4JuX1EABQB1kzkQXea7WkYFkmHlyajllQV49fpc2TrIVqiXPgBmP40noej5EY5K_ePONTYaUuw registered in Santo Domingo &amp; Punta Cana.
+            </div>
+</div>
+</div>
+<div class="flex items-center gap-space-sm">
+<span class="font-label-sm text-label-sm text-secondary bg-secondary-fixed/20 px-space-sm py-space-xs rounded-full font-bold">Standard Form Approved</span>
+</div>
+</div>
+</div>
+<!-- ========================================================================= -->
+<!-- TAB 2: MULTI-BANK ALLOCATION SETTINGS (EDITOR & CONFIGURATION) -->
+<!-- ========================================================================= -->
+<div class="hidden flex-col gap-space-lg" id="tab-content-banking">
+<!-- Settings Header Banner -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
+<div>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary font-bold">Financial Preferences</span>
+<h2 class="font-headline-xl text-headline-xl text-primary font-bold">Multi-Bank Direct Deposit Configuration</h2>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl mt-space-2xs">
+            Configure how salary disbursements are partitioned across domestic accounts (DOP/USD in the Dominican Republic) and international cross-border accounts (US, Europe, Latin America).
+          </p>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="px-space-md py-space-xs rounded-lg font-headline-sm text-headline-sm bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors" onclick="resetBankSettings()" type="button">
+            Reset Changes
+          </button>
+<button class="px-space-lg py-space-xs rounded-lg font-headline-sm text-headline-sm bg-secondary text-on-secondary hover:bg-secondary/90 transition-all shadow-sm flex items-center gap-space-xs" onclick="saveBankSettings()" type="button">
+<span class="material-symbols-outlined text-headline-sm">save</span>
+<span class="">Save Allocation Rules</span>
+</button>
+</div>
+</div>
+<!-- Deposit Strategy Selector -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+<label class="cursor-pointer bg-surface-container-lowest p-space-md rounded-xl shadow-sm hover:shadow-md transition-all flex items-start gap-space-sm">
+<input class="mt-1 accent-secondary h-4 w-4" name="deposit-strategy" onchange="updateAllocationStrategy(this.value)" type="radio" value="100">
+<div>
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold">100% Single Deposit</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-space-2xs">
+              All earnings wired directly into one primary designated domestic or international checking account.
+            </div>
+</div>
+</label>
+<label class="cursor-pointer bg-surface-container-lowest p-space-md rounded-xl shadow-md transition-all flex items-start gap-space-sm bg-secondary-fixed/5">
+<input checked="" class="mt-1 accent-secondary h-4 w-4" name="deposit-strategy" onchange="updateAllocationStrategy(this.value)" type="radio" value="split">
+<div>
+<div class="font-headline-sm text-headline-sm text-secondary font-bold flex items-center gap-space-xs">
+<span class="">Split Deposit (% Ratio)</span>
+<span class="px-space-xs py-space-2xs text-label-sm font-label-sm bg-secondary-fixed text-on-secondary-fixed rounded">Active</span>
+</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-space-2xs">
+              Distribute pay mathematically across two or three verified accounts using custom percentages.
+            </div>
+</div>
+</label>
+<label class="cursor-pointer bg-surface-container-lowest p-space-md rounded-xl shadow-sm hover:shadow-md transition-all flex items-start gap-space-sm">
+<input class="mt-1 accent-secondary h-4 w-4" name="deposit-strategy" onchange="updateAllocationStrategy(this.value)" type="radio" value="fixed">
+<div>
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold">Fixed Amount + Remainder</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-space-2xs">
+              Send a fixed dollar threshold (e.g. $1,000 to Savings) with remainder routed to Primary checking.
+            </div>
+</div>
+</label>
+</div>
+<!-- Split Range Visualizer -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm" id="split-slider-container">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-headline-md">pie_chart</span>
+<span class="font-headline-md text-headline-sm text-on-surface">Interactive Split Allocation Slider</span>
+</div>
+<div class="font-headline-sm text-headline-sm text-primary">
+            Primary: <span class="font-bold text-secondary" id="label-primary-pct">80%</span> • Secondary: <span class="font-bold text-primary" id="label-secondary-pct">20%</span>
+</div>
+</div>
+<input class="w-full h-3 bg-surface-container-high rounded-lg appearance-none cursor-pointer accent-secondary" id="split-slider" max="90" min="10" oninput="adjustSplits(this.value)" step="5" type="range" value="80">
+<div class="flex justify-between items-center text-label-sm font-label-sm text-on-surface-variant mt-space-xs">
+<span class="">10% Local / 90% Int'l</span>
+<span class="">50% Equal Balance</span>
+<span class="">90% Local / 10% Int'l</span>
+</div>
+<div class="mt-space-md grid grid-cols-1 sm:grid-cols-2 gap-space-md pt-space-sm bg-surface-container-low p-space-sm rounded-lg">
+<div class="flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Estimated to Banco BHD León (Primary):</span>
+<span class="font-headline-sm text-headline-sm font-bold text-secondary font-tabular-num text-tabular-num" id="calc-primary-amt">$3,042.39</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Estimated to Chase Bank US (Secondary):</span>
+<span class="font-headline-sm text-headline-sm font-bold text-primary font-tabular-num text-tabular-num" id="calc-secondary-amt">$760.60</span>
+</div>
+</div>
+</div>
+<!-- Bank Account Cards & Inputs -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-space-lg">
+<!-- Account 1 Form -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between pb-space-sm mb-space-md">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed/40 text-secondary font-bold flex items-center justify-center">1</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Primary Deposit Account (Local DR)</h3>
+<span class="font-label-sm text-label-sm text-secondary font-semibold">Default Operating Currency: USD / DOP</span>
+</div>
+</div>
+<span class="px-space-xs py-space-2xs bg-secondary-container text-on-secondary-container rounded font-label-sm text-label-sm font-bold">Verified ACH</span>
+</div>
+<div class="space-y-space-md">
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface uppercase mb-space-2xs">Bank Institution Name</label>
+<input class="w-full bg-surface-container-low text-on-surface px-space-md py-space-sm rounded-lg font-body-sm text-body-sm focus:outline-none focus:ring-2 focus:ring-secondary/40" type="text" value="Banco BHD León">
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface uppercase mb-space-2xs">Account Type</label>
+<select class="w-full bg-surface-container-low text-on-surface px-space-md py-space-sm rounded-lg font-body-sm text-body-sm focus:outline-none focus:ring-2 focus:ring-secondary/40">
+<option selected="">Checking (Corriente)</option>
+<option>Savings (Ahorros USD)</option>
+<option>Savings (Ahorros DOP)</option>
+</select>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface uppercase mb-space-2xs">Account Number / Masked</label>
+<input class="w-full bg-surface-container-low text-on-surface px-space-md py-space-sm rounded-lg font-body-sm text-body-sm font-tabular-num text-tabular-num focus:outline-none focus:ring-2 focus:ring-secondary/40" type="text" value="•••• •••• •••• 8491">
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface uppercase mb-space-2xs">Routing Transit / ABA</label>
+<input class="w-full bg-surface-container-low text-on-surface px-space-md py-space-sm rounded-lg font-body-sm text-body-sm font-tabular-num text-tabular-num focus:outline-none focus:ring-2 focus:ring-secondary/40" type="text" value="BHDLDO22">
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface uppercase mb-space-2xs">Dominican Republic IBAN</label>
+<input class="w-full bg-surface-container-low text-on-surface px-space-md py-space-sm rounded-lg font-body-sm text-body-sm font-tabular-num text-tabular-num focus:outline-none focus:ring-2 focus:ring-secondary/40" type="text" value="DO28 BHDL 0000 0001 2345 8491">
+</div>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface uppercase mb-space-2xs">Split Ratio Percentage</label>
+<div class="relative">
+<input class="w-full bg-surface-container-low text-on-surface px-space-md py-space-sm rounded-lg font-body-sm text-body-sm font-tabular-num text-tabular-num pr-10 focus:outline-none focus:ring-2 focus:ring-secondary/40" id="input-account-1-pct" max="100" min="0" type="number" value="80">
+<span class="absolute right-space-md top-2.5 font-bold text-on-surface-variant">%</span>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-space-lg pt-space-md flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm">
+<span class="flex items-center gap-space-2xs text-secondary">
+<span class="material-symbols-outlined text-headline-sm">lock</span>
+              Encrypted via AES-256 GCM
+            </span>
+<span class="font-label-sm text-label-sm text-outline">Updated 14 days ago</span>
+</div>
+</div>
+<!-- Account 2 Form -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between pb-space-sm mb-space-md">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-primary-fixed text-primary font-bold flex items-center justify-center">2</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Secondary Account (International Wire)</h3>
+<span class="font-label-sm text-label-sm text-primary-fixed-variant font-semibold">USD Cross-Border Wire Clearing</span>
+</div>
+</div>
+<span class="px-space-xs py-space-2xs bg-primary-fixed/40 text-primary font-label-sm text-label-sm rounded font-bold">SWIFT Ready</span>
+</div>
+<div class="space-y-space-md">
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface uppercase mb-space-2xs">Bank Institution Name</label>
+<input class="w-full bg-surface-container-low text-on-surface px-space-md py-space-sm rounded-lg font-body-sm text-body-sm focus:outline-none focus:ring-2 focus:ring-secondary/40" type="text" value="JPMorgan Chase Bank, N.A.">
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface uppercase mb-space-2xs">Account Type</label>
+<select class="w-full bg-surface-container-low text-on-surface px-space-md py-space-sm rounded-lg font-body-sm text-body-sm focus:outline-none focus:ring-2 focus:ring-secondary/40">
+<option>Checking</option>
+<option selected="">High Yield Savings (USD)</option>
+<option>Brokerage Sweep</option>
+</select>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface uppercase mb-space-2xs">Account Number / Masked</label>
+<input class="w-full bg-surface-container-low text-on-surface px-space-md py-space-sm rounded-lg font-body-sm text-body-sm font-tabular-num text-tabular-num focus:outline-none focus:ring-2 focus:ring-secondary/40" type="text" value="•••• •••• •••• 2910">
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface uppercase mb-space-2xs">US Routing Number (ABA / Fedwire)</label>
+<input class="w-full bg-surface-container-low text-on-surface px-space-md py-space-sm rounded-lg font-body-sm text-body-sm font-tabular-num text-tabular-num focus:outline-none focus:ring-2 focus:ring-secondary/40" type="text" value="021000021">
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface uppercase mb-space-2xs">SWIFT / BIC Code</label>
+<input class="w-full bg-surface-container-low text-on-surface px-space-md py-space-sm rounded-lg font-body-sm text-body-sm font-tabular-num text-tabular-num focus:outline-none focus:ring-2 focus:ring-secondary/40" type="text" value="CHASUS33">
+</div>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface uppercase mb-space-2xs">Split Ratio Percentage</label>
+<div class="relative">
+<input class="w-full bg-surface-container-low text-on-surface px-space-md py-space-sm rounded-lg font-body-sm text-body-sm font-tabular-num text-tabular-num pr-10 focus:outline-none focus:ring-2 focus:ring-secondary/40" id="input-account-2-pct" max="100" min="0" type="number" value="20">
+<span class="absolute right-space-md top-2.5 font-bold text-on-surface-variant">%</span>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-space-lg pt-space-md flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm">
+<span class="flex items-center gap-space-2xs text-secondary">
+<span class="material-symbols-outlined text-headline-sm">check_circle</span>
+              Fedwire Intermediary Verified
+            </span>
+<button class="text-error hover:text-error/80 font-headline-sm text-label-md flex items-center gap-space-2xs" type="button">
+<span class="material-symbols-outlined text-headline-sm">delete</span>
+              Remove Account
+            </button>
+</div>
+</div>
+</div>
+<!-- Add 3rd Account Action or Audit History -->
+<div class="bg-surface-container-low p-space-md rounded-xl flex flex-col sm:flex-row items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-headline-lg">add_circle</span>
+<div>
+<div class="font-headline-sm text-headline-sm text-on-surface">Add Third Allocation Account?</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Support up to 4 international direct deposit destinations simultaneously (e.g. Euro IBAN or Crypto Wallet rails).</div>
+</div>
+</div>
+<button class="px-space-md py-space-xs bg-surface-container-lowest hover:bg-surface-container-high text-on-surface rounded-lg font-headline-sm text-headline-sm flex items-center gap-space-xs transition-colors shadow-sm" onclick="showToast('Third allocation tier unlocked for Enterprise Payroll tier.')" type="button">
+<span class="material-symbols-outlined text-headline-sm">add</span>
+<span class="">Add Account Destination</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Client-side Interactive Scripting -->
+<script>
+    function switchTab(target) {
+      const stubTab = document.getElementById('tab-content-stub');
+      const bankingTab = document.getElementById('tab-content-banking');
+      const stubBtn = document.getElementById('tab-btn-stub');
+      const bankingBtn = document.getElementById('tab-btn-banking');
+
+      if (target === 'stub') {
+        stubTab.classList.remove('hidden');
+        bankingTab.classList.add('hidden');
+
+        stubBtn.className = "px-space-md py-space-xs rounded font-headline-sm text-headline-sm transition-all duration-150 bg-surface-container-lowest text-primary shadow-sm flex items-center gap-space-xs";
+        bankingBtn.className = "px-space-md py-space-xs rounded font-headline-sm text-headline-sm transition-all duration-150 text-on-surface-variant hover:text-on-surface flex items-center gap-space-xs";
+      } else {
+        stubTab.classList.add('hidden');
+        bankingTab.classList.remove('hidden');
+
+        bankingBtn.className = "px-space-md py-space-xs rounded font-headline-sm text-headline-sm transition-all duration-150 bg-surface-container-lowest text-primary shadow-sm flex items-center gap-space-xs";
+        stubBtn.className = "px-space-md py-space-xs rounded font-headline-sm text-headline-sm transition-all duration-150 text-on-surface-variant hover:text-on-surface flex items-center gap-space-xs";
+      }
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('action-toast');
+      const text = document.getElementById('action-toast-text');
+      text.innerText = message;
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 5000);
+    }
+
+    function adjustSplits(primaryVal) {
+      const primary = parseInt(primaryVal, 10);
+      const secondary = 100 - primary;
+      const totalNet = 3802.99;
+
+      document.getElementById('label-primary-pct').innerText = primary + '%';
+      document.getElementById('label-secondary-pct').innerText = secondary + '%';
+      
+      const input1 = document.getElementById('input-account-1-pct');
+      const input2 = document.getElementById('input-account-2-pct');
+      if (input1) input1.value = primary;
+      if (input2) input2.value = secondary;
+
+      const calc1 = (totalNet * (primary / 100)).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+      const calc2 = (totalNet * (secondary / 100)).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+
+      document.getElementById('calc-primary-amt').innerText = calc1;
+      document.getElementById('calc-secondary-amt').innerText = calc2;
+    }
+
+    function updateAllocationStrategy(val) {
+      const sliderBox = document.getElementById('split-slider-container');
+      if (val === 'split') {
+        sliderBox.classList.remove('opacity-40', 'pointer-events-none');
+        showToast('Configuring dynamic % percentage split routing.');
+      } else if (val === '100') {
+        sliderBox.classList.add('opacity-40', 'pointer-events-none');
+        showToast('All 100% will disburse to Primary local account.');
+      } else {
+        sliderBox.classList.add('opacity-40', 'pointer-events-none');
+        showToast('Fixed dollar threshold mode enabled.');
+      }
+    }
+
+    function saveBankSettings() {
+      showToast('Deposit allocation preferences saved & queued for PP-2025-09!');
+    }
+
+    function resetBankSettings() {
+      const slider = document.getElementById('split-slider');
+      slider.value = 80;
+      adjustSplits(80);
+      showToast('Allocation settings reverted to default 80% / 20%.');
+    }
+
+    function triggerEmailConfirmation() {
+      showToast('Pay stub PDF dispatched to employee: c.mendez@myglobalhub.net');
+    }
+
+    function downloadPdfMock() {
+      showToast('Compiling official PDF receipt MGH-PS-2025-08-1042.pdf ... Download starting!');
+    }
+  </script>
+</div></main></div>
+
+</body></html>

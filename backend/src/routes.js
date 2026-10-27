@@ -1,0 +1,974 @@
+const express = require('express');
+const authController = require('./controllers/auth.controller');
+const periodsController = require('./controllers/periods.controller');
+const adjustmentsController = require('./controllers/adjustments.controller');
+const worklogsController = require('./controllers/worklogs.controller');
+const proofsController = require('./controllers/proofs.controller');
+const employeesController = require('./controllers/employees.controller');
+const auditController = require('./controllers/audit.controller');
+const payrollController = require('./controllers/payroll.controller');
+const attendanceController = require('./controllers/attendance.controller');
+const leaveController = require('./controllers/leave.controller');
+const workflowsController = require('./controllers/workflows.controller');
+const timesheetsController = require('./controllers/timesheets.controller');
+const activitiesController = require('./controllers/activities.controller');
+const uploadsController = require('./controllers/uploads.controller');
+const bankingRailsController = require('./controllers/banking-rails.controller');
+const jiraController = require('./controllers/jira.controller');
+const signoffController = require('./controllers/signoff.controller');
+const rolloutController = require('./controllers/rollout.controller');
+const contractorsController = require('./controllers/contractors.controller');
+const agileController = require('./controllers/agile.controller');
+const { authenticate, requireRole } = require('./middleware/auth.middleware');
+const firebaseService = require('./services/firebase.service');
+const db = require('./db');
+
+const router = express.Router();
+
+const getClientIp = (req) => req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+const getUserName = (req) => (req.user && req.user.name) || req.headers['x-user'] || 'Elena Rostova';
+const isPrivileged = (user) => user && (user.role === 'admin' || user.role === 'pm');
+
+/* ---------- Health ---------- */
+router.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'mgh-timekeeping-api',
+    database: 'Cloud Firestore (Firebase NoSQL)',
+    dialect: db.getDialect(),
+    firebaseConfigured: firebaseService.isConfigured(),
+    auth: 'sessions-rbac',
+    time: new Date().toISOString(),
+  });
+});
+
+/* ---------- Firebase Status ---------- */
+router.get('/firebase/status', async (req, res) => {
+  const status = await firebaseService.testConnection();
+  res.json(status);
+});
+
+/* ---------- Authentication (Phase 1 & Google Auth) ---------- */
+router.post('/auth/login', authController.login);
+router.post('/auth/google', authController.loginWithGoogle);
+router.get('/auth/firebase-config', authController.getFirebaseConfig);
+router.get('/auth/me', authenticate, authController.getMe);
+router.post('/auth/logout', authenticate, authController.logout);
+
+/* ---------- Bootstrap (initial load) ---------- */
+router.get('/bootstrap', authenticate, (req, res, next) => {
+  try {
+    const privileged = isPrivileged(req.user);
+    const isRestricted = !privileged && (req.user && (req.user.role === 'employee' || req.user.role === 'contractor'));
+    const myEmpId = req.user ? (req.user.employeeId || req.user.id) : null;
+    const myName = req.user ? req.user.name : null;
+    const myEmail = req.user ? req.user.email : null;
+
+    const adjustments = isRestricted
+      ? adjustmentsController.listAdjustments(myEmpId, myName)
+      : adjustmentsController.listAdjustments();
+
+    const worklogs = isRestricted
+      ? worklogsController.listWorklogs(myEmpId)
+      : worklogsController.listWorklogs();
+
+    const proofs = isRestricted
+      ? []
+      : proofsController.listProofs();
+
+    const periodOverrides = periodsController.getPeriodOverrides();
+    const organizations = workflowsController.listOrganizations();
+    const holidays = attendanceController.listHolidays();
+
+    const leaveRequests = isRestricted
+      ? leaveController.listLeaveRequests({ empId: myEmpId })
+      : leaveController.listLeaveRequests();
+
+    const timesheets = isRestricted
+      ? timesheetsController.listTimesheets({ empId: myEmpId })
+      : timesheetsController.listTimesheets();
+
+    const exceptions = isRestricted
+      ? attendanceController.listExceptions({ empId: myEmpId })
+      : attendanceController.listExceptions();
+
+    let contractors = [];
+    let contractorPayments = [];
+
+    if (privileged) {
+      contractors = contractorsController.listContractors();
+      contractorPayments = contractorsController.listContractorPayments();
+    } else if (req.user && req.user.role === 'contractor') {
+      contractors = contractorsController.listContractors({ id: myEmpId, email: myEmail });
+      const ctrId = contractors.length ? contractors[0].id : null;
+      contractorPayments = ctrId ? contractorsController.listContractorPayments({ contractorId: ctrId }) : [];
+    }
+
+    res.json({
+      adjustments,
+      worklogs,
+      proofs,
+      periodOverrides,
+      organizations,
+      holidays,
+      leaveRequests,
+      timesheets,
+      exceptions,
+      contractors,
+      contractorPayments,
+      currentUser: req.user,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ---------- Pay periods (RBAC) ---------- */
+router.get('/periods/current', authenticate, (req, res, next) => {
+  try {
+    const current = periodsController.getCurrentPeriod();
+    res.json(current);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/periods', authenticate, (req, res, next) => {
+  try {
+    const year = req.query.year ? Number(req.query.year) : new Date().getFullYear();
+    const periods = periodsController.listPeriods(year);
+    res.json(periods);
+  } catch (err) {
+    next(err);
+  }
+});
+
+
+// Only PM, Finance and Admin can change pay period statuses (Phase 1 & 3)
+router.patch('/periods/:id', authenticate, requireRole('pm', 'finance', 'admin'), (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body || {};
+    const result = periodsController.updatePeriodStatus(
+      id,
+      status,
+      getUserName(req),
+      getClientIp(req)
+    );
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ---------- Payroll adjustments (RBAC) ---------- */
+router.get('/adjustments', authenticate, (req, res, next) => {
+  try {
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      const myEmpId = req.user.employeeId || req.user.id;
+      return res.json(adjustmentsController.listAdjustments(myEmpId, req.user.name));
+    }
+    res.json(adjustmentsController.listAdjustments());
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Supervisors, PM, HR, Finance and Admin can post adjustments
+router.post(
+  '/adjustments',
+  authenticate,
+  requireRole('supervisor', 'pm', 'hr', 'finance', 'admin'),
+  (req, res, next) => {
+    try {
+      const adj = adjustmentsController.createAdjustment(
+        req.body || {},
+        getUserName(req),
+        getClientIp(req)
+      );
+      res.status(201).json(adj);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// PM, HR, Finance, and Admin can approve/update adjustments
+router.patch(
+  '/adjustments/:id',
+  authenticate,
+  requireRole('pm', 'hr', 'finance', 'admin'),
+  (req, res, next) => {
+    try {
+      const updated = adjustmentsController.updateAdjustment(
+        req.params.id,
+        req.body || {},
+        getUserName(req),
+        getClientIp(req)
+      );
+      res.json(updated);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/* ---------- Jira worklogs (RBAC) ---------- */
+router.get('/worklogs', authenticate, (req, res, next) => {
+  try {
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      const myEmpId = req.user.employeeId || req.user.id;
+      return res.json(worklogsController.listWorklogs(myEmpId));
+    }
+    res.json(worklogsController.listWorklogs());
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/worklogs', authenticate, (req, res, next) => {
+  try {
+    const body = { ...(req.body || {}) };
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      body.employeeId = req.user.employeeId || req.user.id;
+    }
+    const log = worklogsController.addWorklog(
+      body,
+      getUserName(req),
+      getClientIp(req)
+    );
+    res.status(201).json(log);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete('/worklogs/:id', authenticate, (req, res, next) => {
+  try {
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      const myEmpId = req.user.employeeId || req.user.id;
+      const existing = db.getOne('SELECT employee_id FROM worklogs WHERE id = ?', [req.params.id]);
+      if (existing && existing.employee_id !== myEmpId) {
+        return res.status(403).json({ error: 'Forbidden: you cannot delete another user\'s worklog' });
+      }
+    }
+    worklogsController.deleteWorklog(
+      req.params.id,
+      getUserName(req),
+      getClientIp(req)
+    );
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ---------- Proof of payment (RBAC) ---------- */
+router.get('/proofs', authenticate, (req, res, next) => {
+  try {
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      return res.json([]);
+    }
+    res.json(proofsController.listProofs());
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Only Finance and Admin can upload / delete proof of payments
+router.post('/proofs', authenticate, requireRole('finance', 'admin'), (req, res, next) => {
+  try {
+    const proof = proofsController.saveProof(
+      req.body || {},
+      getUserName(req),
+      getClientIp(req)
+    );
+    res.status(201).json(proof);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete('/proofs/:id', authenticate, requireRole('finance', 'admin'), (req, res, next) => {
+  try {
+    proofsController.deleteProof(
+      req.params.id,
+      getUserName(req),
+      getClientIp(req)
+    );
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ---------- Employees (RBAC) ---------- */
+router.get('/employees', authenticate, (req, res, next) => {
+  try {
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      const myEmpId = req.user.employeeId || req.user.id;
+      return res.json(employeesController.listEmployees(myEmpId));
+    }
+    res.json(employeesController.listEmployees());
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/employees/:id', authenticate, (req, res, next) => {
+  try {
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      const myEmpId = req.user.employeeId || req.user.id;
+      if (req.params.id !== myEmpId) {
+        return res.status(403).json({ error: 'Forbidden: you can only view your own employee information' });
+      }
+    }
+    const emp = employeesController.getEmployeeById(req.params.id);
+    if (!emp) return res.status(404).json({ error: 'Employee not found' });
+    res.json(emp);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// HR, PM and Admin can create new employee records
+router.post('/employees', authenticate, requireRole('pm', 'hr', 'admin'), (req, res, next) => {
+  try {
+    const result = employeesController.createEmployee(
+      req.body || {},
+      getUserName(req),
+      getClientIp(req)
+    );
+    res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Update employee record
+router.put('/employees/:id', authenticate, (req, res, next) => {
+  try {
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      const myEmpId = req.user.employeeId || req.user.id;
+      if (req.params.id !== myEmpId) {
+        return res.status(403).json({ error: 'Forbidden: you cannot modify other employees' });
+      }
+    }
+    const result = employeesController.updateEmployee(
+      req.params.id,
+      req.body || {},
+      { user: getUserName(req), ip: getClientIp(req) }
+    );
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ---------- Contractors & Contractor Payments (RBAC) ---------- */
+router.get('/contractors', authenticate, contractorsController.getContractorsList);
+router.get('/contractors/:id', authenticate, contractorsController.getContractorById);
+router.post(
+  '/contractors',
+  authenticate,
+  requireRole('hr', 'pm', 'admin'),
+  contractorsController.createContractorHandler
+);
+router.put(
+  '/contractors/:id',
+  authenticate,
+  requireRole('hr', 'pm', 'admin'),
+  contractorsController.updateContractorHandler
+);
+router.delete(
+  '/contractors/:id',
+  authenticate,
+  requireRole('admin'),
+  contractorsController.deleteContractorHandler
+);
+
+router.get('/contractor-payments', authenticate, contractorsController.getContractorPaymentsList);
+router.post(
+  '/contractor-payments',
+  authenticate,
+  requireRole('pm', 'finance', 'admin'),
+  contractorsController.createContractorPaymentHandler
+);
+router.patch(
+  '/contractor-payments/:id',
+  authenticate,
+  requireRole('pm', 'finance', 'admin'),
+  contractorsController.updateContractorPaymentHandler
+);
+
+/* ---------- Payroll Processing & Calculation Engine (Phase 3) ---------- */
+// Preview or execute a payroll run calculation
+router.post(
+  '/payroll/calculate',
+  authenticate,
+  requireRole('pm', 'hr', 'finance', 'admin'),
+  payrollController.calculateRun
+);
+
+// List all processed payroll runs
+router.get('/payroll/runs', authenticate, requireRole('pm', 'finance', 'admin'), payrollController.listRuns);
+
+// Get single payroll run details (Payroll Register)
+router.get('/payroll/runs/:id', authenticate, requireRole('pm', 'finance', 'admin'), payrollController.getRunDetails);
+
+// PM First-tier approval (validating reported hours vs activities)
+router.post(
+  '/payroll/runs/:id/pm-approve',
+  authenticate,
+  requireRole('pm', 'admin'),
+  payrollController.pmApproveRun
+);
+
+// Approve a calculated payroll run (Owner / Finance and Admin only)
+router.post(
+  '/payroll/runs/:id/approve',
+  authenticate,
+  requireRole('admin', 'finance'),
+  payrollController.approveRun
+);
+
+// Real-time preview for an employee compensation breakdown
+router.post('/payroll/preview-employee', authenticate, payrollController.previewEmployee);
+
+/* ---------- Banking Rails, Payments & Paystubs (Phase 7) ---------- */
+router.get('/payroll/export/nacha', authenticate, requireRole('finance', 'admin'), bankingRailsController.exportNacha);
+router.get('/payroll/export/bhd', authenticate, requireRole('finance', 'admin'), bankingRailsController.exportBhd);
+router.get('/payroll/export/usdc', authenticate, requireRole('finance', 'admin'), bankingRailsController.exportUsdcBatch);
+router.post('/payroll/rails/usdc/confirm', authenticate, requireRole('finance', 'admin'), bankingRailsController.confirmUsdcTransaction);
+router.get('/payroll/paystub/:employeeId/:periodId', authenticate, (req, res, next) => {
+  if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+    const myEmpId = req.user.employeeId || req.user.id;
+    if (req.params.employeeId !== myEmpId) {
+      return res.status(403).json({ error: 'Forbidden: you can only view your own pay statement' });
+    }
+  }
+  return bankingRailsController.getPaystub(req, res, next);
+});
+router.get('/payroll/paystub/:employeeId/:periodId/html', authenticate, (req, res, next) => {
+  if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+    const myEmpId = req.user.employeeId || req.user.id;
+    if (req.params.employeeId !== myEmpId) {
+      return res.status(403).send('<h3>Forbidden: you can only view your own pay statement</h3>');
+    }
+  }
+  return bankingRailsController.renderPaystubHtml(req, res, next);
+});
+
+/* ---------- Parallel Pilot Reconciliation (Phase 10) ---------- */
+router.post(
+  '/payroll/reconcile-parallel',
+  authenticate,
+  requireRole('finance', 'auditor', 'admin'),
+  payrollController.reconcileParallel
+);
+
+router.get(
+  '/payroll/reconcile-parallel/:periodId',
+  authenticate,
+  requireRole('finance', 'auditor', 'admin'),
+  payrollController.getReconciliationAudit
+);
+
+/* ---------- Formal Multi-Department Sign-offs (Phase 10) ---------- */
+router.post(
+  '/payroll/sign-off',
+  authenticate,
+  requireRole('pm', 'finance', 'auditor', 'admin'),
+  signoffController.recordSignoff
+);
+
+router.get(
+  '/payroll/sign-off/:periodId',
+  authenticate,
+  signoffController.getSignoffs
+);
+
+/* ---------- Progressive Multi-HQ Rollout (Phase 10) ---------- */
+router.get(
+  '/rollout/status',
+  authenticate,
+  rolloutController.getRolloutStatus
+);
+
+router.patch(
+  '/rollout/:orgId',
+  authenticate,
+  requireRole('admin', 'finance'),
+  rolloutController.updateRolloutStage
+);
+
+/* ---------- Audit logs (RBAC) ---------- */
+// Only Auditor, Finance, and Admin can view full audit trail
+router.get('/audit', authenticate, requireRole('auditor', 'finance', 'admin'), (req, res, next) => {
+  try {
+    const limit = Number(req.query.limit) || 100;
+    const offset = Number(req.query.offset) || 0;
+    const entityType = req.query.entity || null;
+    res.json(auditController.getAuditLogs({ limit, offset, entityType }));
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ---------- Attendance (Punches, Exceptions, Holidays) ---------- */
+router.get('/attendance/punches', authenticate, (req, res, next) => {
+  try {
+    let { empId, date, dateFrom, dateTo } = req.query;
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      empId = req.user.employeeId || req.user.id;
+    }
+    res.json(attendanceController.listPunches({ empId, date, dateFrom, dateTo }));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/attendance/punches', authenticate, (req, res, next) => {
+  try {
+    const body = { ...(req.body || {}) };
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      body.empId = req.user.employeeId || req.user.id;
+    }
+    const punch = attendanceController.recordPunch(body, getUserName(req), getClientIp(req));
+    res.status(201).json(punch);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/attendance/exceptions', authenticate, (req, res, next) => {
+  try {
+    let { empId, resolved } = req.query;
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      empId = req.user.employeeId || req.user.id;
+    }
+    res.json(attendanceController.listExceptions({
+      empId,
+      resolved: resolved !== undefined ? resolved === 'true' : undefined,
+    }));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch(
+  '/attendance/exceptions/:id',
+  authenticate,
+  requireRole('supervisor', 'pm', 'hr', 'finance', 'admin'),
+  (req, res, next) => {
+    try {
+      const resolved = attendanceController.resolveException(
+        req.params.id,
+        req.body || {},
+        getUserName(req),
+        getClientIp(req)
+      );
+      res.json(resolved);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.get('/attendance/holidays', authenticate, (req, res, next) => {
+  try {
+    const { orgId, year } = req.query;
+    res.json(attendanceController.listHolidays({ orgId, year: year ? Number(year) : undefined }));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post(
+  '/attendance/holidays',
+  authenticate,
+  requireRole('hr', 'finance', 'admin'),
+  (req, res, next) => {
+    try {
+      const holiday = attendanceController.createHoliday(req.body || {}, getUserName(req), getClientIp(req));
+      res.status(201).json(holiday);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.delete(
+  '/attendance/holidays/:id',
+  authenticate,
+  requireRole('hr', 'finance', 'admin'),
+  (req, res, next) => {
+    try {
+      const result = attendanceController.deleteHoliday(req.params.id, getUserName(req), getClientIp(req));
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/* ---------- Leave Requests ---------- */
+router.get('/leave', authenticate, (req, res, next) => {
+  try {
+    let { empId, status } = req.query;
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      empId = req.user.employeeId || req.user.id;
+    }
+    res.json(leaveController.listLeaveRequests({ empId, status }));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/leave', authenticate, (req, res, next) => {
+  try {
+    const body = { ...(req.body || {}) };
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      body.empId = req.user.employeeId || req.user.id;
+      if (req.user.name) body.name = req.user.name;
+    }
+    const request = leaveController.createLeaveRequest(body, getUserName(req), getClientIp(req));
+    res.status(201).json(request);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch(
+  '/leave/:id/review',
+  authenticate,
+  requireRole('supervisor', 'pm', 'hr', 'finance', 'admin'),
+  (req, res, next) => {
+    try {
+      const updated = leaveController.reviewLeaveRequest(
+        req.params.id,
+        req.body || {},
+        getUserName(req),
+        getClientIp(req)
+      );
+      res.json(updated);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/* ---------- Multi-HQ Organizations & Workflow Engine ---------- */
+router.get('/organizations', authenticate, (req, res, next) => {
+  try {
+    res.json(workflowsController.listOrganizations());
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/organizations/:id', authenticate, (req, res, next) => {
+  try {
+    const config = workflowsController.getOrgConfig(req.params.id);
+    if (!config) return res.status(404).json({ error: 'Organization not found' });
+    res.json(config);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch(
+  '/organizations/:id',
+  authenticate,
+  requireRole('admin', 'cfo', 'finance'),
+  (req, res, next) => {
+    try {
+      const updated = workflowsController.updateOrgConfig(
+        req.params.id,
+        req.body || {},
+        getUserName(req),
+        getClientIp(req)
+      );
+      res.json(updated);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.post('/workflows/split-ot', authenticate, (req, res, next) => {
+  try {
+    const { dailyHours, otConfig } = req.body || {};
+    const result = workflowsController.splitOT(dailyHours, otConfig);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ---------- Timesheets State Machine ---------- */
+router.get('/timesheets', authenticate, (req, res, next) => {
+  try {
+    let { periodId, empId } = req.query;
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      empId = req.user.employeeId || req.user.id;
+    }
+    res.json(timesheetsController.listTimesheets({ periodId, empId }));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/timesheets/:id', authenticate, (req, res, next) => {
+  try {
+    const ts = timesheetsController.getTimesheet(req.params.id);
+    if (!ts) return res.status(404).json({ error: 'Timesheet not found' });
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      const myEmpId = req.user.employeeId || req.user.id;
+      if (ts.emp !== myEmpId) {
+        return res.status(403).json({ error: 'Forbidden: you can only view your own timesheet' });
+      }
+    }
+    res.json(ts);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get(
+  '/timesheets/:id/reconciliation',
+  authenticate,
+  requireRole('pm', 'admin', 'supervisor', 'finance'),
+  (req, res, next) => {
+    try {
+      const data = timesheetsController.getTimesheetReconciliation(req.params.id);
+      res.json(data);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.post('/timesheets/ensure', authenticate, (req, res, next) => {
+  try {
+    let { empId, periodId, defaultName } = req.body || {};
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      empId = req.user.employeeId || req.user.id;
+      if (req.user.name) defaultName = req.user.name;
+    }
+    if (!empId || !periodId) {
+      return res.status(400).json({ error: 'empId and periodId are required' });
+    }
+    const ts = timesheetsController.ensureTimesheet(empId, periodId, defaultName);
+    res.json(ts);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/timesheets/:id/submit', authenticate, (req, res, next) => {
+  try {
+    const existing = timesheetsController.getTimesheet(req.params.id);
+    if (existing && !isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      const myEmpId = req.user.employeeId || req.user.id;
+      if (existing.emp !== myEmpId) {
+        return res.status(403).json({ error: 'Forbidden: you cannot submit another user\'s timesheet' });
+      }
+    }
+    const ts = timesheetsController.submitTimesheet(req.params.id, getUserName(req), getClientIp(req));
+    res.json(ts);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post(
+  '/timesheets/:id/approve',
+  authenticate,
+  requireRole('supervisor', 'pm', 'hr', 'finance', 'admin'),
+  (req, res, next) => {
+    try {
+      const ts = timesheetsController.approveTimesheet(
+        req.params.id,
+        req.body || {},
+        getUserName(req),
+        getClientIp(req)
+      );
+      res.json(ts);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.post(
+  '/timesheets/:id/return',
+  authenticate,
+  requireRole('supervisor', 'pm', 'hr', 'finance', 'admin'),
+  (req, res, next) => {
+    try {
+      const ts = timesheetsController.returnTimesheet(
+        req.params.id,
+        req.body || {},
+        getUserName(req),
+        getClientIp(req)
+      );
+      res.json(ts);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.put(
+  '/timesheets/:id/hours',
+  authenticate,
+  requireRole('supervisor', 'pm', 'hr', 'finance', 'admin'),
+  (req, res, next) => {
+    try {
+      const ts = timesheetsController.saveTimesheetHours(
+        req.params.id,
+        req.body || {},
+        getUserName(req),
+        getClientIp(req)
+      );
+      res.json(ts);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/* ---------- Daily Activities & Deliverable-based Timekeeping ---------- */
+router.get('/activities', authenticate, (req, res, next) => {
+  try {
+    let { empId, employeeId, date, dateFrom, dateTo } = req.query;
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      empId = req.user.employeeId || req.user.id;
+      employeeId = req.user.employeeId || req.user.id;
+    }
+    res.json(activitiesController.listActivities({ empId: empId || employeeId, date, dateFrom, dateTo }));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/activities', authenticate, (req, res, next) => {
+  try {
+    const body = { ...(req.body || {}) };
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      body.empId = req.user.employeeId || req.user.id;
+      body.employeeId = req.user.employeeId || req.user.id;
+    }
+    const activity = activitiesController.createActivity(
+      body,
+      getUserName(req),
+      getClientIp(req)
+    );
+    res.status(201).json(activity);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete('/activities/:id', authenticate, (req, res, next) => {
+  try {
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      const myEmpId = req.user.employeeId || req.user.id;
+      const existing = db.getOne('SELECT employee_id FROM daily_activities WHERE id = ?', [req.params.id]);
+      if (existing && existing.employee_id !== myEmpId) {
+        return res.status(403).json({ error: 'Forbidden: cannot delete other user\'s activities' });
+      }
+    }
+    const result = activitiesController.deleteActivity(
+      req.params.id,
+      getUserName(req),
+      getClientIp(req)
+    );
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/activities/summary', authenticate, (req, res, next) => {
+  try {
+    let { empId, employeeId, date } = req.query;
+    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
+      empId = req.user.employeeId || req.user.id;
+      employeeId = req.user.employeeId || req.user.id;
+    }
+    res.json(activitiesController.getActivitySummary(empId || employeeId, date));
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ---------- File Attachments & Secure Uploads ---------- */
+router.post('/upload', authenticate, uploadsController.uploadFile);
+router.get('/uploads', authenticate, uploadsController.listFiles);
+router.get('/uploads/:id', uploadsController.serveFile);
+router.get('/uploads/download/:id', uploadsController.downloadFile);
+router.delete('/uploads/:id', authenticate, uploadsController.deleteFile);
+
+/* ---------- Projects & Jira Integration (Phase 7 & PM CRUD) ---------- */
+router.get('/jira/status', authenticate, jiraController.getStatus);
+router.get('/jira/projects', authenticate, jiraController.getProjects);
+router.post('/jira/projects', authenticate, requireRole('pm', 'admin'), jiraController.createProject);
+router.put('/jira/projects/:key', authenticate, requireRole('pm', 'admin'), jiraController.updateProject);
+router.delete('/jira/projects/:key', authenticate, requireRole('pm', 'admin'), jiraController.deleteProject);
+
+router.get('/projects', authenticate, jiraController.getProjects);
+router.post('/projects', authenticate, requireRole('pm', 'admin'), jiraController.createProject);
+router.put('/projects/:key', authenticate, requireRole('pm', 'admin'), jiraController.updateProject);
+router.delete('/projects/:key', authenticate, requireRole('pm', 'admin'), jiraController.deleteProject);
+
+router.post('/jira/projects/link', authenticate, jiraController.linkProject);
+router.get('/jira/projects/:key/issues', authenticate, jiraController.getProjectIssues);
+router.post('/jira/projects/:key/sync', authenticate, jiraController.syncProject);
+router.get('/jira/issues', authenticate, jiraController.searchIssues);
+router.post('/jira/sync-issues', authenticate, requireRole('pm', 'supervisor', 'admin'), jiraController.syncIssues);
+router.post('/jira/sync', authenticate, requireRole('pm', 'supervisor', 'admin'), jiraController.syncWorklogs);
+
+/* ---------- Native Agile Management: Sprints, Tasks, Statuses & Cloner ---------- */
+// Sprints
+router.get('/projects/:key/sprints', authenticate, agileController.listSprints);
+router.post('/projects/:key/sprints', authenticate, requireRole('pm', 'admin'), agileController.createSprint);
+router.put('/sprints/:id', authenticate, requireRole('pm', 'admin'), agileController.updateSprint);
+router.post('/sprints/:id/start', authenticate, requireRole('pm', 'admin'), agileController.startSprint);
+router.post('/sprints/:id/complete', authenticate, requireRole('pm', 'admin'), agileController.completeSprint);
+router.delete('/sprints/:id', authenticate, requireRole('pm', 'admin'), agileController.deleteSprint);
+
+// Tasks (Visible to project members & team, manageable by assignee / PM)
+router.get('/tasks/search', authenticate, agileController.searchAllTasks);
+router.get('/projects/:key/tasks', authenticate, agileController.listTasks);
+router.post('/projects/:key/tasks', authenticate, agileController.createTask);
+router.get('/tasks/:id', authenticate, agileController.getTask);
+router.put('/tasks/:id', authenticate, agileController.updateTask);
+router.patch('/tasks/:id/move', authenticate, agileController.moveTask);
+router.delete('/tasks/:id', authenticate, requireRole('pm', 'admin'), agileController.deleteTask);
+
+// Workflow Statuses (Configurable per project)
+router.get('/projects/:key/statuses', authenticate, agileController.getStatuses);
+router.post('/projects/:key/statuses', authenticate, requireRole('pm', 'admin'), agileController.createStatus);
+router.put('/projects/:key/statuses', authenticate, requireRole('pm', 'admin'), agileController.updateStatuses);
+router.delete('/projects/:key/statuses/:id', authenticate, requireRole('pm', 'admin'), agileController.deleteStatus);
+
+// Jira Legacy Cloner
+router.post('/jira/clone-issue', authenticate, requireRole('pm', 'admin'), agileController.cloneJiraIssue);
+
+// Project Members
+router.get('/projects/:key/members', authenticate, agileController.listMembers);
+router.post('/projects/:key/members', authenticate, requireRole('pm', 'admin'), agileController.addMember);
+router.delete('/projects/:key/members/:userId', authenticate, requireRole('pm', 'admin'), agileController.removeMember);
+
+/* ---------- Dev helper ---------- */
+router.post('/dev/reset', authenticate, requireRole('admin'), (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not available in production' });
+  }
+  db.reset();
+  res.json({ ok: true, message: 'Database reset and re-seeded' });
+});
+
+module.exports = router;

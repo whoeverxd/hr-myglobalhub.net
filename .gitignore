@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+
+# builds
+frontend/dist/
+
+# env & local data
+.env
+backend/data/db.json
+backend/data/*.db*
+
+# OS / editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+*.log
+
+# generated offline preview
+Vista previa MGH Timekeeping.html
+/carmen zip
+
+# Firebase & Secret Credentials
+backend/config/*.json
+!backend/config/mysocialhub-c9926-firebase-adminsdk-fbsvc-f450e7b659.json
+*firebase*.json
+!backend/config/mysocialhub-c9926-firebase-adminsdk-fbsvc-f450e7b659.json
+*serviceAccount*.json
+serviceAccountKey.json
+backend/uploads/
+

@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/my-global-hub-design-system-2a603dc7-793a-4b65-aaf1-7c1fdd79f90c/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/my-global-hub-design-system-2a603dc7-793a-4b65-aaf1-7c1fdd79f90c/tokens/colors.css">
+<link rel="stylesheet" href="_ds/my-global-hub-design-system-2a603dc7-793a-4b65-aaf1-7c1fdd79f90c/tokens/typography.css">
+<link rel="stylesheet" href="_ds/my-global-hub-design-system-2a603dc7-793a-4b65-aaf1-7c1fdd79f90c/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/my-global-hub-design-system-2a603dc7-793a-4b65-aaf1-7c1fdd79f90c/tokens/base.css">
+<link rel="stylesheet" href="_ds/my-global-hub-design-system-2a603dc7-793a-4b65-aaf1-7c1fdd79f90c/styles.css">
+<script src="_ds/my-global-hub-design-system-2a603dc7-793a-4b65-aaf1-7c1fdd79f90c/_ds_bundle.js"></script>
+<style>body{margin:0;overflow:hidden;background:#FAF8FF}a{color:#334296}a:hover{color:#0094CC}</style>
+</helmet>
+<div style="display:flex;height:100vh;background:var(--surface-app);font-family:var(--font-sans)">
+  <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Sidebar" logo-src="assets/logo-mgh.png" product="Enterprise Payroll" entity="{{ entity }}" sections="{{ nav }}" active="{{ navKey }}" on-navigate="{{ go }}" status="{{ jiraStatus }}" user="{{ user }}" hint-size="288px,100%"></x-import>
+
+  <main ref="{{ scroller }}" class="mgh-scroll" style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;background:#fff">
+    <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.TopBar" period="{{ period }}" notifications="{{ 4 }}" avatar="assets/avatars/elena-rostova.jpg" user-name="Elena Rostova" actions="{{ topActions }}" hint-size="100%,64px"></x-import>
+
+    <sc-if value="{{ isKit }}" hint-placeholder-val="{{ false }}">
+      <x-import component="KitScreen" from="app/kit.jsx" route="{{ route }}" go="{{ goKit }}" notify="{{ notify }}" emp-id="{{ empId }}" hint-size="100%,900px"></x-import>
+    </sc-if>
+
+    <!-- PROOF OF PAYMENT (below Pay Stub) -->
+    <sc-if value="{{ isStub }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:0 28px 28px;max-width:1600px">
+        <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" icon="task_alt" title="Proof of Payment" subtitle="Attach bank transfer confirmations or Coinbase transaction hashes • printed on the pay stub and logged to the Audit Log" actions="{{ proofBadge }}" hint-size="100%,420px">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:10px">
+              <sc-for list="{{ transfers }}" as="t" hint-placeholder-count="3">
+                <div style="padding:14px;border-radius:12px;background:{{ t.bg }};display:flex;flex-direction:column;gap:6px">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                    <span style="font:600 14px/20px var(--font-sans);color:var(--mgh-ink)">{{ t.bank }}</span>
+                    <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Badge" tone="{{ t.tone }}" size="sm" dot="{{ true }}" hint-size="auto,20px">{{ t.status }}</x-import>
+                  </div>
+                  <span style="font:800 22px/28px var(--font-sans);letter-spacing:-0.4px;color:var(--mgh-ink)">{{ t.amount }}</span>
+                  <span style="font:700 11px/14px var(--font-mono);color:var(--mgh-ink-3)">{{ t.rail }} • {{ t.ref }}</span>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px;align-items:end">
+              <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Select" label="Transfer" value="{{ pf.transfer }}" options="{{ transferOpts }}" on-change="{{ setPfTransfer }}" hint-size="100%,60px"></x-import>
+              <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.TextField" label="{{ pf.refLabel }}" value="{{ pf.ref }}" on-change="{{ setPfRef }}" placeholder="{{ pf.refPh }}" mono="{{ true }}" hint-size="100%,60px"></x-import>
+              <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.TextField" label="Value date" type="date" value="{{ pf.date }}" on-change="{{ setPfDate }}" hint-size="100%,60px"></x-import>
+            </div>
+
+            <label onDragOver="{{ onDragOver }}" onDragLeave="{{ onDragLeave }}" onDrop="{{ onDrop }}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:150px;padding:20px;border-radius:12px;border:2px dashed {{ dz.border }};background:{{ dz.bg }};cursor:pointer;text-align:center">
+              <input type="file" accept="image/*,application/pdf" onChange="{{ onPick }}" style="display:none">
+              <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Icon" name="{{ dz.icon }}" size="{{ 28 }}" color="var(--mgh-primary)" hint-size="28px,28px"></x-import>
+              <span style="font:600 14px/20px var(--font-sans);color:var(--mgh-ink)">{{ dz.title }}</span>
+              <span style="font:400 12px/16px var(--font-sans);color:var(--mgh-ink-3)">{{ dz.sub }}</span>
+            </label>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+              <span style="font:400 12px/16px var(--font-sans);color:var(--mgh-ink-3)">Proofs can be removed until PP-2025-08 is locked (Apr 21). After lock they become part of the sealed record.</span>
+              <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Button" icon="attach_file" on-click="{{ attachProof }}" hint-size="auto,40px">Attach Proof to Pay Stub</x-import>
+            </div>
+
+            <sc-if value="{{ hasProofs }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column">
+                <sc-for list="{{ proofs }}" as="p" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-top:1px solid var(--mgh-surface-2)">
+                    <div style="width:64px;height:64px;flex:none;border-radius:8px;background:var(--mgh-surface-1);background-image:{{ p.thumb }};background-size:cover;background-position:center;display:grid;place-items:center">
+                      <sc-if value="{{ p.noThumb }}" hint-placeholder-val="{{ true }}"><x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Icon" name="{{ p.icon }}" size="{{ 24 }}" color="var(--mgh-primary)" hint-size="24px,24px"></x-import></sc-if>
+                    </div>
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font:600 14px/20px var(--font-sans);color:var(--mgh-ink)">{{ p.bank }} • {{ p.amount }}</span><x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Badge" tone="success" size="sm" icon="verified" hint-size="auto,20px">Payment Confirmed</x-import></div>
+                      <span style="font:700 11px/14px var(--font-mono);color:var(--mgh-ink-2);word-break:break-all">{{ p.ref }}</span>
+                      <span style="font:400 12px/16px var(--font-sans);color:var(--mgh-ink-3)">{{ p.file }} • value date {{ p.date }} • uploaded by Elena Rostova {{ p.when }}</span>
+                    </div>
+                    <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.IconButton" icon="delete" title="Remove" on-click="{{ p.remove }}" hint-size="32px,32px"></x-import>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </x-import>
+      </div>
+    </sc-if>
+
+    <!-- MY TIME ENTRY -->
+    <sc-if value="{{ isMy }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:28px;display:flex;flex-direction:column;gap:20px;max-width:1600px">
+        <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.PageHeader" breadcrumbs="{{ myCrumbs }}" title="My Time Entry" description="Clock in and out, record lunch, log Jira work and review your bi-weekly timesheet before submission." status="{{ myStatusBadge }}" actions="{{ myActions }}" hint-size="100%,96px"></x-import>
+
+        <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" hint-size="100%,130px">
+          <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:260px">
+              <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Avatar" name="Carlos Mendez" src="assets/avatars/carlos-mendez.jpg" size="{{ 52 }}" status="{{ clock.avatarStatus }}" hint-size="52px,52px"></x-import>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:{{ clock.stateColor }}">{{ clock.stateLabel }}</span>
+                <span style="font:700 22px/28px var(--font-sans);letter-spacing:-0.44px;color:var(--mgh-ink)">Carlos Mendez</span>
+                <span style="font:400 13px/18px var(--font-sans);color:var(--mgh-ink-2)">MGH-1042 • Sr. Full Stack Developer • Atlas Core • Punta Cana geofence</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;padding:0 20px;border-left:1px solid var(--mgh-surface-2)">
+              <span style="font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:var(--mgh-ink-2)">Worked today</span>
+              <span style="font:800 36px/36px var(--font-sans);letter-spacing:-1.08px;color:var(--mgh-ink);font-variant-numeric:tabular-nums">{{ clock.worked }}</span>
+              <span style="font:400 12px/16px var(--font-sans);color:var(--mgh-ink-3)">Now {{ clock.now }} AST • Tue, Apr 15</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <sc-for list="{{ clock.punches }}" as="p" hint-placeholder-count="4">
+                <div style="display:flex;flex-direction:column;gap:2px;padding:8px 12px;border-radius:8px;min-width:84px;background:var(--mgh-surface-1)">
+                  <span style="font:700 10px/12px var(--font-sans);letter-spacing:0.44px;text-transform:uppercase;color:var(--mgh-ink-3)">{{ p.label }}</span>
+                  <span style="font:700 16px/22px var(--font-sans);color:{{ p.color }};font-variant-numeric:tabular-nums">{{ p.v }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-for list="{{ clock.buttons }}" as="b" hint-placeholder-count="2">
+                <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Button" variant="{{ b.variant }}" size="lg" icon="{{ b.icon }}" disabled="{{ b.disabled }}" on-click="{{ b.run }}" hint-size="auto,48px">{{ b.label }}</x-import>
+              </sc-for>
+            </div>
+          </div>
+        </x-import>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px">
+          <sc-for list="{{ myKpis }}" as="k" hint-placeholder-count="6">
+            <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.StatCard" label="{{ k.label }}" value="{{ k.value }}" unit="{{ k.unit }}" icon="{{ k.icon }}" tone="{{ k.tone }}" footer="{{ k.footer }}" hint-size="100%,130px"></x-import>
+          </sc-for>
+        </div>
+
+        <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" padding="{{ 0 }}" hint-size="100%,640px">
+          <div style="padding:20px 20px 14px;display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Icon" name="calendar_view_week" size="{{ 18 }}" color="var(--mgh-primary)" hint-size="18px,18px"></x-import>
+                <span style="font:600 18px/24px var(--font-sans);letter-spacing:-0.18px;color:var(--mgh-ink)">Bi-Weekly Timesheet • {{ myPeriod.range }}</span>
+              </div>
+              <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.FilterChips" options="{{ myPeriodOpts }}" value="{{ myPeriodKey }}" on-change="{{ setMyPeriod }}" hint-size="420px,36px"></x-import>
+            </div>
+            <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.FilterChips" options="{{ myWeekOpts }}" value="{{ myWeek }}" on-change="{{ setMyWeek }}" hint-size="300px,36px"></x-import>
+          </div>
+          <sc-if value="{{ myPeriod.readOnly }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:0 20px 14px;padding:10px 14px;border-radius:8px;background:var(--mgh-warning-bg);display:flex;align-items:center;gap:8px;font:500 13px/18px var(--font-sans);color:var(--mgh-ink)">
+              <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Icon" name="lock" size="{{ 16 }}" color="var(--mgh-warning)" hint-size="16px,16px"></x-import>Submitted Apr 14 at 17:52 • read-only while in approval. Ask your supervisor to return it if you need a correction.
+            </div>
+          </sc-if>
+          <div class="mgh-scroll" style="overflow-x:auto">
+            <table style="width:100%;min-width:1180px;border-collapse:collapse">
+              <thead><tr>
+                <sc-for list="{{ myCols }}" as="h" hint-placeholder-count="10">
+                  <th style="text-align:{{ h.align }};padding:12px 10px;background:var(--mgh-surface-1);font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:var(--mgh-ink-2);white-space:nowrap">{{ h.label }}</th>
+                </sc-for>
+              </tr></thead>
+              <tbody>
+                <sc-for list="{{ myRows }}" as="d" hint-placeholder-count="7">
+                  <tr style="background:{{ d.rowBg }};border-bottom:1px solid var(--mgh-surface-2)">
+                    <td style="padding:10px;white-space:nowrap"><div style="display:flex;flex-direction:column"><span style="font:700 13px/18px var(--font-sans);color:{{ d.dateColor }}">{{ d.date }}</span><span style="font:600 11px/14px var(--font-sans);color:var(--mgh-ink-3)">{{ d.sub }}</span></div></td>
+                    <td style="padding:8px 10px;width:150px"><x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Select" size="sm" value="{{ d.type }}" options="{{ d.typeOpts }}" on-change="{{ d.setType }}" hint-size="140px,32px"></x-import></td>
+                    <sc-for list="{{ d.punches }}" as="p" hint-placeholder-count="4">
+                      <td style="padding:8px 6px;width:118px">
+                        <sc-if value="{{ p.edit }}" hint-placeholder-val="{{ false }}">
+                          <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.TextField" type="time" value="{{ p.v }}" on-change="{{ p.set }}" error="{{ p.err }}" style="{{ p.style }}" hint-size="110px,36px"></x-import>
+                        </sc-if>
+                        <sc-if value="{{ p.view }}" hint-placeholder-val="{{ true }}">
+                          <span style="font:600 13px/18px var(--font-sans);color:{{ p.color }};font-variant-numeric:tabular-nums">{{ p.text }}</span>
+                        </sc-if>
+                      </td>
+                    </sc-for>
+                    <td style="padding:10px;text-align:right;font:700 13px/18px var(--font-sans);color:var(--mgh-ink);font-variant-numeric:tabular-nums">{{ d.hrs }}</td>
+                    <td style="padding:10px;text-align:right;font:700 13px/18px var(--font-sans);color:{{ d.otColor }};font-variant-numeric:tabular-nums">{{ d.ot }}</td>
+                    <td style="padding:10px;text-align:right;font:600 13px/18px var(--font-sans);color:{{ d.jiraColor }};font-variant-numeric:tabular-nums">{{ d.jira }}</td>
+                    <td style="padding:10px;white-space:nowrap"><x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Badge" tone="{{ d.tone }}" size="sm" dot="{{ true }}" hint-size="auto,20px">{{ d.status }}</x-import></td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;background:var(--mgh-surface-1)">
+            <span style="font:500 13px/18px var(--font-sans);color:var(--mgh-ink-2)">Week {{ myWeek }} total <strong style="color:var(--mgh-ink)">{{ myWeekTotal }}</strong> • Period total <strong style="color:var(--mgh-ink)">{{ myPeriodTotal }}</strong> • OT starts after 44h / week</span>
+            <span style="font:700 11px/14px var(--font-mono);color:var(--mgh-ink-3)">Cutoff Apr 28 • 23:59 AST • Submission due Apr 29 • 10:00</span>
+          </div>
+        </x-import>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px;align-items:start">
+          <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" icon="sync_alt" title="Log Jira Work • Today" subtitle="Worklogs sync to Jira Cloud and are matched against your clocked hours" actions="{{ jiraMatchBadge }}" hint-size="100%,380px">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:8px;align-items:end;margin-bottom:14px">
+              <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Select" label="Jira issue" value="{{ wl.issue }}" options="{{ issueOpts }}" on-change="{{ setWlIssue }}" hint-size="100%,60px"></x-import>
+              <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.TextField" label="Hours" value="{{ wl.hours }}" on-change="{{ setWlHours }}" placeholder="2.5" suffix="h" hint-size="100%,60px"></x-import>
+              <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.TextField" label="Work description" value="{{ wl.desc }}" on-change="{{ setWlDesc }}" placeholder="What did you work on?" hint-size="100%,60px"></x-import>
+              <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Button" icon="add" on-click="{{ addWorklog }}" hint-size="auto,40px">Log Work</x-import>
+            </div>
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ worklogs }}" as="w" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--mgh-surface-2)">
+                  <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Badge" tone="dark" mono="{{ true }}" hint-size="auto,22px">{{ w.key }}</x-import>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font:600 13px/18px var(--font-sans);color:var(--mgh-ink)">{{ w.title }}</span><span style="font:400 12px/16px var(--font-sans);color:var(--mgh-ink-3)">{{ w.desc }}</span></div>
+                  <span style="font:700 13px/18px var(--font-sans);color:var(--mgh-ink);font-variant-numeric:tabular-nums">{{ w.hrs }}</span>
+                  <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.IconButton" icon="delete" title="Remove" on-click="{{ w.remove }}" hint-size="32px,32px"></x-import>
+                </div>
+              </sc-for>
+            </div>
+          </x-import>
+          <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" icon="route" title="Approval Route" subtitle="{{ myPeriod.id }}" hint-size="100%,380px">
+            <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Stepper" steps="{{ mySteps }}" hint-size="100%,300px"></x-import>
+          </x-import>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ADD EMPLOYEE -->
+    <sc-if value="{{ isAddEmp }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:28px;display:flex;flex-direction:column;gap:20px;max-width:1600px">
+        <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.PageHeader" breadcrumbs="{{ addCrumbs }}" title="Add Employee" description="Create the employee record, payroll profile, bank allocations and Jira binding. The employee joins the next open bi-weekly period automatically." actions="{{ addActions }}" hint-size="100%,96px"></x-import>
+        <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" hint-size="100%,90px">
+          <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Stepper" steps="{{ addSteps }}" hint-size="100%,60px"></x-import>
+        </x-import>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:20px">
+            <sc-for list="{{ addSections }}" as="sec" hint-placeholder-count="5">
+              <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" icon="{{ sec.icon }}" title="{{ sec.title }}" subtitle="{{ sec.sub }}" hint-size="100%,240px">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+                  <sc-for list="{{ sec.fields }}" as="fd" hint-placeholder-count="4">
+                    <div style="display:flex;flex-direction:column">
+                      <sc-if value="{{ fd.isText }}" hint-placeholder-val="{{ true }}">
+                        <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.TextField" label="{{ fd.label }}" value="{{ fd.value }}" on-change="{{ fd.set }}" placeholder="{{ fd.ph }}" hint="{{ fd.hint }}" error="{{ fd.err }}" mono="{{ fd.mono }}" type="{{ fd.type }}" prefix="{{ fd.prefix }}" suffix="{{ fd.suffix }}" hint-size="100%,64px"></x-import>
+                      </sc-if>
+                      <sc-if value="{{ fd.isSelect }}" hint-placeholder-val="{{ false }}">
+                        <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Select" label="{{ fd.label }}" value="{{ fd.value }}" options="{{ fd.options }}" on-change="{{ fd.set }}" hint-size="100%,64px"></x-import>
+                      </sc-if>
+                      <sc-if value="{{ fd.isToggle }}" hint-placeholder-val="{{ false }}">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding:10px 12px;border-radius:8px;background:var(--mgh-surface-1);min-height:56px">
+                          <div style="display:flex;flex-direction:column"><span style="font:600 13px/18px var(--font-sans);color:var(--mgh-ink)">{{ fd.label }}</span><span style="font:400 12px/16px var(--font-sans);color:var(--mgh-ink-3)">{{ fd.hint }}</span></div>
+                          <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Toggle" checked="{{ fd.value }}" on-change="{{ fd.set }}" hint-size="44px,24px"></x-import>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+              </x-import>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:20px;position:sticky;top:84px">
+            <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" title="Record Preview" icon="badge" hint-size="100%,360px">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+                <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Avatar" name="{{ newEmp.fullName }}" size="{{ 48 }}" hint-size="48px,48px"></x-import>
+                <div style="display:flex;flex-direction:column;min-width:0"><span style="font:700 16px/22px var(--font-sans);color:var(--mgh-ink)">{{ newEmp.fullName }}</span><span style="font:400 12px/16px var(--font-sans);color:var(--mgh-ink-3)">{{ newEmp.titleLine }}</span></div>
+              </div>
+              <div style="display:flex;flex-direction:column">
+                <sc-for list="{{ newEmp.facts }}" as="x" hint-placeholder-count="7">
+                  <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--mgh-surface-2)"><span style="font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:var(--mgh-ink-2)">{{ x.k }}</span><span style="font:600 13px/18px var(--font-sans);color:var(--mgh-ink);text-align:right">{{ x.v }}</span></div>
+                </sc-for>
+              </div>
+            </x-import>
+            <sc-if value="{{ newEmp.payEst.show }}" hint-placeholder-val="{{ false }}">
+              <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" title="Estimated Pay per Period" icon="calculate" hint-size="100%,220px">
+                <div style="display:flex;flex-direction:column">
+                  <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0"><span style="font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:var(--mgh-ink-2)">Gross • {{ newEmp.payEst.hoursLabel }}</span><span style="font:600 13px/18px var(--font-sans);color:var(--mgh-ink);font-variant-numeric:tabular-nums">{{ newEmp.payEst.gross }}</span></div>
+                  <sc-for list="{{ newEmp.payEst.lines }}" as="l" hint-placeholder-count="3">
+                    <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--mgh-surface-2)"><span style="font:500 13px/18px var(--font-sans);color:var(--mgh-ink-2)">{{ l.k }}</span><span style="font:600 13px/18px var(--font-sans);color:var(--mgh-ink);font-variant-numeric:tabular-nums">{{ l.v }}</span></div>
+                  </sc-for>
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;padding:14px;border-radius:8px;background:var(--mgh-navy);color:#fff"><span style="font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase">Est. net pay</span><span style="font:800 20px/24px var(--font-sans);font-variant-numeric:tabular-nums">{{ newEmp.payEst.net }}</span></div>
+                  <span style="margin-top:8px;font:400 12px/16px var(--font-sans);color:var(--mgh-ink-3)">{{ newEmp.payEst.note }}</span>
+                </div>
+              </x-import>
+            </sc-if>
+            <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" tone="muted" title="Readiness Checks" icon="checklist" hint-size="100%,220px">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <sc-for list="{{ newEmp.checks }}" as="c" hint-placeholder-count="5">
+                  <div style="display:flex;align-items:center;gap:8px;font:500 13px/18px var(--font-sans);color:var(--mgh-ink)">
+                    <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Icon" name="{{ c.icon }}" size="{{ 16 }}" color="{{ c.color }}" hint-size="16px,16px"></x-import>{{ c.t }}
+                  </div>
+                </sc-for>
+              </div>
+            </x-import>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- EMPLOYEE CREATED -->
+    <sc-if value="{{ isCreated }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:28px;display:flex;flex-direction:column;gap:20px;max-width:1600px">
+        <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.PageHeader" breadcrumbs="{{ createdCrumbs }}" title="Employee Created" description="The record is saved and onboarding has started. Track the remaining steps below." actions="{{ createdActions }}" hint-size="100%,96px"></x-import>
+        <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" hint-size="100%,96px">
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Avatar" name="{{ created.name }}" size="{{ 56 }}" hint-size="56px,56px"></x-import>
+            <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:200px">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span style="font:700 22px/28px var(--font-sans);color:var(--mgh-ink)">{{ created.name }}</span>
+                <span style="font:700 12px/16px var(--font-mono);padding:2px 6px;border-radius:4px;background:var(--mgh-navy);color:#fff">MGH-1163</span>
+              </div>
+              <span style="font:400 13px/18px var(--font-sans);color:var(--mgh-ink-3)">{{ created.title }} • Created {{ created.when }} by Elena Rostova</span>
+            </div>
+            <div>{{ createdBadge }}</div>
+          </div>
+        </x-import>
+        <sc-if value="{{ createdPending }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:14px;padding:14px 20px;border-radius:12px;background:var(--mgh-warning-bg);flex-wrap:wrap">
+            <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Icon" name="warning" size="{{ 18 }}" color="var(--mgh-warning)" hint-size="18px,18px"></x-import>
+            <span style="flex:1;min-width:200px;font:600 13px/18px var(--font-sans);color:var(--mgh-ink)">{{ createdPendingText }}</span>
+            <div>{{ createdFixBtn }}</div>
+          </div>
+        </sc-if>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px;align-items:start">
+          <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" icon="checklist" title="Onboarding Progress" subtitle="{{ createdDone }}" hint-size="100%,420px">
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ createdSteps }}" as="st" hint-placeholder-count="6">
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--mgh-surface-2)">
+                  <div style="width:36px;height:36px;border-radius:8px;background:var(--mgh-surface-1);display:grid;place-items:center;flex:none">
+                    <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Icon" name="{{ st.icon }}" size="{{ 18 }}" color="var(--mgh-primary)" hint-size="18px,18px"></x-import>
+                  </div>
+                  <div style="display:flex;flex-direction:column;flex:1;min-width:0">
+                    <span style="font:600 13px/18px var(--font-sans);color:var(--mgh-ink)">{{ st.title }}</span>
+                    <span style="font:400 12px/16px var(--font-sans);color:var(--mgh-ink-3)">{{ st.sub }}</span>
+                  </div>
+                  <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Badge" tone="{{ st.tone }}" size="sm" hint-size="80px,22px">{{ st.status }}</x-import>
+                </div>
+              </sc-for>
+            </div>
+          </x-import>
+          <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" icon="badge" title="Record Summary" hint-size="100%,420px">
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ createdFacts }}" as="x" hint-placeholder-count="8">
+                <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--mgh-surface-2)"><span style="font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:var(--mgh-ink-2)">{{ x.k }}</span><span style="font:600 13px/18px var(--font-sans);color:var(--mgh-ink);text-align:right">{{ x.v }}</span></div>
+              </sc-for>
+            </div>
+          </x-import>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- PAY PERIODS & PROCESSING -->
+    <sc-if value="{{ isPeriods }}" hint-placeholder-val="{{ true }}">
+      <div style="padding:28px;display:flex;flex-direction:column;gap:20px;max-width:1600px">
+        <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.PageHeader" breadcrumbs="{{ periodsCrumbs }}" title="Pay Periods &amp; Processing Schedule" description="Manage annual bi-weekly payroll cycles, multi-tier approval deadlines, retroactive adjustment queues and period locking protocols." actions="{{ periodsActions }}" hint-size="100%,96px"></x-import>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+          <sc-for list="{{ periodKpis }}" as="k" hint-placeholder-count="4">
+            <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.StatCard" label="{{ k.label }}" value="{{ k.value }}" icon="{{ k.icon }}" tone="{{ k.tone }}" footer="{{ k.footer }}" progress="{{ k.progress }}" hint-size="100%,150px"></x-import>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:14px;padding:14px 20px;border-radius:12px;background:var(--mgh-surface-1);flex-wrap:wrap">
+          <div style="width:36px;height:36px;border-radius:8px;background:#fff;display:grid;place-items:center;flex:none">
+            <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Icon" name="lock_clock" size="{{ 18 }}" color="var(--mgh-primary)" hint-size="18px,18px"></x-import>
+          </div>
+          <div style="flex:1;min-width:260px;display:flex;flex-direction:column;gap:2px">
+            <span style="font:600 16px/22px var(--font-sans);color:var(--mgh-ink)">Period Locking Protocol Policy</span>
+            <span style="font:400 13px/18px var(--font-sans);color:var(--mgh-ink-2)">Closed pay periods are cryptographically archived. Direct timesheet alteration is disabled across all roles. Retroactive hours, commissions or corrections must flow through an auditable Payroll Adjustment.</span>
+          </div>
+          <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Badge" tone="neutral" icon="schedule" hint-size="auto,24px">Auto-lock: 24h post pay date</x-import>
+          <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Button" variant="dark" icon="shield_lock" on-click="{{ goAudit }}" hint-size="auto,40px">Open Audit Log</x-import>
+        </div>
+
+        <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" padding="{{ 0 }}" hint-size="100%,600px">
+          <div style="padding:20px 20px 14px;display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:inline-flex;align-items:baseline;gap:6px;padding:6px 12px;border-radius:8px;background:var(--mgh-surface-1);align-self:flex-start">
+                <span style="font:500 13px/18px var(--font-sans);color:var(--mgh-ink-2)">Calendar Year:</span>
+                <span style="font:700 16px/22px var(--font-sans);color:var(--mgh-ink)">2025 ({{ periodCount }} Pay Cycles)</span>
+              </div>
+              <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.FilterChips" options="{{ periodFilterOpts }}" value="{{ periodFilter }}" on-change="{{ setPeriodFilter }}" hint-size="420px,36px"></x-import>
+            </div>
+            <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.SearchField" value="{{ pq }}" on-change="{{ setPq }}" placeholder="Filter cycle (e.g. PP-2025-08)" style="{{ searchStyle }}" hint-size="260px,40px"></x-import>
+          </div>
+          <div class="mgh-scroll" style="overflow-x:auto">
+            <table style="width:100%;min-width:1180px;border-collapse:collapse">
+              <thead><tr>
+                <sc-for list="{{ periodCols }}" as="h" hint-placeholder-count="11">
+                  <th style="text-align:{{ h.align }};padding:12px 14px;background:var(--mgh-surface-1);font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:var(--mgh-ink-2);white-space:nowrap">{{ h.label }}</th>
+                </sc-for>
+              </tr></thead>
+              <tbody>
+                <sc-for list="{{ periodRows }}" as="p" hint-placeholder-count="8">
+                  <tr style="background:{{ p.rowBg }};border-bottom:1px solid var(--mgh-surface-2)">
+                    <td style="padding:12px 14px;white-space:nowrap">
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <span style="font:700 15px/20px var(--font-sans);letter-spacing:-0.2px;color:var(--mgh-ink)">{{ p.id }}</span>
+                        <sc-if value="{{ p.locked }}" hint-placeholder-val="{{ false }}"><x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Icon" name="lock" size="{{ 14 }}" color="var(--mgh-success)" hint-size="14px,14px"></x-import></sc-if>
+                        <sc-if value="{{ p.hasFlag }}" hint-placeholder-val="{{ false }}"><x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Badge" tone="{{ p.flagTone }}" size="sm" hint-size="auto,20px">{{ p.flag }}</x-import></sc-if>
+                      </div>
+                    </td>
+                    <td style="padding:12px 14px;font:400 13px/18px var(--font-sans);color:var(--mgh-ink-2);white-space:nowrap">{{ p.start }}</td>
+                    <td style="padding:12px 14px;font:400 13px/18px var(--font-sans);color:var(--mgh-ink-2);white-space:nowrap">{{ p.end }}</td>
+                    <td style="padding:12px 14px;font:400 13px/18px var(--font-sans);color:var(--mgh-ink-2);white-space:nowrap">{{ p.cutoff }}</td>
+                    <sc-for list="{{ p.dl }}" as="d" hint-placeholder-count="5">
+                      <td style="padding:12px 14px;font:{{ d.font }};color:{{ d.color }};background:{{ d.bg }};white-space:nowrap">{{ d.v }}</td>
+                    </sc-for>
+                    <td style="padding:12px 14px;font:600 13px/18px var(--font-sans);color:var(--mgh-ink);white-space:nowrap">{{ p.pay }}</td>
+                    <td style="padding:12px 14px;white-space:nowrap"><x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Badge" tone="{{ p.tone }}" dot="{{ true }}" size="sm" hint-size="auto,20px">{{ p.statusShort }}</x-import></td>
+                    <td style="padding:12px 14px;text-align:right;white-space:nowrap">
+                      <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Button" variant="{{ p.actVariant }}" size="sm" icon="{{ p.actIcon }}" on-click="{{ p.act }}" hint-size="auto,32px">{{ p.actLabel }}</x-import>
+                    </td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;font:400 13px/18px var(--font-sans);color:var(--mgh-ink-2)">
+            <span>Showing <strong style="color:var(--mgh-ink)">{{ periodShown }}</strong> of {{ periodCount }} pay cycles in 2025 • Standard Bi-Weekly Schedule (Dominicana SRL)</span>
+            <span style="font-family:var(--font-mono);font-size:12px;color:var(--mgh-ink-3)">Numbering: PP-{YYYY}-{NN} • 14-day work period • pay date +6 days</span>
+          </div>
+        </x-import>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:20px;align-items:start">
+          <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" icon="speed" title="Annual Processing Velocity &amp; Timeliness" subtitle="Average approval completion time across each sequential approval stage" actions="{{ velocityBadge }}" hint-size="100%,320px">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px">
+              <sc-for list="{{ velocity }}" as="v" hint-placeholder-count="5">
+                <div style="padding:14px 10px;border-radius:8px;background:{{ v.bg }};display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center">
+                  <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Icon" name="{{ v.icon }}" size="{{ 18 }}" color="var(--mgh-primary)" hint-size="18px,18px"></x-import>
+                  <span style="font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:var(--mgh-ink-2)">{{ v.label }}</span>
+                  <span style="font:800 22px/28px var(--font-sans);letter-spacing:-0.4px;color:var(--mgh-ink)">{{ v.value }}</span>
+                  <span style="font:700 11px/14px var(--font-sans);color:{{ v.subColor }}">{{ v.sub }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top:14px;padding:14px;border-radius:8px;background:var(--mgh-surface-1);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Icon" name="verified_user" size="{{ 18 }}" color="var(--mgh-success)" hint-size="18px,18px"></x-import>
+              <div style="flex:1;min-width:200px"><div style="font:600 14px/20px var(--font-sans);color:var(--mgh-ink)">Audit Hash Certification</div><div style="font:400 13px/18px var(--font-sans);color:var(--mgh-ink-2)">SHA-256 seal generated automatically upon final Finance Lock.</div></div>
+              <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Badge" tone="dark" mono="{{ true }}" hint-size="auto,22px">0x9F4B…18CA</x-import>
+            </div>
+          </x-import>
+          <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" icon="policy" title="Cycle Locking Rules" subtitle="Non-repudiation parameters enforced for Dominican Republic DGII statutory reporting" hint-size="100%,320px">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ lockRules }}" as="r" hint-placeholder-count="4">
+                <div style="display:flex;gap:10px;padding:10px 12px;border-radius:8px;background:var(--mgh-surface-1)">
+                  <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Icon" name="check_circle" size="{{ 16 }}" color="var(--mgh-success)" hint-size="16px,16px"></x-import>
+                  <div style="display:flex;flex-direction:column;gap:2px"><span style="font:600 13px/18px var(--font-sans);color:var(--mgh-ink)">{{ r.t }}</span><span style="font:400 12px/16px var(--font-sans);color:var(--mgh-ink-2)">{{ r.d }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+          </x-import>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:20px;align-items:start">
+          <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" icon="tune" title="Payroll Settings" subtitle="Applies to My Global Hub • Kairoon • Arawaki" actions="{{ saveSettingsBtn }}" hint-size="100%,420px">
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ settingsRows }}" as="s" hint-placeholder-count="8">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--mgh-surface-2)">
+                  <span style="font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:var(--mgh-ink-2)">{{ s.k }}</span>
+                  <span style="font:600 13px/18px var(--font-sans);color:var(--mgh-ink);text-align:right">{{ s.v }}</span>
+                </div>
+              </sc-for>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--mgh-surface-2)">
+                <span style="font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:var(--mgh-ink-2)">Default pay date offset</span>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.IconButton" icon="remove" title="Decrease" on-click="{{ offDown }}" hint-size="32px,32px"></x-import>
+                  <span style="font:800 18px/24px var(--font-sans);color:var(--mgh-ink);min-width:72px;text-align:center">+{{ offset }} days</span>
+                  <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.IconButton" icon="add" title="Increase" on-click="{{ offUp }}" hint-size="32px,32px"></x-import>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 0 0">
+                <div style="display:flex;flex-direction:column"><span style="font:600 13px/18px var(--font-sans);color:var(--mgh-ink)">Automatic period generation</span><span style="font:400 12px/16px var(--font-sans);color:var(--mgh-ink-3)">Creates next year's 26 cycles on Nov 1 as Draft</span></div>
+                <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Toggle" checked="{{ autoGen }}" on-change="{{ toggleAuto }}" hint-size="44px,24px"></x-import>
+              </div>
+            </div>
+          </x-import>
+          <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" icon="notifications_active" title="Automatic Notifications" subtitle="Employees and managers are notified at every milestone" hint-size="100%,420px">
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ notifRows }}" as="n" hint-placeholder-count="6">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--mgh-surface-2)">
+                  <div style="display:flex;flex-direction:column;min-width:0"><span style="font:600 13px/18px var(--font-sans);color:var(--mgh-ink)">{{ n.ev }}</span><span style="font:400 12px/16px var(--font-sans);color:var(--mgh-ink-3)">{{ n.meta }}</span></div>
+                  <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Toggle" checked="{{ n.on }}" on-change="{{ n.toggle }}" hint-size="44px,24px"></x-import>
+                </div>
+              </sc-for>
+            </div>
+          </x-import>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ADJUSTMENTS -->
+    <sc-if value="{{ isAdj }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:28px;display:flex;flex-direction:column;gap:20px;max-width:1600px">
+        <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.PageHeader" breadcrumbs="{{ adjCrumbs }}" title="Payroll Adjustments &amp; Statutory Severance Engine" description="One-off bonuses, expense reimbursements, equipment stipends, Dominican statutory Regalía Pascual (13th month) and Prestaciones Laborales (severance &amp; preaviso) calculations." actions="{{ adjActions }}" hint-size="100%,96px"></x-import>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+          <sc-for list="{{ adjKpis }}" as="k" hint-placeholder-count="4">
+            <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.StatCard" label="{{ k.label }}" value="{{ k.value }}" icon="{{ k.icon }}" tone="{{ k.tone }}" footer="{{ k.footer }}" hint-size="100%,150px"></x-import>
+          </sc-for>
+        </div>
+        <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" icon="receipt_long" title="Cycle PP-2025-08 Adjustments &amp; Bonuses Register" subtitle="Audit register of one-off compensation items, non-taxable stipends and payroll corrections queued for release" padding="{{ 0 }}" hint-size="100%,480px">
+          <div style="padding:0 20px 14px">
+            <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.FilterChips" options="{{ adjFilterOpts }}" value="{{ adjFilter }}" on-change="{{ setAdjFilter }}" hint-size="600px,36px"></x-import>
+          </div>
+          <div class="mgh-scroll" style="overflow-x:auto">
+            <table style="width:100%;min-width:1000px;border-collapse:collapse">
+              <thead><tr>
+                <sc-for list="{{ adjCols }}" as="h" hint-placeholder-count="8">
+                  <th style="text-align:{{ h.align }};padding:12px 14px;background:var(--mgh-surface-1);font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:var(--mgh-ink-2);white-space:nowrap">{{ h.label }}</th>
+                </sc-for>
+              </tr></thead>
+              <tbody>
+                <sc-for list="{{ adjRows }}" as="a" hint-placeholder-count="5">
+                  <tr style="border-bottom:1px solid var(--mgh-surface-2)">
+                    <td style="padding:12px 14px"><div style="display:flex;align-items:center;gap:10px">
+                      <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Avatar" name="{{ a.name }}" src="{{ a.avatar }}" size="{{ 32 }}" hint-size="32px,32px"></x-import>
+                      <div style="display:flex;flex-direction:column"><span style="font:600 13px/18px var(--font-sans);color:var(--mgh-ink)">{{ a.name }}</span><span style="font:700 11px/14px var(--font-mono);color:var(--mgh-ink-3)">{{ a.id }} • {{ a.role }}</span></div>
+                    </div></td>
+                    <td style="padding:12px 14px"><div style="display:flex;flex-direction:column"><span style="font:600 13px/18px var(--font-sans);color:var(--mgh-ink)">{{ a.type }}</span><span style="font:400 12px/16px var(--font-sans);color:var(--mgh-ink-3)">{{ a.cat }}</span></div></td>
+                    <td style="padding:12px 14px;text-align:right;font:700 13px/18px var(--font-sans);color:{{ a.amtColor }};white-space:nowrap">{{ a.amount }}</td>
+                    <td style="padding:12px 14px"><x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Badge" tone="{{ a.taxTone }}" size="sm" hint-size="auto,20px">{{ a.tax }}</x-import></td>
+                    <td style="padding:12px 14px;font:400 12px/16px var(--font-sans);color:var(--mgh-ink-2)">{{ a.target }}</td>
+                    <td style="padding:12px 14px;font:400 12px/16px var(--font-sans);color:var(--mgh-ink-2)">{{ a.by }}</td>
+                    <td style="padding:12px 14px"><x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Badge" tone="{{ a.tone }}" dot="{{ true }}" size="sm" hint-size="auto,20px">{{ a.status }}</x-import></td>
+                    <td style="padding:12px 14px;text-align:right"><div style="display:inline-flex;gap:4px">
+                      <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.IconButton" icon="history" title="History" on-click="{{ a.history }}" hint-size="32px,32px"></x-import>
+                      <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.IconButton" icon="check" title="Approve" on-click="{{ a.approve }}" hint-size="32px,32px"></x-import>
+                    </div></td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <div style="padding:14px 20px;font:400 13px/18px var(--font-sans);color:var(--mgh-ink-2)">Showing {{ adjShown }} of {{ adjTotal }} active cycle adjustments • Net total {{ adjNet }}</div>
+        </x-import>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <span style="font:700 22px/28px var(--font-sans);letter-spacing:-0.44px;color:var(--mgh-ink)">Dominican Labor Code (Código de Trabajo Ley 16-92) Calculators</span>
+          <span style="font:400 13px/18px var(--font-sans);color:var(--mgh-ink-2)">Automated legal engines governing mandatory Christmas salary reserves (Art. 219) and statutory termination settlements (Art. 76–86).</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:20px;align-items:start">
+          <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" icon="redeem" title="Regalía Pascual (13th Salary) Engine" subtitle="Código de Trabajo Art. 219–222 • Exempt from ISR &amp; TSS" actions="{{ accruingBadge }}" hint-size="100%,380px">
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="padding:14px;border-radius:8px;background:var(--mgh-surface-1);display:flex;flex-direction:column;gap:8px">
+                <span style="font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:var(--mgh-ink-2)">Dominican statutory formula</span>
+                <div style="padding:12px;border-radius:8px;background:#fff;text-align:center;font:700 16px/22px var(--font-sans);color:var(--mgh-ink)">Regalía = ( Σ Ordinary Earned Salaries in Calendar Year ) / 12</div>
+                <span style="font:400 12px/16px var(--font-sans);color:var(--mgh-ink-2)">Computed over ordinary base earnings. Excludes overtime, tips, profit sharing and expense stipends.</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;justify-content:space-between;font:600 13px/18px var(--font-sans);color:var(--mgh-ink)"><span>Annual provision progress</span><span style="color:var(--mgh-success)">$28,570.83 of $342,000 pool</span></div>
+                <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.ProgressBar" value="{{ 29 }}" hint-size="100%,8px"></x-import>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div style="padding:12px;border-radius:8px;background:var(--mgh-surface-1)"><div style="font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:var(--mgh-ink-2)">Eligible employees</div><div style="font:700 16px/22px var(--font-sans);color:var(--mgh-ink)">48 Active Staff</div><div style="font:600 11px/14px var(--font-sans);color:var(--mgh-success)">100% Ley 16-92 enrolled</div></div>
+                <div style="padding:12px;border-radius:8px;background:var(--mgh-surface-1)"><div style="font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:var(--mgh-ink-2)">Statutory deadline</div><div style="font:700 16px/22px var(--font-sans);color:var(--mgh-ink)">Dec 20, 2025</div><div style="font:600 11px/14px var(--font-sans);color:var(--mgh-danger)">Mandatory payout date</div></div>
+              </div>
+            </div>
+          </x-import>
+          <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" icon="gavel" title="Prestaciones Laborales Simulator" subtitle="Ley 16-92 Articles 76–86 (Desahucio Laboral)" actions="{{ simBadge }}" hint-size="100%,380px">
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;align-items:center;gap:10px;padding:12px;border-radius:8px;background:var(--mgh-surface-1)">
+                <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Avatar" name="Javier Peña" src="assets/avatars/person-2.jpg" size="{{ 32 }}" hint-size="32px,32px"></x-import>
+                <div style="flex:1"><div style="font:600 13px/18px var(--font-sans);color:var(--mgh-ink)">Javier Peña</div><div style="font:400 12px/16px var(--font-sans);color:var(--mgh-ink-3)">Backend Engineer • Monthly base $3,800.00</div></div>
+                <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Badge" tone="neutral" size="sm" hint-size="auto,20px">Tenure 2 yrs, 4 mos</x-import>
+              </div>
+              <div style="display:flex;flex-direction:column">
+                <sc-for list="{{ severance }}" as="s" hint-placeholder-count="4">
+                  <div style="display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid var(--mgh-surface-2);font:400 13px/18px var(--font-sans);color:var(--mgh-ink-2)"><span>{{ s.k }}</span><span style="font-weight:700;color:var(--mgh-ink)">{{ s.v }}</span></div>
+                </sc-for>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:14px;padding:14px;border-radius:8px;background:var(--mgh-navy);color:#fff">
+                <div><div style="font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:var(--mgh-nav-text)">Total severance liability</div><div style="font:600 11px/14px var(--font-sans);color:var(--mgh-success-300)">TSS &amp; DGII exemption verified (Art. 86)</div></div>
+                <span style="font:800 30px/32px var(--font-sans);letter-spacing:-1px">$11,033.17</span>
+              </div>
+            </div>
+          </x-import>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- APPROVAL WORKFLOWS -->
+    <sc-if value="{{ isWf }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:28px;display:flex;flex-direction:column;gap:20px;max-width:1600px">
+        <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.PageHeader" breadcrumbs="{{ wfCrumbs }}" title="Approval Workflows &amp; Policy Governance" description="Configure sequential multi-tier timesheet and payroll approval pipelines, monetary sign-off thresholds, automated Jira variance rules and statutory lock protocols." actions="{{ wfActions }}" hint-size="100%,96px"></x-import>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+          <sc-for list="{{ wfKpis }}" as="k" hint-placeholder-count="4">
+            <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.StatCard" label="{{ k.label }}" value="{{ k.value }}" unit="{{ k.unit }}" icon="{{ k.icon }}" tone="{{ k.tone }}" footer="{{ k.footer }}" progress="{{ k.progress }}" hint-size="100%,150px"></x-import>
+          </sc-for>
+        </div>
+
+        <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" hint-size="100%,420px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:20px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:8px"><x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Badge" tone="dark" size="sm" uppercase="{{ true }}" hint-size="auto,20px">Active pipeline model</x-import><span style="font:600 11px/14px var(--font-sans);color:var(--mgh-ink-3)">Version 3.4.9 • Production</span></div>
+              <span style="font:700 22px/28px var(--font-sans);letter-spacing:-0.44px;color:var(--mgh-ink)">Bi-Weekly Timesheet &amp; Statutory Payroll Approval Sequence</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:var(--mgh-surface-1);font:500 13px/18px var(--font-sans);color:var(--mgh-ink-2)">
+              <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Icon" name="lock_clock" size="{{ 16 }}" color="var(--mgh-success)" hint-size="16px,16px"></x-import>Auto-freeze cutoff: <strong style="color:var(--mgh-ink)">Every other Monday at 23:59 AST</strong>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px">
+            <sc-for list="{{ stages }}" as="s" hint-placeholder-count="6">
+              <button onClick="{{ s.pick }}" style="text-align:left;cursor:pointer;border:0;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;font-family:var(--font-sans);background:{{ s.bg }};color:{{ s.fg }};box-shadow:{{ s.shadow }}">
+                <div style="display:flex;justify-content:space-between;align-items:center"><span style="font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;padding:2px 8px;border-radius:9999px;background:{{ s.chipBg }};color:{{ s.chipFg }}">{{ s.no }}</span>
+                  <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Icon" name="{{ s.icon }}" size="{{ 18 }}" color="{{ s.iconColor }}" hint-size="18px,18px"></x-import></div>
+                <span style="font:700 16px/22px var(--font-sans);letter-spacing:-0.1px">{{ s.title }}</span>
+                <span style="font:400 12px/16px var(--font-sans);opacity:0.85">{{ s.desc }}</span>
+                <div style="display:flex;flex-direction:column;gap:4px;padding:8px 10px;border-radius:8px;background:{{ s.boxBg }}">
+                  <sc-for list="{{ s.kv }}" as="kv" hint-placeholder-count="2">
+                    <div style="display:flex;justify-content:space-between;gap:8px;font:600 11px/14px var(--font-sans)"><span style="text-transform:uppercase;letter-spacing:0.44px;opacity:0.7">{{ kv.k }}</span><span style="text-align:right">{{ kv.v }}</span></div>
+                  </sc-for>
+                </div>
+                <span style="align-self:flex-start;font:700 11px/14px var(--font-sans);padding:3px 8px;border-radius:9999px;background:{{ s.tagBg }};color:{{ s.tagFg }}">{{ s.tag }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <div style="margin-top:14px;padding:14px;border-radius:8px;background:var(--mgh-surface-1);display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
+            <sc-for list="{{ stageDetail }}" as="d" hint-placeholder-count="4">
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:var(--mgh-ink-3)">{{ d.k }}</span><span style="font:500 13px/18px var(--font-sans);color:var(--mgh-ink)">{{ d.v }}</span></div>
+            </sc-for>
+          </div>
+        </x-import>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px;align-items:start">
+          <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" title="Threshold &amp; Trigger Rules Matrix" subtitle="Condition engine" icon="rule" padding="{{ 0 }}" hint-size="100%,420px">
+            <div class="mgh-scroll" style="overflow-x:auto">
+              <table style="width:100%;min-width:640px;border-collapse:collapse">
+                <thead><tr>
+                  <th style="text-align:left;padding:12px 14px;background:var(--mgh-surface-1);font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:var(--mgh-ink-2)">Condition / policy rule</th>
+                  <th style="text-align:left;padding:12px 14px;background:var(--mgh-surface-1);font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:var(--mgh-ink-2)">Autonomous trigger action</th>
+                  <th style="text-align:center;padding:12px 14px;background:var(--mgh-surface-1);font:700 11px/14px var(--font-sans);letter-spacing:0.55px;text-transform:uppercase;color:var(--mgh-ink-2)">Status</th>
+                </tr></thead>
+                <tbody>
+                  <sc-for list="{{ rules }}" as="r" hint-placeholder-count="5">
+                    <tr style="border-bottom:1px solid var(--mgh-surface-2)">
+                      <td style="padding:14px"><div style="display:flex;gap:10px;align-items:flex-start">
+                        <span style="width:32px;height:32px;border-radius:8px;flex:none;display:grid;place-items:center;background:{{ r.iconBg }}"><x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Icon" name="{{ r.icon }}" size="{{ 16 }}" color="{{ r.iconColor }}" hint-size="16px,16px"></x-import></span>
+                        <div style="display:flex;flex-direction:column"><span style="font:600 14px/20px var(--font-sans);color:var(--mgh-ink)">{{ r.cond }}</span><span style="font:600 11px/14px var(--font-sans);color:var(--mgh-ink-3)">Scope: {{ r.scope }}</span></div>
+                      </div></td>
+                      <td style="padding:14px"><div style="display:flex;flex-direction:column"><span style="font:500 13px/18px var(--font-sans);color:var(--mgh-ink)">{{ r.action }}</span><span style="font:400 11px/14px var(--font-sans);color:var(--mgh-ink-3)">{{ r.meta }}</span></div></td>
+                      <td style="padding:14px;text-align:center"><x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Toggle" checked="{{ r.on }}" on-change="{{ r.toggle }}" hint-size="44px,24px"></x-import></td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </x-import>
+          <div style="display:flex;flex-direction:column;gap:20px">
+            <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" title="Status Mapping" subtitle="12 period statuses → who can edit" icon="account_tree" hint-size="100%,420px">
+              <div style="display:flex;flex-direction:column">
+                <sc-for list="{{ statusMap }}" as="s" hint-placeholder-count="12">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--mgh-surface-2)">
+                    <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Badge" tone="{{ s.tone }}" size="sm" hint-size="auto,20px">{{ s.name }}</x-import>
+                    <span style="font:500 12px/16px var(--font-sans);color:var(--mgh-ink-2);text-align:right">{{ s.edit }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </x-import>
+            <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Card" tone="dark" title="Next Pay Period Lock Hash" subtitle="Audit seal engine" icon="verified" hint-size="100%,200px">
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <span style="font:400 13px/18px var(--font-sans);color:var(--mgh-nav-text)">Upon final Finance sign-off, an immutable SHA-256 block seal is pinned to the audit journal.</span>
+                <div style="padding:10px;border-radius:8px;background:rgba(255,255,255,.08);font:700 11px/16px var(--font-mono);color:var(--mgh-success-300);word-break:break-all">0x7e29a9b40f28e46dc9145618b010c73e911df130a1bf842adcebc61a039feec1</div>
+                <div style="display:flex;justify-content:space-between;font:600 12px/16px var(--font-sans);color:#FAF8FF"><span>Target: PP-2025-08</span><span style="color:var(--mgh-success-300)">T-minus 5d 14h</span></div>
+              </div>
+            </x-import>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </main>
+
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:120;background:var(--mgh-navy);color:#fff;padding:10px 16px;border-radius:12px;box-shadow:var(--shadow-lg);display:flex;gap:8px;align-items:center;font:600 13px/18px var(--font-sans)">
+      <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Icon" name="check_circle" size="{{ 16 }}" color="var(--mgh-success-300)" hint-size="16px,16px"></x-import>{{ toast }}
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasDialog }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeDialog }}" style="position:fixed;inset:0;z-index:100;background:rgba(19,27,46,.4);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:20px">
+      <div onClick="{{ stop }}" style="width:480px;max-width:100%;background:#fff;border-radius:16px;box-shadow:var(--shadow-lg);padding:24px;display:flex;flex-direction:column;gap:16px">
+        <span style="font:600 18px/24px var(--font-sans);color:var(--mgh-ink)">{{ dlg.title }}</span>
+        <span style="font:400 13px/18px var(--font-sans);color:var(--mgh-ink-2)">{{ dlg.body }}</span>
+        <div style="display:flex;justify-content:flex-end;gap:8px">
+          <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Button" variant="secondary" on-click="{{ closeDialog }}" hint-size="auto,40px">Cancel</x-import>
+          <x-import component-from-global-scope="MyGlobalHubDesignSystem_2a603d.Button" variant="{{ dlg.variant }}" icon="{{ dlg.icon }}" on-click="{{ confirmDialog }}" hint-size="auto,40px">{{ dlg.confirm }}</x-import>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const DAY=864e5,MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const U=(y,m,d)=>new Date(Date.UTC(y,m,d));
+const add=(t,n)=>new Date(t.getTime()+n*DAY);
+const f=t=>MON[t.getUTCMonth()]+' '+String(t.getUTCDate()).padStart(2,'0');
+const fy=t=>f(t)+', '+t.getUTCFullYear();
+const ANCHOR=U(2024,11,24),TODAY=U(2025,3,15);
+const LOCKED=['Approved','Paid','Closed','Archived'];
+const STATUSES=['Draft','Open','Awaiting Employee Submission','Awaiting Supervisor Approval','Awaiting Project Manager Approval','Awaiting HR Approval','Awaiting Finance Approval','Processing Payroll','Approved','Paid','Closed','Archived'];
+const SHORT={'Awaiting Employee Submission':'Awaiting Employee','Awaiting Supervisor Approval':'Awaiting Supervisor','Awaiting Project Manager Approval':'Awaiting PM','Awaiting HR Approval':'Awaiting HR','Awaiting Finance Approval':'Awaiting Finance','Processing Payroll':'Processing'};
+const TONE=s=>s==='Draft'?'neutral':s==='Archived'||s==='Closed'?'dark':s==='Paid'||s==='Approved'?'success':s==='Open'?'info':'warning';
+const KIT=['dashboard','approvals','queue','timesheets','employees','profile','payroll','processing','paystub','banking','jira','projects','reports','admin','settings','audit','contractors','contractorPayments'];
+const NAV=[
+ {label:'Overview',items:[{key:'dashboard',label:'Executive Dashboard',icon:'space_dashboard'},{key:'payroll',label:'Payroll Dashboard',icon:'monitoring'}]},
+ {label:'Workforce',items:[{key:'mytime',label:'My Time Entry',icon:'schedule'},{key:'addEmployee',label:'Add Employee',icon:'person_add'},{key:'approvals',label:'Approval Workspace',icon:'assignment_turned_in',badge:'12 Pending'},{key:'queue',label:'Team Approval Queue',icon:'fact_check'},{key:'timesheets',label:'Team Timesheets',icon:'more_time'},{key:'employees',label:'Employee Directory',icon:'badge'}]},
+ {label:'Payroll & Finance',items:[{key:'periods',label:'Pay Periods & Processing',icon:'event_repeat'},{key:'adjustments',label:'Adjustments',icon:'tune'},{key:'processing',label:'Payroll Processing',icon:'payments'},{key:'paystub',label:'Pay Stubs',icon:'receipt_long'},{key:'banking',label:'Banking & Allocations',icon:'account_balance'},{key:'reports',label:'Reports & Register',icon:'bar_chart'}]},
+ {label:'Contractors',items:[{key:'contractors',label:'Contractors',icon:'badge'},{key:'contractorPayments',label:'Contractor Payments',icon:'currency_exchange'}]},
+ {label:'Integrations',items:[{key:'jira',label:'Jira Cloud Sync',icon:'sync_alt',badge:'2m',badgeTone:'onDarkSuccess'},{key:'projects',label:'Projects',icon:'folder_open'}]},
+ {label:'System / Administration',items:[{key:'admin',label:'Organization & Multi-HQ',icon:'hub'},{key:'workflows',label:'Approval Workflows',icon:'account_tree'},{key:'audit',label:'Audit Logs',icon:'shield_lock'},{key:'settings',label:'Settings',icon:'settings'}]}];
+const STAGES=[
+ {title:'Worker Submission',icon:'assignment_ind',desc:'Contractor and salaried timesheet commit. Real-time Jira synchronization lock.',kv:[['Cutoff','Day 14 @ 23:59'],['Sync hook','Jira worklogs locked']],tag:'Auto-Trigger',tagTone:'success',owner:'Employee',sla:'Day 15 • 10:00',rule:'Cannot submit with missing entries; OT > 5h needs justification',notify:'Timesheet due • 24h and 2h before'},
+ {title:'Supervisor / PM Review',icon:'supervisor_account',desc:'Lead PM validates sprint deliverables, worklog distribution and billable tags.',kv:[['Approvers','Elena Rostova'],['SLA window','24 hours']],tag:'Sequential',tagTone:'neutral',owner:'Supervisor • Project Manager',sla:'Day 15 • 18:00 / Day 16 • 10:00',rule:'Jira variance > 1.0h blocks approval until resynced',notify:'Approvals pending • every 4h'},
+ {title:'HR & Statutory',icon:'gavel',desc:'Regulatory compliance checks for Punta Cana operations and overseas contractors.',kv:[['Jurisdiction','TSS • DGII'],['Audits','Art. 155 Ley 16-92']],tag:'Policy Gate',tagTone:'neutral',owner:'HR Compliance • Roberto Gomez',sla:'Day 16 • 12:00',rule:'44h weekly OT threshold, 36h weekly rest',notify:'Approvals pending'},
+ {title:'Finance Approval',icon:'account_balance_wallet',desc:'Payroll register review, budget vs actual and batch totals.',kv:[['Signers','Marcus Calderon'],['Threshold','> $25,000 dual-sign']],tag:'Dual-Keys Req',tagTone:'warning',owner:'Finance VP',sla:'Day 19 • 12:00',rule:'Batches over $25,000 need dual signature (WebAuthn)',notify:'Payroll approved'},
+ {title:'Treasury Disbursement',icon:'send_money',desc:'ACH and FedWire release across multi-bank allocations.',kv:[['Rails','ACH • FedWire'],['Split','Must total 100%']],tag:'Bank Confirm',tagTone:'info',owner:'Payroll • Treasury',sla:'Day 20 • 09:00',rule:'Bank change cooling period 72h + 2FA',notify:'Payroll paid'},
+ {title:'Ledger Seal & Lock',icon:'lock',desc:'Immutable SHA-256 seal burned into the audit journal. Edits strictly blocked.',kv:[['Ledger state','Immutable'],['Hash root','0x8f4b…3e1a']],tag:'Tamper-Proof',tagTone:'onDarkSuccess',owner:'System',sla:'Day 21 • value date',rule:'Corrections only via Payroll Adjustments in next open period',notify:'New period begins',final:true}];
+const RULES=[
+ {cond:'Overtime > 5 Hours',scope:'Engineering & Operations',icon:'more_time',tone:'warning',action:'Requires written justification + Lead PM sign-off',meta:'Escalates to Elena Rostova'},
+ {cond:'Jira Worklog Variance > 1.0h',scope:'Jira Cloud sync hook',icon:'sync_problem',tone:'primary',action:'Block approval until re-synced',meta:'Webhook auto-flags task tickets'},
+ {cond:'Bank Split Modification',scope:'Banking & multi-currency split',icon:'account_balance',tone:'primary',action:'Mandatory 2FA + HR auditor notification',meta:'Enforces 72h holding buffer on change'},
+ {cond:'Disbursement > $50,000 USD',scope:'Single batch or total net payroll run',icon:'payments',tone:'warning',action:'Executive board approval required',meta:'Generates cryptographic multi-sig payload'},
+ {cond:'Approver Misses SLA',scope:'Any approval stage',icon:'alarm',tone:'danger',action:'Auto-escalate to next level + Slack alert',meta:'48h before payroll freeze'}];
+const RTONE={warning:['var(--mgh-warning-bg)','var(--mgh-warning)'],primary:['var(--mgh-primary-50)','var(--mgh-primary)'],danger:['var(--mgh-danger-bg)','var(--mgh-danger)']};
+const ADJ=[
+ {id:'MGH-1042',name:'Carlos Mendez',role:'Sr. Full Stack',avatar:'assets/avatars/carlos-mendez.jpg',type:'Q1 Performance Bonus',cat:'Discretionary incentive pool',kind:'bonus',amt:5000,tax:'DGII Taxable ISR',taxTone:'info',target:'Banco BHD León (80%) • Chase USA (20%)',by:'Elena Rostova • Apr 11, 09:42',status:'Approved & Queued'},
+ {id:'MGH-1088',name:'Sofia Almonte',role:'UI/UX Architect',type:'Remote Office Stipend',cat:'Hardware & ergonomics',kind:'stipend',amt:1200,tax:'TSS Exempt',taxTone:'success',target:'Banco Popular • DOP checking',by:'Marcus Vance • Apr 10, 16:15',status:'Tax Audited'},
+ {id:'MGH-1102',name:'David Wu',role:'DevOps Engineer',type:'Retroactive OT Parity',cat:'Cycle PP-2025-07 Jira on-call delta',kind:'retro',amt:850,tax:'DGII Taxable ISR',taxTone:'info',target:'Chase Bank USA • 100%',by:'Elena Rostova • Apr 12, 11:08',status:'Pending 2FA'},
+ {id:'MGH-0975',name:'Mariana Reyes',role:'QA Automation Lead',avatar:'assets/avatars/person-1.jpg',type:'Health Plan Upgrade',cat:'ARS Humano international coverage',kind:'deduction',amt:-450,tax:'Statutory Deduction',taxTone:'neutral',target:'Payroll retention • internal ledger',by:'System automated • Apr 01, 00:01',status:'Approved & Queued'},
+ {id:'MGH-1120',name:'Javier Peña',role:'Backend Engineer',avatar:'assets/avatars/person-2.jpg',type:'Equipment Reimbursement',cat:'Laptop dock & monitor',kind:'stipend',amt:640,tax:'TSS Exempt',taxTone:'success',target:'Banreservas • 100%',by:'Ana Gómez • Apr 09, 14:20',status:'Pending Approval'}];
+const ATONE=s=>/Approved/.test(s)?'success':/Pending/.test(s)?'warning':'info';
+const PAYCALC=(rate,freq,profile,cur)=>{const H={'Bi-Weekly':80,'Weekly':40,'Semi-Monthly':86.67,'Monthly':173.33}[freq]||80,N={'Bi-Weekly':26,'Weekly':52,'Semi-Monthly':24,'Monthly':12}[freq]||26;
+  const g=(Number(rate)||0)*H,A=g*N,lines=[];const fx=cur==='DOP'?1:cur==='GBP'?75:60.5;
+  const br=(a,b)=>{let tax=0,prev=0;for(const [cap,r] of b){if(a<=prev)break;tax+=(Math.min(a,cap)-prev)*r;prev=cap}return tax};
+  if(/^Exempt/.test(profile)){lines.push(['Tax deductions','Exempt',0])}
+  else if(/DGII/.test(profile)){const afp=g*0.0287,sfs=g*0.0304,ad=(A-(afp+sfs)*N)*fx;const isr=br(ad,[[416220,0],[624329,.15],[867123,.20],[Infinity,.25]])+(ad>867123?0:0);lines.push(['AFP 2.87%','',afp],['SFS 3.04%','',sfs],['ISR (DGII)','',isr/fx/N])}
+  else if(/W-4/.test(profile)){const fica=g*0.0765,fed=br(A-14600,[[11600,.10],[47150,.12],[100525,.22],[191950,.24],[Infinity,.32]].map(x=>x))/N;lines.push(['Federal income tax','',Math.max(0,fed)],['FICA 7.65%','',fica],['State tax (est. 5%)','',g*0.05])}
+  else if(/PAYE/.test(profile)){const t=Math.max(0,A-12570);lines.push(['PAYE income tax','',br(t,[[37700,.20],[112570,.40],[Infinity,.45]])/N],['National Insurance','',br(t,[[37700,.08],[Infinity,.02]])/N])}
+  const ded=lines.reduce((s,l)=>s+l[2],0);return {hours:H,gross:g,ded,net:g-ded,lines,exempt:/^Exempt/.test(profile)}};
+const fmtC=(v,c)=>(c==='GBP'?'£':c==='DOP'?'RD$':'$')+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const money=n=>(n<0?'-':'+')+'$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2});
+
+const ISSUES={'ATLAS-412':'GraphQL API Optimization','ATLAS-420':'Hotfix: Redis Cluster Failover','ATLAS-415':'Auth Microservice Integration','CORE-108':'Database Sharding Pipeline','ATLAS-104':'Standup & Sprint Planning'};
+const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function MYDAYS(){const o=[];for(let i=0;i<14;i++){const d=add(U(2025,3,15),i),wd=d.getUTCDay();const we=wd===0||wd===6;o.push({d,type:we?'Weekend':i===3?'Holiday':i===10?'PTO':'Regular',in:i===0?'08:30':'',lo:'',li:'',out:''})}return o}
+function OLDDAYS(){const o=[];const ot={2:'19:00',8:'19:30',10:'20:30'};for(let i=0;i<14;i++){const d=add(U(2025,3,1),i),wd=d.getUTCDay();const we=wd===0||wd===6;o.push({d,type:we?'Weekend':'Regular',in:we?'':'08:30',lo:we?'':'12:30',li:we?'':'13:30',out:we?'':(ot[i]||'17:30')})}return o}
+const tm=s=>{if(!s||!/^\d{1,2}:\d{2}$/.test(s))return null;const [h,m]=s.split(':').map(Number);return h*60+m};
+const hm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const h1=n=>n.toFixed(1)+'h';
+
+class Component extends DCLogic {
+  state={route:'periods',empId:'MGH-1042',toast:'',dialog:null,ov:{},periodFilter:'all',pq:'',offset:6,autoGen:true,adjFilter:'all',adj:ADJ,stage:1,ruleOn:[1,1,1,1,1],notifOn:[1,1,1,1,1,1],
+    myPeriodKey:'09',myWeek:'1',myDays:MYDAYS(),wl:{issue:'ATLAS-412',hours:'',desc:''},worklogs:[{key:'ATLAS-412',title:'GraphQL API Optimization',desc:'Resolver batching for payroll register query',hrs:0.75}],
+    ne:{first:'',last:'',email:'',phone:'',nid:'',dob:'',entity:'My Global Hub Dominicana SRL',dept:'Engineering',title:'',mgr:'Elena Rostova',etype:'Full-time',start:'2025-04-21',loc:'Punta Cana, DR',freq:'Bi-Weekly',rate:'',cur:'USD',ot:true,tax:'DGII ISR + TSS (Dominican Republic)',bank:'Banco BHD León',acct:'',route:'',alloc:'100',bank2:'',jira:'',projects:'ATLAS',flow:'Employee → Supervisor → PM → HR → Finance',pmethod:'Bank Deposit',cbEmail:'',cbId:'',cbNetwork:'Base',cbAsset:'USDC',cbWallet:'',cbAlloc:'20',cbW8:false,cbKyc:false,cbCountry:'Colombia',cStart:'2025-04-21',cEnd:'2026-04-20',cTax:'W-8BEN (non-US individual)',cInvoice:true},
+    pf:{transfer:'bhd',ref:'',date:'2025-04-20'},pfFile:null,drag:false,proofs:(()=>{try{return JSON.parse(localStorage.getItem('mgh-proofs')||'[]')}catch(e){return []}})()};
+  scroller=React.createRef();
+  componentDidMount(){const h=(location.hash||'').slice(1);if(h&&(KIT.includes(h)||['periods','adjustments','workflows','mytime','addEmployee'].includes(h)))this.setState({route:h});this._t0=Date.now();this._iv=setInterval(()=>{if(this.state.route==='mytime')this.forceUpdate()},15000);}
+  componentWillUnmount(){clearInterval(this._iv)}
+  nowMin(){return 9*60+15+Math.floor((Date.now()-(this._t0||Date.now()))/60000)}
+  setDay(i,k,v){this.setState(s=>{const d=[...s.myDays];d[i]={...d[i],[k]:v};return {myDays:d}})}
+  setNE(k,v){this.setState(s=>({ne:{...s.ne,[k]:v}}))}
+  go=(r,id)=>{this.setState(s=>({route:r,empId:id||s.empId}));try{history.replaceState(null,'','#'+r)}catch(e){}if(this.scroller.current)this.scroller.current.scrollTop=0};
+  flash=m=>{this.setState({toast:m});clearTimeout(this._t);this._t=setTimeout(()=>this.setState({toast:''}),2600)};
+  el(name,props,children){const DS=window.MyGlobalHubDesignSystem_2a603d;return DS&&DS[name]?React.createElement(DS[name],props,children):null}
+  btns(list){return React.createElement(React.Fragment,null,...list.map((b,i)=>this.el('Button',{key:i,variant:b[0],icon:b[1],onClick:b[3]||(()=>this.flash(b[2]+' • queued'))},b[2])))}
+  period(n){
+    const s=add(ANCHOR,14*(n-1)),e=add(s,13),pay=add(e,this.state.offset);
+    let st=n<=3?'Archived':n<=7?'Closed':n===8?'Awaiting Project Manager Approval':n===9?'Open':'Draft';
+    const id='PP-2025-'+String(n).padStart(2,'0');st=this.state.ov[id]||st;
+    return {n,id,s,e,pay,status:st,dl:[[add(e,1),'10:00'],[add(e,1),'18:00'],[add(e,2),'12:00'],[add(e,2),'17:00'],[add(e,4),'12:00']]};
+  }
+  setStatus(id,st,msg){this.setState(s=>({ov:{...s.ov,[id]:st},dialog:null}));this.flash(msg)}
+  dayCalc(e,isToday,now){
+    if(['PTO','Holiday','Sick'].includes(e.type))return {hrs:8,ot:0,missing:false,err:{},credit:true};
+    if(e.type==='Weekend')return {hrs:0,ot:0,missing:false,err:{}};
+    const a=tm(e.in),lo=tm(e.lo),li=tm(e.li),b=tm(e.out),err={};
+    if(b!=null&&a!=null&&b<=a)err.out='Before clock-in';
+    if(li!=null&&lo!=null&&li<lo)err.li='Before lunch out';
+    let end=b!=null?b:(isToday&&a!=null?now:null);
+    if(a==null||end==null)return {hrs:0,ot:0,missing:false,err,blank:a==null};
+    let lunch=lo!=null?((li!=null?li:(isToday?now:lo))-lo):0;
+    const mins=Math.max(0,end-a-lunch);const hrs=mins/60;
+    return {hrs,ot:Math.max(0,hrs-8),missing:!isToday&&(lo!=null&&li==null),err,running:isToday&&b==null};
+  }
+  myVals(){
+    const s=this.state,cur=s.myPeriodKey==='09',now=this.nowMin();
+    const days=cur?s.myDays:OLDDAYS();
+    const calc=days.map((e,i)=>this.dayCalc(e,cur&&i===0,now));
+    const sum=k=>calc.reduce((t,c)=>t+c[k],0);
+    const reg=calc.reduce((t,c,i)=>t+(c.credit?0:c.hrs-c.ot),0),ot=sum('ot');
+    const pto=days.reduce((t,e,i)=>t+(['PTO','Sick'].includes(e.type)?8:0),0),hol=days.reduce((t,e)=>t+(e.type==='Holiday'?8:0),0);
+    const missing=calc.filter(c=>c.missing).length+(cur?0:0);
+    const w=s.myWeek==='1'?[0,7]:[7,14];
+    const wkTotal=calc.slice(w[0],w[1]).reduce((t,c)=>t+c.hrs,0);
+    const t0=s.myDays[0],c0=calc[0]&&cur?calc[0]:this.dayCalc(s.myDays[0],true,now);
+    const cs=t0.out?'out':t0.li?'back':t0.lo?'lunch':'in';
+    const nowS=hm(now);
+    const mkP=(e,i,k)=>{const ro=!cur||e.type!=='Regular'||(i===0&&k==='in');const v=e[k];return {edit:!ro,view:ro,v,text:e.type==='Regular'?(v||'—'):'—',color:v?'var(--mgh-ink)':'var(--mgh-ink-3)',err:calc[i].err[k]||'',style:{width:110},set:x=>this.setDay(i,k,typeof x==='string'?x:(x&&x.target?x.target.value:''))}};
+    const myRows=days.slice(w[0],w[1]).map((e,j)=>{const i=w[0]+j,c=calc[i],today=cur&&i===0;
+      let status,tone;if(e.type==='Weekend'){status='Weekend';tone='neutral'}else if(e.type==='Holiday'){status=cur?'Good Friday • Credited':'Holiday';tone='info'}else if(e.type==='PTO'||e.type==='Sick'){status=e.type+' • Approved';tone='info'}else if(Object.keys(c.err).length){status='Fix Entry';tone='danger'}else if(today){status='In Progress';tone='info'}else if(c.missing){status='Missing Punch';tone='danger'}else if(c.hrs>0){status=c.ot>0?'Overtime':'Complete';tone=c.ot>0?'warning':'success'}else{status='Upcoming';tone='neutral'}
+      const jiraH=today?s.worklogs.reduce((t,x)=>t+x.hrs,0):(!cur&&c.hrs?c.hrs-(i===8?0.5:0):0);
+      return {date:DOW[e.d.getUTCDay()]+', '+f(e.d),sub:today?'Today':e.type==='Weekend'?'Weekend':'Day '+(i+1),dateColor:today?'var(--mgh-primary)':e.type==='Weekend'?'var(--mgh-ink-3)':'var(--mgh-ink)',rowBg:today?'var(--mgh-primary-50)':e.type==='Weekend'?'var(--surface-app)':'transparent',
+        type:e.type,typeOpts:e.type==='Weekend'?['Weekend']:['Regular','PTO','Sick','Holiday'],setType:v=>cur&&e.type!=='Weekend'&&this.setDay(i,'type',v),
+        punches:['in','lo','li','out'].map(k=>mkP(e,i,k)),hrs:c.hrs?h1(c.hrs):'—',ot:c.ot?h1(c.ot):'—',otColor:c.ot?'var(--mgh-warning)':'var(--mgh-ink-3)',jira:jiraH?h1(jiraH):'—',jiraColor:jiraH&&Math.abs(jiraH-c.hrs)>1?'var(--mgh-danger)':'var(--mgh-ink-2)',status,tone}});
+    const wlTotal=s.worklogs.reduce((t,x)=>t+x.hrs,0),worked=c0.hrs;
+    const B=(lbl,icon,variant,run,disabled)=>({label:lbl,icon,variant,run,disabled:!!disabled});
+    const buttons=cs==='in'?[B('Start Lunch','restaurant','secondary',()=>{this.setDay(0,'lo',nowS);this.flash('Lunch started at '+nowS)}),B('Clock Out','logout','dark',()=>{this.setDay(0,'out',nowS);this.flash('Clocked out at '+nowS)})]:cs==='lunch'?[B('End Lunch','restaurant','primary',()=>{this.setDay(0,'li',nowS);this.flash('Back from lunch at '+nowS)})]:cs==='back'?[B('Clock Out','logout','dark',()=>{this.setDay(0,'out',nowS);this.flash('Clocked out at '+nowS)})]:[B('Clocked Out','check_circle','secondary',null,true)];
+    const steps=cur?[{label:'Employee',state:'current',status:'Due Apr 29 • 10:00'},{label:'Supervisor',state:'pending',meta:'Elena Rostova'},{label:'Project Mgr',state:'pending'},{label:'HR',state:'pending'},{label:'Finance',state:'pending'},{label:'Lock',state:'pending',meta:'May 05'}]:[{label:'Employee',state:'done',status:'Submitted Apr 14'},{label:'Supervisor',state:'done',status:'Approved Apr 15'},{label:'Project Mgr',state:'current',status:'Due Apr 16 • 12:00'},{label:'HR',state:'pending'},{label:'Finance',state:'pending'},{label:'Lock',state:'pending',meta:'Apr 21'}];
+    const total=reg+ot+pto+hol;
+    return {
+      isMy:s.route==='mytime',myCrumbs:['Workforce','Employee Self-Service','My Time Entry'],
+      myStatusBadge:this.el('Badge',{tone:cur?'info':'warning',dot:true},cur?'Open • PP-2025-09 • 13 days remaining':'Submitted • PP-2025-08 • Awaiting PM'),
+      myActions:this.btns([['secondary','beach_access','Request Time Off',()=>this.flash('PTO request form opened • 14.5 days available')],['secondary','save','Save Draft',()=>this.flash('Timesheet draft saved • '+h1(total))],['primary','send','Submit Timesheet',()=>cur?this.setState({dialog:{title:'Submit PP-2025-09 early?',body:'The work period runs until Mon, Apr 28 at 23:59. Submitting now locks the remaining 13 days. Submit early only if your schedule is final (approved PTO and holidays are already credited).',confirm:'Submit Anyway',variant:'primary',icon:'send',run:()=>{this.setState({dialog:null});this.flash('PP-2025-09 submitted • Elena Rostova notified')}}}):this.flash('PP-2025-08 already submitted on Apr 14')]]),
+      clock:{stateLabel:{in:'Clocked In • since 08:30',lunch:'On Lunch Break • since '+t0.lo,back:'Back at Work • since '+t0.li,out:'Clocked Out • '+t0.out}[cs],stateColor:cs==='out'?'var(--mgh-ink-3)':cs==='lunch'?'var(--mgh-warning)':'var(--mgh-success)',avatarStatus:cs==='out'?'offline':cs==='lunch'?'away':'online',worked:h1(worked),now:nowS,
+        punches:[['Clock In',t0.in],['Lunch Out',t0.lo],['Lunch In',t0.li],['Clock Out',t0.out]].map(p=>({label:p[0],v:p[1]||'—',color:p[1]?'var(--mgh-ink)':'var(--mgh-ink-4)'})),buttons},
+      myKpis:[{label:'Total hours',value:total.toFixed(1),unit:'h',icon:'schedule',tone:'primary',footer:'Target 80.0h • period'},{label:'Regular',value:reg.toFixed(1),unit:'h',icon:'work',tone:'primary',footer:'$52.50 / hr'},{label:'Overtime',value:ot.toFixed(1),unit:'h',icon:'more_time',tone:'warning',footer:'1.5× • pre-approved'},{label:'PTO',value:pto.toFixed(1),unit:'h',icon:'beach_access',tone:'accent',footer:cur?'Fri, Apr 25 • approved':'None this period'},{label:'Holiday',value:hol.toFixed(1),unit:'h',icon:'celebration',tone:'accent',footer:cur?'Good Friday • Apr 18':'—'},{label:'Missing entries',value:String(missing),icon:'report',tone:missing?'danger':'success',footer:missing?'Fix before submission':'All punches complete'},{label:'Remaining days',value:cur?'13':'0',icon:'event',tone:'primary',footer:cur?'Ends Mon, Apr 28':'Period ended Apr 14'},{label:'Approval status',value:cur?'Draft':'In Review',icon:'verified',tone:cur?'primary':'warning',footer:cur?'Not submitted':'Awaiting Project Mgr'}],
+      myPeriod:{id:cur?'PP-2025-09':'PP-2025-08',range:cur?'Apr 15 – Apr 28, 2025':'Apr 01 – Apr 14, 2025',readOnly:!cur},
+      myPeriodOpts:[{value:'09',label:'PP-2025-09 • Current'},{value:'08',label:'PP-2025-08 • Submitted'}],myPeriodKey:s.myPeriodKey,setMyPeriod:v=>this.setState({myPeriodKey:v}),
+      myWeekOpts:[{value:'1',label:'Week 1'},{value:'2',label:'Week 2'}],myWeek:s.myWeek,setMyWeek:v=>this.setState({myWeek:v}),
+      myCols:[['Date','left'],['Type','left'],['Clock in','left'],['Lunch out','left'],['Lunch in','left'],['Clock out','left'],['Hours','right'],['OT','right'],['Jira','right'],['Status','left']].map(x=>({label:x[0],align:x[1]})),
+      myRows,myWeekTotal:h1(wkTotal),myPeriodTotal:h1(total),
+      jiraMatchBadge:this.el('Badge',{tone:worked&&Math.abs(wlTotal-worked)<=1?'success':'warning',size:'sm'},(worked?Math.min(100,Math.round(wlTotal/worked*100)):0)+'% Jira match • '+h1(wlTotal)+' logged'),
+      wl:s.wl,issueOpts:Object.keys(ISSUES).map(k=>({value:k,label:k+' • '+ISSUES[k]})),
+      setWlIssue:v=>this.setState(st=>({wl:{...st.wl,issue:v}})),setWlHours:v=>this.setState(st=>({wl:{...st.wl,hours:typeof v==='string'?v:v.target.value}})),setWlDesc:v=>this.setState(st=>({wl:{...st.wl,desc:typeof v==='string'?v:v.target.value}})),
+      addWorklog:()=>{const h=parseFloat(s.wl.hours);if(!(h>0&&h<=12)){this.flash('Enter hours between 0.25 and 12');return}this.setState(st=>({worklogs:[...st.worklogs,{key:st.wl.issue,title:ISSUES[st.wl.issue],desc:st.wl.desc||'—',hrs:Math.round(h*4)/4}],wl:{...st.wl,hours:'',desc:''}}));this.flash(h1(h)+' logged to '+s.wl.issue+' • synced to Jira Cloud')},
+      worklogs:s.worklogs.map((x,i)=>({...x,hrs:h1(x.hrs),remove:()=>this.setState(st=>({worklogs:st.worklogs.filter((_,j)=>j!==i)}))})),
+      mySteps:steps};
+  }
+  addVals(){
+    const n=this.state.ne,S=k=>v=>this.setNE(k,typeof v==='string'||typeof v==='boolean'?v:(v&&v.target?(v.target.type==='checkbox'?v.target.checked:v.target.value):v));
+    const T=(k,label,o={})=>({isText:true,isSelect:false,isToggle:false,label,value:n[k],set:S(k),ph:o.ph||'',hint:o.hint||'',err:o.err||'',mono:!!o.mono,type:o.type||'text',prefix:o.prefix,suffix:o.suffix});
+    const L=(k,label,options)=>({isText:false,isSelect:true,isToggle:false,label,value:n[k],options,set:S(k)});
+    const G=(k,label,hint)=>({isText:false,isSelect:false,isToggle:true,label,hint,value:!!n[k],set:()=>this.setNE(k,!n[k])});
+    const emailOk=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(n.email);
+    const useCb=n.pmethod!=='Bank Deposit',useBank=n.pmethod!=='Coinbase Only';
+    const cbA=n.pmethod==='Coinbase Only'?100:(useCb?Math.min(100,Math.max(0,Number(n.cbAlloc)||0)):0);
+    const alloc=Number(n.alloc)||0,bankTarget=100-cbA;
+    const allocOk=!useBank?true:(n.bank2?alloc>0&&alloc<bankTarget:alloc===bankTarget);
+    const emOk=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(n.cbEmail);
+    const wOk=n.cbNetwork==='Solana'?/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(n.cbWallet):/^0x[a-fA-F0-9]{40}$/.test(n.cbWallet);
+    const cbOk=!useCb||(emOk&&wOk&&n.cbKyc&&n.cbW8&&(n.pmethod==='Coinbase Only'||(cbA>0&&cbA<100)));
+    const personal=!!(n.first&&n.last&&emailOk&&n.nid),employ=!!(n.title&&n.start),pay=Number(n.rate)>0,bank=(!useBank||!!(n.acct&&n.route&&allocOk))&&cbOk,jira=!!n.jira;
+    const pc=PAYCALC(n.rate,n.freq,n.tax,n.cur);const fullName=(n.first||n.last)?(n.first+' '+n.last).trim():'New Employee';
+    const sd=n.start?new Date(n.start+'T00:00:00Z'):null;let firstP='—';if(sd&&!isNaN(sd)){const k=Math.floor((sd-ANCHOR)/(14*DAY))+1;const st=add(ANCHOR,14*(k-1));firstP='PP-2025-'+String(k).padStart(2,'0')+' ('+f(st)+' – '+f(add(st,13))+')'}
+    const st=b=>b?'done':'pending';const cur=[personal,employ,pay,bank,jira].indexOf(false);
+    const missing=[];if(!personal)missing.push('personal info');if(!employ)missing.push('job title & start date');if(!pay)missing.push('hourly rate');if(useBank&&!(n.acct&&n.route&&allocOk))missing.push('bank details');if(!cbOk)missing.push('Coinbase payout details');
+    return {
+      isAddEmp:this.state.route==='addEmployee',addCrumbs:['Workforce','Employee Directory','Add Employee'],
+      addActions:this.btns([['ghost','close','Cancel',()=>this.go('employees')],['secondary','save','Save Draft',()=>this.flash('Draft saved • '+fullName)],['primary','person_add','Create Employee',()=>{const make=pending=>{const facts=[['Employee ID','MGH-1163'],['Job title',n.title||'—'],['Department',n.dept],['Entity',n.entity],['Supervisor',n.mgr],['Type',n.etype],['Start date',n.start||'—'],['First period',firstP],['Rate',n.rate?'$'+Number(n.rate).toFixed(2)+' / hr '+n.cur:'—'],['Payment method',n.pmethod],['Tax profile',n.tax],['Est. gross / period',pay?fmtC(pc.gross,n.cur):'—'],['Est. deductions',pay?(pc.exempt?'Exempt • '+fmtC(0,n.cur):fmtC(pc.ded,n.cur)):'—'],['Est. net / period',pay?fmtC(pc.net,n.cur):'—'],['Approval route',n.flow]];this.setState({dialog:null,created:{name:fullName,title:(n.title||'Job title pending')+' • '+n.dept,email:n.email,pending,facts,useCb,useBank,jira:!!n.jira,when:new Date().toLocaleString('en-US',{month:'short',day:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}});this.go('empCreated');this.flash(fullName+' created as MGH-1163')};
+          if(missing.length){this.setState({dialog:{title:'Create with missing details?',body:'Still missing: '+missing.join(', ')+'. The record will be created as Pending Onboarding and excluded from payroll until these are completed.',confirm:'Create as Pending',variant:'primary',icon:'person_add',run:()=>make(missing)}});return}make([])}]]),
+      addSteps:['Personal','Employment','Payroll','Banking','Jira & Approvals'].map((l,i)=>({label:l,state:i===cur?'current':st([personal,employ,pay,bank,jira][i])})),
+      addSections:[
+        {icon:'person',title:'Personal Information',sub:'Legal identity used on pay stubs and statutory filings',fields:[T('first','First name',{ph:'Ana'}),T('last','Last name',{ph:'Martínez'}),T('email','Work email',{ph:'name@myglobalhub.net',err:n.email&&!emailOk?'Enter a valid email':''}),T('phone','Phone',{ph:'+1 (809) 555-0142'}),T('nid','Cédula / SSN / NI number',{ph:'001-0000000-0',mono:true}),T('dob','Date of birth',{type:'date'})]},
+        {icon:'work',title:'Employment',sub:'Entity, reporting line and contract',fields:[L('entity','Operating entity',['My Global Hub Dominicana SRL','MGH USA Inc.','MGH UK Ltd.','Kairoon','Arawaki']),L('dept','Department',['Engineering','Product','Infrastructure','Quality','Analytics','Finance','Security','HR & People']),T('title','Job title',{ph:'Backend Engineer'}),L('mgr','Supervisor',['Elena Rostova','Marcus Vance','Ana Gómez']),L('etype','Employment type',['Full-time','Part-time','Contractor / Exempt']),T('start','Start date',{type:'date',hint:'First period: '+firstP}),T('loc','Work location',{ph:'Punta Cana, DR'})]},
+        {icon:'payments',title:'Payroll & Compensation',sub:'Bi-weekly by default • 80h standard period',fields:[L('freq','Pay frequency',['Bi-Weekly','Weekly','Semi-Monthly','Monthly']),T('rate','Hourly rate',{ph:'50.00',prefix:'$',suffix:'/ hr'}),L('cur','Pay currency',['USD','DOP','GBP']),L('tax','Tax profile',['DGII ISR + TSS (Dominican Republic)','US Federal W-4 + State','UK PAYE + NI','Exempt (no tax deductions)']),G('ot','Overtime eligible','1.5× after 44h / week')]},
+        ...(n.etype==='Contractor / Exempt'?[{icon:'handshake',title:'Contract Details',sub:'Contractors appear on the Contractors page and stay out of payroll tax reports',fields:[T('cStart','Contract start',{type:'date'}),T('cEnd','Contract end',{type:'date'}),L('cTax','Tax form',['W-8BEN (non-US individual)','W-8BEN-E (non-US entity)','W-9 (US person)','Local invoice + RNC (DR)']),G('cInvoice','Invoice required per period','Contractor uploads an invoice before payout')]}]:[]),
+        {icon:'payments',title:'Payment Method',sub:'International employees can be paid in USDC through Coinbase Business',fields:[Object.assign(L('pmethod','How is this employee paid?',['Bank Deposit','Coinbase Only','Split: Bank + Coinbase']),{set:v=>{const m=typeof v==='string'?v:v.target.value;this.setState(s=>({ne:{...s.ne,pmethod:m,...(m==='Split: Bank + Coinbase'?{cbAlloc:'20',alloc:'80',bank2:''}:m==='Bank Deposit'?{alloc:'100'}:{})}}))}})]},
+        ...(useBank?[{icon:'account_balance',title:'Bank Accounts',sub:'Split deposits across banks • bank share '+bankTarget+'% of net pay',fields:[L('bank','Primary bank',['Banco BHD León','Banco Popular','Banreservas','Chase Bank USA','Wells Fargo','Barclays']),T('acct','Account number / IBAN',{ph:'DO28 BHDL 0000 0000 0000 0000',mono:true}),T('route','Routing / SWIFT',{ph:'BHDLDOSD',mono:true}),T('alloc','Primary allocation',{suffix:'%',err:allocOk||(useCb&&!(cbA>0&&cbA<100))?'':(n.bank2?'Primary must be under '+bankTarget+'% when a secondary bank is set':'Must be '+bankTarget+'% of net pay')}),T('bank2','Secondary bank (optional)',{ph:'Chase Bank USA',hint:n.bank2?'Receives '+Math.max(0,bankTarget-alloc)+'%':''})]}]:[]),
+        ...(useCb?[{icon:'currency_bitcoin',title:'Coinbase Payout (International)',sub:'Paid through Coinbase Business on pay date • USD net pay sent 1:1 as USDC',fields:[
+          T('cbEmail','Coinbase account email',{ph:'name@email.com',err:n.cbEmail&&!emOk?'Enter a valid email':''}),
+          T('cbId','Coinbase user / account ID (optional)',{ph:'cb_8f2a…',mono:true}),
+          L('cbCountry','Country of residence',['Colombia','Mexico','Brazil','Argentina','Philippines','India','Nigeria','Spain','Portugal','Other']),
+          L('cbAsset','Payout asset',['USDC','BTC','ETH']),
+          L('cbNetwork','Network',['Base','Ethereum','Polygon','Solana']),
+          T('cbWallet','Wallet address',{ph:n.cbNetwork==='Solana'?'Base58 address (32–44 chars)':'0x… (40 hex characters)',mono:true,err:n.cbWallet&&!wOk?'Not a valid '+n.cbNetwork+' address':'',hint:'Must belong to the Coinbase account above'}),
+          ...(n.pmethod==='Coinbase Only'?[]:[T('cbAlloc','Coinbase share of net pay',{suffix:'%',err:cbA>0&&cbA<100?'':'Use 1–99% for a split'})]),
+          G('cbKyc','Coinbase identity verified (KYC)','Required before the first payout'),
+          G('cbW8','W-8BEN / tax form on file','Non-US contractors • no US withholding')]}]:[]),
+        {icon:'sync_alt',title:'Jira & Approvals',sub:'Worklog binding and approval routing',fields:[T('jira','Atlassian account email',{ph:'name@globalhub.atlassian.net'}),T('projects','Bound Jira projects',{ph:'ATLAS, CORE',mono:true}),L('flow','Approval route',['Employee → Supervisor → PM → HR → Finance','Employee → Supervisor → HR → Finance'])]}],
+      newEmp:{fullName,titleLine:(n.title||'Job title')+' • '+n.dept,
+        facts:[['Employee ID','MGH-1163'],['Entity',n.entity],['Supervisor',n.mgr],['Type',n.etype],['Rate',n.rate?'$'+Number(n.rate).toFixed(2)+' / hr '+n.cur:'—'],['First period',firstP.split(' ')[0]],['Payout split',[useBank?(n.bank2?n.bank+' '+alloc+'% • '+n.bank2+' '+(bankTarget-alloc)+'%':n.bank+' '+bankTarget+'%'):'',useCb?'Coinbase '+n.cbAsset+' ('+n.cbNetwork+') '+cbA+'%':''].filter(Boolean).join(' • ')],...(useCb&&n.cbWallet?[['Wallet',n.cbWallet.slice(0,6)+'…'+n.cbWallet.slice(-4)]]:[])].map(x=>({k:x[0],v:x[1]})),
+        payEst:{show:pay,exempt:pc.exempt,hoursLabel:n.freq+' • '+pc.hours+'h',gross:fmtC(pc.gross,n.cur),net:fmtC(pc.net,n.cur),lines:pc.lines.map(l=>({k:l[0],v:l[1]==='Exempt'?'Exempt':'−'+fmtC(l[2],n.cur)})),note:pc.exempt?'Tax-exempt profile • no statutory withholding applied':'Estimate based on '+n.tax},
+        checks:[[personal,'Personal & identity complete'],[employ,'Employment details complete'],[pay,'Hourly rate set'],...(useBank?[[allocOk&&!!n.acct,'Bank allocation totals '+bankTarget+'%']]:[]),...(useCb?[[wOk,'Coinbase wallet address valid'],[n.cbKyc&&n.cbW8,'KYC verified & tax form on file']]:[]),[(useBank?(n.bank2?bankTarget:alloc):0)+cbA===100&&(!useBank||!useCb||(cbA>0&&cbA<100)),'Payout allocations total 100%'],[jira,'Jira account bound (optional)']].map(c=>({t:c[1],icon:c[0]?'check_circle':'radio_button_unchecked',color:c[0]?'var(--mgh-success)':'var(--mgh-ink-4)'}))}};
+  }
+  createdVals(){
+    const c=this.state.created;if(!c)return {isCreated:false};
+    const pend=c.pending.length>0;
+    const S=(icon,title,sub,status,tone)=>({icon,title,sub,status,tone});
+    const steps=[
+      S('person_add','Employee record created','MGH-1163 • '+c.when,'Done','success'),
+      S('mail','ESS invitation sent',c.email?'Sent to '+c.email+' • link expires in 72h':'Add a work email to send the invite',c.email?'Sent':'Blocked',c.email?'success':'danger'),
+      S('notifications','Supervisor notified','Approval routing activated','Done','success'),
+      ...(c.useBank?[S('account_balance','Bank account verification','Micro-deposit check • 72h cooling period + 2FA','In Progress','info')]:[]),
+      ...(c.useCb?[S('currency_bitcoin','Coinbase wallet test transfer','$1.00 USDC test payout before first pay date','Scheduled','info')]:[]),
+      S('sync_alt','Jira Cloud binding',c.jira?'Worklogs sync on next webhook cycle':'No Atlassian account bound',c.jira?'Syncing':'Optional',c.jira?'info':'neutral'),
+      S('event_repeat','Enrolled in first pay period',pend?'Held until onboarding items are completed':'Timesheet opens automatically',pend?'On Hold':'Scheduled',pend?'warning':'info')];
+    return {isCreated:true,created:c,createdPending:pend,createdPendingText:'Complete '+c.pending.join(', ')+' to include this employee in payroll.',
+      createdBadge:this.el('Badge',{tone:pend?'warning':'success',dot:true},pend?'Pending Onboarding':'Active • Ready for Payroll'),
+      createdCrumbs:['Workforce','Employee Directory','MGH-1163'],
+      createdActions:this.btns([['secondary','person_add','Add Another Employee',()=>this.go('addEmployee')],['secondary','badge','View Directory',()=>this.go('employees')],['primary','account_circle','Open Profile',()=>this.go('profile','MGH-1163')]]),
+      createdFixBtn:this.el('Button',{size:'sm',variant:'secondary',icon:'edit',onClick:()=>this.go('addEmployee')},'Complete Details'),
+      createdFacts:c.facts.map(x=>({k:x[0],v:x[1]})),createdSteps:steps,
+      createdDone:steps.filter(x=>x.tone==='success').length+' of '+steps.length+' complete'};
+  }
+  saveProofs(p){try{localStorage.setItem('mgh-proofs',JSON.stringify(p.map(x=>({...x,thumb:x.thumb&&x.thumb.length<400000?x.thumb:null}))))}catch(e){}}
+  readFile(file){if(!file)return;if(file.size>8e6){this.flash('File too large • max 8 MB');return}
+    const isImg=/^image\//.test(file.type);
+    if(isImg){const fr=new FileReader();fr.onload=()=>this.setState({pfFile:{name:file.name,type:file.type,size:file.size,thumb:fr.result},drag:false});fr.readAsDataURL(file)}
+    else this.setState({pfFile:{name:file.name,type:file.type,size:file.size,thumb:null},drag:false});}
+  proofVals(){
+    const s=this.state;
+    const TR={bhd:{bank:'Banco BHD León',amount:'$3,042.39 USD',rail:'ACH',ref:'Batch ID #BHD-8823',refLabel:'Trace / reference #',refPh:'BHD-8823-0420'},chase:{bank:'Chase Bank USA, N.A.',amount:'$760.60 USD',rail:'FedWire',ref:'FEDWIRE #US-042119',refLabel:'IMAD / OMAD #',refPh:'20250420MMQFMP2N000119'},coinbase:{bank:'Coinbase • USDC (Base)',amount:'—',rail:'On-chain',ref:'Not used for this employee',refLabel:'Transaction hash',refPh:'0x…64 hex characters'}};
+    const has=k=>s.proofs.some(p=>p.transfer===k);
+    const t=TR[s.pf.transfer],f=s.pfFile;
+    const val=v=>typeof v==='string'?v:(v&&v.target?v.target.value:'');
+    return {
+      isStub:s.route==='paystub',
+      proofBadge:this.el('Badge',{tone:has('bhd')&&has('chase')?'success':'warning',dot:true},has('bhd')&&has('chase')?'All transfers confirmed':((has('bhd')?1:0)+(has('chase')?1:0))+' of 2 transfers confirmed'),
+      transfers:['bhd','chase'].map(k=>({...TR[k],status:has(k)?'Proof Attached':'Awaiting Proof',tone:has(k)?'success':'warning',bg:has(k)?'var(--mgh-success-bg)':'var(--mgh-surface-1)'})),
+      transferOpts:[{value:'bhd',label:'Banco BHD León • ACH • 80%'},{value:'chase',label:'Chase Bank USA • FedWire • 20%'},{value:'coinbase',label:'Coinbase • USDC transaction hash'}],
+      pf:{...s.pf,refLabel:t.refLabel,refPh:t.refPh},
+      setPfTransfer:v=>this.setState(st=>({pf:{...st.pf,transfer:val(v)}})),setPfRef:v=>this.setState(st=>({pf:{...st.pf,ref:val(v)}})),setPfDate:v=>this.setState(st=>({pf:{...st.pf,date:val(v)}})),
+      dz:{border:s.drag?'var(--mgh-primary)':f?'var(--mgh-success)':'var(--mgh-surface-3)',bg:s.drag?'var(--mgh-primary-50)':f?'var(--mgh-success-bg)':'var(--surface-app)',icon:f?(f.thumb?'image':'picture_as_pdf'):'cloud_upload',
+        title:f?f.name:'Drop the bank transfer confirmation here',sub:f?(Math.round(f.size/1024)+' KB • click to replace'):'PDF, PNG or JPG up to 8 MB • or click to browse'},
+      onDragOver:e=>{e.preventDefault();if(!s.drag)this.setState({drag:true})},onDragLeave:()=>this.setState({drag:false}),
+      onDrop:e=>{e.preventDefault();this.readFile(e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0])},
+      onPick:e=>this.readFile(e.target.files&&e.target.files[0]),
+      attachProof:()=>{
+        const isCb=s.pf.transfer==='coinbase';
+        if(isCb&&!/^0x[a-fA-F0-9]{64}$/.test(s.pf.ref)){this.flash('Enter a valid transaction hash (0x + 64 hex)');return}
+        if(!isCb&&!f){this.flash('Drop or choose the confirmation file first');return}
+        if(!isCb&&!s.pf.ref.trim()){this.flash('Enter the '+t.refLabel.toLowerCase());return}
+        const p={id:Date.now(),transfer:s.pf.transfer,bank:t.bank,amount:t.amount,ref:t.refLabel+': '+s.pf.ref,date:s.pf.date,file:f?f.name:'On-chain record',thumb:f&&f.thumb,type:f?f.type:'hash',when:new Date().toLocaleString('en-US',{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'})};
+        const next=[...s.proofs.filter(x=>x.transfer!==p.transfer),p];this.saveProofs(next);
+        this.setState({proofs:next,pfFile:null,pf:{...s.pf,ref:''}});this.flash('Proof attached to MGH-PS-2025-08-1042 • logged to Audit Log');},
+      hasProofs:s.proofs.length>0,
+      proofs:s.proofs.map(p=>({...p,thumb:p.thumb?'url('+p.thumb+')':'none',noThumb:!p.thumb,icon:p.type==='hash'?'link':'picture_as_pdf',remove:()=>{const next=s.proofs.filter(x=>x.id!==p.id);this.saveProofs(next);this.setState({proofs:next});this.flash('Proof removed')}}))};
+  }
+  renderVals(){
+    const s=this.state,route=s.route,isKit=KIT.includes(route);
+    const all=[];for(let n=1;n<=26;n++)all.push(this.period(n));
+    const cur=all[7];
+    const fl={all:()=>true,active:p=>!LOCKED.includes(p.status),locked:p=>LOCKED.includes(p.status)};
+    const q=s.pq.trim().toLowerCase();
+    const shown=all.filter(fl[s.periodFilter]).filter(p=>!q||p.id.toLowerCase().includes(q)).sort((a,b)=>{const pr=x=>x.n===8?0:x.n===9?1:x.n>9?2+x.n:100-x.n;return pr(a)-pr(b)});
+    const periodRows=shown.slice(0,12).map(p=>{
+      const locked=LOCKED.includes(p.status),isCur=p.n===8;
+      const dl=p.dl.map(([d,t],i)=>{const past=locked||(isCur&&i<2);const curStep=isCur&&i===2;return {v:(past&&!locked&&isCur?'Passed • ':'')+f(d)+', '+t,color:curStep?'var(--mgh-warning)':past?'var(--mgh-success)':'var(--mgh-ink-2)',font:(curStep||past&&isCur?'700':'400')+' 13px/18px var(--font-sans)',bg:curStep?'var(--mgh-warning-bg)':'transparent'}});
+      let act;
+      if(p.status==='Draft')act=['secondary','play_arrow','Open',()=>this.setStatus(p.id,'Open',p.id+' opened for time entry • employees notified')];
+      else if(p.status==='Closed'||p.status==='Archived')act=['ghost','lock_open','Reopen',()=>this.setState({dialog:{title:'Reopen '+p.id+'?',body:'Reopening a locked period requires dual approval from the Payroll Administrator and Finance VP. Original records stay immutable — any change posts as an adjustment in the next open period.',confirm:'Request Reopen',variant:'primary',icon:'key',run:()=>{this.setState({dialog:null});this.flash('Reopen request for '+p.id+' sent to Finance VP')}}})];
+      else if(p.status==='Paid'||p.status==='Approved')act=['dark','lock','Lock',()=>this.setStatus(p.id,'Closed',p.id+' locked • SHA-256 seal written')];
+      else act=[isCur?'primary':'secondary','visibility','Review Cycle',()=>this.go('approvals')];
+      return {id:p.id,start:fy(p.s),end:fy(p.e),cutoff:f(p.e)+', 23:59',dl,pay:fy(p.pay),status:p.status,statusShort:SHORT[p.status]||p.status,tone:TONE(p.status),locked,
+        hasFlag:isCur||p.n===9||p.n===7,flag:isCur?'Current Cycle':p.n===9?'Next in Queue':'1 Adjustment',flagTone:isCur?'success':p.n===9?'info':'warning',
+        rowBg:isCur?'var(--mgh-primary-50)':'transparent',actVariant:act[0],actIcon:act[1],actLabel:act[2],act:act[3]};
+    });
+    const lockedCount=all.filter(p=>LOCKED.includes(p.status)).length;
+    const daysTo=Math.round((cur.pay-TODAY)/DAY);
+    const stg=STAGES[s.stage];
+    const stages=STAGES.map((x,i)=>{const on=i===s.stage,dark=x.final;return {no:'Stage '+String(i+1).padStart(2,'0')+(x.final?' Final':''),title:x.title,icon:x.icon,desc:x.desc,kv:x.kv.map(a=>({k:a[0],v:a[1]})),tag:x.tag,pick:()=>this.setState({stage:i}),
+      bg:dark?'var(--mgh-navy)':on?'var(--mgh-primary-50)':'var(--mgh-surface-1)',fg:dark?'#FAF8FF':'var(--mgh-ink)',shadow:on?'inset 0 0 0 2px var(--mgh-primary), var(--shadow-md)':'none',
+      chipBg:dark?'var(--mgh-success-300)':'var(--mgh-navy)',chipFg:dark?'var(--mgh-navy)':'#fff',iconColor:dark?'var(--mgh-success-300)':'var(--mgh-primary)',boxBg:dark?'rgba(255,255,255,.08)':'#fff',
+      tagBg:{success:'var(--mgh-success-bg)',neutral:'var(--mgh-surface-3)',warning:'var(--mgh-warning-bg)',info:'var(--mgh-accent-50)',onDarkSuccess:'var(--mgh-success-300)'}[x.tagTone],tagFg:{success:'var(--mgh-success)',neutral:'var(--mgh-ink-2)',warning:'#8A5A00',info:'var(--mgh-accent-hover)',onDarkSuccess:'var(--mgh-navy)'}[x.tagTone]}});
+    const af={all:()=>true,bonus:a=>a.kind==='bonus',stipend:a=>a.kind==='stipend',deduction:a=>a.kind==='deduction',retro:a=>a.kind==='retro'};
+    const adjShownRows=s.adj.filter(af[s.adjFilter]);
+    const net=s.adj.reduce((t,a)=>t+a.amt,0);
+    const cnt=k=>s.adj.filter(af[k]).length;
+    return {
+      entity:{name:'My Global Hub Dominicana',sub:'(Punta Cana Operations)',tag:'Multi-HQ'},
+      nav:NAV,navKey:route==='profile'||route==='empCreated'?'employees':route,go:k=>this.go(k),goKit:this.go,notify:this.flash,
+      jiraStatus:{label:'Jira Cloud: Active',value:'14 Syncing'},user:{name:'Elena Rostova',role:'Lead PM & Approver',avatar:'assets/avatars/elena-rostova.jpg'},
+      period:{code:'PP-2025-08',range:'(Apr 01 - Apr 14, 2025)',phase:'Project Manager Approval Phase'},
+      topActions:[{label:'Bulk Actions',icon:'checklist',variant:'secondary',onClick:()=>this.go('queue')},{label:'Export Register',icon:'download',variant:'dark',onClick:()=>this.flash('Payroll register export queued (XLSX)')}],
+      scroller:this.scroller,route,empId:s.empId,isKit,isPeriods:route==='periods',isAdj:route==='adjustments',isWf:route==='workflows',
+      // periods
+      periodsCrumbs:['Enterprise Payroll','Cycles & Compliance','CY-2025 Calendar'],
+      periodsActions:this.btns([['secondary','calendar_month','Generate 2026 Pay Calendar',()=>this.flash('26 cycles generated for 2026 as Draft (PP-2026-01 starts Dec 23, 2025)')],['secondary','tune','Create Payroll Adjustment',()=>this.go('adjustments')],['secondary','upload_file','Upload Bank Confirmations',()=>this.go('paystub')],['secondary','ios_share','Export Annual Schedule'],['dark','lock','Lock Historical Periods',()=>this.flash(lockedCount+' historical periods verified locked')]]),
+      periodKpis:[
+        {label:'Current active cycle',value:cur.id,icon:'event_available',tone:'primary',footer:'Apr 01 – Apr 14, 2025 • Phase: PM Approval',progress:62},
+        {label:'Upcoming payroll date',value:f(cur.pay)+', 2025',icon:'calendar_month',tone:'accent',footer:'In '+daysTo+' days • ACH Batch #BATCH-891'},
+        {label:'Locked / completed',value:lockedCount+' Periods',icon:'verified_user',tone:'success',footer:'$342,180.00 YTD processed • 100% tax settled'},
+        {label:'Open adjustments',value:'2 Pending',icon:'pending_actions',tone:'warning',footer:'$1,420.00 delta queued for PP-2025-09'}],
+      periodFilterOpts:[{value:'all',label:'All Cycles',count:26},{value:'active',label:'Active & Upcoming',count:all.filter(fl.active).length},{value:'locked',label:'Locked / Completed',count:lockedCount}],
+      periodFilter:s.periodFilter,setPeriodFilter:v=>this.setState({periodFilter:v}),pq:s.pq,setPq:v=>this.setState({pq:typeof v==='string'?v:(v&&v.target?v.target.value:'')}),searchStyle:{width:280},
+      periodCols:[['Pay period','left'],['Work start','left'],['Work end','left'],['Payroll cutoff','left'],['Emp. deadline','left'],['Sup. deadline','left'],['PM deadline','left'],['HR deadline','left'],['Finance deadline','left'],['Pay date','left'],['Status','left'],['Actions','right']].map(x=>({label:x[0],align:x[1]})),
+      periodRows,periodCount:26,periodShown:periodRows.length+(shown.length>12?' of '+shown.length+' matching':''),
+      velocityBadge:this.el('Badge',{tone:'success',size:'sm'},'99.4% On Schedule'),
+      velocity:[['badge','Employee','4.2h','Before cutoff',0],['supervisor_account','Supervisor','2.8h','Avg turnaround',0],['fact_check','Project Mgr','3.1h','Current step',1],['gavel','HR Compliance','1.4h','SLA: 4.0h',0],['account_balance','Finance / ACH','0.9h','Instant batch',0]].map(v=>({icon:v[0],label:v[1],value:v[2],sub:v[3],bg:v[4]?'var(--mgh-warning-bg)':'var(--mgh-surface-1)',subColor:v[4]?'var(--mgh-warning)':'var(--mgh-success)'})),
+      lockRules:[{t:'Automatic Period Freeze',d:'Periods lock 24 hours post disbursement. All direct edits permanently rejected.'},{t:'Hours, Rates & Calculations Preserved',d:'Gross, deductions, employer contributions and net pay stored exactly as computed.'},{t:'Corrections via Payroll Adjustments Only',d:'Retro pay or deductions are new entries routed through approval.'},{t:'Two-Party Override Required',d:'Unlocking an archived cycle requires Finance VP and Lead Auditor dual-signature.'}],
+      saveSettingsBtn:this.el('Button',{size:'sm',icon:'save',onClick:()=>this.flash('Payroll settings saved for My Global Hub, Kairoon, Arawaki')},'Save'),
+      settingsRows:[['Pay frequency','Bi-Weekly (default)'],['Standard work week','Mon – Fri • 40h (8h/day)'],['Overtime rules','> 44h/wk 1.35× • > 68h 2.0×'],['Holiday calendar','Dominican Republic 2025 • 12 days'],['Time zone','America/Santo_Domingo (AST)'],['Payroll cutoff time','23:59 on work end'],['Approval workflow','Employee → Supervisor → PM → HR → Finance']].map(x=>({k:x[0],v:x[1]})),
+      offset:s.offset,offUp:()=>this.setState(st=>({offset:Math.min(14,st.offset+1)})),offDown:()=>this.setState(st=>({offset:Math.max(3,st.offset-1)})),
+      autoGen:s.autoGen,toggleAuto:()=>this.setState(st=>({autoGen:!st.autoGen})),
+      notifRows:[['New pay period opens','All employees • Email + in-app'],['Timesheets are due','24h and 2h before deadline • Email + Slack'],['Approvals are pending','Every 4h until SLA • Approvers'],['Payroll is approved','Payroll admins & Finance'],['Payroll has been paid','All employees • pay stub link'],['A new pay period begins','Day 1 • 07:00 AST']].map((x,i)=>({ev:x[0],meta:x[1],on:!!s.notifOn[i],toggle:()=>this.setState(st=>{const a=[...st.notifOn];a[i]=a[i]?0:1;return {notifOn:a}})})),
+      goAudit:()=>this.go('audit'),
+      // adjustments
+      adjCrumbs:['Payroll & Finance','Adjustments','PP-2025-08'],
+      adjActions:this.btns([['secondary','upload_file','Import CSV'],['secondary','calculate','Calculate Regalía Pascual'],['secondary','gavel','Statutory Severance'],['dark','add_circle','New Adjustment Entry']]),
+      adjKpis:[{label:'Total cycle adjustments',value:money(net).replace('+',''),icon:'tune',tone:'primary',footer:s.adj.length+' active records • PP-2025-08'},{label:'Regalía Pascual (YTD accrual)',value:'$28,570.83',icon:'redeem',tone:'success',footer:'1/12th annual accrued reserve'},{label:'Active severance cases',value:'1 Pending',icon:'gavel',tone:'warning',footer:'Preaviso & cesantía audit review'},{label:'Taxable vs exempt',value:'82% / 18%',icon:'pie_chart',tone:'accent',footer:'DGII taxable ISR • TSS exempt'}],
+      adjFilterOpts:[{value:'all',label:'All Adjustments',count:cnt('all')},{value:'bonus',label:'Discretionary Bonuses',count:cnt('bonus')},{value:'stipend',label:'Expense Stipends',count:cnt('stipend')},{value:'deduction',label:'Statutory Deductions',count:cnt('deduction')},{value:'retro',label:'Retroactive Corrections',count:cnt('retro')}],
+      adjFilter:s.adjFilter,setAdjFilter:v=>this.setState({adjFilter:v}),
+      adjCols:[['Employee ID & name','left'],['Type & category','left'],['Gross amount','right'],['Tax treatment','left'],['Allocation target','left'],['Approved by & timestamp','left'],['Status','left'],['Actions','right']].map(x=>({label:x[0],align:x[1]})),
+      adjRows:adjShownRows.map(a=>({...a,amount:money(a.amt),amtColor:a.amt<0?'var(--mgh-danger)':'var(--mgh-success)',tone:ATONE(a.status),history:()=>this.go('audit'),approve:()=>{this.setState(st=>({adj:st.adj.map(x=>x.id===a.id?{...x,status:'Approved & Queued'}:x)}));this.flash(a.type+' approved for '+a.name)}})),
+      adjShown:adjShownRows.length,adjTotal:s.adj.length,adjNet:money(net),
+      accruingBadge:this.el('Badge',{tone:'success',size:'sm',uppercase:true},'Accruing'),simBadge:this.el('Badge',{tone:'warning',size:'sm',uppercase:true},'Simulation mode'),
+      severance:[['Preaviso (notice period • 28 days)','$3,546.67'],['Cesantía (severance • 21 days/yr worked)','$5,320.00'],['Vacaciones no gozadas (14 statutory days)','$1,280.00'],['Proportional Regalía Pascual (YTD)','$886.50']].map(x=>({k:x[0],v:x[1]})),
+      // workflows
+      wfCrumbs:['System','Administration','Approval Workflows'],
+      wfActions:this.btns([['secondary','history','Audit Workflow Logs',()=>this.go('audit')],['secondary','play_arrow','Simulate Approval Pipeline'],['success','add_circle','Create Workflow Rule'],['dark','save','Save Changes',()=>this.flash('Workflow v3.4.10 saved • pending dual sign-off')]]),
+      wfKpis:[{label:'Active approval pipelines',value:'4 Active',icon:'account_tree',tone:'primary',footer:'Covering 100% of workforce',progress:100},{label:'Avg cycle approval velocity',value:'1.8',unit:'Days',icon:'speed',tone:'success',footer:'Target ≤ 2.5 days • 72% under threshold',progress:72},{label:'Dual-signature threshold',value:'>$25,000',unit:'USD',icon:'verified_user',tone:'warning',footer:'Requires VP Finance + Lead PM',progress:55},{label:'Exception auto-escalation',value:'Enabled',icon:'notifications_active',tone:'success',footer:'SLA: 24h before payroll freeze',progress:90}],
+      stages,stageDetail:[{k:'Owner',v:stg.owner},{k:'Deadline / SLA',v:stg.sla},{k:'Rule',v:stg.rule},{k:'Notification',v:stg.notify}],
+      rules:RULES.map((r,i)=>({...r,iconBg:RTONE[r.tone][0],iconColor:RTONE[r.tone][1],on:!!s.ruleOn[i],toggle:()=>this.setState(st=>{const a=[...st.ruleOn];a[i]=a[i]?0:1;return {ruleOn:a}})})),
+      statusMap:STATUSES.map((n,i)=>({name:n,tone:TONE(n),edit:['Payroll admin (dates)','Employee','Employee','Supervisor (return)','PM (return)','HR (return)','Frozen','Frozen','Locked','Locked','Adjustments only','Permanent'][i]})),
+      ...this.myVals(),...this.addVals(),...this.createdVals(),...this.proofVals(),
+      // shared
+      hasToast:!!s.toast,toast:s.toast,hasDialog:!!s.dialog,dlg:s.dialog||{},closeDialog:()=>this.setState({dialog:null}),confirmDialog:()=>s.dialog&&s.dialog.run(),stop:e=>e.stopPropagation()
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;font-family:'Plus Jakarta Sans',sans-serif;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-primary-fixed-variant": "#314865", "surface-container": "#eaedff", "outline": "#74777e", "primary-fixed": "#d2e4ff", "surface-bright": "#faf8ff", "on-primary-fixed": "#001c37", "inverse-primary": "#b0c8eb", "error-container": "#ffdad6", "surface-container-highest": "#dae2fd", "error": "#ba1a1a", "on-primary-container": "#768dad", "secondary": "#006c47", "on-surface-variant": "#43474d", "inverse-on-surface": "#eef0ff", "background": "#faf8ff", "on-primary": "#ffffff", "on-secondary": "#ffffff", "tertiary-fixed": "#ffddb3", "tertiary": "#180c00", "on-secondary-container": "#00714b", "secondary-container": "#8af5be", "on-secondary-fixed": "#002113", "tertiary-fixed-dim": "#ffb951", "surface-dim": "#d2d9f4", "on-surface": "#131b2e", "inverse-surface": "#283044", "primary": "#000f22", "surface-container-lowest": "#ffffff", "on-tertiary-fixed": "#291800", "on-tertiary-container": "#be7e00", "surface-tint": "#49607e", "surface-container-low": "#f2f3ff", "secondary-fixed": "#8df7c1", "on-tertiary-fixed-variant": "#633f00", "surface-container-high": "#e2e7ff", "surface-variant": "#dae2fd", "on-secondary-fixed-variant": "#005235", "on-tertiary": "#ffffff", "on-background": "#131b2e", "outline-variant": "#c4c6ce", "primary-container": "#0a2540", "on-error-container": "#93000a", "primary-fixed-dim": "#b0c8eb", "tertiary-container": "#352000", "secondary-fixed-dim": "#71dba6", "on-error": "#ffffff", "surface": "#faf8ff" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-2xl": "3rem", "space-sm": "0.5rem", "space-xl": "2rem", "margin-lg": "2.5rem", "space-md": "0.875rem", "gutter-sm": "0.75rem", "gutter-lg": "1.75rem", "margin-sm": "1rem", "space-xs": "0.25rem", "space-lg": "1.25rem", "space-2xs": "0.125rem", "margin": "2rem", "gutter": "1.25rem" }, "fontFamily": { "display-lg": ["Plus Jakarta Sans"], "headline-md": ["Plus Jakarta Sans"], "headline-sm": ["Plus Jakarta Sans"], "headline-xl": ["Plus Jakarta Sans"], "tabular-num": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "body-lg": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"], "body-sm": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "label-md": ["Plus Jakarta Sans"] }, "fontSize": { "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.03em", "fontWeight": "800" }], "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "headline-sm": ["16px", { "lineHeight": "22px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "headline-xl": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "tabular-num": ["13px", { "lineHeight": "18px", "letterSpacing": "-0.01em", "fontWeight": "500" }], "body-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400" }], "body-lg": ["15px", { "lineHeight": "22px", "letterSpacing": "0em", "fontWeight": "400" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "700" }], "body-sm": ["13px", { "lineHeight": "18px", "letterSpacing": "0.005em", "fontWeight": "400" }], "headline-lg": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.015em", "fontWeight": "700" }], "label-md": ["13px", { "lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "600" }] } } } }</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 inset-x-0 z-50 bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-16 px-space-md flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="w-9 h-9 rounded-full bg-primary flex items-center justify-center shadow-sm shrink-0"><span class="material-symbols-outlined text-secondary-fixed text-[20px]">globe</span></div><div class="flex flex-col"><div class="flex items-center gap-1.5"><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight leading-none">My Global Hub</span><span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-secondary-container/40 text-on-secondary-container font-label-sm text-label-sm leading-none"><span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>DOM</span></div><span class="font-label-sm text-label-sm text-on-surface-variant font-normal leading-tight">Dominicana Ops • ESS</span></div></div><div class="flex items-center gap-space-xs"><button aria-label="Notifications" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors relative"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-error ring-2 ring-surface"></span></button><div class="relative flex items-center pl-1"><img alt="Profile" class="w-8 h-8 rounded-full object-cover ring-2 ring-primary/10" src="https://lh3.googleusercontent.com/aida/AEtjO1UjY5JRZE7ha9TzsVK5qNRBT90lfqn3pnPtZZ8_kiKYjQHavuh9ywtA-Ff5DiM-qkJsS7kYqnmy6S5GVDpg3-sCdniqkA4rgkRQZzr6h_y6J2risb71RnrTJNuIw8J23HqnRTAGbHAgG6KyN1UAer5Q9455l8Zb-mkU3lVF2gVNNSiDls7U77PkfyX93kWKtMvWw6ADfiOOmxCExGxWSXeyU78KKihme8Hwko3yQKeVR6w_wE5NfIEwHd7h-WjYYJlnkl7kckH7sA"/></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-24 bg-surface"><div class="flex flex-col w-full">
+<!-- System / Module Screen Identifier Header -->
+<div class="px-gutter-sm pt-space-xs pb-space-sm bg-surface-container-low">
+<div class="flex items-center justify-between gap-space-xs">
+<div class="flex items-center gap-1.5 min-w-0">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-secondary shrink-0"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider truncate">
+          SCREEN: PAY STUB &amp; BANK ALLOCATION
+        </span>
+</div>
+<span class="font-label-sm text-label-sm font-semibold text-primary-container shrink-0 bg-primary-fixed/60 px-2 py-0.5 rounded-full">
+        MOB-SCREEN-04
+      </span>
+</div>
+<div class="flex items-center gap-1 mt-0.5 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">assured_workload</span>
+<span>Module: Payroll &amp; Employee Self-Service • EOR Dominicana</span>
+</div>
+</div>
+<div class="p-gutter-sm flex flex-col gap-space-md">
+<!-- Pay Cycle Header Banner -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<div class="flex items-center justify-between gap-space-sm mb-1.5">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary-container/50 text-on-secondary-container font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-ping"></span>
+          Disbursed &amp; Confirmed
+        </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">event_available</span>
+          Apr 15, 2025
+        </span>
+</div>
+<div class="flex items-baseline justify-between">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Pay Period PP-2025-08</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Apr 01 – Apr 14, 2025 (Bi-Weekly Cycle)</p>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-primary-container shrink-0">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+</div>
+</div>
+</div>
+<!-- Net Take-Home Pay Hero Card -->
+<div class="bg-primary-container text-on-primary rounded-xl p-space-lg shadow-md relative overflow-hidden">
+<!-- Ambient Glow Behind Numbers -->
+<div class="absolute -top-12 -right-12 w-40 h-40 bg-secondary/20 rounded-full blur-2xl pointer-events-none"></div>
+<div class="flex items-center justify-between mb-space-xs relative z-10">
+<span class="font-label-md text-label-md text-on-primary-container flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-secondary-fixed">payments</span>
+          Net Disbursed Take-Home
+        </span>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary text-secondary-fixed font-label-sm text-label-sm">
+          FX: 1 USD ≈ 60.00 DOP
+        </span>
+</div>
+<div class="relative z-10 mb-1">
+<div class="flex items-baseline gap-1.5 flex-wrap">
+<span class="font-display-lg text-display-lg font-extrabold tracking-tight text-on-primary">RD$ 138,420.00</span>
+<span class="font-headline-sm text-headline-sm text-secondary-fixed font-bold">DOP</span>
+</div>
+<p class="font-body-md text-body-md text-on-primary-container">
+          Equivalent to <strong class="text-on-primary font-semibold">$2,307.00 USD</strong>
+</p>
+</div>
+<!-- Quick Metrics Pills Breakdown -->
+<div class="mt-space-md grid grid-cols-2 gap-space-xs p-space-xs bg-primary/60 rounded-lg relative z-10">
+<div class="px-space-sm py-1.5 rounded bg-surface-container-lowest/10">
+<span class="font-label-sm text-label-sm text-on-primary-container block">Gross Earnings</span>
+<span class="font-headline-sm text-headline-sm font-semibold text-on-primary">RD$ 175,000.00</span>
+</div>
+<div class="px-space-sm py-1.5 rounded bg-surface-container-lowest/10">
+<span class="font-label-sm text-label-sm text-on-primary-container block">Total Deductions</span>
+<span class="font-headline-sm text-headline-sm font-semibold text-error-container">RD$ 36,580.00</span>
+</div>
+</div>
+<!-- Hero Actions -->
+<div class="mt-space-lg pt-space-xs flex gap-space-xs relative z-10">
+<button class="flex-1 bg-surface-container-lowest text-primary-container font-label-md text-label-md py-2.5 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform" id="btnDownloadStub">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span>Download PDF</span>
+</button>
+<button class="flex-1 bg-primary text-secondary-fixed font-label-md text-label-md py-2.5 px-3 rounded-lg flex items-center justify-center gap-1.5 active:scale-95 transition-transform" id="btnShareLink">
+<span class="material-symbols-outlined text-[18px]">ios_share</span>
+<span>Share Link</span>
+</button>
+</div>
+</div>
+<!-- Multi-Bank Split Dispersal Breakdown (Interactive Card) -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<div class="flex items-center justify-between mb-space-sm">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-primary-container">account_balance</span>
+            Dispersal Allocation
+          </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Dual-currency multi-rail routing</p>
+</div>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container/40 text-on-secondary-container font-label-sm text-label-sm">
+          2 Accounts Active
+        </span>
+</div>
+<!-- Split Distribution Visual Bar -->
+<div class="w-full bg-surface-container rounded-full h-2.5 flex overflow-hidden mb-space-md">
+<div class="bg-primary-container h-full transition-all duration-500" style="width: 80%" title="80% DOP Allocation"></div>
+<div class="bg-secondary h-full transition-all duration-500" style="width: 20%" title="20% USD Allocation"></div>
+</div>
+<div class="flex flex-col gap-space-sm">
+<!-- Account 1: BHD León -->
+<div class="p-space-sm rounded-lg bg-surface-container-low transition-colors hover:bg-surface-container">
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container-lowest flex items-center justify-center shadow-sm text-primary-container shrink-0">
+<span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Banco BHD León</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">DOP</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Checking ••••9012 (Local Payroll ACH)</span>
+</div>
+</div>
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-secondary-container text-on-secondary-container font-label-sm text-label-sm shrink-0">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+              Cleared ACH
+            </span>
+</div>
+<div class="mt-space-xs pt-space-xs flex justify-between items-center text-on-surface">
+<span class="font-body-sm text-body-sm text-on-surface-variant">80% Net Share</span>
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface tabular-nums">RD$ 110,736.00 DOP</span>
+</div>
+</div>
+<!-- Account 2: JPMorgan Chase USD -->
+<div class="p-space-sm rounded-lg bg-surface-container-low transition-colors hover:bg-surface-container">
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container-lowest flex items-center justify-center shadow-sm text-secondary shrink-0">
+<span class="material-symbols-outlined text-[20px]">currency_exchange</span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">JPMorgan Chase</span>
+<span class="px-1.5 py-0.2 rounded bg-secondary-container/60 text-on-secondary-container font-label-sm text-label-sm">USD</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Savings ••••4481 (Cross-Border Wire)</span>
+</div>
+</div>
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface-container-highest text-on-primary-fixed-variant font-label-sm text-label-sm shrink-0">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+              Fedwire Settled
+            </span>
+</div>
+<div class="mt-space-xs pt-space-xs flex justify-between items-center text-on-surface">
+<span class="font-body-sm text-body-sm text-on-surface-variant">20% Net Share</span>
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface tabular-nums">$461.40 USD</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Statutory Deductions: Dominican Republic TSS & DGII -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<div class="w-7 h-7 rounded-full bg-error-container/40 flex items-center justify-center text-error">
+<span class="material-symbols-outlined text-[16px]">receipt_long</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Statutory Withholdings</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Dominican Republic TSS &amp; DGII Mandates</p>
+</div>
+</div>
+<span class="font-headline-sm text-headline-sm text-error font-bold tabular-nums">-RD$ 36,580.00</span>
+</div>
+<div class="flex flex-col gap-space-xs">
+<!-- TSS Health -->
+<div class="flex items-center justify-between p-space-xs bg-surface-container-low rounded-lg">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">medical_services</span>
+<div>
+<span class="font-label-md text-label-md text-on-surface block">TSS Health (SFS Employee Share)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">3.04% of Statutory Base</span>
+</div>
+</div>
+<span class="font-label-md text-label-md font-semibold text-on-surface tabular-nums">RD$ 5,320.00</span>
+</div>
+<!-- TSS Pension -->
+<div class="flex items-center justify-between p-space-xs bg-surface-container-low rounded-lg">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">savings</span>
+<div>
+<span class="font-label-md text-label-md text-on-surface block">TSS Pension (AFP Employee Share)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">2.87% of Statutory Base</span>
+</div>
+</div>
+<span class="font-label-md text-label-md font-semibold text-on-surface tabular-nums">RD$ 5,022.50</span>
+</div>
+<!-- ISR DGII Scale -->
+<div class="flex items-center justify-between p-space-xs bg-surface-container-low rounded-lg">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">account_balance</span>
+<div>
+<span class="font-label-md text-label-md text-on-surface block">ISR Income Tax (DGII Progressive Scale)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Dominican Dirección General de Impuestos</span>
+</div>
+</div>
+<span class="font-label-md text-label-md font-semibold text-on-surface tabular-nums">RD$ 26,237.50</span>
+</div>
+</div>
+<div class="mt-space-sm pt-space-xs flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-secondary">gavel</span>
+          Ley 87-01 &amp; Código Tributario Art. 307
+        </span>
+<button class="text-on-primary-fixed-variant font-semibold hover:underline" id="toggleTaxBreakdown">
+          View Formulas
+        </button>
+</div>
+<!-- Expandable Formula Inspector (Micro-interaction) -->
+<div class="hidden mt-space-sm p-space-sm rounded-lg bg-surface-container text-on-surface font-body-sm text-body-sm" id="taxDetailPanel">
+<p class="font-label-sm text-label-sm font-bold text-primary-container mb-1">DGII WITHHOLDING SCALE COMPUTATION:</p>
+<p class="text-on-surface-variant leading-relaxed">
+          Gross: RD$ 175,000.00 − TSS Deductions (RD$ 10,342.50) = Net Taxable Base: RD$ 164,657.50. Bracket: Exceeding threshold applies marginal rate of 25% plus base quota pursuant to Dominican tax tables.
+        </p>
+</div>
+</div>
+<!-- Regalía Pascual (13th Month) & Accruals Card -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<div class="w-7 h-7 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-[16px]">celebration</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Statutory Accruals &amp; Benefits</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Accrued liabilities as mandated by Dominican Labor Code</p>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-space-sm">
+<!-- 13th Month / Regalia Pascual -->
+<div class="p-space-sm rounded-lg bg-surface-container-low flex flex-col justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Regalía Pascual (13th) YTD</span>
+<span class="font-headline-md text-headline-md font-bold text-on-surface tabular-nums">RD$ 43,750.00</span>
+</div>
+<div class="mt-space-sm flex items-center gap-1 text-secondary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">event_repeat</span>
+<span>Disbursement: Dec 2025</span>
+</div>
+</div>
+<!-- Vacation Days Remaining -->
+<div class="p-space-sm rounded-lg bg-surface-container-low flex flex-col justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Vacation Balance</span>
+<div class="flex items-baseline gap-1">
+<span class="font-headline-md text-headline-md font-bold text-primary-container tabular-nums">11</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Days Available</span>
+</div>
+</div>
+<div class="mt-space-sm flex items-center gap-1 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px] text-secondary">flight_takeoff</span>
+<span>Accruing 1.17 d/mo</span>
+</div>
+</div>
+</div>
+<!-- Accruals Progress Visualizer -->
+<div class="mt-space-sm p-space-xs bg-surface-container-low rounded-lg">
+<div class="flex justify-between items-center text-on-surface-variant font-label-sm text-label-sm mb-1">
+<span>Annual Regalía Accrual Milestone</span>
+<span class="font-semibold text-on-surface">3.5 / 12 Months (29.1%)</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-1.5 overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 29.1%"></div>
+</div>
+</div>
+</div>
+<!-- Cryptographic Anti-Tamper Security Seal Card -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<div class="flex items-center gap-1.5 mb-space-sm">
+<span class="material-symbols-outlined text-[18px] text-secondary">verified_user</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Audit &amp; Cryptographic Seal</h3>
+</div>
+<div class="flex gap-space-md items-center">
+<!-- Live SVG QR Code Simulation -->
+<div class="w-20 h-20 bg-surface-container-lowest p-1 rounded-lg shadow-sm shrink-0 flex items-center justify-center">
+<svg class="w-full h-full text-primary-container" fill="currentColor" viewbox="0 0 100 100">
+<!-- QR Pattern Simulation -->
+<rect fill="none" height="28" rx="4" stroke="currentColor" stroke-width="6" width="28" x="5" y="5"></rect>
+<rect fill="currentColor" height="12" width="12" x="13" y="13"></rect>
+<rect fill="none" height="28" rx="4" stroke="currentColor" stroke-width="6" width="28" x="67" y="5"></rect>
+<rect fill="currentColor" height="12" width="12" x="75" y="13"></rect>
+<rect fill="none" height="28" rx="4" stroke="currentColor" stroke-width="6" width="28" x="5" y="67"></rect>
+<rect fill="currentColor" height="12" width="12" x="13" y="75"></rect>
+<!-- Data Matrix Dots -->
+<circle cx="45" cy="15" r="4"></circle>
+<circle cx="55" cy="25" r="3"></circle>
+<circle cx="48" cy="48" r="5"></circle>
+<circle cx="20" cy="48" r="3"></circle>
+<circle cx="78" cy="48" r="4"></circle>
+<circle cx="48" cy="78" r="3"></circle>
+<circle cx="68" cy="70" r="4"></circle>
+<circle cx="82" cy="82" r="5"></circle>
+<circle cx="85" cy="65" r="3"></circle>
+</svg>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-1 mb-1">
+<span class="px-2 py-0.5 rounded-full bg-secondary-container/60 text-on-secondary-container font-label-sm text-label-sm font-semibold inline-flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+              Verified Dominican EOR Compliance
+            </span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-1">SHA-256 Payroll Ledger Fingerprint:</p>
+<div class="flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded text-on-surface font-tabular-num text-tabular-num">
+<span class="material-symbols-outlined text-[14px] text-on-surface-variant">fingerprint</span>
+<code class="truncate">0x9bf8a82c40ef...3e1a89</code>
+<button class="text-primary-container hover:text-on-primary-fixed-variant ml-auto shrink-0 p-0.5" id="btnCopyHash" title="Copy Audit Hash">
+<span class="material-symbols-outlined text-[14px]">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+<div class="mt-space-md pt-space-xs flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>Certified by Global Payroll Engine</span>
+<span class="flex items-center gap-0.5 text-secondary">
+<span class="material-symbols-outlined text-[14px]">lock</span>
+          Zero-Knowledge Proof
+        </span>
+</div>
+</div>
+<!-- Interactive Toast Notification Placeholder -->
+<div class="fixed bottom-20 left-4 right-4 bg-primary-container text-on-primary p-space-sm rounded-xl shadow-xl flex items-center justify-between gap-space-sm opacity-0 pointer-events-none transition-opacity duration-300 z-50" id="actionToast">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary-fixed text-[20px]" id="toastIcon">check_circle</span>
+<span class="font-body-sm text-body-sm" id="toastMessage">Pay stub PDF generated securely.</span>
+</div>
+<button class="text-on-primary-container hover:text-on-primary" id="closeToast">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+</div>
+</div>
+<script>
+  (function() {
+    const toast = document.getElementById('actionToast');
+    const toastMsg = document.getElementById('toastMessage');
+    const btnDownload = document.getElementById('btnDownloadStub');
+    const btnShare = document.getElementById('btnShareLink');
+    const btnCopy = document.getElementById('btnCopyHash');
+    const btnToggleTax = document.getElementById('toggleTaxBreakdown');
+    const taxPanel = document.getElementById('taxDetailPanel');
+    const closeToast = document.getElementById('closeToast');
+
+    function showToast(message) {
+      if (!toast) return;
+      toastMsg.textContent = message;
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      toast.classList.add('opacity-100', 'pointer-events-auto');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'pointer-events-auto');
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 3500);
+    }
+
+    if (btnDownload) {
+      btnDownload.addEventListener('click', () => {
+        showToast('Official PDF Pay Stub generated & signed.');
+      });
+    }
+
+    if (btnShare) {
+      btnShare.addEventListener('click', () => {
+        showToast('Ephemeral encrypted sharing link copied to clipboard.');
+      });
+    }
+
+    if (btnCopy) {
+      btnCopy.addEventListener('click', () => {
+        showToast('Full SHA-256 fingerprint copied: 0x9bf8...3e1a');
+      });
+    }
+
+    if (btnToggleTax && taxPanel) {
+      btnToggleTax.addEventListener('click', () => {
+        const isHidden = taxPanel.classList.contains('hidden');
+        if (isHidden) {
+          taxPanel.classList.remove('hidden');
+          btnToggleTax.textContent = 'Hide Formulas';
+        } else {
+          taxPanel.classList.add('hidden');
+          btnToggleTax.textContent = 'View Formulas';
+        }
+      });
+    }
+
+    if (closeToast) {
+      closeToast.addEventListener('click', () => {
+        toast.classList.remove('opacity-100', 'pointer-events-auto');
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      });
+    }
+  })();
+</script></main><nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-2px_12px_rgba(10,37,64,0.06)]" data-active-classes="text-primary-container font-semibold"><div class="flex justify-around items-center h-16 px-space-xs"><a class="flex flex-col items-center justify-center gap-0.5 w-16 h-12 text-on-surface-variant transition-colors hover:text-on-surface" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[24px]">dashboard</span><span class="font-label-sm text-label-sm">Hub</span></a><a class="flex flex-col items-center justify-center gap-0.5 w-16 h-12 text-on-surface-variant transition-colors hover:text-on-surface" data-path="clock-and-shifts" href="#"><span class="material-symbols-outlined text-[24px]">schedule</span><span class="font-label-sm text-label-sm">Clock</span></a><a class="flex flex-col items-center justify-center gap-0.5 w-16 h-12 text-on-surface-variant transition-colors hover:text-on-surface" data-path="jira-logs" href="#"><span class="material-symbols-outlined text-[24px]">sync_alt</span><span class="font-label-sm text-label-sm">Jira</span></a><a aria-current="page" class="flex flex-col items-center justify-center gap-0.5 w-16 h-12 transition-colors text-primary-container font-semibold" data-path="pay-and-stubs" href="#"><span class="material-symbols-outlined text-[24px]">payments</span><span class="font-label-sm text-label-sm">Payroll</span></a></div></nav></body></html>

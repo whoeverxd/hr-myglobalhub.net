@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"inverse-on-surface":"#eef0ff","surface-container":"#eaedff","on-surface":"#131b2e","tertiary-fixed-dim":"#ffb951","surface-tint":"#49607e","tertiary":"#180c00","tertiary-fixed":"#ffddb3","on-secondary-fixed-variant":"#005235","primary-fixed-dim":"#b0c8eb","surface-bright":"#faf8ff","surface-container-high":"#e2e7ff","background":"#faf8ff","error":"#ba1a1a","on-primary-container":"#768dad","surface-container-low":"#f2f3ff","on-secondary-fixed":"#002113","outline-variant":"#c4c6ce","primary":"#000f22","outline":"#74777e","surface":"#faf8ff","error-container":"#ffdad6","secondary-fixed":"#8df7c1","on-primary-fixed":"#001c37","surface-dim":"#d2d9f4","on-tertiary":"#ffffff","surface-variant":"#dae2fd","secondary-container":"#8af5be","on-background":"#131b2e","primary-container":"#0a2540","surface-container-lowest":"#ffffff","on-primary-fixed-variant":"#314865","on-tertiary-container":"#be7e00","on-error-container":"#93000a","on-error":"#ffffff","on-tertiary-fixed-variant":"#633f00","on-surface-variant":"#43474d","on-secondary":"#ffffff","surface-container-highest":"#dae2fd","tertiary-container":"#352000","on-secondary-container":"#00714b","inverse-surface":"#283044","primary-fixed":"#d2e4ff","on-tertiary-fixed":"#291800","secondary-fixed-dim":"#71dba6","secondary":"#006c47","on-primary":"#ffffff","inverse-primary":"#b0c8eb"},borderRadius:{DEFAULT:"0.25rem",lg:"0.5rem",xl:"0.75rem",full:"9999px"},spacing:{"space-md":"0.875rem","gutter-lg":"1.75rem","gutter-sm":"0.75rem","space-xl":"2rem","margin-lg":"2.5rem",gutter:"1.25rem","space-2xs":"0.125rem","space-xs":"0.25rem","space-sm":"0.5rem","margin-sm":"1rem","space-2xl":"3rem","space-lg":"1.25rem",margin:"2rem"},fontFamily:{"display-lg":["Plus Jakarta Sans"],"label-md":["Plus Jakarta Sans"],"body-lg":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"label-sm":["Plus Jakarta Sans"],"headline-xl":["Plus Jakarta Sans"],"headline-sm":["Plus Jakarta Sans"],"tabular-num":["Plus Jakarta Sans"],"body-md":["Plus Jakarta Sans"],"headline-md":["Plus Jakarta Sans"],"body-sm":["Plus Jakarta Sans"]},fontSize:{"display-lg":["36px",{lineHeight:"44px",letterSpacing:"-0.03em",fontWeight:"800"}],"label-md":["13px",{lineHeight:"16px",letterSpacing:"0.01em",fontWeight:"600"}],"body-lg":["15px",{lineHeight:"22px",letterSpacing:"0em",fontWeight:"400"}],"headline-lg":["22px",{lineHeight:"28px",letterSpacing:"-0.015em",fontWeight:"700"}],"label-sm":["11px",{lineHeight:"14px",letterSpacing:"0.04em",fontWeight:"700"}],"headline-xl":["28px",{lineHeight:"36px",letterSpacing:"-0.02em",fontWeight:"700"}],"headline-sm":["16px",{lineHeight:"22px",letterSpacing:"-0.005em",fontWeight:"600"}],"tabular-num":["13px",{lineHeight:"18px",letterSpacing:"-0.01em",fontWeight:"500"}],"body-md":["14px",{lineHeight:"20px",letterSpacing:"0em",fontWeight:"400"}],"headline-md":["18px",{lineHeight:"24px",letterSpacing:"-0.01em",fontWeight:"600"}],"body-sm":["13px",{lineHeight:"18px",letterSpacing:"0.005em",fontWeight:"400"}]}}}};</script></head><body class="bg-surface font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-primary text-inverse-on-surface z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col h-full overflow-hidden"><div class="p-space-lg flex items-center gap-space-sm bg-primary-container"><div class="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center text-on-secondary shrink-0 shadow-[0_1px_3px_0_rgba(11,25,44,0.04)]"><span class="material-symbols-outlined text-[20px]">hub</span></div><div class="flex flex-col min-w-0"><div class="flex items-center gap-space-xs"><span class="font-headline-sm text-headline-sm text-on-primary tracking-tight truncate">My Global Hub</span><span class="px-1.5 py-0.5 rounded text-[10px] font-label-sm font-bold bg-secondary/20 text-secondary-fixed">ENTERPRISE</span></div><span class="font-label-sm text-label-sm text-primary-fixed-dim/70 truncate">Where the World Connects</span></div></div><div class="px-space-md py-space-sm bg-primary/60 border-y border-outline-variant/10"><label class="font-label-sm text-label-sm text-primary-fixed-dim/60 uppercase tracking-wider block mb-1">Active Operating HQ</label><div class="flex items-center justify-between gap-space-xs p-space-sm rounded-lg bg-primary-container/80 text-on-primary cursor-pointer hover:bg-primary-container transition-colors"><div class="flex items-center gap-space-xs min-w-0"><span class="material-symbols-outlined text-[18px] text-tertiary-fixed-dim shrink-0">corporate_fare</span><div class="min-w-0"><p class="font-label-md text-label-md leading-none truncate text-on-primary">My Global Hub Dominicana SRL</p><p class="font-label-sm text-label-sm text-primary-fixed-dim/70 truncate mt-0.5">Punta Cana Ops • Multi-HQ</p></div></div><span class="material-symbols-outlined text-[16px] text-primary-fixed-dim shrink-0">unfold_more</span></div></div><nav class="flex-1 overflow-y-auto px-space-md py-space-md space-y-space-md" data-active-classes="bg-primary-container text-on-primary font-headline-sm rounded-lg"><div class="space-y-space-2xs"><span class="px-space-sm font-label-sm text-label-sm tracking-wider uppercase text-primary-fixed-dim/50">Workforce</span><div class="space-y-1 mt-1"><a class="flex items-center justify-between px-space-sm py-2 rounded-lg text-primary-fixed-dim hover:bg-primary-container/50 hover:text-on-primary transition-colors" data-path="approval-workspace" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[18px]">fact_check</span><span class="font-label-md text-label-md">Approval Workspace</span></div><span class="px-2 py-0.5 rounded-full font-label-sm text-label-sm bg-error text-on-error">12</span></a><a class="flex items-center gap-space-sm px-space-sm py-2 rounded-lg text-primary-fixed-dim hover:bg-primary-container/50 hover:text-on-primary transition-colors" data-path="team-timesheets" href="#"><span class="material-symbols-outlined text-[18px]">schedule</span><span class="font-label-md text-label-md">Team Timesheets</span></a><a class="flex items-center gap-space-sm px-space-sm py-2 rounded-lg text-primary-fixed-dim hover:bg-primary-container/50 hover:text-on-primary transition-colors" data-path="employee-directory" href="#"><span class="material-symbols-outlined text-[18px]">badge</span><span class="font-label-md text-label-md">Employee Directory</span></a><a aria-current="page" class="flex items-center gap-space-sm px-space-sm py-2 transition-colors bg-primary-container text-on-primary font-headline-sm rounded-lg" data-path="schedule" href="#"><span class="material-symbols-outlined text-[18px]">calendar_today</span><span class="font-label-md text-label-md">Schedule</span></a></div></div><div class="space-y-space-2xs"><span class="px-space-sm font-label-sm text-label-sm tracking-wider uppercase text-primary-fixed-dim/50">Payroll &amp; Finance</span><div class="space-y-1 mt-1"><a class="flex items-center gap-space-sm px-space-sm py-2 rounded-lg text-primary-fixed-dim hover:bg-primary-container/50 hover:text-on-primary transition-colors" data-path="pay-periods-and-processing" href="#"><span class="material-symbols-outlined text-[18px]">payments</span><span class="font-label-md text-label-md">Pay Periods &amp; Processing</span></a><a class="flex items-center gap-space-sm px-space-sm py-2 rounded-lg text-primary-fixed-dim hover:bg-primary-container/50 hover:text-on-primary transition-colors" data-path="adjustments" href="#"><span class="material-symbols-outlined text-[18px]">tune</span><span class="font-label-md text-label-md">Adjustments</span></a><a class="flex items-center gap-space-sm px-space-sm py-2 rounded-lg text-primary-fixed-dim hover:bg-primary-container/50 hover:text-on-primary transition-colors" data-path="pay-stubs" href="#"><span class="material-symbols-outlined text-[18px]">receipt_long</span><span class="font-label-md text-label-md">Pay Stubs</span></a><a class="flex items-center gap-space-sm px-space-sm py-2 rounded-lg text-primary-fixed-dim hover:bg-primary-container/50 hover:text-on-primary transition-colors" data-path="banking-and-allocations" href="#"><span class="material-symbols-outlined text-[18px]">account_balance</span><span class="font-label-md text-label-md">Banking &amp; Allocations</span></a><a class="flex items-center gap-space-sm px-space-sm py-2 rounded-lg text-primary-fixed-dim hover:bg-primary-container/50 hover:text-on-primary transition-colors" data-path="reports-and-register" href="#"><span class="material-symbols-outlined text-[18px]">analytics</span><span class="font-label-md text-label-md">Reports &amp; Register</span></a></div></div><div class="space-y-space-2xs"><span class="px-space-sm font-label-sm text-label-sm tracking-wider uppercase text-primary-fixed-dim/50">Integrations</span><div class="space-y-1 mt-1"><a class="flex items-center justify-between px-space-sm py-2 rounded-lg text-primary-fixed-dim hover:bg-primary-container/50 hover:text-on-primary transition-colors" data-path="jira-cloud-sync" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[18px]">sync_alt</span><span class="font-label-md text-label-md">Jira Cloud Sync</span></div><span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full font-label-sm text-label-sm bg-secondary-fixed/20 text-secondary-fixed"><span class="w-1.5 h-1.5 rounded-full bg-secondary-fixed animate-pulse"></span>Active</span></a><a class="flex items-center gap-space-sm px-space-sm py-2 rounded-lg text-primary-fixed-dim hover:bg-primary-container/50 hover:text-on-primary transition-colors" data-path="webhooks" href="#"><span class="material-symbols-outlined text-[18px]">webhook</span><span class="font-label-md text-label-md">Webhooks</span></a><a class="flex items-center gap-space-sm px-space-sm py-2 rounded-lg text-primary-fixed-dim hover:bg-primary-container/50 hover:text-on-primary transition-colors" data-path="api-keys" href="#"><span class="material-symbols-outlined text-[18px]">api</span><span class="font-label-md text-label-md">API Access</span></a></div></div><div class="space-y-space-2xs"><span class="px-space-sm font-label-sm text-label-sm tracking-wider uppercase text-primary-fixed-dim/50">System / Administration</span><div class="space-y-1 mt-1"><a class="flex items-center gap-space-sm px-space-sm py-2 rounded-lg text-primary-fixed-dim hover:bg-primary-container/50 hover:text-on-primary transition-colors" data-path="organization-and-multi-hq" href="#"><span class="material-symbols-outlined text-[18px]">domain</span><span class="font-label-md text-label-md">Organization &amp; Multi-HQ</span></a><a class="flex items-center gap-space-sm px-space-sm py-2 rounded-lg text-primary-fixed-dim hover:bg-primary-container/50 hover:text-on-primary transition-colors" data-path="departments" href="#"><span class="material-symbols-outlined text-[18px]">lan</span><span class="font-label-md text-label-md">Departments</span></a><a class="flex items-center gap-space-sm px-space-sm py-2 rounded-lg text-primary-fixed-dim hover:bg-primary-container/50 hover:text-on-primary transition-colors" data-path="approval-workflows" href="#"><span class="material-symbols-outlined text-[18px]">schema</span><span class="font-label-md text-label-md">Approval Workflows</span></a><a class="flex items-center gap-space-sm px-space-sm py-2 rounded-lg text-primary-fixed-dim hover:bg-primary-container/50 hover:text-on-primary transition-colors" data-path="audit-logs" href="#"><span class="material-symbols-outlined text-[18px]">history</span><span class="font-label-md text-label-md">Audit Logs</span></a><a class="flex items-center gap-space-sm px-space-sm py-2 rounded-lg text-primary-fixed-dim hover:bg-primary-container/50 hover:text-on-primary transition-colors" data-path="system-settings" href="#"><span class="material-symbols-outlined text-[18px]">settings</span><span class="font-label-md text-label-md">Settings</span></a></div></div></nav><div class="p-space-md border-t border-outline-variant/10 bg-primary/80"><div class="flex items-center justify-between text-primary-fixed-dim/70 font-label-sm text-label-sm"><span>Compliance Tier: Global EOR</span><span class="text-secondary-fixed flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-secondary-fixed"></span>SOC2 Type II</span></div></div></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl z-40 shadow-[0_1px_8px_rgba(0,0,0,0.04)] px-space-lg flex items-center justify-between"><div class="flex items-center gap-space-md flex-1 max-w-2xl"><div class="relative w-full max-w-md"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-outline">search</span><input class="w-full pl-9 pr-8 py-2 rounded-lg bg-surface-container-low font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary-container transition-all" placeholder="Universal search issues, staff, transactions, records... (Press /)" type="text"/><kbd class="absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded bg-surface-container-high font-label-sm text-label-sm text-on-surface-variant font-mono">/</kbd></div><div class="flex items-center gap-space-xs px-3 py-1.5 rounded-lg bg-surface-container-low border border-outline-variant/30"><span class="material-symbols-outlined text-[16px] text-secondary">event_repeat</span><div class="flex items-center gap-1.5 text-body-sm font-body-sm"><span class="font-headline-sm text-headline-sm text-on-surface font-semibold">PP-2025-08</span><span class="text-on-surface-variant">•</span><span class="font-tabular-num text-tabular-num text-on-surface-variant">Apr 01 - Apr 14, 2025</span></div></div></div><div class="flex items-center gap-space-md"><div class="flex items-center gap-space-xs"><button class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-high hover:bg-surface-container hover:text-on-surface font-label-md text-label-md text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">checklist</span><span>Bulk Actions</span></button><button class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-high hover:bg-surface-container hover:text-on-surface font-label-md text-label-md text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">ios_share</span><span>Export</span></button></div><div class="h-6 w-px bg-outline-variant/30"></div><button class="relative p-2 rounded-lg hover:bg-surface-container-high text-on-surface-variant transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-error ring-2 ring-surface-container-lowest"></span></button><div class="flex items-center gap-space-sm pl-space-xs cursor-pointer group"><img alt="Profile" class="w-8 h-8 rounded-full object-cover ring-1 ring-outline-variant/30" src="https://lh3.googleusercontent.com/aida/AEtjO1XnupAXYuEff6kHmW3NBnuNW7qB3vGSo_6gxqg8Y4BHuAg-6UISaQ0WI8aTPbDVD6Z-hHLrUNemYZkYZZ6X4OrrXtNxxK3F7747ItjwS27qsKoa3yY9UFrMcwR8jwWIKRxeNzJl4IYk3qqSyubeyXQpAqQLh5McBVitFWtx8FdzbV0ja5xo33eeXUArxE-TsIZnAC_bFYL7rSpchS2Kh1ALyjI_dxuCWNxME0FU9LlEi0QMD2y8DHOZdIjtFElXt1h7Q3p37V-wWg"/><div class="hidden xl:flex flex-col text-left"><span class="font-label-md text-label-md text-on-surface font-semibold leading-none">Elena Rostova</span><span class="font-label-sm text-label-sm text-on-surface-variant leading-none mt-1">Lead PM &amp; Approver</span></div><span class="material-symbols-outlined text-[18px] text-outline group-hover:text-on-surface transition-colors">expand_more</span></div></div></header><main class="w-full pt-16 px-gutter bg-surface min-h-screen"><div class="flex flex-col w-full pb-space-2xl">
+<!-- Operational Header Context Banner -->
+<div class="w-full bg-primary text-inverse-on-surface px-space-lg py-space-sm rounded-xl mb-space-lg shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-secondary/20 text-secondary-fixed text-headline-sm">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+</span>
+<div class="flex items-center gap-space-xs text-body-sm flex-wrap">
+<span class="font-label-sm uppercase tracking-wider text-primary-fixed-dim/70">SCREEN: WORKFORCE SHIFT &amp; COVERAGE SCHEDULING</span>
+<span class="text-primary-fixed-dim/40">•</span>
+<span class="font-label-sm text-primary-fixed-dim/90">Module: Workforce &amp; Operations</span>
+<span class="text-primary-fixed-dim/40">•</span>
+<span class="font-label-sm text-primary-fixed-dim/90">Bi-Weekly Roster PP-2025-08</span>
+<span class="text-primary-fixed-dim/40">•</span>
+<span class="font-label-sm text-primary-fixed-dim/70">Ref: SCREEN-20</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary text-on-secondary font-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary-fixed animate-ping"></span>
+        STATUTORY REST DAY COMPLIANCE (Ley 16-92)
+      </span>
+</div>
+</div>
+<!-- Page Title & High-Velocity Command Bar -->
+<div class="flex flex-col xl:flex-row xl:items-end justify-between gap-space-lg mb-space-xl">
+<div class="max-w-3xl">
+<div class="flex items-center gap-space-xs mb-1">
+<span class="font-label-sm uppercase tracking-widest text-secondary font-bold">Multi-HQ Workforce Management</span>
+<span class="font-body-sm text-outline">•</span>
+<span class="font-label-sm text-on-surface-variant font-medium">Dominicana Ops / Americas Hub</span>
+</div>
+<h1 class="font-headline-xl text-headline-xl text-on-surface tracking-tight">Workforce Shift &amp; Coverage Scheduling</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1.5 leading-relaxed">
+        Plan bi-weekly team coverage, on-call DevOps rotations, statutory Sunday rest day compliance (Código de Trabajo Art. 155), and real-time shift swaps across cross-border pods.
+      </p>
+</div>
+<!-- Action Toolbar -->
+<div class="flex flex-wrap items-center gap-space-xs shrink-0">
+<button class="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container text-on-surface font-label-md transition-all shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px] text-tertiary-fixed-dim">auto_awesome</span>
+<span>Coverage Optimizer</span>
+</button>
+<button class="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container text-on-surface font-label-md transition-all shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span>Export Schedule (.csv)</span>
+</button>
+<button class="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container text-on-surface font-label-md transition-all shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px]">magic_button</span>
+<span>Auto-Generate Roster</span>
+</button>
+<button class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary-container text-on-primary font-label-md hover:bg-primary transition-all shadow-md" type="button">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+<span>+ New Shift Assignment</span>
+</button>
+</div>
+</div>
+<!-- KPI Metrics Grid (4 Top Metric Cards) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-space-md mb-space-xl">
+<!-- Card 1: Scheduled Staff -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-sm uppercase tracking-wider text-outline block">Scheduled Staff</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="font-headline-xl text-headline-xl text-on-surface font-bold">64 Active</span>
+</div>
+</div>
+<div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[22px]">groups</span>
+</div>
+</div>
+<div class="mt-4 pt-3 flex items-center gap-1.5">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm">
+<span class="material-symbols-outlined text-[13px]">check_circle</span>
+          100% Core coverage satisfied
+        </span>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full mt-3 overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+<!-- Card 2: Shift Hours Committed -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-sm uppercase tracking-wider text-outline block">Shift Hours Committed</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="font-headline-xl text-headline-xl text-on-surface font-bold">2,560 hrs</span>
+</div>
+</div>
+<div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[22px]">timer</span>
+</div>
+</div>
+<div class="mt-4 pt-3 flex items-center justify-between font-label-sm text-on-surface-variant">
+<span>Cycle PP-2025-08 target</span>
+<span class="font-tabular-num font-semibold text-on-surface">2,560 / 2,560h</span>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full mt-3 overflow-hidden">
+<div class="bg-primary-container h-full rounded-full" style="width: 96%;"></div>
+</div>
+</div>
+<!-- Card 3: Overtime Risk / Pre-Alerts -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-sm uppercase tracking-wider text-outline block">Overtime Risk / Pre-Alerts</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="font-headline-xl text-headline-xl text-error font-bold">2 Flagged</span>
+</div>
+</div>
+<div class="w-10 h-10 rounded-xl bg-error-container flex items-center justify-center text-on-error-container">
+<span class="material-symbols-outlined text-[22px]">warning</span>
+</div>
+</div>
+<div class="mt-4 pt-3 flex items-center gap-1.5">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-label-sm">
+<span class="material-symbols-outlined text-[13px]">notification_important</span>
+          Exceeding 44h statutory workweek
+        </span>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full mt-3 overflow-hidden">
+<div class="bg-error h-full rounded-full" style="width: 14%;"></div>
+</div>
+</div>
+<!-- Card 4: Sunday & Holiday Premiums -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-sm uppercase tracking-wider text-outline block">Sunday &amp; Holiday Premiums</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="font-headline-xl text-headline-xl text-on-surface font-bold">14 Shifts</span>
+</div>
+</div>
+<div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-tertiary-container">
+<span class="material-symbols-outlined text-[22px] text-tertiary-fixed-dim">paid</span>
+</div>
+</div>
+<div class="mt-4 pt-3 flex items-center gap-1.5">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface font-label-sm">
+<span class="material-symbols-outlined text-[13px] text-secondary">verified</span>
+          Dominican 100% premium rate locked
+        </span>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full mt-3 overflow-hidden">
+<div class="bg-secondary-fixed-dim h-full rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+<!-- Legend & Control Filter Row -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm mb-space-md flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
+<!-- Shift Type Badges Legend -->
+<div class="flex flex-wrap items-center gap-2">
+<span class="font-label-sm uppercase tracking-wider text-outline mr-2">Shift Types:</span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-high text-primary-container font-label-sm">
+<span class="w-2.5 h-2.5 rounded-sm bg-primary-container"></span>
+        Morning (08:00 - 17:00)
+      </span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-low text-secondary font-label-sm">
+<span class="w-2.5 h-2.5 rounded-sm bg-secondary"></span>
+        Evening (14:00 - 23:00)
+      </span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-tertiary-fixed/40 text-tertiary font-label-sm">
+<span class="w-2.5 h-2.5 rounded-sm bg-tertiary-fixed-dim"></span>
+        On-Call SRE (24h)
+      </span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container text-on-surface-variant font-label-sm">
+<span class="w-2.5 h-2.5 rounded-sm bg-outline-variant"></span>
+        Rest Day (Art. 155)
+      </span>
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-error-container text-on-error-container font-label-sm">
+<span class="material-symbols-outlined text-[13px]">flag</span>
+        Overtime Alert
+      </span>
+</div>
+<!-- View Modes & Cycle Jumper -->
+<div class="flex items-center gap-space-xs self-end lg:self-auto">
+<div class="flex items-center bg-surface-container-low p-1 rounded-lg">
+<button class="px-2.5 py-1 rounded font-label-sm bg-surface-container-lowest text-on-surface font-semibold shadow-xs">Bi-Weekly</button>
+<button class="px-2.5 py-1 rounded font-label-sm text-on-surface-variant hover:text-on-surface transition-colors">Weekly</button>
+<button class="px-2.5 py-1 rounded font-label-sm text-on-surface-variant hover:text-on-surface transition-colors">Daily Matrix</button>
+</div>
+<div class="flex items-center gap-1 bg-surface-container-low rounded-lg p-1">
+<button class="p-1 rounded hover:bg-surface-container text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<span class="font-tabular-num text-tabular-num text-on-surface px-1 font-semibold">Apr 01 - Apr 14, 2025</span>
+<button class="p-1 rounded hover:bg-surface-container text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Interactive Shift Calendar Grid (Bi-Weekly Matrix) -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden mb-space-xl">
+<div class="overflow-x-auto">
+<table class="w-full border-collapse min-w-[1240px] text-left">
+<!-- Calendar Table Header -->
+<thead>
+<tr class="bg-surface-container-low text-on-surface-variant">
+<th class="py-3 px-4 font-label-sm uppercase tracking-wider sticky left-0 bg-surface-container-low z-20 w-64 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
+              Department &amp; Team Member
+            </th>
+<!-- 14 Days Column Header -->
+<th class="py-2.5 px-2 font-label-sm text-center">
+<span class="block text-outline uppercase text-[10px]">Tue</span>
+<span class="font-tabular-num font-bold text-on-surface text-body-sm">01</span>
+</th>
+<th class="py-2.5 px-2 font-label-sm text-center">
+<span class="block text-outline uppercase text-[10px]">Wed</span>
+<span class="font-tabular-num font-bold text-on-surface text-body-sm">02</span>
+</th>
+<th class="py-2.5 px-2 font-label-sm text-center">
+<span class="block text-outline uppercase text-[10px]">Thu</span>
+<span class="font-tabular-num font-bold text-on-surface text-body-sm">03</span>
+</th>
+<th class="py-2.5 px-2 font-label-sm text-center">
+<span class="block text-outline uppercase text-[10px]">Fri</span>
+<span class="font-tabular-num font-bold text-on-surface text-body-sm">04</span>
+</th>
+<th class="py-2.5 px-2 font-label-sm text-center">
+<span class="block text-outline uppercase text-[10px]">Sat</span>
+<span class="font-tabular-num font-bold text-on-surface text-body-sm">05</span>
+</th>
+<th class="py-2.5 px-2 font-label-sm text-center bg-tertiary-fixed/20 text-tertiary">
+<span class="block uppercase text-[10px] font-bold text-tertiary">Sun*</span>
+<span class="font-tabular-num font-bold text-body-sm">06</span>
+</th>
+<th class="py-2.5 px-2 font-label-sm text-center">
+<span class="block text-outline uppercase text-[10px]">Mon</span>
+<span class="font-tabular-num font-bold text-on-surface text-body-sm">07</span>
+</th>
+<th class="py-2.5 px-2 font-label-sm text-center">
+<span class="block text-outline uppercase text-[10px]">Tue</span>
+<span class="font-tabular-num font-bold text-on-surface text-body-sm">08</span>
+</th>
+<th class="py-2.5 px-2 font-label-sm text-center">
+<span class="block text-outline uppercase text-[10px]">Wed</span>
+<span class="font-tabular-num font-bold text-on-surface text-body-sm">09</span>
+</th>
+<th class="py-2.5 px-2 font-label-sm text-center">
+<span class="block text-outline uppercase text-[10px]">Thu</span>
+<span class="font-tabular-num font-bold text-on-surface text-body-sm">10</span>
+</th>
+<th class="py-2.5 px-2 font-label-sm text-center">
+<span class="block text-outline uppercase text-[10px]">Fri</span>
+<span class="font-tabular-num font-bold text-on-surface text-body-sm">11</span>
+</th>
+<th class="py-2.5 px-2 font-label-sm text-center">
+<span class="block text-outline uppercase text-[10px]">Sat</span>
+<span class="font-tabular-num font-bold text-on-surface text-body-sm">12</span>
+</th>
+<th class="py-2.5 px-2 font-label-sm text-center bg-tertiary-fixed/20 text-tertiary">
+<span class="block uppercase text-[10px] font-bold text-tertiary">Sun*</span>
+<span class="font-tabular-num font-bold text-body-sm">13</span>
+</th>
+<th class="py-2.5 px-2 font-label-sm text-center">
+<span class="block text-outline uppercase text-[10px]">Mon</span>
+<span class="font-tabular-num font-bold text-on-surface text-body-sm">14</span>
+</th>
+<th class="py-2.5 px-3 font-label-sm uppercase tracking-wider text-right w-24">
+              Total
+            </th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container">
+<!-- GROUP 1: DevOps & SRE -->
+<tr class="bg-surface-container-low/60">
+<td class="py-2 px-4 font-label-sm text-primary-container uppercase font-bold tracking-wider" colspan="16">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">cloud_sync</span>
+<span>DevOps / SRE (24/7 Coverage Rotation)</span>
+<span class="px-2 py-0.5 rounded-full bg-secondary-fixed/20 text-secondary-fixed font-label-sm">Jira Cloud Sync Active</span>
+</div>
+</td>
+</tr>
+<!-- Row: David Wu (DevOps Lead) -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="py-2.5 px-4 sticky left-0 bg-surface-container-lowest group-hover:bg-surface-container-low transition-colors z-10 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
+<div class="flex items-center gap-space-xs">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="Portrait photo of David Wu, a professional tech lead with glasses in a sleek modern engineering office, cool slate and emerald accents" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGmMZdgS7fOqc_STJ8kfMI1GXK4DupnJCssziMTWna4VuHI7CSdxsS7skt-JoMxwApinukS4HXrtyb8eOV3YbAAORC6gUAtNlVJaRzrEwE05t5PkJ2HBlDJGWaMQ-RctM7X3Jr2YzkQ84qSlkr340X90Kc3UOIIx8uy2tCpeZl9AGfdiWIYi291CFQHTVsTmQxPTwmu5efARoRtHLJOPshIfBhcbb0tDnmKq9wc6ssUGagJZGcUfWW"/>
+<div class="min-w-0">
+<div class="flex items-center gap-1">
+<p class="font-headline-sm text-headline-sm text-on-surface truncate">David Wu</p>
+<span class="material-symbols-outlined text-[14px] text-secondary">verified</span>
+</div>
+<p class="font-label-sm text-on-surface-variant truncate">Lead Site Reliability Eng</p>
+</div>
+</div>
+</td>
+<!-- D1 -->
+<td class="p-1 text-center">
+<div class="p-1 rounded-md bg-tertiary-fixed/30 text-tertiary font-label-sm flex flex-col items-center">
+<span>ON-CALL</span>
+<span class="text-[9px] font-tabular-num">24h</span>
+</div>
+</td>
+<!-- D2 -->
+<td class="p-1 text-center">
+<div class="p-1 rounded-md bg-tertiary-fixed/30 text-tertiary font-label-sm flex flex-col items-center">
+<span>ON-CALL</span>
+<span class="text-[9px] font-tabular-num">24h</span>
+</div>
+</td>
+<!-- D3 -->
+<td class="p-1 text-center">
+<div class="p-1 rounded-md bg-tertiary-fixed/30 text-tertiary font-label-sm flex flex-col items-center">
+<span>ON-CALL</span>
+<span class="text-[9px] font-tabular-num">24h</span>
+</div>
+</td>
+<!-- D4 -->
+<td class="p-1 text-center">
+<div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm flex flex-col items-center">
+<span>MORN</span>
+<span class="text-[9px] font-tabular-num">08-17</span>
+</div>
+</td>
+<!-- D5 -->
+<td class="p-1 text-center">
+<div class="p-1 rounded-md bg-surface-container text-outline font-label-sm flex flex-col items-center">
+<span>REST</span>
+<span class="text-[9px]">OFF</span>
+</div>
+</td>
+<!-- D6 (Sun) -->
+<td class="p-1 text-center bg-tertiary-fixed/10">
+<div class="p-1 rounded-md bg-surface-container text-outline font-label-sm flex flex-col items-center">
+<span>REST</span>
+<span class="text-[9px]">Art. 155</span>
+</div>
+</td>
+<!-- D7 -->
+<td class="p-1 text-center">
+<div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm flex flex-col items-center">
+<span>MORN</span>
+<span class="text-[9px] font-tabular-num">08-17</span>
+</div>
+</td>
+<!-- D8 -->
+<td class="p-1 text-center">
+<div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm flex flex-col items-center">
+<span>MORN</span>
+<span class="text-[9px] font-tabular-num">08-17</span>
+</div>
+</td>
+<!-- D9 -->
+<td class="p-1 text-center">
+<div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm flex flex-col items-center">
+<span>MORN</span>
+<span class="text-[9px] font-tabular-num">08-17</span>
+</div>
+</td>
+<!-- D10 -->
+<td class="p-1 text-center">
+<div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm flex flex-col items-center">
+<span>MORN</span>
+<span class="text-[9px] font-tabular-num">08-17</span>
+</div>
+</td>
+<!-- D11 -->
+<td class="p-1 text-center">
+<div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm flex flex-col items-center">
+<span>MORN</span>
+<span class="text-[9px] font-tabular-num">08-17</span>
+</div>
+</td>
+<!-- D12 -->
+<td class="p-1 text-center">
+<div class="p-1 rounded-md bg-surface-container text-outline font-label-sm flex flex-col items-center">
+<span>REST</span>
+<span class="text-[9px]">OFF</span>
+</div>
+</td>
+<!-- D13 (Sun) -->
+<td class="p-1 text-center bg-tertiary-fixed/10">
+<div class="p-1 rounded-md bg-surface-container text-outline font-label-sm flex flex-col items-center">
+<span>REST</span>
+<span class="text-[9px]">Art. 155</span>
+</div>
+</td>
+<!-- D14 -->
+<td class="p-1 text-center">
+<div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm flex flex-col items-center">
+<span>MORN</span>
+<span class="text-[9px] font-tabular-num">08-17</span>
+</div>
+</td>
+<!-- Total -->
+<td class="py-2.5 px-3 text-right">
+<span class="font-tabular-num font-bold text-on-surface">40.0h</span>
+<span class="block text-[10px] text-secondary font-label-sm">Standard</span>
+</td>
+</tr>
+<!-- Row: Lucas Ferreira (Cloud Engineer - Overtime Flag) -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="py-2.5 px-4 sticky left-0 bg-surface-container-lowest group-hover:bg-surface-container-low transition-colors z-10 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
+<div class="flex items-center gap-space-xs">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="Portrait photo of Lucas Ferreira, systems architect sitting with dual monitors showing dashboard analytics, warm lighting in tech studio" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtDgIXVOc3yrrvAKLOntvVU6i3aqj8B5pOcmPED5LjJqzElPRUjMDsJ8fvg359te4OR9oSDz8WYz5ebIcJT6A9EDC1BwXfHJ63sXRAjMw3hTuNMdOBvrxZJm7SgROY6I8UBHwPXFzQ_LDIHyCk6lNvDOal5w7SjksY0IovErTvU0YKmE8iY5buEizKNSwuzaIj4AA0XA6tSEy7cd5ov4CNcp5QuOCwNqpZOCb3s4HjnN9y6aXIE6zp"/>
+<div class="min-w-0">
+<div class="flex items-center gap-1">
+<p class="font-headline-sm text-headline-sm text-on-surface truncate">Lucas Ferreira</p>
+<span class="px-1 py-0.2 rounded bg-error-container text-on-error-container font-label-sm text-[9px]">OT Alert</span>
+</div>
+<p class="font-label-sm text-on-surface-variant truncate">Cloud Infrastructure Eng</p>
+</div>
+</div>
+</td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<!-- Sun with Overtime Work -->
+<td class="p-1 text-center bg-tertiary-fixed/10">
+<div class="p-1 rounded-md bg-error-container text-on-error-container font-label-sm flex flex-col items-center">
+<span>SUN+100%</span>
+<span class="text-[9px] font-tabular-num">08-17</span>
+</div>
+</td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center bg-tertiary-fixed/10"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="py-2.5 px-3 text-right">
+<span class="font-tabular-num font-bold text-error">48.0h</span>
+<span class="block text-[10px] text-error font-label-sm">+4h Statutory OT</span>
+</td>
+</tr>
+<!-- GROUP 2: Core Engineering & Platform -->
+<tr class="bg-surface-container-low/60">
+<td class="py-2 px-4 font-label-sm text-primary-container uppercase font-bold tracking-wider" colspan="16">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">code</span>
+<span>Core Engineering Pod (Platform &amp; APIs)</span>
+</div>
+</td>
+</tr>
+<!-- Row: Carlos Mendez -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="py-2.5 px-4 sticky left-0 bg-surface-container-lowest group-hover:bg-surface-container-low transition-colors z-10 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
+<div class="flex items-center gap-space-xs">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="Portrait photo of Carlos Mendez, fullstack developer smiling in a tech startup room with natural ambient light and minimal decor" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6UbC6JFhS0_ON06bek3yOmR8io511fV-CIgMudxY321ilHUd9KwcoEL23aoQVr0d11MJ_2IUutO0MhMg3KMZ8Udz86kvFh9uNU8-hF1zgyrsDX8fr5Rgy3yvkecPq86rEnqY3FmhgZIHd_v2G8qwvgNqrNM2Rr-3wcxjvVpLiNELDtBx5JCErpD3rpwZNhgxCSmfHNGX9OYSf2yuVJESEcm1CieIspuw3qWlOvUMR36MoikTej4v2"/>
+<div class="min-w-0">
+<div class="flex items-center gap-1">
+<p class="font-headline-sm text-headline-sm text-on-surface truncate">Carlos Mendez</p>
+</div>
+<p class="font-label-sm text-on-surface-variant truncate">Staff Backend Eng</p>
+</div>
+</div>
+</td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center bg-tertiary-fixed/10"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center bg-tertiary-fixed/10"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="py-2.5 px-3 text-right">
+<span class="font-tabular-num font-bold text-on-surface">40.0h</span>
+<span class="block text-[10px] text-secondary font-label-sm">Compliant</span>
+</td>
+</tr>
+<!-- Row: Sofia Almeyda -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="py-2.5 px-4 sticky left-0 bg-surface-container-lowest group-hover:bg-surface-container-low transition-colors z-10 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
+<div class="flex items-center gap-space-xs">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="Portrait photo of Sofia Almeyda, senior software engineer with focused gaze in a modern tech hub office with corporate plants and soft navy daylight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCT3vosWDT_heQEVzVaT6xFTlCILBS0JEJ_5BbaD0sJZztsmA2NFwabBvgdsTQAG61o59mDqOCURuUPll6f2s4eaIoeJlmIGwxapQN6hN24YSFPLflxs9upzh0HEnE2OXDnIM9umaXoVTDR1-lt8ODl2gb1ryOTxMIIBXI9gX6ZeDsdxXJRR3XPMXZqxMt4ftdyPLup12MTTAqMXyvYDO3yxsWV0SMHv2iJYvIAUrYNuERgRKQmgpx4"/>
+<div class="min-w-0">
+<div class="flex items-center gap-1">
+<p class="font-headline-sm text-headline-sm text-on-surface truncate">Sofia Almeyda</p>
+</div>
+<p class="font-label-sm text-on-surface-variant truncate">Frontend Architect</p>
+</div>
+</div>
+</td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-low text-secondary font-label-sm"><span>EVE</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-low text-secondary font-label-sm"><span>EVE</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-low text-secondary font-label-sm"><span>EVE</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-low text-secondary font-label-sm"><span>EVE</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-low text-secondary font-label-sm"><span>EVE</span></div></td>
+<td class="p-1 text-center bg-tertiary-fixed/10"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-low text-secondary font-label-sm"><span>EVE</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-low text-secondary font-label-sm"><span>EVE</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-low text-secondary font-label-sm"><span>EVE</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-low text-secondary font-label-sm"><span>EVE</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-low text-secondary font-label-sm"><span>EVE</span></div></td>
+<td class="p-1 text-center bg-tertiary-fixed/10"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="py-2.5 px-3 text-right">
+<span class="font-tabular-num font-bold text-on-surface">40.0h</span>
+<span class="block text-[10px] text-secondary font-label-sm">+15% Night Shift</span>
+</td>
+</tr>
+<!-- GROUP 3: 24/7 Global Customer Support -->
+<tr class="bg-surface-container-low/60">
+<td class="py-2 px-4 font-label-sm text-primary-container uppercase font-bold tracking-wider" colspan="16">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">headset_mic</span>
+<span>Global Support Operations (Tier 2 &amp; Escalations)</span>
+</div>
+</td>
+</tr>
+<!-- Row: Mariana Reyes -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="py-2.5 px-4 sticky left-0 bg-surface-container-lowest group-hover:bg-surface-container-low transition-colors z-10 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
+<div class="flex items-center gap-space-xs">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="Portrait photo of Mariana Reyes, customer operations manager wearing wireless headset in modern tech executive office" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmHAWa33m4obG-Sl_fUpR2NMHDH86X2zpjJ2j7Q5Nmk9X3yG2NgKfcKoIoge5k7Eu8ZCaD1S52qT9J5PakknW2bW-SxlL9jrTT6IJKIdOkvnULa9ee9u3RaMbYfpsb4az-oW5SZ_v4R-jzV4Y41pMdW1MZGJePcmzn9ijkaBaAZDUiWIUcOzPFzoGc27xwtIsArZaWBjQlu4PS_1uzwUnUpkmrL2y3KKPxtAElzq_cQiscSHrEcwPC"/>
+<div class="min-w-0">
+<div class="flex items-center gap-1">
+<p class="font-headline-sm text-headline-sm text-on-surface truncate">Mariana Reyes</p>
+</div>
+<p class="font-label-sm text-on-surface-variant truncate">Support Ops Specialist</p>
+</div>
+</div>
+</td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<!-- Sunday Coverage with statutory rate -->
+<td class="p-1 text-center bg-tertiary-fixed/10">
+<div class="p-1 rounded-md bg-tertiary-fixed text-tertiary-container font-label-sm flex flex-col items-center">
+<span>SUN+100%</span>
+<span class="text-[9px]">08-17</span>
+</div>
+</td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center bg-tertiary-fixed/10">
+<div class="p-1 rounded-md bg-tertiary-fixed text-tertiary-container font-label-sm flex flex-col items-center">
+<span>SUN+100%</span>
+<span class="text-[9px]">08-17</span>
+</div>
+</td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="py-2.5 px-3 text-right">
+<span class="font-tabular-num font-bold text-on-surface">40.0h</span>
+<span class="block text-[10px] text-tertiary-fixed-dim font-bold font-label-sm">2x Sun Premiums</span>
+</td>
+</tr>
+<!-- Row: Camila Duarte -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="py-2.5 px-4 sticky left-0 bg-surface-container-lowest group-hover:bg-surface-container-low transition-colors z-10 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
+<div class="flex items-center gap-space-xs">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="Portrait photo of Camila Duarte, senior QA automation engineer working on a laptop in a bright contemporary workplace" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnHnd_nzzId-kJ07BOg-PIrKkolRqwF7IuMgXmzPpjMtHQ1JR4GVWcwphhDYV6GKO6ykIGuhlBNiUf1BMtZkHkICegVtN6H65e99ksd5sgl69nIN4q2Z4nzSrLcffhbfVaebtiH4aawtZjCxK7822lh_j93sUSvMHycWTeY7Uq50jNijojDCOq4ZgfpK_GoZ6XXVlRQVtHeLmwfONqypbcezb_9tWbM8h0C8b0dFa75MCNsdJDMNPB"/>
+<div class="min-w-0">
+<div class="flex items-center gap-1">
+<p class="font-headline-sm text-headline-sm text-on-surface truncate">Camila Duarte</p>
+</div>
+<p class="font-label-sm text-on-surface-variant truncate">Quality Assurance Lead</p>
+</div>
+</div>
+</td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center bg-tertiary-fixed/10"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container-high text-primary-container font-label-sm"><span>MORN</span></div></td>
+<td class="p-1 text-center bg-tertiary-fixed/10"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="p-1 text-center"><div class="p-1 rounded-md bg-surface-container text-outline font-label-sm"><span>REST</span></div></td>
+<td class="py-2.5 px-3 text-right">
+<span class="font-tabular-num font-bold text-on-surface">40.0h</span>
+<span class="block text-[10px] text-secondary font-label-sm">Compliant</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Calendar Table Footer Summary & Quick Coverage Insight -->
+<div class="px-space-lg py-space-md bg-surface-container-low flex flex-col md:flex-row md:items-center justify-between gap-space-sm text-body-sm">
+<div class="flex items-center gap-space-md">
+<div class="flex items-center gap-1.5 font-label-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary"></span>
+<span>Coverage Status: Fully Covered (0 Under-staffed intervals)</span>
+</div>
+<div class="hidden sm:flex items-center gap-1.5 font-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">sync</span>
+<span>Next Jira Sprint Sync: in 14 mins</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs font-label-sm text-on-surface-variant">
+<span>Displaying 5 of 64 Total Employees</span>
+<button class="text-primary hover:underline font-semibold ml-1">View All Pods →</button>
+</div>
+</div>
+</div>
+<!-- Bottom Dual Panels: Statutory Guardrails & Shift Swap Requests -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+<!-- Column 1 (7 cols): Dominican Labor Rest Compliance & Overtime Guardrails -->
+<div class="lg:col-span-7 bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-start justify-between mb-space-md">
+<div class="flex items-center gap-space-xs">
+<span class="p-2 rounded-lg bg-surface-container text-secondary">
+<span class="material-symbols-outlined text-[20px]">gavel</span>
+</span>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Dominican Labor Rest Compliance &amp; Overtime Guardrails</h2>
+<p class="font-label-sm text-on-surface-variant mt-0.5">Auditable under Código de Trabajo de la República Dominicana (Ley 16-92)</p>
+</div>
+</div>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-sm shrink-0">
+<span class="material-symbols-outlined text-[14px]">shield</span>
+            Engine Active
+          </span>
+</div>
+<div class="space-y-space-sm mt-4">
+<!-- Item 1: Art 155 Mandatory Rest -->
+<div class="p-space-md rounded-xl bg-surface-container-low flex items-start gap-space-sm">
+<div class="p-1 rounded-full bg-secondary text-on-secondary shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[16px]">done</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<p class="font-headline-sm text-headline-sm text-on-surface">Article 155: Mandatory 36-Hour Continuous Weekly Rest</p>
+<span class="font-label-sm text-secondary font-bold">100% Validated</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                Every team member has at least one uninterrupted period of 36 hours rest per 7-day cycle. In instances where staff work on Sunday, an alternate rest day is automatically compensated or 100% wage surcharge is applied.
+              </p>
+</div>
+</div>
+<!-- Item 2: Max 44-Hour Workweek -->
+<div class="p-space-md rounded-xl bg-surface-container-low flex items-start gap-space-sm">
+<div class="p-1 rounded-full bg-tertiary-fixed-dim text-on-tertiary-fixed-variant shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[16px]">priority_high</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<p class="font-headline-sm text-headline-sm text-on-surface">Article 147: Maximum 44-Hour Standard Threshold</p>
+<span class="font-label-sm text-error font-bold">2 Flags in Roster</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                Lucas Ferreira and 1 other teammate are flagged for exceeding 44 normal daytime hours. Overtime multiplier of +35% (up to 68h) and +100% (beyond 68h) will route to the next payroll approval drawer.
+              </p>
+</div>
+</div>
+<!-- Item 3: Night Differential -->
+<div class="p-space-md rounded-xl bg-surface-container-low flex items-start gap-space-sm">
+<div class="p-1 rounded-full bg-secondary text-on-secondary shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[16px]">done</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<p class="font-headline-sm text-headline-sm text-on-surface">Article 149: Automatic Night Differential (+15%)</p>
+<span class="font-label-sm text-secondary font-bold">Auto-Calculated</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                Hours worked between 21:00 and 07:00 automatically accrue the statutory 15% night differential premium directly linked with banking allocations.
+              </p>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-space-md pt-space-sm flex items-center justify-between">
+<span class="font-label-sm text-outline">Verified by Dominican EOR Compliance Engine • v4.8</span>
+<button class="text-secondary font-label-md hover:underline flex items-center gap-1" type="button">
+<span>Download Audit Certificate</span>
+<span class="material-symbols-outlined text-[16px]">file_download</span>
+</button>
+</div>
+</div>
+<!-- Column 2 (5 cols): Pending Shift Swap & Leave Requests (3 Active) -->
+<div class="lg:col-span-5 bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-start justify-between mb-space-md">
+<div class="flex items-center gap-space-xs">
+<span class="p-2 rounded-lg bg-surface-container text-primary-container">
+<span class="material-symbols-outlined text-[20px]">swap_horiz</span>
+</span>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Shift Swap &amp; Leave Requests</h2>
+<p class="font-label-sm text-on-surface-variant mt-0.5">3 Actions awaiting Manager Approval</p>
+</div>
+</div>
+<span class="px-2.5 py-0.5 rounded-full bg-error-container text-on-error-container font-label-sm font-bold">
+            3 Active
+          </span>
+</div>
+<!-- Swap Request 1 -->
+<div class="space-y-space-sm">
+<div class="p-space-sm rounded-xl bg-surface-container-low hover:bg-surface-container transition-colors">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<img class="w-7 h-7 rounded-full object-cover" data-alt="Portrait photo of Sofia Almeyda, software developer in corporate meeting apparel" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4s2PuhLkesyEgMj1xf8D0ZzmIg0aA8pU9lgAFtki2Qf1BJZq078JOFPKgO02HRAUGV6uADYeUW9zH2zZX1Ewlrqu2oo8kZafAE6fuiGIP7ft0QUHRUIwaN-nu1On0JNeeTP8ObwiN5VnJlZYUOYf6WUjdY1KrSTBl2O7KuJTxb21DFtDXTKkLhmFrfP6k-YJqFoqHmLUpAD5hXYwVhHWk2pdjOyfY13w6nkTxd03OSodOqVOtdV4p"/>
+<span class="material-symbols-outlined text-[14px] text-outline">sync_alt</span>
+<img class="w-7 h-7 rounded-full object-cover" data-alt="Portrait photo of Carlos Mendez, tech engineer with headset in sleek workspace" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7qg6lxGmnXXy2k6Vwkc-24k74A25mzeM0x8hhpp2_ryRLQ5G00orMIxkDBsiRG6Qthw2DalKiKG-aR_SJN--n1Sdabs6fNxRZvLnXQiJ7y0vPkmHbpkUVlYg8C_fJ2mTgn8nLosCcThXffLZItyv_U2U23V5Pm6RVD9A6Bm4LCi286c4fzZE_0IvS01Y3MqfwAWHlR3ehv4ICVnkxEMURt_lzNf7KwVg-rwQOOSTHC7E4PTcXHgK9"/>
+<span class="font-label-md text-on-surface ml-1 font-semibold">Sofia ↔ Carlos</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface font-label-sm font-tabular-num">Thu, Apr 10</span>
+</div>
+<p class="font-body-sm text-on-surface-variant text-xs mb-3">
+              Swap Evening Shift for Morning Shift due to DevOps sprint deployment handoff. Coverage is preserved.
+            </p>
+<div class="flex items-center justify-end gap-2">
+<button class="px-2.5 py-1 rounded-lg bg-surface-container text-on-surface font-label-sm hover:bg-surface-container-high transition-colors" type="button">
+                Deny
+              </button>
+<button class="px-3 py-1 rounded-lg bg-secondary text-on-secondary font-label-sm hover:bg-secondary/90 transition-colors shadow-xs" type="button">
+                Approve Swap
+              </button>
+</div>
+</div>
+<!-- Swap Request 2 -->
+<div class="p-space-sm rounded-xl bg-surface-container-low hover:bg-surface-container transition-colors">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<img class="w-7 h-7 rounded-full object-cover" data-alt="Portrait photo of David Wu, engineering manager in a modern open floor design agency office" src="https://lh3.googleusercontent.com/aida-public/AB6AXuApOmKNkxSQD53Lb1197NRU5WP87RRomggjQHe2l9OOPCdU5NyKQhznEZABwjDClMrrqKaB-rMPQbS0xvr753q2I3mFeFoB5qIsKJRsNBrepkw1GfrMSd6funCx3irqPcw2G03-fZRvSRBZKmFuIoYQGsnzcVFRCEu-lmORKXVK51CT-sUXXUDRGM7uHow2jhjBN4usmRuxpU9tkLtxKdKEd0GOm3pkxcFffW4KAIEePxnOFlTiLkd5"/>
+<span class="material-symbols-outlined text-[14px] text-tertiary-fixed-dim">event_busy</span>
+<span class="font-label-md text-on-surface font-semibold">David Wu</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface font-label-sm font-tabular-num">Sat, Apr 12</span>
+</div>
+<p class="font-body-sm text-on-surface-variant text-xs mb-3">
+              Request: Temporary On-Call coverage relief (4 hrs). Handover assigned to Lucas Ferreira.
+            </p>
+<div class="flex items-center justify-end gap-2">
+<button class="px-2.5 py-1 rounded-lg bg-surface-container text-on-surface font-label-sm hover:bg-surface-container-high transition-colors" type="button">
+                Deny
+              </button>
+<button class="px-3 py-1 rounded-lg bg-secondary text-on-secondary font-label-sm hover:bg-secondary/90 transition-colors shadow-xs" type="button">
+                Approve Handover
+              </button>
+</div>
+</div>
+<!-- Swap Request 3 -->
+<div class="p-space-sm rounded-xl bg-surface-container-low hover:bg-surface-container transition-colors">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<img class="w-7 h-7 rounded-full object-cover" data-alt="Portrait photo of Mariana Reyes, corporate analyst in sleek navy backdrop" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEBiJRIY0WT-Yc9JRkB3ClPMLcWL3KwzqOBS_T_sumAR_HBoDoQnnpyc2Z3ON_3f7BP0MEa_CXyegL2DJGvVpWJUZdk1boTDMFU-Ws3k0j_i63IH2zJVFfb18UzxymkhVi-lMOmgMIybRgnSPqyYlzEgru4ZUgngbPrqdrIRkCqpmJWIMZvz8toEn-P-wnZa-FlnEFbpa49zvWvbFC3o00Nkwrdz498cS6HpbytIR0YurYRFOSb0mb"/>
+<span class="material-symbols-outlined text-[14px] text-tertiary-fixed-dim">flight_takeoff</span>
+<span class="font-label-md text-on-surface font-semibold">Mariana Reyes</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface font-label-sm font-tabular-num">Mon, Apr 14</span>
+</div>
+<p class="font-body-sm text-on-surface-variant text-xs mb-3">
+              Statutory Paid Time Off (Vacaciones Art. 177). Coverage backfilled by Tier 2 Support Pod.
+            </p>
+<div class="flex items-center justify-end gap-2">
+<button class="px-2.5 py-1 rounded-lg bg-surface-container text-on-surface font-label-sm hover:bg-surface-container-high transition-colors" type="button">
+                Deny
+              </button>
+<button class="px-3 py-1 rounded-lg bg-primary-container text-on-primary font-label-sm hover:bg-primary transition-colors shadow-xs" type="button">
+                Review PTO
+              </button>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-space-md pt-space-xs text-center">
+<a class="font-label-sm text-primary hover:underline font-semibold" href="#">
+          View All Swap Requests &amp; Historical Approvals (28) →
+        </a>
+</div>
+</div>
+</div>
+</div></main></div></body></html>

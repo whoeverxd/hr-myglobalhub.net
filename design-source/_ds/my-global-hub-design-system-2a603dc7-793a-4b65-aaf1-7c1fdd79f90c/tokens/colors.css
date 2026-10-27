@@ -1,0 +1,23 @@
+:root{
+/* Brand (enterprise evolution — supplied by brief) */
+--mgh-navy:#132A52;--mgh-navy-900:#0A2540;--mgh-navy-950:#000F22;--mgh-navy-800:#1B3766;--mgh-navy-700:#24457A;
+--mgh-primary:#334296;--mgh-primary-hover:#2A3780;--mgh-primary-press:#222D6B;--mgh-primary-50:#EEF0FF;--mgh-primary-100:#E2E7FF;--mgh-primary-200:#C9D0F5;
+--mgh-accent:#0094CC;--mgh-accent-hover:#007FB0;--mgh-accent-50:#E3F5FC;--mgh-accent-100:#C2E8F7;
+/* Neutrals (exact from Figma) */
+--mgh-ink:#131B2E;--mgh-ink-2:#43474D;--mgh-ink-3:#74777E;--mgh-ink-4:#C4C6CE;--mgh-white:#FFFFFF;
+--mgh-surface-0:#FFFFFF;--mgh-surface-page:#FAF8FF;--mgh-surface-1:#F2F3FF;--mgh-surface-2:#EAEDFF;--mgh-surface-3:#E2E7FF;--mgh-surface-4:#DAE2FD;--mgh-surface-tint:#EEF0FF;
+/* Sidebar text (exact from Figma) */
+--mgh-nav-text:#B0C8EB;--mgh-nav-section:#768DAD;--mgh-nav-active-text:#FAF8FF;
+/* Semantic (exact from Figma) */
+--mgh-success:#006C47;--mgh-success-700:#005235;--mgh-success-600:#00714B;--mgh-success-300:#71DBA6;--mgh-success-200:#8DF7C1;--mgh-success-bg:rgba(113,219,166,.2);
+--mgh-warning:#BE7E00;--mgh-warning-400:#FFB951;--mgh-warning-200:#FFDDB3;--mgh-warning-bg:rgba(255,185,81,.25);
+--mgh-danger:#BA1A1A;--mgh-danger-700:#93000A;--mgh-danger-bg:#FFDAD6;
+--mgh-info:var(--mgh-accent);--mgh-info-bg:var(--mgh-accent-50);
+
+/* Semantic aliases */
+--text-strong:var(--mgh-ink);--text-body:var(--mgh-ink-2);--text-muted:var(--mgh-ink-3);--text-disabled:var(--mgh-ink-4);--text-on-dark:#FAF8FF;--text-link:var(--mgh-primary);
+--surface-page:var(--mgh-surface-0);--surface-app:var(--mgh-surface-page);--surface-card:var(--mgh-surface-0);--surface-muted:var(--mgh-surface-1);--surface-sunken:var(--mgh-surface-2);--surface-selected:var(--mgh-primary-50);
+--surface-nav:var(--mgh-navy);--surface-nav-active:rgba(255,255,255,.15);--surface-nav-hover:rgba(255,255,255,.08);--surface-nav-panel:rgba(255,255,255,.05);
+--border-subtle:var(--mgh-surface-2);--border-default:var(--mgh-surface-3);--border-strong:var(--mgh-ink-4);--border-focus:var(--mgh-primary);
+--action-primary:var(--mgh-primary);--action-primary-hover:var(--mgh-primary-hover);--action-secondary-bg:var(--mgh-surface-2);--action-dark:var(--mgh-navy);
+}

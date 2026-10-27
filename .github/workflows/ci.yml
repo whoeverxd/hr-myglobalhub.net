@@ -1,0 +1,54 @@
+name: MGH Payroll Continuous Integration
+
+on:
+  push:
+    branches: [ main, master, desarrollo ]
+  pull_request:
+    branches: [ main, master, desarrollo ]
+
+jobs:
+  backend-test:
+    name: Backend Test Suite & Migrations
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: backend/package.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci || npm install
+
+      - name: Run automated test suite
+        working-directory: backend
+        run: npm test
+
+  frontend-build:
+    name: Frontend Vite Production Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: frontend/package.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci || npm install
+
+      - name: Build frontend bundle
+        working-directory: frontend
+        run: npm run build

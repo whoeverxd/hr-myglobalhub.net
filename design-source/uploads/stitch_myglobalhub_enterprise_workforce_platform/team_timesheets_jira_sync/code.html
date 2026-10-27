@@ -1,0 +1,1134 @@
+<!DOCTYPE html><html lang="en" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "on-background": "#131b2e",
+          "primary-fixed": "#d2e4ff",
+          "secondary-fixed-dim": "#71dba6",
+          "surface-dim": "#d2d9f4",
+          "outline": "#74777e",
+          "surface-variant": "#dae2fd",
+          "on-tertiary-container": "#be7e00",
+          "tertiary": "#180c00",
+          "on-secondary": "#ffffff",
+          "surface-container-highest": "#dae2fd",
+          "on-tertiary-fixed-variant": "#633f00",
+          "on-primary-container": "#768dad",
+          "surface-container": "#eaedff",
+          "tertiary-container": "#352000",
+          "tertiary-fixed-dim": "#ffb951",
+          "inverse-surface": "#283044",
+          "on-primary": "#ffffff",
+          "surface-bright": "#faf8ff",
+          "background": "#faf8ff",
+          "on-primary-fixed-variant": "#314865",
+          "surface-container-high": "#e2e7ff",
+          "on-secondary-fixed-variant": "#005235",
+          "secondary-fixed": "#8df7c1",
+          "on-secondary-fixed": "#002113",
+          "primary-fixed-dim": "#b0c8eb",
+          "on-tertiary-fixed": "#291800",
+          "error": "#ba1a1a",
+          "on-error-container": "#93000a",
+          "secondary-container": "#8af5be",
+          "on-error": "#ffffff",
+          "primary": "#000f22",
+          "inverse-on-surface": "#eef0ff",
+          "error-container": "#ffdad6",
+          "on-secondary-container": "#00714b",
+          "inverse-primary": "#b0c8eb",
+          "surface-container-low": "#f2f3ff",
+          "tertiary-fixed": "#ffddb3",
+          "on-surface-variant": "#43474d",
+          "primary-container": "#0a2540",
+          "surface-tint": "#49607e",
+          "on-surface": "#131b2e",
+          "on-tertiary": "#ffffff",
+          "surface": "#faf8ff",
+          "on-primary-fixed": "#001c37",
+          "secondary": "#006c47",
+          "outline-variant": "#c4c6ce",
+          "surface-container-lowest": "#ffffff"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "gutter-lg": "1.75rem",
+          "margin-lg": "2.5rem",
+          "space-md": "0.875rem",
+          "space-xl": "2rem",
+          "margin-sm": "1rem",
+          "space-2xl": "3rem",
+          "space-lg": "1.25rem",
+          "space-xs": "0.25rem",
+          "space-2xs": "0.125rem",
+          "gutter": "1.25rem",
+          "space-sm": "0.5rem",
+          "margin": "2rem",
+          "gutter-sm": "0.75rem"
+        },
+        "fontFamily": {
+          "headline-md": [
+            "Plus Jakarta Sans"
+          ],
+          "body-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "label-sm": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "label-md": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-xl": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-sm": [
+            "Plus Jakarta Sans"
+          ],
+          "body-md": [
+            "Plus Jakarta Sans"
+          ],
+          "tabular-num": [
+            "Plus Jakarta Sans"
+          ],
+          "display-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "body-sm": [
+            "Plus Jakarta Sans"
+          ]
+        },
+        "fontSize": {
+          "headline-md": [
+            "18px",
+            {
+              "lineHeight": "24px",
+              "letterSpacing": "-0.01em",
+              "fontWeight": "600"
+            }
+          ],
+          "body-lg": [
+            "15px",
+            {
+              "lineHeight": "22px",
+              "letterSpacing": "0em",
+              "fontWeight": "400"
+            }
+          ],
+          "label-sm": [
+            "11px",
+            {
+              "lineHeight": "14px",
+              "letterSpacing": "0.04em",
+              "fontWeight": "700"
+            }
+          ],
+          "headline-lg": [
+            "22px",
+            {
+              "lineHeight": "28px",
+              "letterSpacing": "-0.015em",
+              "fontWeight": "700"
+            }
+          ],
+          "label-md": [
+            "13px",
+            {
+              "lineHeight": "16px",
+              "letterSpacing": "0.01em",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-xl": [
+            "28px",
+            {
+              "lineHeight": "36px",
+              "letterSpacing": "-0.02em",
+              "fontWeight": "700"
+            }
+          ],
+          "headline-sm": [
+            "16px",
+            {
+              "lineHeight": "22px",
+              "letterSpacing": "-0.005em",
+              "fontWeight": "600"
+            }
+          ],
+          "body-md": [
+            "14px",
+            {
+              "lineHeight": "20px",
+              "letterSpacing": "0em",
+              "fontWeight": "400"
+            }
+          ],
+          "tabular-num": [
+            "13px",
+            {
+              "lineHeight": "18px",
+              "letterSpacing": "-0.01em",
+              "fontWeight": "500"
+            }
+          ],
+          "display-lg": [
+            "36px",
+            {
+              "lineHeight": "44px",
+              "letterSpacing": "-0.03em",
+              "fontWeight": "800"
+            }
+          ],
+          "body-sm": [
+            "13px",
+            {
+              "lineHeight": "18px",
+              "letterSpacing": "0.005em",
+              "fontWeight": "400"
+            }
+          ]
+        }
+      },
+    },
+  }</script></head><body class="bg-background font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-primary-container text-on-primary z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.12)]"><div class="flex flex-col flex-1 overflow-y-auto"><div class="px-space-lg pt-space-lg pb-space-md flex items-center gap-space-sm"><div class="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0"><img src="https://lh3.googleusercontent.com/aida-public/AB6AXuClb2peWvfMuVFI3MC-AKE_48ViE9oz3X-9jff-Hxs3CMNMuG5fLdWhQyZBVcRYYnVVOw1muDEbn0g-Hm5a5eRQ7a-aQ9aJhd9iIsirWVUEu_gWFUlILFT6EbLP4kzuAYRjhXSV5Xx-Rt8xLr0Vgklhk49nRrRTbUbzZlS3Uw2GTg_8viiyyNec5npx8-0EDUvD9ZOE-A4lhMa-Z7Hj7OkY6q1G474BS3Lup3j9BLftsNEr524Xd7hwlago1oD0q-yw2g" alt="My Global Hub" class="w-full h-full object-cover"></div><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-surface-bright tracking-tight leading-none">My Global Hub</span><span class="font-label-sm text-label-sm text-on-primary-container tracking-wider uppercase mt-space-2xs">Enterprise Payroll</span></div></div><div class="px-space-md mb-space-md"><div class="bg-surface-container-lowest/5 hover:bg-surface-container-lowest/10 rounded-xl p-space-sm transition-colors cursor-pointer"><div class="flex items-center justify-between gap-space-xs"><div class="flex flex-col min-w-0"><span class="font-label-sm text-label-sm text-on-primary-container uppercase">Operating Entity</span><span class="font-label-md text-label-md text-surface-bright truncate">My Global Hub Dominicana SRL</span><span class="font-body-sm text-body-sm text-primary-fixed-dim truncate">(Punta Cana Operations)</span></div><div class="flex flex-col items-end gap-space-2xs flex-shrink-0"><span class="px-space-xs py-space-2xs rounded-full bg-secondary-fixed-dim/20 text-secondary-fixed font-label-sm text-label-sm">Multi-HQ</span><span class="material-symbols-outlined text-on-primary-container text-headline-sm">unfold_more</span></div></div></div></div><nav class="flex-1 px-space-md space-y-space-md" data-active-classes="bg-surface-container-lowest/15 text-surface-bright font-headline-sm rounded-lg"><div class="space-y-space-2xs"><span class="px-space-sm font-label-sm text-label-sm text-on-primary-container uppercase tracking-wider block mb-space-xs">Workforce</span><a class="flex items-center justify-between px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="bi-weekly-approval-workspace" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-headline-sm">assignment_turned_in</span><span class="font-body-md text-body-md">Approval Workspace</span></div><span class="px-space-xs py-space-2xs rounded-full bg-tertiary-fixed-dim/25 text-tertiary-fixed font-label-sm text-label-sm">12 Pending</span></a><a aria-current="page" class="flex items-center gap-space-sm px-space-sm py-space-sm transition-colors bg-surface-container-lowest/15 text-surface-bright font-headline-sm rounded-lg" data-path="team-timesheets" href="#"><span class="material-symbols-outlined text-headline-sm">more_time</span><span class="font-body-md text-body-md">Team Timesheets</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="employee-directory" href="#"><span class="material-symbols-outlined text-headline-sm">badge</span><span class="font-body-md text-body-md">Employee Directory</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="schedule" href="#"><span class="material-symbols-outlined text-headline-sm">calendar_month</span><span class="font-body-md text-body-md">Schedule</span></a></div><div class="space-y-space-2xs"><span class="px-space-sm font-label-sm text-label-sm text-on-primary-container uppercase tracking-wider block mb-space-xs">Payroll &amp; Finance</span><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="pay-periods-and-processing" href="#"><span class="material-symbols-outlined text-headline-sm">payments</span><span class="font-body-md text-body-md">Pay Periods &amp; Processing</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="payroll-adjustments" href="#"><span class="material-symbols-outlined text-headline-sm">tune</span><span class="font-body-md text-body-md">Adjustments</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="pay-stubs" href="#"><span class="material-symbols-outlined text-headline-sm">receipt_long</span><span class="font-body-md text-body-md">Pay Stubs</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="banking-and-allocations" href="#"><span class="material-symbols-outlined text-headline-sm">account_balance</span><span class="font-body-md text-body-md">Banking &amp; Allocations</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="reports-and-register" href="#"><span class="material-symbols-outlined text-headline-sm">bar_chart_4_bars</span><span class="font-body-md text-body-md">Reports &amp; Register</span></a></div><div class="space-y-space-2xs"><span class="px-space-sm font-label-sm text-label-sm text-on-primary-container uppercase tracking-wider block mb-space-xs">Integrations</span><a class="flex items-center justify-between px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="jira-cloud-sync" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-headline-sm">sync_alt</span><span class="font-body-md text-body-md">Jira Cloud Sync</span></div><div class="flex items-center gap-space-2xs"><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-fixed opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-secondary-fixed-dim"></span></span><span class="font-label-sm text-label-sm text-secondary-fixed">2m</span></div></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="webhooks" href="#"><span class="material-symbols-outlined text-headline-sm">webhook</span><span class="font-body-md text-body-md">Webhooks</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="api-access" href="#"><span class="material-symbols-outlined text-headline-sm">terminal</span><span class="font-body-md text-body-md">API</span></a></div><div class="space-y-space-2xs"><span class="px-space-sm font-label-sm text-label-sm text-on-primary-container uppercase tracking-wider block mb-space-xs">System</span><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="organization" href="#"><span class="material-symbols-outlined text-headline-sm">corporate_fare</span><span class="font-body-md text-body-md">Organization</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="departments" href="#"><span class="material-symbols-outlined text-headline-sm">domain</span><span class="font-body-md text-body-md">Departments</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="approval-workflows" href="#"><span class="material-symbols-outlined text-headline-sm">schema</span><span class="font-body-md text-body-md">Approval Workflows</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="audit-logs" href="#"><span class="material-symbols-outlined text-headline-sm">history_edu</span><span class="font-body-md text-body-md">Audit Logs</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="settings" href="#"><span class="material-symbols-outlined text-headline-sm">settings</span><span class="font-body-md text-body-md">Settings</span></a></div></nav></div><div class="p-space-md border-t border-surface-container-lowest/10 bg-primary-container/90 flex flex-col gap-space-sm"><div class="flex items-center justify-between bg-surface-container-lowest/5 rounded-lg px-space-sm py-space-xs"><div class="flex items-center gap-space-xs"><span class="h-2 w-2 rounded-full bg-secondary-fixed"></span><span class="font-label-sm text-label-sm text-surface-bright">Jira Cloud: Active</span></div><span class="font-label-sm text-label-sm text-primary-fixed-dim">14 Syncing</span></div><div class="flex items-center justify-between pt-space-xs"><div class="flex items-center gap-space-sm min-w-0"><div class="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 bg-surface-container-highest flex items-center justify-center"><span class="material-symbols-outlined text-on-surface-variant text-headline-md">person</span></div><div class="flex flex-col min-w-0"><span class="font-headline-sm text-headline-sm text-surface-bright truncate leading-tight">Elena Rostova</span><span class="font-body-sm text-body-sm text-on-primary-container truncate">Lead PM &amp; Approver</span></div></div><div class="flex items-center gap-space-2xs text-on-primary-container"><a class="p-space-2xs hover:text-surface-bright hover:bg-surface-container-lowest/10 rounded-lg transition-colors" data-path="settings" href="#" title="Settings"><span class="material-symbols-outlined text-headline-sm">tune</span></a><a class="p-space-2xs hover:text-error-container hover:bg-surface-container-lowest/10 rounded-lg transition-colors" data-path="login" href="#" title="Log Out"><span class="material-symbols-outlined text-headline-sm">logout</span></a></div></div></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-space-lg flex items-center justify-between gap-space-md"><div class="flex-1 max-w-xl"><div class="relative flex items-center w-full"><span class="material-symbols-outlined absolute left-space-md text-outline pointer-events-none text-headline-sm">search</span><input class="w-full bg-surface-container-low/70 hover:bg-surface-container-low focus:bg-surface-container-lowest text-on-surface placeholder:text-outline font-body-sm text-body-sm rounded-lg pl-10 pr-12 py-space-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="Search employee ID, Jira issue, pay period, department..." type="text"><div class="absolute right-space-sm flex items-center pointer-events-none"><kbd class="font-label-sm text-label-sm bg-surface-container px-space-xs py-space-2xs rounded text-outline-variant">⌘K</kbd></div></div></div><div class="flex items-center gap-space-md"><div class="hidden xl:flex items-center gap-space-xs bg-surface-container-low px-space-md py-space-xs rounded-lg"><span class="material-symbols-outlined text-secondary text-headline-sm">event_available</span><div class="flex flex-col"><div class="flex items-center gap-space-xs"><span class="font-headline-sm text-headline-sm text-on-surface">PP-2025-08</span><span class="font-body-sm text-body-sm text-on-surface-variant">(Apr 01 - Apr 14, 2025)</span></div><span class="font-label-sm text-label-sm text-secondary font-bold uppercase tracking-wider">Supervisor Approval Phase</span></div></div><div class="flex items-center gap-space-xs"><button class="px-space-md py-space-xs rounded-lg font-headline-sm text-headline-sm bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors flex items-center gap-space-xs" type="button"><span class="material-symbols-outlined text-headline-sm">select_all</span><span class="">Bulk Actions</span></button><button class="px-space-md py-space-xs rounded-lg font-headline-sm text-headline-sm bg-primary-container text-on-primary hover:bg-primary-container/90 transition-colors flex items-center gap-space-xs" type="button"><span class="material-symbols-outlined text-headline-sm">download</span><span class="">Export Register</span></button></div><div class="h-6 w-px bg-surface-container-high"></div><div class="flex items-center gap-space-xs"><button class="relative p-space-xs rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors" title="Notifications" type="button"><span class="material-symbols-outlined text-headline-md">notifications</span><span class="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-error text-on-error font-label-sm text-label-sm">4</span></button><button class="p-space-xs rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors" title="Help Center" type="button"><span class="material-symbols-outlined text-headline-md">help</span></button></div><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1VuyEz2WC3Nk3zE-KOu1dA3JC1k0fIvKm9uLD3-hHgBZErhabd3haI1qxP_-I1FtW718_EBVfg52WKx614BalANBQk1AyllbcGh1h_0ZWdzAYiZrgFpdVL0hYZQUsUBWPC85wu_l9D10o9d9e80Jv6vvgAHwOnb_FmdrHwHwvMTC0DUp2eoqVuKyFWKpLCHC_FPYNsy2uNnb7oW6sRr-0G2gOwIktIpUT4cj5tBHRr-ysDgH8JzHDqZoemrbg_uroflErj3lHs8iA"></div></header><main class="relative pt-16 w-full min-h-screen bg-background"><div class="flex flex-col w-full">
+<!-- Interactive Top Banner: Jira Synchronization Feed -->
+<div class="px-space-margin-lg pt-space-lg pb-space-sm">
+<div class="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary-container via-[#0f2e4e] to-primary-container text-on-primary p-space-md shadow-md">
+<div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="relative flex items-center justify-center w-11 h-11 rounded-lg bg-surface-container-lowest/10 backdrop-blur-md">
+<span class="material-symbols-outlined text-secondary-fixed text-headline-lg">sync_saved_locally</span>
+<span class="absolute -top-1 -right-1 flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-fixed opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-secondary"></span>
+</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs flex-wrap">
+<span class="font-headline-sm text-headline-sm text-surface-bright tracking-tight">Jira Auto-Sync Status</span>
+<span class="px-space-xs py-space-2xs rounded-full bg-secondary-container/20 text-secondary-fixed font-label-sm text-label-sm uppercase tracking-wide">100% Connected</span>
+<span class="text-on-primary-container text-body-sm">•</span>
+<span class="font-label-md text-label-md text-primary-fixed">globalhub.atlassian.net</span>
+</div>
+<p class="font-body-sm text-body-sm text-surface-variant/80 mt-space-2xs">
+              84.5 hours matched from Jira worklogs automatically converted to payroll. Zero parity mismatches detected for active sprint.
+            </p>
+</div>
+</div>
+<div class="flex items-center gap-space-sm flex-shrink-0 self-end lg:self-center">
+<div class="text-right hidden sm:block">
+<div class="font-label-sm text-label-sm uppercase tracking-wider text-on-primary-container">Webhook Heartbeat</div>
+<div class="font-tabular-num text-tabular-num text-secondary-fixed font-bold">2m ago (200 OK)</div>
+</div>
+<button class="px-space-md py-space-xs rounded-lg bg-surface-container-lowest/15 hover:bg-surface-container-lowest/25 text-surface-bright font-headline-sm text-headline-sm transition-all flex items-center gap-space-xs active:scale-95" id="sync-now-btn" type="button">
+<span class="material-symbols-outlined text-headline-sm transition-transform duration-700" id="sync-icon">sync</span>
+<span class="">Sync Jira Worklogs Now</span>
+</button>
+</div>
+</div>
+<div class="absolute -bottom-10 -right-8 w-64 h-64 rounded-full bg-secondary-fixed/5 blur-3xl pointer-events-none"></div>
+</div>
+</div>
+<!-- Primary Header & Control Bar -->
+<div class="px-space-margin-lg pt-space-xs"><div class="bg-slate-900 text-white px-4 py-2 rounded-lg flex items-center justify-between text-xs tracking-wider font-semibold uppercase mb-4 border border-slate-700 shadow-sm"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm text-emerald-400">desktop_windows</span> <span class="">SCREEN: TEAM TIMESHEETS &amp; JIRA WORKLOG SYNC</span> <span class="text-slate-500">•</span> <span class="text-slate-300 font-normal">Module: Workforce &amp; Jira Ingestion</span></div><div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">ACTIVE AUDIT GRID</span> <span class="text-slate-400 text-[10px]">Ref: SCREEN-17</span></div></div></div><div class="px-space-margin-lg py-space-md flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-space-lg">
+<!-- Left: Title, Employee Selector, Pay Period Spec -->
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center gap-space-sm">
+<span class="px-space-xs py-space-2xs rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm tracking-wider uppercase">Timesheet Management</span>
+<span class="text-outline text-body-sm">/</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold tracking-wider uppercase flex items-center gap-space-2xs">
+<span class="h-1.5 w-1.5 rounded-full bg-secondary"></span> Live Production
+        </span>
+</div>
+<h1 class="font-headline-xl text-headline-xl text-on-surface tracking-tight">Team Timesheets &amp; Worklog Sync</h1>
+<!-- Employee & Pay Period Context Strip -->
+<div class="flex items-center flex-wrap gap-space-md pt-space-xs">
+<!-- Employee Selector with Pagination buttons -->
+<div class="flex items-center bg-surface-container-lowest rounded-xl shadow-sm p-space-xs">
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-outline hover:bg-surface-container hover:text-on-surface transition-colors" title="Previous Employee" type="button">
+<span class="material-symbols-outlined text-headline-sm">chevron_left</span>
+</button>
+<div class="flex items-center gap-space-sm px-space-sm">
+<div class="w-7 h-7 rounded-full bg-primary-container text-surface-bright flex items-center justify-center font-headline-sm text-label-sm">CM</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface leading-none">Carlos Mendez</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant leading-none mt-space-2xs">MGH-1042 • Engineering Core</span>
+</div>
+</div>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-outline hover:bg-surface-container hover:text-on-surface transition-colors" title="Next Employee" type="button">
+<span class="material-symbols-outlined text-headline-sm">chevron_right</span>
+</button>
+</div>
+<!-- Pay Period Selector -->
+<div class="flex items-center gap-space-sm bg-surface-container-lowest rounded-xl shadow-sm px-space-md py-space-xs">
+<span class="material-symbols-outlined text-primary-container text-headline-md">date_range</span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface leading-tight">Pay Period 08: Apr 01, 2025 – Apr 14, 2025</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant leading-tight">14 Days Calendar • Bi-Weekly Cycle</span>
+</div>
+<span class="ml-space-xs px-space-xs py-space-2xs rounded-full bg-tertiary-fixed-dim/20 text-on-tertiary-container font-label-sm text-label-sm flex items-center gap-space-2xs">
+<span class="w-1.5 h-1.5 rounded-full bg-on-tertiary-container"></span> In Review
+          </span>
+</div>
+</div>
+</div>
+<!-- Right: Global Actions Group -->
+<div class="flex items-center flex-wrap gap-space-sm self-start 2xl:self-end">
+<button class="px-space-md py-space-sm rounded-lg bg-surface-container-lowest hover:bg-surface-container-low text-on-surface shadow-sm font-headline-sm text-headline-sm transition-all flex items-center gap-space-xs" type="button">
+<span class="material-symbols-outlined text-headline-sm text-outline">add_circle</span>
+<span class="">Add Time Entry</span>
+</button>
+<button class="px-space-md py-space-sm rounded-lg bg-surface-container-lowest hover:bg-surface-container-low text-on-surface shadow-sm font-headline-sm text-headline-sm transition-all flex items-center gap-space-xs" type="button">
+<span class="material-symbols-outlined text-headline-sm text-outline">ios_share</span>
+<span class="">Export CSV/PDF</span>
+</button>
+<button class="px-space-lg py-space-sm rounded-lg bg-secondary text-on-secondary shadow-md hover:bg-secondary/95 font-headline-sm text-headline-sm transition-all flex items-center gap-space-xs active:scale-95" type="button">
+<span class="material-symbols-outlined text-headline-sm">check_circle</span>
+<span class="">Submit Timesheet</span>
+</button>
+</div>
+</div>
+<!-- KPI Highlights Strip: Engineering Parity at a Glance -->
+<div class="px-space-margin-lg py-space-xs grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-space-md">
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">Total Hours</span>
+<div class="flex items-baseline justify-between mt-space-xs">
+<span class="font-display-lg text-display-lg text-on-surface leading-none">86.5</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">+6.5h OT</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full mt-space-sm overflow-hidden">
+<div class="bg-primary-container h-full rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">Regular Hours</span>
+<div class="flex items-baseline justify-between mt-space-xs">
+<span class="font-display-lg text-display-lg text-on-surface leading-none">80.0</span>
+<span class="font-label-sm text-label-sm text-outline">Target: 80.0</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full mt-space-sm overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">Overtime (1.5x)</span>
+<div class="flex items-baseline justify-between mt-space-xs">
+<span class="font-display-lg text-display-lg text-on-tertiary-container leading-none">6.5</span>
+<span class="font-label-sm text-label-sm text-tertiary-fixed-dim font-bold">Approved</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full mt-space-sm overflow-hidden">
+<div class="bg-on-tertiary-container h-full rounded-full" style="width: 65%;"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">Billable Ratio</span>
+<div class="flex items-baseline justify-between mt-space-xs">
+<span class="font-display-lg text-display-lg text-on-surface leading-none">97.7%</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">84.5h</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full mt-space-sm overflow-hidden">
+<div class="bg-secondary-fixed-dim h-full rounded-full" style="width: 97.7%;"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">Jira Sync Accuracy</span>
+<div class="flex items-baseline justify-between mt-space-xs">
+<span class="font-display-lg text-display-lg text-secondary leading-none">100%</span>
+<span class="material-symbols-outlined text-secondary text-headline-sm">verified</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full mt-space-sm overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">Discrepancy Log</span>
+<div class="flex items-baseline justify-between mt-space-xs">
+<span class="font-display-lg text-display-lg text-on-surface leading-none">0.0<span class="text-headline-md font-normal text-outline">h</span></span>
+<span class="font-label-sm text-label-sm text-secondary uppercase font-bold">In-Sync</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full mt-space-sm overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+<!-- Primary Interactive Table Canvas -->
+<div class="px-space-margin-lg pt-space-xs"><div class="bg-slate-900 text-white px-4 py-2 rounded-lg flex items-center justify-between text-xs tracking-wider font-semibold uppercase mb-4 border border-slate-700 shadow-sm"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm text-emerald-400">desktop_windows</span> <span class="">SCREEN: TEAM TIMESHEETS &amp; JIRA WORKLOG SYNC</span> <span class="text-slate-500">•</span> <span class="text-slate-300 font-normal">Module: Workforce &amp; Jira Ingestion</span></div><div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">ACTIVE AUDIT GRID</span> <span class="text-slate-400 text-[10px]">Ref: SCREEN-17</span></div></div></div><div class="px-space-margin-lg py-space-md mb-space-2xl">
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+<!-- Filter & View Switcher Bar -->
+<div class="p-space-md bg-surface-container-low/50 flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-sm text-headline-sm text-on-surface mr-space-xs">14-Day Calendar Audit</span>
+<span class="px-space-xs py-space-2xs rounded bg-surface-container-highest text-on-surface font-label-sm text-label-sm">Apr 01 – Apr 14</span>
+<span class="px-space-xs py-space-2xs rounded bg-secondary-fixed/30 text-on-secondary-fixed-variant font-label-sm text-label-sm">Bi-Weekly Regular</span>
+</div>
+<div class="flex items-center gap-space-sm">
+<div class="flex items-center bg-surface-container-lowest rounded-lg p-space-2xs text-outline">
+<button class="px-space-sm py-space-2xs rounded bg-primary-container text-surface-bright font-label-sm text-label-sm" type="button">Full Grid</button>
+<button class="px-space-sm py-space-2xs rounded hover:text-on-surface font-label-sm text-label-sm" type="button">By Epic</button>
+<button class="px-space-sm py-space-2xs rounded hover:text-on-surface font-label-sm text-label-sm" type="button">Discrepancy View</button>
+</div>
+<span class="text-outline text-body-sm">|</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-space-2xs">
+<span class="w-2 h-2 rounded-full bg-secondary"></span> Auto-matching active
+          </span>
+</div>
+</div>
+<!-- High-Density Responsive Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left text-body-sm font-body-sm border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider select-none">
+<th class="py-space-sm px-space-md w-36">Date &amp; Day</th>
+<th class="py-space-sm px-space-xs text-center">Clock In</th>
+<th class="py-space-sm px-space-xs text-center">Lunch Out</th>
+<th class="py-space-sm px-space-xs text-center">Lunch In</th>
+<th class="py-space-sm px-space-xs text-center">Clock Out</th>
+<th class="py-space-sm px-space-xs text-right font-headline-sm">Total</th>
+<th class="py-space-sm px-space-xs text-right">Reg</th>
+<th class="py-space-sm px-space-xs text-right">OT</th>
+<th class="py-space-sm px-space-xs text-right">PTO</th>
+<th class="py-space-sm px-space-xs text-right">Holiday</th>
+<th class="py-space-sm px-space-xs text-right">Billable</th>
+<th class="py-space-sm px-space-xs text-right">Non-Bill</th>
+<th class="py-space-sm px-space-md text-center">Jira Hours &amp; Sync</th>
+<th class="py-space-sm px-space-sm">Primary Project</th>
+<th class="py-space-sm px-space-sm text-center">Status</th>
+<th class="py-space-sm px-space-sm text-center w-12">Details</th>
+</tr>
+</thead>
+<tbody class="text-on-surface">
+<!-- Day 1: Mon Apr 01 -->
+<tr class="hover:bg-surface-container-low/70 transition-colors">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm text-on-surface whitespace-nowrap">
+                Mon, Apr 01
+              </td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">09:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">13:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">14:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">18:00</td>
+<td class="py-space-sm px-space-xs text-right font-headline-sm text-headline-sm text-on-surface">8.0h</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">8.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num font-semibold text-secondary">8.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">0.0</td>
+<td class="py-space-sm px-space-md text-center">
+<span class="inline-flex items-center gap-space-2xs px-space-xs py-space-2xs rounded-full bg-secondary-fixed/20 text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> 8.0h Matched
+                </span>
+</td>
+<td class="py-space-sm px-space-sm whitespace-nowrap font-label-md text-label-md text-on-surface-variant">Atlas Auth Engine</td>
+<td class="py-space-sm px-space-sm text-center">
+<span class="px-space-xs py-space-2xs rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">Verified</span>
+</td>
+<td class="py-space-sm px-space-sm text-center">
+<button class="w-7 h-7 rounded hover:bg-surface-container flex items-center justify-center text-outline" type="button">
+<span class="material-symbols-outlined text-headline-sm">expand_more</span>
+</button>
+</td>
+</tr>
+<!-- Day 2: Tue Apr 02 -->
+<tr class="hover:bg-surface-container-low/70 transition-colors">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm text-on-surface whitespace-nowrap">
+                Tue, Apr 02
+              </td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">08:45</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">12:30</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">13:30</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">18:45</td>
+<td class="py-space-sm px-space-xs text-right font-headline-sm text-headline-sm text-on-surface">9.0h</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">8.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num font-bold text-on-tertiary-container">1.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num font-semibold text-secondary">9.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">0.0</td>
+<td class="py-space-sm px-space-md text-center">
+<span class="inline-flex items-center gap-space-2xs px-space-xs py-space-2xs rounded-full bg-secondary-fixed/20 text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> 9.0h Matched
+                </span>
+</td>
+<td class="py-space-sm px-space-sm whitespace-nowrap font-label-md text-label-md text-on-surface-variant">Atlas Auth Engine</td>
+<td class="py-space-sm px-space-sm text-center">
+<span class="px-space-xs py-space-2xs rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">Verified</span>
+</td>
+<td class="py-space-sm px-space-sm text-center">
+<button class="w-7 h-7 rounded hover:bg-surface-container flex items-center justify-center text-outline" type="button">
+<span class="material-symbols-outlined text-headline-sm">expand_more</span>
+</button>
+</td>
+</tr>
+<!-- Day 3: Wed Apr 03 -->
+<tr class="hover:bg-surface-container-low/70 transition-colors">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm text-on-surface whitespace-nowrap">
+                Wed, Apr 03
+              </td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">09:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">13:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">14:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">18:00</td>
+<td class="py-space-sm px-space-xs text-right font-headline-sm text-headline-sm text-on-surface">8.0h</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">8.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num font-semibold text-secondary">7.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-on-surface-variant">1.0</td>
+<td class="py-space-sm px-space-md text-center">
+<span class="inline-flex items-center gap-space-2xs px-space-xs py-space-2xs rounded-full bg-secondary-fixed/20 text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> 8.0h Matched
+                </span>
+</td>
+<td class="py-space-sm px-space-sm whitespace-nowrap font-label-md text-label-md text-on-surface-variant">Core Infrastructure</td>
+<td class="py-space-sm px-space-sm text-center">
+<span class="px-space-xs py-space-2xs rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">Verified</span>
+</td>
+<td class="py-space-sm px-space-sm text-center">
+<button class="w-7 h-7 rounded hover:bg-surface-container flex items-center justify-center text-outline" type="button">
+<span class="material-symbols-outlined text-headline-sm">expand_more</span>
+</button>
+</td>
+</tr>
+<!-- Day 4: Thu Apr 04 -->
+<tr class="hover:bg-surface-container-low/70 transition-colors">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm text-on-surface whitespace-nowrap">
+                Thu, Apr 04
+              </td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">09:15</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">13:15</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">14:15</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">18:15</td>
+<td class="py-space-sm px-space-xs text-right font-headline-sm text-headline-sm text-on-surface">8.0h</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">8.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num font-semibold text-secondary">8.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">0.0</td>
+<td class="py-space-sm px-space-md text-center">
+<span class="inline-flex items-center gap-space-2xs px-space-xs py-space-2xs rounded-full bg-secondary-fixed/20 text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> 8.0h Matched
+                </span>
+</td>
+<td class="py-space-sm px-space-sm whitespace-nowrap font-label-md text-label-md text-on-surface-variant">Atlas Auth Engine</td>
+<td class="py-space-sm px-space-sm text-center">
+<span class="px-space-xs py-space-2xs rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">Verified</span>
+</td>
+<td class="py-space-sm px-space-sm text-center">
+<button class="w-7 h-7 rounded hover:bg-surface-container flex items-center justify-center text-outline" type="button">
+<span class="material-symbols-outlined text-headline-sm">expand_more</span>
+</button>
+</td>
+</tr>
+<!-- Day 5: Fri Apr 05 -->
+<tr class="hover:bg-surface-container-low/70 transition-colors">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm text-on-surface whitespace-nowrap">
+                Fri, Apr 05
+              </td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">09:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">13:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">14:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">19:30</td>
+<td class="py-space-sm px-space-xs text-right font-headline-sm text-headline-sm text-on-surface">9.5h</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">8.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num font-bold text-on-tertiary-container">1.5</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num font-semibold text-secondary">9.5</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">0.0</td>
+<td class="py-space-sm px-space-md text-center">
+<span class="inline-flex items-center gap-space-2xs px-space-xs py-space-2xs rounded-full bg-secondary-fixed/20 text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> 9.5h Matched
+                </span>
+</td>
+<td class="py-space-sm px-space-sm whitespace-nowrap font-label-md text-label-md text-on-surface-variant">Deploy &amp; Sync Ops</td>
+<td class="py-space-sm px-space-sm text-center">
+<span class="px-space-xs py-space-2xs rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">Verified</span>
+</td>
+<td class="py-space-sm px-space-sm text-center">
+<button class="w-7 h-7 rounded hover:bg-surface-container flex items-center justify-center text-outline" type="button">
+<span class="material-symbols-outlined text-headline-sm">expand_more</span>
+</button>
+</td>
+</tr>
+<!-- Day 6: Sat Apr 06 (Weekend) -->
+<tr class="bg-surface-container-low/30 text-outline">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm whitespace-nowrap">
+                Sat, Apr 06
+              </td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-right font-headline-sm text-outline">0.0h</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num">0.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num">0.0</td>
+<td class="py-space-sm px-space-md text-center text-label-sm">Weekend</td>
+<td class="py-space-sm px-space-sm text-label-sm">Off-Shift</td>
+<td class="py-space-sm px-space-sm text-center"><span class="px-space-xs py-space-2xs rounded bg-surface-container text-outline font-label-sm text-label-sm">Off</span></td>
+<td class="py-space-sm px-space-sm text-center"></td>
+</tr>
+<!-- Day 7: Sun Apr 07 (Weekend) -->
+<tr class="bg-surface-container-low/30 text-outline">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm whitespace-nowrap">
+                Sun, Apr 07
+              </td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-right font-headline-sm text-outline">0.0h</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num">0.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num">0.0</td>
+<td class="py-space-sm px-space-md text-center text-label-sm">Weekend</td>
+<td class="py-space-sm px-space-sm text-label-sm">Off-Shift</td>
+<td class="py-space-sm px-space-sm text-center"><span class="px-space-xs py-space-2xs rounded bg-surface-container text-outline font-label-sm text-label-sm">Off</span></td>
+<td class="py-space-sm px-space-sm text-center"></td>
+</tr>
+<!-- Day 8: Mon Apr 08 -->
+<tr class="hover:bg-surface-container-low/70 transition-colors">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm text-on-surface whitespace-nowrap">
+                Mon, Apr 08
+              </td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">09:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">13:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">14:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">18:00</td>
+<td class="py-space-sm px-space-xs text-right font-headline-sm text-headline-sm text-on-surface">8.0h</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">8.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num font-semibold text-secondary">8.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">0.0</td>
+<td class="py-space-sm px-space-md text-center">
+<span class="inline-flex items-center gap-space-2xs px-space-xs py-space-2xs rounded-full bg-secondary-fixed/20 text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> 8.0h Matched
+                </span>
+</td>
+<td class="py-space-sm px-space-sm whitespace-nowrap font-label-md text-label-md text-on-surface-variant">Atlas Auth Engine</td>
+<td class="py-space-sm px-space-sm text-center">
+<span class="px-space-xs py-space-2xs rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">Verified</span>
+</td>
+<td class="py-space-sm px-space-sm text-center">
+<button class="w-7 h-7 rounded hover:bg-surface-container flex items-center justify-center text-outline" type="button">
+<span class="material-symbols-outlined text-headline-sm">expand_more</span>
+</button>
+</td>
+</tr>
+<!-- Day 9: ACTIVE STATE (EXPANDED DRAWER) Wed Apr 09 -->
+<!-- The Row Header Highlighted -->
+<tr class="bg-surface-container-high/80 text-on-surface font-semibold shadow-inner">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm text-primary-container whitespace-nowrap flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-headline-sm">expand_circle_down</span>
+<span class="">Wed, Apr 09</span>
+</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num">09:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">13:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">14:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num">18:00</td>
+<td class="py-space-sm px-space-xs text-right font-headline-md text-headline-md text-primary-container">8.0h</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">8.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num font-bold text-secondary">7.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num font-bold text-on-surface-variant">1.0</td>
+<td class="py-space-sm px-space-md text-center">
+<span class="inline-flex items-center gap-space-2xs px-space-sm py-space-2xs rounded-full bg-secondary text-on-secondary font-label-sm text-label-sm font-bold shadow-sm">
+<span class="w-2 h-2 rounded-full bg-secondary-fixed animate-pulse"></span> 8.0h Matched (3 Issues)
+                </span>
+</td>
+<td class="py-space-sm px-space-sm whitespace-nowrap font-label-md text-label-md text-primary-container font-bold">Atlas Auth / Sprint-14</td>
+<td class="py-space-sm px-space-sm text-center">
+<span class="px-space-xs py-space-2xs rounded-full bg-secondary-fixed-dim/30 text-on-secondary-fixed-variant font-label-sm text-label-sm font-bold">Matched</span>
+</td>
+<td class="py-space-sm px-space-sm text-center">
+<button class="w-7 h-7 rounded bg-primary-container text-surface-bright flex items-center justify-center" type="button">
+<span class="material-symbols-outlined text-headline-sm">expand_less</span>
+</button>
+</td>
+</tr>
+<!-- Expanded Drawer Details for Wednesday Apr 09 -->
+<tr class="bg-surface-container-low/95">
+<td class="p-0" colspan="16">
+<div class="p-space-lg bg-surface-container-low flex flex-col gap-space-md">
+<!-- Drawer Header / Sub-tabs -->
+<div class="flex flex-col md:flex-row md:items-center justify-between pb-space-sm gap-space-sm">
+<div class="flex items-center gap-space-xs flex-wrap">
+<button class="px-space-md py-space-xs rounded-lg bg-primary-container text-surface-bright font-headline-sm text-headline-sm flex items-center gap-space-xs shadow-sm" type="button">
+<span class="material-symbols-outlined text-headline-sm text-secondary-fixed">integration_instructions</span>
+<span class="">Jira Issues (3)</span>
+</button>
+<button class="px-space-md py-space-xs rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant font-headline-sm text-headline-sm flex items-center gap-space-xs" type="button">
+<span class="material-symbols-outlined text-headline-sm">forum</span>
+<span class="">Comments &amp; Justifications (1)</span>
+</button>
+<button class="px-space-md py-space-xs rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant font-headline-sm text-headline-sm flex items-center gap-space-xs" type="button">
+<span class="material-symbols-outlined text-headline-sm">attachment</span>
+<span class="">Attachments (PR #214 linked)</span>
+</button>
+<button class="px-space-md py-space-xs rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant font-headline-sm text-headline-sm flex items-center gap-space-xs" type="button">
+<span class="material-symbols-outlined text-headline-sm">history</span>
+<span class="">Audit Log (Carlos M. 17:05)</span>
+</button>
+</div>
+<div class="flex items-center gap-space-xs text-body-sm text-outline">
+<span class="material-symbols-outlined text-headline-sm text-secondary">cloud_done</span>
+<span class="">Synced via Jira Cloud REST API v3</span>
+</div>
+</div>
+<!-- Drawer Issue List: The 3 Detailed Jira Issues -->
+<div class="grid grid-cols-1 gap-space-sm">
+<!-- Issue 1 -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+<div class="flex items-start gap-space-md">
+<div class="w-9 h-9 rounded-lg bg-primary-container text-surface-bright flex items-center justify-center flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-headline-sm text-secondary-fixed">bookmark</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs flex-wrap">
+<span class="font-headline-sm text-headline-sm text-on-surface hover:text-primary transition-colors cursor-pointer">ATLAS-412</span>
+<span class="text-outline">•</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Implement OAuth2 token refresh &amp; session timeout</span>
+<span class="px-space-xs py-space-2xs rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Story</span>
+</div>
+<div class="flex items-center gap-space-md text-body-sm text-on-surface-variant mt-space-2xs flex-wrap">
+<span class="flex items-center gap-space-2xs">
+<span class="material-symbols-outlined text-body-md text-outline">view_kanban</span> Epic: <strong class="text-on-surface">ATLAS-AUTH</strong>
+</span>
+<span class="">•</span>
+<span class="">Sprint: Core Security Sprint 14</span>
+<span class="">•</span>
+<span class="flex items-center gap-space-2xs text-secondary font-semibold">
+<span class="material-symbols-outlined text-body-md">lock</span> Billable Worklog
+                            </span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-space-md self-end md:self-center flex-shrink-0">
+<div class="text-right">
+<span class="font-headline-lg text-headline-lg text-on-surface font-bold">4.5<span class="text-headline-sm font-normal text-outline">h</span></span>
+<span class="block font-label-sm text-label-sm text-secondary font-bold uppercase">Converted</span>
+</div>
+<button class="p-space-xs rounded-lg hover:bg-surface-container text-outline" title="Open in Jira" type="button">
+<span class="material-symbols-outlined text-headline-md">open_in_new</span>
+</button>
+</div>
+</div>
+<!-- Issue 2 -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+<div class="flex items-start gap-space-md">
+<div class="w-9 h-9 rounded-lg bg-error-container text-on-error-container flex items-center justify-center flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-headline-sm text-error">bug_report</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs flex-wrap">
+<span class="font-headline-sm text-headline-sm text-on-surface hover:text-primary transition-colors cursor-pointer">ATLAS-420</span>
+<span class="text-outline">•</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Fix race condition on Redis cache synchronization</span>
+<span class="px-space-xs py-space-2xs rounded bg-error-container/30 text-on-error-container font-label-sm text-label-sm">Bug</span>
+</div>
+<div class="flex items-center gap-space-md text-body-sm text-on-surface-variant mt-space-2xs flex-wrap">
+<span class="flex items-center gap-space-2xs">
+<span class="material-symbols-outlined text-body-md text-outline">speed</span> Epic: <strong class="text-on-surface">ATLAS-PERF</strong>
+</span>
+<span class="">•</span>
+<span class="">Sprint: Core Security Sprint 14</span>
+<span class="">•</span>
+<span class="flex items-center gap-space-2xs text-secondary font-semibold">
+<span class="material-symbols-outlined text-body-md">receipt</span> Billable Worklog
+                            </span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-space-md self-end md:self-center flex-shrink-0">
+<div class="text-right">
+<span class="font-headline-lg text-headline-lg text-on-surface font-bold">2.5<span class="text-headline-sm font-normal text-outline">h</span></span>
+<span class="block font-label-sm text-label-sm text-secondary font-bold uppercase">Converted</span>
+</div>
+<button class="p-space-xs rounded-lg hover:bg-surface-container text-outline" title="Open in Jira" type="button">
+<span class="material-symbols-outlined text-headline-md">open_in_new</span>
+</button>
+</div>
+</div>
+<!-- Issue 3 -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+<div class="flex items-start gap-space-md">
+<div class="w-9 h-9 rounded-lg bg-surface-container-highest text-on-surface flex items-center justify-center flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-headline-sm text-outline">check_circle</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs flex-wrap">
+<span class="font-headline-sm text-headline-sm text-on-surface hover:text-primary transition-colors cursor-pointer">ATLAS-104</span>
+<span class="text-outline">•</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Daily Engineering Standup &amp; Sprint Planning</span>
+<span class="px-space-xs py-space-2xs rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Task</span>
+</div>
+<div class="flex items-center gap-space-md text-body-sm text-on-surface-variant mt-space-2xs flex-wrap">
+<span class="flex items-center gap-space-2xs">
+<span class="material-symbols-outlined text-body-md text-outline">groups</span> Epic: <strong class="text-on-surface">SPRINT-14</strong>
+</span>
+<span class="">•</span>
+<span class="">Non-Billable Internal Overhead</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-space-md self-end md:self-center flex-shrink-0">
+<div class="text-right">
+<span class="font-headline-lg text-headline-lg text-on-surface-variant font-bold">1.0<span class="text-headline-sm font-normal text-outline">h</span></span>
+<span class="block font-label-sm text-label-sm text-outline font-bold uppercase">Non-Billable</span>
+</div>
+<button class="p-space-xs rounded-lg hover:bg-surface-container text-outline" title="Open in Jira" type="button">
+<span class="material-symbols-outlined text-headline-md">open_in_new</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Day Audit Context Footnote -->
+<div class="bg-surface-container-lowest/80 p-space-sm rounded-lg flex items-center justify-between text-body-sm text-on-surface-variant">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-headline-sm text-secondary">verified_user</span>
+<span class="">Audit Trail: Carlos Mendez modified worklog ATLAS-420 (+0.5h) at 17:05 AST. Verified by Jira Webhook Agent.</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">Hash: 9b2d-4f18-mgh</span>
+</div>
+</div>
+</td>
+</tr>
+<!-- Day 10: Thu Apr 10 -->
+<tr class="hover:bg-surface-container-low/70 transition-colors">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm text-on-surface whitespace-nowrap">
+                Thu, Apr 10
+              </td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">09:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">13:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">14:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">18:00</td>
+<td class="py-space-sm px-space-xs text-right font-headline-sm text-headline-sm text-on-surface">8.0h</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">8.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num font-semibold text-secondary">8.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">0.0</td>
+<td class="py-space-sm px-space-md text-center">
+<span class="inline-flex items-center gap-space-2xs px-space-xs py-space-2xs rounded-full bg-secondary-fixed/20 text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> 8.0h Matched
+                </span>
+</td>
+<td class="py-space-sm px-space-sm whitespace-nowrap font-label-md text-label-md text-on-surface-variant">Atlas Auth Engine</td>
+<td class="py-space-sm px-space-sm text-center">
+<span class="px-space-xs py-space-2xs rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">Verified</span>
+</td>
+<td class="py-space-sm px-space-sm text-center">
+<button class="w-7 h-7 rounded hover:bg-surface-container flex items-center justify-center text-outline" type="button">
+<span class="material-symbols-outlined text-headline-sm">expand_more</span>
+</button>
+</td>
+</tr>
+<!-- Day 11: Fri Apr 11 -->
+<tr class="hover:bg-surface-container-low/70 transition-colors">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm text-on-surface whitespace-nowrap">
+                Fri, Apr 11
+              </td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">08:30</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">12:30</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">13:30</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">19:30</td>
+<td class="py-space-sm px-space-xs text-right font-headline-sm text-headline-sm text-on-surface">10.0h</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">8.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num font-bold text-on-tertiary-container">2.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num font-semibold text-secondary">10.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">0.0</td>
+<td class="py-space-sm px-space-md text-center">
+<span class="inline-flex items-center gap-space-2xs px-space-xs py-space-2xs rounded-full bg-secondary-fixed/20 text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> 10.0h Matched
+                </span>
+</td>
+<td class="py-space-sm px-space-sm whitespace-nowrap font-label-md text-label-md text-on-surface-variant">High-Load Hardening</td>
+<td class="py-space-sm px-space-sm text-center">
+<span class="px-space-xs py-space-2xs rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">Verified</span>
+</td>
+<td class="py-space-sm px-space-sm text-center">
+<button class="w-7 h-7 rounded hover:bg-surface-container flex items-center justify-center text-outline" type="button">
+<span class="material-symbols-outlined text-headline-sm">expand_more</span>
+</button>
+</td>
+</tr>
+<!-- Day 12: Sat Apr 12 (Overtime Day) -->
+<tr class="hover:bg-surface-container-low/70 transition-colors">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm text-on-surface whitespace-nowrap flex items-center gap-space-xs">
+<span class="">Sat, Apr 12</span>
+<span class="px-space-2xs py-0.5 rounded bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-sm text-label-sm">OT Day</span>
+</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">10:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">12:00</td>
+<td class="py-space-sm px-space-xs text-right font-headline-sm text-headline-sm text-on-surface">2.0h</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">0.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num font-bold text-on-tertiary-container">2.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num font-semibold text-secondary">2.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">0.0</td>
+<td class="py-space-sm px-space-md text-center">
+<span class="inline-flex items-center gap-space-2xs px-space-xs py-space-2xs rounded-full bg-secondary-fixed/20 text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> 2.0h Matched
+                </span>
+</td>
+<td class="py-space-sm px-space-sm whitespace-nowrap font-label-md text-label-md text-on-surface-variant">Emergency Hotfix</td>
+<td class="py-space-sm px-space-sm text-center">
+<span class="px-space-xs py-space-2xs rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">Verified</span>
+</td>
+<td class="py-space-sm px-space-sm text-center">
+<button class="w-7 h-7 rounded hover:bg-surface-container flex items-center justify-center text-outline" type="button">
+<span class="material-symbols-outlined text-headline-sm">expand_more</span>
+</button>
+</td>
+</tr>
+<!-- Day 13: Sun Apr 13 (Weekend) -->
+<tr class="bg-surface-container-low/30 text-outline">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm whitespace-nowrap">
+                Sun, Apr 13
+              </td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-right font-headline-sm text-outline">0.0h</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num">0.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num">0.0</td>
+<td class="py-space-sm px-space-md text-center text-label-sm">Weekend</td>
+<td class="py-space-sm px-space-sm text-label-sm">Off-Shift</td>
+<td class="py-space-sm px-space-sm text-center"><span class="px-space-xs py-space-2xs rounded bg-surface-container text-outline font-label-sm text-label-sm">Off</span></td>
+<td class="py-space-sm px-space-sm text-center"></td>
+</tr>
+<!-- Day 14: Mon Apr 14 -->
+<tr class="hover:bg-surface-container-low/70 transition-colors">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm text-on-surface whitespace-nowrap">
+                Mon, Apr 14
+              </td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">09:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">13:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-outline">14:00</td>
+<td class="py-space-sm px-space-xs text-center font-tabular-num text-tabular-num text-on-surface-variant">18:00</td>
+<td class="py-space-sm px-space-xs text-right font-headline-sm text-headline-sm text-on-surface">8.0h</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num">8.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-outline">-</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num font-semibold text-secondary">7.0</td>
+<td class="py-space-sm px-space-xs text-right font-tabular-num text-tabular-num text-on-surface-variant">1.0</td>
+<td class="py-space-sm px-space-md text-center">
+<span class="inline-flex items-center gap-space-2xs px-space-xs py-space-2xs rounded-full bg-secondary-fixed/20 text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> 8.0h Matched
+                </span>
+</td>
+<td class="py-space-sm px-space-sm whitespace-nowrap font-label-md text-label-md text-on-surface-variant">Atlas Auth Engine</td>
+<td class="py-space-sm px-space-sm text-center">
+<span class="px-space-xs py-space-2xs rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">Verified</span>
+</td>
+<td class="py-space-sm px-space-sm text-center">
+<button class="w-7 h-7 rounded hover:bg-surface-container flex items-center justify-center text-outline" type="button">
+<span class="material-symbols-outlined text-headline-sm">expand_more</span>
+</button>
+</td>
+</tr>
+</tbody>
+<!-- Bottom Summary Row: 14-day Totals -->
+<tfoot>
+<tr class="bg-primary-container text-surface-bright font-headline-sm text-headline-sm select-none">
+<td class="py-space-md px-space-md uppercase font-bold tracking-wider text-label-md">
+                14-Day Cycle Totals
+              </td>
+<td class="py-space-md px-space-xs text-center text-outline-variant font-normal font-label-sm">-</td>
+<td class="py-space-md px-space-xs text-center text-outline-variant font-normal font-label-sm">-</td>
+<td class="py-space-md px-space-xs text-center text-outline-variant font-normal font-label-sm">-</td>
+<td class="py-space-md px-space-xs text-center text-outline-variant font-normal font-label-sm">-</td>
+<td class="py-space-md px-space-xs text-right font-bold text-headline-md text-secondary-fixed">86.5h</td>
+<td class="py-space-md px-space-xs text-right font-tabular-num text-tabular-num">80.0h</td>
+<td class="py-space-md px-space-xs text-right font-tabular-num text-tabular-num text-tertiary-fixed">6.5h</td>
+<td class="py-space-md px-space-xs text-right font-tabular-num text-tabular-num text-outline-variant">0.0h</td>
+<td class="py-space-md px-space-xs text-right font-tabular-num text-tabular-num text-outline-variant">0.0h</td>
+<td class="py-space-md px-space-xs text-right font-tabular-num text-tabular-num text-secondary-fixed">84.5h</td>
+<td class="py-space-md px-space-xs text-right font-tabular-num text-tabular-num text-surface-variant">2.0h</td>
+<td class="py-space-md px-space-md text-center">
+<span class="inline-flex items-center gap-space-2xs px-space-sm py-space-2xs rounded-full bg-secondary-fixed/20 text-secondary-fixed font-label-sm text-label-sm font-bold">
+<span class="w-2 h-2 rounded-full bg-secondary-fixed"></span> 0.0h Discrepancy
+                </span>
+</td>
+<td class="py-space-md px-space-sm text-on-primary-container font-label-sm text-label-sm uppercase tracking-wider">
+                Full Sprint Parity
+              </td>
+<td class="py-space-md px-space-sm text-center">
+<span class="px-space-xs py-space-2xs rounded bg-secondary text-on-secondary font-label-sm text-label-sm font-bold">
+                  Balanced
+                </span>
+</td>
+<td class="py-space-md px-space-sm text-center"></td>
+</tr>
+</tfoot>
+</table>
+</div>
+</div>
+</div>
+<!-- Bottom Workspace Complement: Interactive Sync & Approval Footer Panel -->
+<div class="px-space-margin-lg pb-space-2xl grid grid-cols-1 lg:grid-cols-3 gap-space-lg">
+<!-- Visual Epics Breakdown & Sparkline -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between mb-space-md">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary-container text-headline-md">pie_chart</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Jira Hours by Epic</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">Cycle 08</span>
+</div>
+<div class="space-y-space-sm">
+<div>
+<div class="flex justify-between text-body-sm font-body-sm mb-space-2xs">
+<span class="font-medium text-on-surface">ATLAS-AUTH (Security Architecture)</span>
+<span class="font-tabular-num text-tabular-num font-bold">52.0h (60%)</span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+<div class="bg-primary-container h-full rounded-full" style="width: 60%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-body-sm font-body-sm mb-space-2xs">
+<span class="font-medium text-on-surface">ATLAS-PERF (Redis &amp; Caching Optimization)</span>
+<span class="font-tabular-num text-tabular-num font-bold">24.5h (28%)</span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 28%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-body-sm font-body-sm mb-space-2xs">
+<span class="font-medium text-on-surface">SPRINT-14 (Scrum &amp; Operational Rituals)</span>
+<span class="font-tabular-num text-tabular-num font-bold">10.0h (12%)</span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+<div class="bg-surface-tint h-full rounded-full" style="width: 12%"></div>
+</div>
+</div>
+</div>
+<!-- Sparkline Distribution SVG -->
+<div class="mt-space-lg pt-space-sm flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Daily Distribution</span>
+<svg class="w-36 h-8 text-secondary" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 140 32">
+<polyline points="5,22 15,10 25,18 35,18 45,5 55,30 65,30 75,18 85,18 95,18 105,4 115,26 125,30 135,18"></polyline>
+</svg>
+</div>
+</div>
+<!-- Approver Verification Signoff & Attestation -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-space-md">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-headline-md">verified_user</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Lead Approver Verification</span>
+</div>
+<span class="px-space-xs py-space-2xs rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Stage 2 of 3</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant mb-space-md">
+          All logged hours conform to the Atlassian engineering SLA agreement. Overtime calculation adheres to Dominican Republic statutory code (Article 203: +35% for hours over 44/wk).
+        </p>
+<div class="flex items-center gap-space-sm p-space-sm bg-surface-container-low rounded-lg mb-space-md">
+<img class="w-10 h-10 rounded-full object-cover shadow-sm" data-alt="Professional studio portrait of Elena Rostova, Lead Product Manager and Payroll Approver in corporate navy blazer with clean minimalist backdrop" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCp8L9E-lKPTNaC3xvnsV6wR9L-zVNIlQRmnrbtpJmQszcWqZ-4m7w_aDS1WaLXrypRyz8N-vqHayz3WfqvSuGW18GBklxrYEWcmQEazD7JTu2xLTGykCrZ58j7kYPnjCrZBZ502pZl_OL7py_lBfwy9w2WkVPW2NepXgAjyMP9qm5R5K1dMsS5xB0h2fkigtCwnFfDVzT4gciAQdJUoYt9-p5IYoZs4xXKXr2yaNZsppBtaxLkYyAF">
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface leading-tight">Elena Rostova</span>
+<span class="font-body-sm text-body-sm text-outline leading-tight">Lead Engineering Approver • Punta Cana HQ</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-space-sm">
+<button class="flex-1 py-space-sm px-space-md rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-headline-sm text-headline-sm transition-colors text-center" type="button">
+          Request Revision
+        </button>
+<button class="flex-1 py-space-sm px-space-md rounded-lg bg-primary-container text-surface-bright hover:bg-primary-container/90 font-headline-sm text-headline-sm transition-colors text-center shadow-sm" type="button">
+          Approve Timesheet
+        </button>
+</div>
+</div>
+<!-- Active Compliance & Multi-HQ Tax Notice Card -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-space-md">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-on-tertiary-container text-headline-md">gavel</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Statutory Compliance Check</span>
+</div>
+<span class="material-symbols-outlined text-secondary text-headline-sm">check_circle</span>
+</div>
+<ul class="space-y-space-sm text-body-sm font-body-sm">
+<li class="flex items-start gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-body-lg mt-0.5">check</span>
+<span class="text-on-surface-variant">TSS (Tesorería de la Seguridad Social) allocations calculated at 86.5 recorded billable hours.</span>
+</li>
+<li class="flex items-start gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-body-lg mt-0.5">check</span>
+<span class="text-on-surface-variant">Bi-directional Jira sync hash locked: prevents post-approval worklog modification without supervisor unlock.</span>
+</li>
+<li class="flex items-start gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-body-lg mt-0.5">check</span>
+<span class="text-on-surface-variant">No overlapping time entries detected across secondary engineering repos.</span>
+</li>
+</ul>
+</div>
+<div class="pt-space-md mt-space-md flex items-center justify-between bg-surface-container-low/60 p-space-sm rounded-lg">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Payroll Run Eligibility</span>
+<span class="font-headline-sm text-headline-sm text-secondary font-bold">100% Ready</span>
+</div>
+</div>
+</div>
+<!-- Client-side Interactive Micro-script -->
+<script>
+    (function() {
+      const syncBtn = document.getElementById('sync-now-btn');
+      const syncIcon = document.getElementById('sync-icon');
+
+      if (syncBtn && syncIcon) {
+        syncBtn.addEventListener('click', function() {
+          syncIcon.classList.add('rotate-180');
+          syncBtn.disabled = true;
+          syncBtn.classList.add('opacity-75');
+
+          setTimeout(function() {
+            syncIcon.classList.remove('rotate-180');
+            syncBtn.disabled = false;
+            syncBtn.classList.remove('opacity-75');
+          }, 900);
+        });
+      }
+    })();
+  </script>
+</div></main></div>
+
+</body></html>

@@ -1,0 +1,815 @@
+<!DOCTYPE html><html lang="en" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "on-background": "#131b2e",
+          "primary-fixed": "#d2e4ff",
+          "secondary-fixed-dim": "#71dba6",
+          "surface-dim": "#d2d9f4",
+          "outline": "#74777e",
+          "surface-variant": "#dae2fd",
+          "on-tertiary-container": "#be7e00",
+          "tertiary": "#180c00",
+          "on-secondary": "#ffffff",
+          "surface-container-highest": "#dae2fd",
+          "on-tertiary-fixed-variant": "#633f00",
+          "on-primary-container": "#768dad",
+          "surface-container": "#eaedff",
+          "tertiary-container": "#352000",
+          "tertiary-fixed-dim": "#ffb951",
+          "inverse-surface": "#283044",
+          "on-primary": "#ffffff",
+          "surface-bright": "#faf8ff",
+          "background": "#faf8ff",
+          "on-primary-fixed-variant": "#314865",
+          "surface-container-high": "#e2e7ff",
+          "on-secondary-fixed-variant": "#005235",
+          "secondary-fixed": "#8df7c1",
+          "on-secondary-fixed": "#002113",
+          "primary-fixed-dim": "#b0c8eb",
+          "on-tertiary-fixed": "#291800",
+          "error": "#ba1a1a",
+          "on-error-container": "#93000a",
+          "secondary-container": "#8af5be",
+          "on-error": "#ffffff",
+          "primary": "#000f22",
+          "inverse-on-surface": "#eef0ff",
+          "error-container": "#ffdad6",
+          "on-secondary-container": "#00714b",
+          "inverse-primary": "#b0c8eb",
+          "surface-container-low": "#f2f3ff",
+          "tertiary-fixed": "#ffddb3",
+          "on-surface-variant": "#43474d",
+          "primary-container": "#0a2540",
+          "surface-tint": "#49607e",
+          "on-surface": "#131b2e",
+          "on-tertiary": "#ffffff",
+          "surface": "#faf8ff",
+          "on-primary-fixed": "#001c37",
+          "secondary": "#006c47",
+          "outline-variant": "#c4c6ce",
+          "surface-container-lowest": "#ffffff"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "gutter-lg": "1.75rem",
+          "margin-lg": "2.5rem",
+          "space-md": "0.875rem",
+          "space-xl": "2rem",
+          "margin-sm": "1rem",
+          "space-2xl": "3rem",
+          "space-lg": "1.25rem",
+          "space-xs": "0.25rem",
+          "space-2xs": "0.125rem",
+          "gutter": "1.25rem",
+          "space-sm": "0.5rem",
+          "margin": "2rem",
+          "gutter-sm": "0.75rem"
+        },
+        "fontFamily": {
+          "headline-md": [
+            "Plus Jakarta Sans"
+          ],
+          "body-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "label-sm": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "label-md": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-xl": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-sm": [
+            "Plus Jakarta Sans"
+          ],
+          "body-md": [
+            "Plus Jakarta Sans"
+          ],
+          "tabular-num": [
+            "Plus Jakarta Sans"
+          ],
+          "display-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "body-sm": [
+            "Plus Jakarta Sans"
+          ]
+        },
+        "fontSize": {
+          "headline-md": [
+            "18px",
+            {
+              "lineHeight": "24px",
+              "letterSpacing": "-0.01em",
+              "fontWeight": "600"
+            }
+          ],
+          "body-lg": [
+            "15px",
+            {
+              "lineHeight": "22px",
+              "letterSpacing": "0em",
+              "fontWeight": "400"
+            }
+          ],
+          "label-sm": [
+            "11px",
+            {
+              "lineHeight": "14px",
+              "letterSpacing": "0.04em",
+              "fontWeight": "700"
+            }
+          ],
+          "headline-lg": [
+            "22px",
+            {
+              "lineHeight": "28px",
+              "letterSpacing": "-0.015em",
+              "fontWeight": "700"
+            }
+          ],
+          "label-md": [
+            "13px",
+            {
+              "lineHeight": "16px",
+              "letterSpacing": "0.01em",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-xl": [
+            "28px",
+            {
+              "lineHeight": "36px",
+              "letterSpacing": "-0.02em",
+              "fontWeight": "700"
+            }
+          ],
+          "headline-sm": [
+            "16px",
+            {
+              "lineHeight": "22px",
+              "letterSpacing": "-0.005em",
+              "fontWeight": "600"
+            }
+          ],
+          "body-md": [
+            "14px",
+            {
+              "lineHeight": "20px",
+              "letterSpacing": "0em",
+              "fontWeight": "400"
+            }
+          ],
+          "tabular-num": [
+            "13px",
+            {
+              "lineHeight": "18px",
+              "letterSpacing": "-0.01em",
+              "fontWeight": "500"
+            }
+          ],
+          "display-lg": [
+            "36px",
+            {
+              "lineHeight": "44px",
+              "letterSpacing": "-0.03em",
+              "fontWeight": "800"
+            }
+          ],
+          "body-sm": [
+            "13px",
+            {
+              "lineHeight": "18px",
+              "letterSpacing": "0.005em",
+              "fontWeight": "400"
+            }
+          ]
+        }
+      },
+    },
+  }</script></head><body class="bg-background font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-primary-container text-on-primary z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.12)]"><div class="flex flex-col flex-1 overflow-y-auto"><div class="px-space-lg pt-space-lg pb-space-md flex items-center gap-space-sm"><div class="w-9 h-9 rounded-lg bg-surface-container-lowest/10 flex items-center justify-center"><img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJlsy8WlUDg_vC45sd3Ux0K1VGWyiAP7KkoHqnW2wKJ9je9vJCI-rO-ezVa0xMZ-ncT5tKtQugyVlhYRGZ_AznrqT8_Z9VvnErvQYVemYAUUqJWkiVpaGSWyhTr2-k8pGdc7tRG6HV1weqMog0A75HrK0QCWl_D5yeTqNMy1oae1fvDdSmvzXl-QP6K6T07LW9ekORJ7nNcdgeCdIY35YZrpfGFZz_rHftOX1vJfIRoxmA5F3SF7dE6SHrGfcrWSbmiA" alt="My Global Hub" class="w-full h-full object-cover rounded-lg"></div><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-surface-bright tracking-tight leading-none">My Global Hub</span><span class="font-label-sm text-label-sm text-on-primary-container tracking-wider uppercase mt-space-2xs">Enterprise Payroll</span></div></div><div class="px-space-md mb-space-md"><div class="bg-surface-container-lowest/5 hover:bg-surface-container-lowest/10 rounded-xl p-space-sm transition-colors cursor-pointer"><div class="flex items-center justify-between gap-space-xs"><div class="flex flex-col min-w-0"><span class="font-label-sm text-label-sm text-on-primary-container uppercase">Operating Entity</span><span class="font-label-md text-label-md text-surface-bright truncate">My Global Hub Dominicana SRL</span><span class="font-body-sm text-body-sm text-primary-fixed-dim truncate">(Punta Cana Operations)</span></div><div class="flex flex-col items-end gap-space-2xs flex-shrink-0"><span class="px-space-xs py-space-2xs rounded-full bg-secondary-fixed-dim/20 text-secondary-fixed font-label-sm text-label-sm">Multi-HQ</span><span class="material-symbols-outlined text-on-primary-container text-headline-sm">unfold_more</span></div></div></div></div><nav class="flex-1 px-space-md space-y-space-md" data-active-classes="bg-surface-container-lowest/15 text-surface-bright font-headline-sm rounded-lg"><div class="space-y-space-2xs"><span class="px-space-sm font-label-sm text-label-sm text-on-primary-container uppercase tracking-wider block mb-space-xs">Workforce</span><a class="flex items-center justify-between px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="bi-weekly-approval-workspace" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-headline-sm">assignment_turned_in</span><span class="font-body-md text-body-md">Approval Workspace</span></div><span class="px-space-xs py-space-2xs rounded-full bg-tertiary-fixed-dim/25 text-tertiary-fixed font-label-sm text-label-sm">12 Pending</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="team-timesheets" href="#"><span class="material-symbols-outlined text-headline-sm">more_time</span><span class="font-body-md text-body-md">Team Timesheets</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="employee-directory" href="#"><span class="material-symbols-outlined text-headline-sm">badge</span><span class="font-body-md text-body-md">Employee Directory</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="schedule" href="#"><span class="material-symbols-outlined text-headline-sm">calendar_month</span><span class="font-body-md text-body-md">Schedule</span></a></div><div class="space-y-space-2xs"><span class="px-space-sm font-label-sm text-label-sm text-on-primary-container uppercase tracking-wider block mb-space-xs">Payroll &amp; Finance</span><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="pay-periods-and-processing" href="#"><span class="material-symbols-outlined text-headline-sm">payments</span><span class="font-body-md text-body-md">Pay Periods &amp; Processing</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="payroll-adjustments" href="#"><span class="material-symbols-outlined text-headline-sm">tune</span><span class="font-body-md text-body-md">Adjustments</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="pay-stubs" href="#"><span class="material-symbols-outlined text-headline-sm">receipt_long</span><span class="font-body-md text-body-md">Pay Stubs</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="banking-and-allocations" href="#"><span class="material-symbols-outlined text-headline-sm">account_balance</span><span class="font-body-md text-body-md">Banking &amp; Allocations</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="reports-and-register" href="#"><span class="material-symbols-outlined text-headline-sm">bar_chart_4_bars</span><span class="font-body-md text-body-md">Reports &amp; Register</span></a></div><div class="space-y-space-2xs"><span class="px-space-sm font-label-sm text-label-sm text-on-primary-container uppercase tracking-wider block mb-space-xs">Integrations</span><a class="flex items-center justify-between px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="jira-cloud-sync" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-headline-sm">sync_alt</span><span class="font-body-md text-body-md">Jira Cloud Sync</span></div><div class="flex items-center gap-space-2xs"><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-fixed opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-secondary-fixed-dim"></span></span><span class="font-label-sm text-label-sm text-secondary-fixed">2m</span></div></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="webhooks" href="#"><span class="material-symbols-outlined text-headline-sm">webhook</span><span class="font-body-md text-body-md">Webhooks</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="api-access" href="#"><span class="material-symbols-outlined text-headline-sm">terminal</span><span class="font-body-md text-body-md">API</span></a></div><div class="space-y-space-2xs"><span class="px-space-sm font-label-sm text-label-sm text-on-primary-container uppercase tracking-wider block mb-space-xs">System</span><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="organization" href="#"><span class="material-symbols-outlined text-headline-sm">corporate_fare</span><span class="font-body-md text-body-md">Organization</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="departments" href="#"><span class="material-symbols-outlined text-headline-sm">domain</span><span class="font-body-md text-body-md">Departments</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="approval-workflows" href="#"><span class="material-symbols-outlined text-headline-sm">schema</span><span class="font-body-md text-body-md">Approval Workflows</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="audit-logs" href="#"><span class="material-symbols-outlined text-headline-sm">history_edu</span><span class="font-body-md text-body-md">Audit Logs</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-sm rounded-lg text-primary-fixed-dim hover:bg-surface-container-lowest/10 hover:text-surface-bright transition-colors" data-path="settings" href="#"><span class="material-symbols-outlined text-headline-sm">settings</span><span class="font-body-md text-body-md">Settings</span></a></div></nav></div><div class="p-space-md border-t border-surface-container-lowest/10 bg-primary-container/90 flex flex-col gap-space-sm"><div class="flex items-center justify-between bg-surface-container-lowest/5 rounded-lg px-space-sm py-space-xs"><div class="flex items-center gap-space-xs"><span class="h-2 w-2 rounded-full bg-secondary-fixed"></span><span class="font-label-sm text-label-sm text-surface-bright">Jira Cloud: Active</span></div><span class="font-label-sm text-label-sm text-primary-fixed-dim">14 Syncing</span></div><div class="flex items-center justify-between pt-space-xs"><div class="flex items-center gap-space-sm min-w-0"><div class="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 bg-surface-container-highest flex items-center justify-center"><span class="material-symbols-outlined text-on-surface-variant text-headline-md">person</span></div><div class="flex flex-col min-w-0"><span class="font-headline-sm text-headline-sm text-surface-bright truncate leading-tight">Elena Rostova</span><span class="font-body-sm text-body-sm text-on-primary-container truncate">Lead PM &amp; Approver</span></div></div><div class="flex items-center gap-space-2xs text-on-primary-container"><a class="p-space-2xs hover:text-surface-bright hover:bg-surface-container-lowest/10 rounded-lg transition-colors" data-path="settings" href="#" title="Settings"><span class="material-symbols-outlined text-headline-sm">tune</span></a><a class="p-space-2xs hover:text-error-container hover:bg-surface-container-lowest/10 rounded-lg transition-colors" data-path="login" href="#" title="Log Out"><span class="material-symbols-outlined text-headline-sm">logout</span></a></div></div></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-space-lg flex items-center justify-between gap-space-md"><div class="flex-1 max-w-xl"><div class="relative flex items-center w-full"><span class="material-symbols-outlined absolute left-space-md text-outline pointer-events-none text-headline-sm">search</span><input class="w-full bg-surface-container-low/70 hover:bg-surface-container-low focus:bg-surface-container-lowest text-on-surface placeholder:text-outline font-body-sm text-body-sm rounded-lg pl-10 pr-12 py-space-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="Search employee ID, Jira issue, pay period, department..." type="text"><div class="absolute right-space-sm flex items-center pointer-events-none"><kbd class="font-label-sm text-label-sm bg-surface-container px-space-xs py-space-2xs rounded text-outline-variant">⌘K</kbd></div></div></div><div class="flex items-center gap-space-md"><div class="hidden xl:flex items-center gap-space-xs bg-surface-container-low px-space-md py-space-xs rounded-lg"><span class="material-symbols-outlined text-secondary text-headline-sm">event_available</span><div class="flex flex-col"><div class="flex items-center gap-space-xs"><span class="font-headline-sm text-headline-sm text-on-surface">PP-2025-08</span><span class="font-body-sm text-body-sm text-on-surface-variant">(Apr 01 - Apr 14, 2025)</span></div><span class="font-label-sm text-label-sm text-secondary font-bold uppercase tracking-wider">Supervisor Approval Phase</span></div></div><div class="flex items-center gap-space-xs"><button class="px-space-md py-space-xs rounded-lg font-headline-sm text-headline-sm bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors flex items-center gap-space-xs" type="button"><span class="material-symbols-outlined text-headline-sm">select_all</span><span class="">Bulk Actions</span></button><button class="px-space-md py-space-xs rounded-lg font-headline-sm text-headline-sm bg-primary-container text-on-primary hover:bg-primary-container/90 transition-colors flex items-center gap-space-xs" type="button"><span class="material-symbols-outlined text-headline-sm">download</span><span class="">Export Register</span></button></div><div class="h-6 w-px bg-surface-container-high"></div><div class="flex items-center gap-space-xs"><button class="relative p-space-xs rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors" title="Notifications" type="button"><span class="material-symbols-outlined text-headline-md">notifications</span><span class="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-error text-on-error font-label-sm text-label-sm">4</span></button><button class="p-space-xs rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors" title="Help Center" type="button"><span class="material-symbols-outlined text-headline-md">help</span></button></div><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1VuyEz2WC3Nk3zE-KOu1dA3JC1k0fIvKm9uLD3-hHgBZErhabd3haI1qxP_-I1FtW718_EBVfg52WKx614BalANBQk1AyllbcGh1h_0ZWdzAYiZrgFpdVL0hYZQUsUBWPC85wu_l9D10o9d9e80Jv6vvgAHwOnb_FmdrHwHwvMTC0DUp2eoqVuKyFWKpLCHC_FPYNsy2uNnb7oW6sRr-0G2gOwIktIpUT4cj5tBHRr-ysDgH8JzHDqZoemrbg_uroflErj3lHs8iA"></div></header><main class="relative pt-16 w-full min-h-screen bg-background"><div class="flex flex-col w-full">
+<div class="px-space-xl py-space-lg flex flex-col gap-space-xl">
+<div class="bg-slate-900 text-white px-4 py-2 rounded-lg flex items-center justify-between text-xs tracking-wider font-semibold uppercase mb-4 border border-slate-700 shadow-sm"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm text-amber-400">desktop_windows</span> <span class="">SCREEN: PAY PERIODS &amp; PROCESSING SCHEDULE</span> <span class="text-slate-500">•</span> <span class="text-slate-300 font-normal">Module: Payroll &amp; Finance Calendars</span></div><div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-bold">CY-2025 COMPLIANCE</span> <span class="text-slate-400 text-[10px]">Ref: SCREEN-15</span></div></div><div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs text-on-surface-variant font-label-sm uppercase tracking-wider mb-space-2xs">
+<span class="">Enterprise Payroll</span>
+<span class="">/</span>
+<span class="">Cycles &amp; Compliance</span>
+<span class="">/</span>
+<span class="text-secondary font-bold">CY-2025 Calendar</span>
+</div>
+<h1 class="font-headline-xl text-headline-xl text-on-surface tracking-tight">Pay Periods &amp; Processing Schedule</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-space-2xs">Manage annual bi-weekly payroll cycles, multi-tier approval deadlines, retroactive adjustment queues, and period locking protocols.</p>
+</div>
+<div class="flex flex-wrap items-center gap-space-xs">
+<button class="px-space-md py-space-sm rounded-lg font-headline-sm text-headline-sm bg-surface-container hover:bg-surface-container-high text-on-surface transition-all shadow-sm flex items-center gap-space-xs" type="button">
+<span class="material-symbols-outlined text-headline-sm">event_repeat</span>
+<span class="">Generate 2025 Pay Calendar</span>
+</button>
+<button class="px-space-md py-space-sm rounded-lg font-headline-sm text-headline-sm bg-surface-container hover:bg-surface-container-high text-on-surface transition-all shadow-sm flex items-center gap-space-xs" onclick="toggleDrawer(true)" type="button">
+<span class="material-symbols-outlined text-headline-sm">tune</span>
+<span class="">Create Payroll Adjustment</span>
+</button>
+<button class="px-space-md py-space-sm rounded-lg font-headline-sm text-headline-sm bg-surface-container hover:bg-surface-container-high text-on-surface transition-all shadow-sm flex items-center gap-space-xs" type="button">
+<span class="material-symbols-outlined text-headline-sm">ios_share</span>
+<span class="">Export Annual Schedule</span>
+</button>
+<button class="px-space-md py-space-sm rounded-lg font-headline-sm text-headline-sm bg-primary-container text-on-primary hover:bg-primary transition-all shadow-md flex items-center gap-space-xs" type="button">
+<span class="material-symbols-outlined text-headline-sm">lock</span>
+<span class="">Lock Historical Periods</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-space-md">
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+<div class="absolute -right-6 -bottom-6 w-24 h-24 bg-primary/5 rounded-full pointer-events-none"></div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Current Active Cycle</span>
+<span class="inline-flex items-center gap-space-2xs px-space-xs py-space-2xs rounded-full bg-secondary-fixed-dim/20 text-on-secondary-fixed-variant font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> Live Workweek
+          </span>
+</div>
+<div class="mt-space-md flex items-baseline gap-space-xs">
+<span class="font-headline-xl text-headline-xl text-on-surface">PP-2025-08</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-space-2xs">Apr 01 - Apr 14, 2025</p>
+<div class="mt-space-md pt-space-sm bg-surface-container-low rounded-lg px-space-sm py-space-2xs flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span class="">Phase: PM Approval</span>
+<span class="font-bold text-secondary">Due Today, 17:00 EST</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+<div class="absolute -right-6 -bottom-6 w-24 h-24 bg-secondary/5 rounded-full pointer-events-none"></div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Upcoming Payroll Date</span>
+<span class="material-symbols-outlined text-secondary text-headline-md">calendar_month</span>
+</div>
+<div class="mt-space-md flex items-baseline gap-space-xs">
+<span class="font-headline-xl text-headline-xl text-on-surface">Apr 20, 2025</span>
+</div>
+<p class="font-body-sm text-body-sm text-secondary font-bold mt-space-2xs">In 5 Days (Disbursement Ready)</p>
+<div class="mt-space-md pt-space-sm bg-surface-container-low rounded-lg px-space-sm py-space-2xs flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span class="">ACH / SEPA Batch: #BATCH-891</span>
+<span class="text-on-surface font-semibold">142 Direct Deposits</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+<div class="absolute -right-6 -bottom-6 w-24 h-24 bg-surface-variant rounded-full pointer-events-none"></div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Locked / Completed</span>
+<span class="material-symbols-outlined text-primary-container text-headline-md">verified_user</span>
+</div>
+<div class="mt-space-md flex items-baseline gap-space-xs">
+<span class="font-headline-xl text-headline-xl text-on-surface">7 Periods</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-space-2xs">$342,180.00 YTD Processed</p>
+<div class="mt-space-md pt-space-sm bg-surface-container-low rounded-lg px-space-sm py-space-2xs flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span class="">Compliance State</span>
+<span class="text-secondary font-bold">100% Tax Settled</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+<div class="absolute -right-6 -bottom-6 w-24 h-24 bg-tertiary-fixed-dim/20 rounded-full pointer-events-none"></div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Open Adjustments</span>
+<button class="text-on-tertiary-container hover:underline font-label-sm text-label-sm flex items-center gap-space-2xs" onclick="toggleDrawer(true)" type="button">
+<span class="">View Log</span>
+<span class="material-symbols-outlined text-headline-sm">arrow_forward</span>
+</button>
+</div>
+<div class="mt-space-md flex items-baseline gap-space-xs">
+<span class="font-headline-xl text-headline-xl text-on-surface">2 Pending</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-tertiary-container font-semibold mt-space-2xs">$1,420.00 Delta Queued</p>
+<div class="mt-space-md pt-space-sm bg-tertiary-fixed/30 rounded-lg px-space-sm py-space-2xs flex items-center justify-between text-on-tertiary-fixed-variant font-label-sm text-label-sm">
+<span class="">Enforces Non-Modifiable Lock</span>
+<span class="font-bold">Next Run: PP-09</span>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-xl p-space-md flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md shadow-sm">
+<div class="flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-lg bg-surface-container-lowest flex items-center justify-center text-primary-container shadow-xs">
+<span class="material-symbols-outlined text-headline-lg">lock_clock</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface">Period Locking Protocol Policy</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Closed pay periods are cryptographically archived. Direct timesheet alteration is disabled across all roles. Any retroactive hours, commissions, or corrections must flow through an auditable adjustment voucher.</p>
+</div>
+</div>
+<div class="flex items-center gap-space-xs self-stretch md:self-auto justify-end">
+<span class="font-label-sm text-label-sm bg-surface-container-lowest text-on-surface-variant px-space-sm py-space-xs rounded-md shadow-xs">Auto-lock: 24h Post Pay Date</span>
+<button class="px-space-md py-space-xs rounded-lg font-headline-sm text-headline-sm bg-primary-container text-on-primary hover:bg-primary transition-colors text-nowrap" onclick="toggleDrawer(true)" type="button">
+          Open Audit Log
+        </button>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col">
+<div class="p-space-lg flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
+<div class="flex flex-wrap items-center gap-space-sm">
+<div class="flex items-center gap-space-xs bg-surface-container-low px-space-md py-space-xs rounded-lg text-on-surface">
+<span class="font-label-md text-label-md">Calendar Year:</span>
+<span class="font-headline-sm text-headline-sm font-bold">2025 (26 Pay Cycles)</span>
+</div>
+<div class="flex items-center gap-space-2xs bg-surface-container-low p-space-2xs rounded-lg">
+<button class="px-space-sm py-space-2xs rounded-md bg-surface-container-lowest text-on-surface font-headline-sm text-headline-sm shadow-xs" type="button">All Cycles</button>
+<button class="px-space-sm py-space-2xs rounded-md text-on-surface-variant hover:text-on-surface font-headline-sm text-headline-sm transition-colors" type="button">Active &amp; Upcoming</button>
+<button class="px-space-sm py-space-2xs rounded-md text-on-surface-variant hover:text-on-surface font-headline-sm text-headline-sm transition-colors" type="button">Locked / Completed</button>
+</div>
+</div>
+<div class="flex items-center gap-space-sm">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-space-sm text-outline text-headline-sm pointer-events-none">search</span>
+<input class="bg-surface-container-low text-on-surface font-body-sm text-body-sm pl-9 pr-space-md py-space-xs rounded-lg focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary-container" placeholder="Filter cycle (e.g. PP-08)..." type="text">
+</div>
+<button class="p-space-xs rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors" title="Column Configuration" type="button">
+<span class="material-symbols-outlined text-headline-sm">view_column</span>
+</button>
+</div>
+</div>
+<div class="w-full overflow-x-auto">
+<table class="w-full text-left min-w-[1500px]">
+<thead>
+<tr class="bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">
+<th class="py-space-md px-space-md sticky left-0 bg-surface-container-low z-20">Pay Period</th>
+<th class="py-space-md px-space-sm">Work Start</th>
+<th class="py-space-md px-space-sm">Work End</th>
+<th class="py-space-md px-space-sm">Payroll Cutoff</th>
+<th class="py-space-md px-space-sm">Emp. Deadline</th>
+<th class="py-space-md px-space-sm">Sup. Deadline</th>
+<th class="py-space-md px-space-sm">PM Deadline</th>
+<th class="py-space-md px-space-sm">HR Approval</th>
+<th class="py-space-md px-space-sm">Finance Appr.</th>
+<th class="py-space-md px-space-sm">Processing</th>
+<th class="py-space-md px-space-sm">Pay Date</th>
+<th class="py-space-md px-space-md">Lifecycle Status</th>
+<th class="py-space-md px-space-md text-right sticky right-0 bg-surface-container-low z-20">Actions</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm text-on-surface divide-y-0">
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm sticky left-0 bg-surface-container-lowest hover:bg-surface-container-low/60 z-10">
+<div class="flex items-center gap-space-xs">
+<span class="font-bold text-on-surface">PP-2025-11</span>
+<span class="px-space-xs py-space-2xs rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Future</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm tabular-num">May 13, 2025</td>
+<td class="py-space-sm px-space-sm tabular-num">May 26, 2025</td>
+<td class="py-space-sm px-space-sm tabular-num">May 26, 23:59</td>
+<td class="py-space-sm px-space-sm tabular-num">May 27, 10:00</td>
+<td class="py-space-sm px-space-sm tabular-num">May 27, 18:00</td>
+<td class="py-space-sm px-space-sm tabular-num">May 28, 12:00</td>
+<td class="py-space-sm px-space-sm tabular-num">May 28, 17:00</td>
+<td class="py-space-sm px-space-sm tabular-num">May 29, 14:00</td>
+<td class="py-space-sm px-space-sm tabular-num">May 30, 09:00</td>
+<td class="py-space-sm px-space-sm tabular-num font-semibold">Jun 01, 2025</td>
+<td class="py-space-sm px-space-md">
+<span class="inline-flex items-center gap-1.5 px-space-xs py-space-2xs rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span> Draft
+                </span>
+</td>
+<td class="py-space-sm px-space-md text-right sticky right-0 bg-surface-container-lowest hover:bg-surface-container-low/60 z-10">
+<div class="flex items-center justify-end gap-space-xs">
+<button class="p-space-2xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md" title="Review Cycle" type="button">
+<span class="material-symbols-outlined text-headline-sm">visibility</span>
+</button>
+<button class="p-space-2xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md" title="More" type="button">
+<span class="material-symbols-outlined text-headline-sm">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm sticky left-0 bg-surface-container-lowest hover:bg-surface-container-low/60 z-10">
+<div class="flex items-center gap-space-xs">
+<span class="font-bold text-on-surface">PP-2025-10</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm tabular-num">Apr 29, 2025</td>
+<td class="py-space-sm px-space-sm tabular-num">May 12, 2025</td>
+<td class="py-space-sm px-space-sm tabular-num">May 12, 23:59</td>
+<td class="py-space-sm px-space-sm tabular-num">May 13, 10:00</td>
+<td class="py-space-sm px-space-sm tabular-num">May 13, 18:00</td>
+<td class="py-space-sm px-space-sm tabular-num">May 14, 12:00</td>
+<td class="py-space-sm px-space-sm tabular-num">May 14, 17:00</td>
+<td class="py-space-sm px-space-sm tabular-num">May 15, 14:00</td>
+<td class="py-space-sm px-space-sm tabular-num">May 16, 09:00</td>
+<td class="py-space-sm px-space-sm tabular-num font-semibold">May 18, 2025</td>
+<td class="py-space-sm px-space-md">
+<span class="inline-flex items-center gap-1.5 px-space-xs py-space-2xs rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-surface-tint"></span> Open
+                </span>
+</td>
+<td class="py-space-sm px-space-md text-right sticky right-0 bg-surface-container-lowest hover:bg-surface-container-low/60 z-10">
+<div class="flex items-center justify-end gap-space-xs">
+<button class="p-space-2xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md" title="Review Cycle" type="button">
+<span class="material-symbols-outlined text-headline-sm">visibility</span>
+</button>
+<button class="p-space-2xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md" title="More" type="button">
+<span class="material-symbols-outlined text-headline-sm">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm sticky left-0 bg-surface-container-lowest hover:bg-surface-container-low/60 z-10">
+<div class="flex items-center gap-space-xs">
+<span class="font-bold text-on-surface">PP-2025-09</span>
+<span class="px-space-xs py-space-2xs rounded bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm">Next In Queue</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm tabular-num">Apr 15, 2025</td>
+<td class="py-space-sm px-space-sm tabular-num">Apr 28, 2025</td>
+<td class="py-space-sm px-space-sm tabular-num">Apr 28, 23:59</td>
+<td class="py-space-sm px-space-sm tabular-num text-on-tertiary-container font-semibold">Apr 29, 10:00</td>
+<td class="py-space-sm px-space-sm tabular-num">Apr 29, 18:00</td>
+<td class="py-space-sm px-space-sm tabular-num">Apr 30, 12:00</td>
+<td class="py-space-sm px-space-sm tabular-num">Apr 30, 17:00</td>
+<td class="py-space-sm px-space-sm tabular-num">May 01, 14:00</td>
+<td class="py-space-sm px-space-sm tabular-num">May 02, 09:00</td>
+<td class="py-space-sm px-space-sm tabular-num font-semibold">May 04, 2025</td>
+<td class="py-space-sm px-space-md">
+<span class="inline-flex items-center gap-1.5 px-space-xs py-space-2xs rounded-full bg-surface-variant text-on-primary-fixed-variant font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-on-primary-fixed-variant"></span> Awaiting Emp. Submission
+                </span>
+</td>
+<td class="py-space-sm px-space-md text-right sticky right-0 bg-surface-container-lowest hover:bg-surface-container-low/60 z-10">
+<div class="flex items-center justify-end gap-space-xs">
+<button class="px-space-xs py-space-2xs rounded-md bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm" type="button">Review Cycle</button>
+<button class="p-space-2xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md" title="View Register" type="button">
+<span class="material-symbols-outlined text-headline-sm">table_view</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="bg-primary/5 hover:bg-primary/10 transition-colors">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm sticky left-0 bg-surface-container-lowest hover:bg-primary/10 z-10">
+<div class="flex items-center gap-space-xs">
+<span class="font-bold text-primary-container">PP-2025-08</span>
+<span class="px-space-xs py-space-2xs rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm font-bold uppercase tracking-wider">Current Cycle</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm tabular-num">Apr 01, 2025</td>
+<td class="py-space-sm px-space-sm tabular-num">Apr 14, 2025</td>
+<td class="py-space-sm px-space-sm tabular-num">Apr 14, 23:59</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary font-bold">Passed (Apr 15)</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary font-bold">Passed (Apr 15)</td>
+<td class="py-space-sm px-space-sm tabular-num font-bold text-on-tertiary-container bg-tertiary-fixed/30 rounded px-space-xs">Apr 16, 12:00</td>
+<td class="py-space-sm px-space-sm tabular-num">Apr 16, 17:00</td>
+<td class="py-space-sm px-space-sm tabular-num">Apr 17, 14:00</td>
+<td class="py-space-sm px-space-sm tabular-num">Apr 18, 09:00</td>
+<td class="py-space-sm px-space-sm tabular-num font-bold text-primary-container">Apr 20, 2025</td>
+<td class="py-space-sm px-space-md">
+<span class="inline-flex items-center gap-1.5 px-space-xs py-space-2xs rounded-full bg-tertiary-fixed-dim/30 text-on-tertiary-fixed-variant font-label-sm text-label-sm font-bold animate-pulse">
+<span class="w-1.5 h-1.5 rounded-full bg-on-tertiary-container"></span> Awaiting PM Approval
+                </span>
+</td>
+<td class="py-space-sm px-space-md text-right sticky right-0 bg-surface-container-lowest hover:bg-primary/10 z-10">
+<div class="flex items-center justify-end gap-space-xs">
+<button class="px-space-xs py-space-2xs rounded-md bg-primary-container text-on-primary hover:bg-primary font-label-sm text-label-sm font-bold shadow-xs" type="button">Review Cycle</button>
+<button class="px-space-xs py-space-2xs rounded-md bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm" onclick="toggleDrawer(true)" type="button">Adjustments</button>
+<button class="p-space-2xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md" title="View Register" type="button">
+<span class="material-symbols-outlined text-headline-sm">table_view</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm sticky left-0 bg-surface-container-lowest hover:bg-surface-container-low/60 z-10">
+<div class="flex items-center gap-space-xs">
+<span class="font-bold text-on-surface">PP-2025-07</span>
+<span class="material-symbols-outlined text-secondary text-headline-sm" title="Period Locked">lock</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm tabular-num">Mar 18, 2025</td>
+<td class="py-space-sm px-space-sm tabular-num">Mar 31, 2025</td>
+<td class="py-space-sm px-space-sm tabular-num">Mar 31, 23:59</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary">Apr 01, 10:00</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary">Apr 01, 18:00</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary">Apr 02, 12:00</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary">Apr 02, 17:00</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary">Apr 03, 14:00</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary">Apr 04, 09:00</td>
+<td class="py-space-sm px-space-sm tabular-num font-semibold text-secondary">Apr 06, 2025</td>
+<td class="py-space-sm px-space-md">
+<span class="inline-flex items-center gap-1.5 px-space-xs py-space-2xs rounded-full bg-secondary-fixed/30 text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Closed / Locked
+                </span>
+</td>
+<td class="py-space-sm px-space-md text-right sticky right-0 bg-surface-container-lowest hover:bg-surface-container-low/60 z-10">
+<div class="flex items-center justify-end gap-space-xs">
+<button class="px-space-xs py-space-2xs rounded-md bg-tertiary-fixed text-on-tertiary-fixed hover:bg-tertiary-fixed-dim font-label-sm text-label-sm font-semibold flex items-center gap-space-2xs" onclick="toggleDrawer(true)" type="button">
+<span class="material-symbols-outlined text-label-sm">warning</span> 1 Adjustment
+                  </button>
+<button class="p-space-2xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md" title="View Register" type="button">
+<span class="material-symbols-outlined text-headline-sm">receipt_long</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm sticky left-0 bg-surface-container-lowest hover:bg-surface-container-low/60 z-10">
+<div class="flex items-center gap-space-xs">
+<span class="font-bold text-on-surface">PP-2025-06</span>
+<span class="material-symbols-outlined text-secondary text-headline-sm" title="Period Locked">lock</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm tabular-num">Mar 04, 2025</td>
+<td class="py-space-sm px-space-sm tabular-num">Mar 17, 2025</td>
+<td class="py-space-sm px-space-sm tabular-num">Mar 17, 23:59</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary">Mar 18, 10:00</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary">Mar 18, 18:00</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary">Mar 19, 12:00</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary">Mar 19, 17:00</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary">Mar 20, 14:00</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary">Mar 21, 09:00</td>
+<td class="py-space-sm px-space-sm tabular-num font-semibold text-secondary">Mar 23, 2025</td>
+<td class="py-space-sm px-space-md">
+<span class="inline-flex items-center gap-1.5 px-space-xs py-space-2xs rounded-full bg-secondary-fixed/30 text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Closed / Locked
+                </span>
+</td>
+<td class="py-space-sm px-space-md text-right sticky right-0 bg-surface-container-lowest hover:bg-surface-container-low/60 z-10">
+<div class="flex items-center justify-end gap-space-xs">
+<button class="p-space-2xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md" title="View Register" type="button">
+<span class="material-symbols-outlined text-headline-sm">table_view</span>
+</button>
+<button class="p-space-2xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md" title="Download Audit Pack" type="button">
+<span class="material-symbols-outlined text-headline-sm">cloud_download</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-space-sm px-space-md font-headline-sm text-headline-sm sticky left-0 bg-surface-container-lowest hover:bg-surface-container-low/60 z-10">
+<div class="flex items-center gap-space-xs">
+<span class="font-bold text-on-surface">PP-2025-05</span>
+<span class="material-symbols-outlined text-secondary text-headline-sm" title="Period Locked">lock</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm tabular-num">Feb 18, 2025</td>
+<td class="py-space-sm px-space-sm tabular-num">Mar 03, 2025</td>
+<td class="py-space-sm px-space-sm tabular-num">Mar 03, 23:59</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary">Mar 04, 10:00</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary">Mar 04, 18:00</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary">Mar 05, 12:00</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary">Mar 05, 17:00</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary">Mar 06, 14:00</td>
+<td class="py-space-sm px-space-sm tabular-num text-secondary">Mar 07, 09:00</td>
+<td class="py-space-sm px-space-sm tabular-num font-semibold text-secondary">Mar 09, 2025</td>
+<td class="py-space-sm px-space-md">
+<span class="inline-flex items-center gap-1.5 px-space-xs py-space-2xs rounded-full bg-secondary-fixed/30 text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Closed / Locked
+                </span>
+</td>
+<td class="py-space-sm px-space-md text-right sticky right-0 bg-surface-container-lowest hover:bg-surface-container-low/60 z-10">
+<div class="flex items-center justify-end gap-space-xs">
+<button class="p-space-2xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md" title="View Register" type="button">
+<span class="material-symbols-outlined text-headline-sm">table_view</span>
+</button>
+<button class="p-space-2xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md" title="Download Audit Pack" type="button">
+<span class="material-symbols-outlined text-headline-sm">cloud_download</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-space-md bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-space-sm font-body-sm text-body-sm text-on-surface-variant">
+<div class="flex items-center gap-space-xs">
+<span class="">Showing <strong>5</strong> of <strong>26</strong> pay cycles in 2025</span>
+<span class="inline-block w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="">Standard Bi-Weekly Schedule (Dominicana SRL)</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="px-space-sm py-space-2xs rounded-md bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors" disabled="" type="button">Previous</button>
+<span class="px-space-sm py-space-2xs rounded-md bg-primary-container text-on-primary font-bold">1</span>
+<button class="px-space-sm py-space-2xs rounded-md bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors" type="button">2</button>
+<button class="px-space-sm py-space-2xs rounded-md bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors" type="button">3</button>
+<button class="px-space-sm py-space-2xs rounded-md bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors" type="button">Next</button>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-space-lg">
+<div class="lg:col-span-2 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface">Annual Processing Velocity &amp; Timeliness</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Average approval completion time across each sequential approval stage</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary font-bold uppercase tracking-wider bg-secondary-fixed/30 px-space-xs py-space-2xs rounded">99.4% On Schedule</span>
+</div>
+<div class="grid grid-cols-5 gap-space-sm py-space-sm">
+<div class="flex flex-col items-center p-space-sm bg-surface-container-low rounded-lg text-center">
+<span class="material-symbols-outlined text-headline-md text-on-surface-variant mb-space-2xs">badge</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Employee</span>
+<span class="font-headline-sm text-headline-sm text-on-surface mt-space-2xs">4.2h</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Before cutoff</span>
+</div>
+<div class="flex flex-col items-center p-space-sm bg-surface-container-low rounded-lg text-center">
+<span class="material-symbols-outlined text-headline-md text-on-surface-variant mb-space-2xs">supervisor_account</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Supervisor</span>
+<span class="font-headline-sm text-headline-sm text-on-surface mt-space-2xs">2.8h</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Avg turnaround</span>
+</div>
+<div class="flex flex-col items-center p-space-sm bg-primary/10 rounded-lg text-center relative overflow-hidden">
+<span class="material-symbols-outlined text-headline-md text-primary-container mb-space-2xs">assignment_turned_in</span>
+<span class="font-label-sm text-label-sm text-primary-container uppercase font-bold">Project Mgr</span>
+<span class="font-headline-sm text-headline-sm text-primary-container mt-space-2xs">3.1h</span>
+<span class="font-label-sm text-label-sm text-on-tertiary-container font-bold">Current Step</span>
+</div>
+<div class="flex flex-col items-center p-space-sm bg-surface-container-low rounded-lg text-center">
+<span class="material-symbols-outlined text-headline-md text-on-surface-variant mb-space-2xs">verified</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">HR Compliance</span>
+<span class="font-headline-sm text-headline-sm text-on-surface mt-space-2xs">1.4h</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">SLA: 4.0h</span>
+</div>
+<div class="flex flex-col items-center p-space-sm bg-surface-container-low rounded-lg text-center">
+<span class="material-symbols-outlined text-headline-md text-on-surface-variant mb-space-2xs">account_balance</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Finance / ACH</span>
+<span class="font-headline-sm text-headline-sm text-on-surface mt-space-2xs">0.9h</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Instant Batch</span>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-lg p-space-md flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-headline-md text-secondary">shield_lock</span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface">Audit Hash Certification</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Cryptographic SHA-256 seal generated automatically upon final Finance Lock.</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm bg-surface-container text-on-surface-variant px-space-sm py-space-xs rounded font-mono">0x9F4B...18CA</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between">
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-on-surface">Cycle Locking Rules</span>
+<span class="material-symbols-outlined text-outline text-headline-sm">policy</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Strict non-repudiation parameters enforced for Dominican Republic DGII statutory reporting.</p>
+<div class="space-y-space-xs mt-space-xs">
+<div class="p-space-sm bg-surface-container-low rounded-lg flex items-start gap-space-xs">
+<span class="material-symbols-outlined text-headline-sm text-secondary flex-shrink-0 mt-0.5">check_circle</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface">Automatic Period Freeze</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Periods lock 24 hours post disbursement. All direct edits permanently rejected.</span>
+</div>
+</div>
+<div class="p-space-sm bg-surface-container-low rounded-lg flex items-start gap-space-xs">
+<span class="material-symbols-outlined text-headline-sm text-secondary flex-shrink-0 mt-0.5">check_circle</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface">Two-Party Override Required</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Unlocking an archived cycle requires Finance VP and Lead Auditor dual-signature.</span>
+</div>
+</div>
+</div>
+</div>
+<button class="mt-space-md w-full py-space-sm rounded-lg font-headline-sm text-headline-sm bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors flex items-center justify-center gap-space-xs" type="button">
+<span class="material-symbols-outlined text-headline-sm">history_edu</span>
+<span class="">View Lock Exemption Registry</span>
+</button>
+</div>
+</div>
+</div>
+<div aria-labelledby="drawer-title" aria-modal="true" class="fixed inset-0 z-50 overflow-hidden hidden" id="adjustment-drawer" role="dialog">
+<div class="absolute inset-0 bg-primary/40 backdrop-blur-xs transition-opacity" onclick="toggleDrawer(false)"></div>
+<div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+<div class="w-screen max-w-xl bg-surface-container-lowest shadow-2xl flex flex-col justify-between">
+<div class="flex flex-col flex-1 overflow-y-auto p-space-xl">
+<div class="flex items-center justify-between pb-space-lg">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed">
+<span class="material-symbols-outlined text-headline-md">tune</span>
+</div>
+<div class="flex flex-col">
+<h2 class="font-headline-lg text-headline-lg text-on-surface" id="drawer-title">Payroll Adjustment Log</h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Non-Modifiable Period Audit Controls</span>
+</div>
+</div>
+<button class="p-space-xs text-on-surface-variant hover:text-on-surface rounded-lg hover:bg-surface-container-low transition-colors" onclick="toggleDrawer(false)" type="button">
+<span class="material-symbols-outlined text-headline-md">close</span>
+</button>
+</div>
+<div class="bg-surface-container-low rounded-xl p-space-md mb-space-lg flex items-start gap-space-sm">
+<span class="material-symbols-outlined text-on-tertiary-container text-headline-md flex-shrink-0 mt-0.5">verified_user</span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface">Immutability Rule Notice</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-space-2xs">Historical payroll cannot be modified. Corrections are created through audited adjustments. Adjustments approved post-lock are automatically attached to the next open pay cycle (PP-2025-08 or PP-2025-09).</p>
+</div>
+</div>
+<div class="space-y-space-md">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider block">Queued Adjustments for Locked Cycles</span>
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm space-y-space-md">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-sm text-headline-sm text-on-surface">Period PP-2025-07 Adjustment</span>
+<span class="px-space-xs py-space-2xs rounded bg-surface-variant text-on-primary-fixed-variant font-label-sm text-label-sm">MGH-1042</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant mt-space-2xs">Target: Sofia Calderon (Staff Cloud Architect)</span>
+</div>
+<span class="px-space-xs py-space-2xs rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-bold uppercase">Pending Roll-In</span>
+</div>
+<div class="bg-surface-container-low rounded-lg p-space-md space-y-space-xs text-body-sm font-body-sm text-on-surface">
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Adjustment Description:</span>
+<span class="font-semibold">+2.5h Retroactive OT (Incident Response #892)</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Supervisory Approval:</span>
+<span class="font-semibold text-secondary">Approved by Marcus Vance</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Financial Impact:</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">+$285.00 Gross</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Enforcement Policy:</span>
+<span class="text-error font-medium">Non-modifiable locked period policy enforced</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-xs text-label-sm font-label-sm text-on-surface-variant">
+<span class="">Created: Apr 08, 2025 by M. Vance</span>
+<span class="">Scheduled Pay Date: Apr 20, 2025</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm space-y-space-md">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-sm text-headline-sm text-on-surface">Period PP-2025-06 Adjustment</span>
+<span class="px-space-xs py-space-2xs rounded bg-surface-variant text-on-primary-fixed-variant font-label-sm text-label-sm">MGH-0994</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant mt-space-2xs">Target: Carlos Medina (Senior Backend Engineer)</span>
+</div>
+<span class="px-space-xs py-space-2xs rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm font-bold uppercase">Ready for PP-08</span>
+</div>
+<div class="bg-surface-container-low rounded-lg p-space-md space-y-space-xs text-body-sm font-body-sm text-on-surface">
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Adjustment Description:</span>
+<span class="font-semibold">Reimbursement for Dominican Cloud Infrastructure Cert</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Supervisory Approval:</span>
+<span class="font-semibold text-secondary">Approved by Elena Rostova</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Financial Impact:</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">+$1,135.00 Non-Taxable</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Audit Route:</span>
+<span class="text-secondary font-semibold">Verified against Expense Receipt #4019</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-xs text-label-sm font-label-sm text-on-surface-variant">
+<span class="">Created: Apr 04, 2025 by E. Rostova</span>
+<span class="">Scheduled Pay Date: Apr 20, 2025</span>
+</div>
+</div>
+</div>
+</div>
+<div class="p-space-lg bg-surface-container-low flex items-center justify-between gap-space-md">
+<button class="px-space-md py-space-sm rounded-lg font-headline-sm text-headline-sm bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors" onclick="toggleDrawer(false)" type="button">
+            Close Panel
+          </button>
+<button class="px-space-md py-space-sm rounded-lg font-headline-sm text-headline-sm bg-primary-container text-on-primary hover:bg-primary transition-colors flex items-center gap-space-xs" type="button">
+<span class="material-symbols-outlined text-headline-sm">add_circle</span>
+<span class="">Draft New Adjustment Voucher</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  function toggleDrawer(show) {
+    const drawer = document.getElementById('adjustment-drawer');
+    if (drawer) {
+      if (show) {
+        drawer.classList.remove('hidden');
+      } else {
+        drawer.classList.add('hidden');
+      }
+    }
+  }
+</script></main></div>
+
+</body></html>

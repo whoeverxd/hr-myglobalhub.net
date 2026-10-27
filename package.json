@@ -1,0 +1,22 @@
+{
+  "name": "mgh-timekeeping",
+  "version": "1.0.0",
+  "private": true,
+  "description": "My Global Hub Timekeeping — bi-weekly payroll, time entry, approvals and proof of payment (React + Node)",
+  "scripts": {
+    "install:all": "npm install && npm install --prefix backend && npm install --prefix frontend",
+    "dev": "concurrently -n api,web -c blue,magenta \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "build": "npm run build --prefix frontend",
+    "start": "npm start --prefix backend",
+    "user:create": "npm run user:create --prefix backend --",
+    "db:clean": "npm run db:clean --prefix backend",
+    "db:seed": "npm run db:seed --prefix backend",
+    "firebase:sync": "npm run firebase:sync --prefix backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  },
+  "dependencies": {
+    "firebase": "^13.1.0"
+  }
+}
