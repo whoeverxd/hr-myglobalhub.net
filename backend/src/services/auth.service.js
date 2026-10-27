@@ -284,6 +284,11 @@ function validateSession(token) {
 
   if (!session) return null;
 
+  let avatar = session.avatar;
+  if (avatar && (avatar.includes('assets/avatars/person-') || avatar.includes('carlos-mendez'))) {
+    avatar = null;
+  }
+
   return {
     id: session.u_id,
     email: session.email,
@@ -291,7 +296,7 @@ function validateSession(token) {
     role: session.role,
     entity: session.entity,
     employeeId: session.employee_id,
-    avatar: session.avatar,
+    avatar: avatar || null,
   };
 }
 
@@ -314,6 +319,10 @@ function logout(token, ip = '127.0.0.1') {
 }
 
 function sanitizeUser(user) {
+  let avatar = user.avatar;
+  if (avatar && (avatar.includes('assets/avatars/person-') || avatar.includes('carlos-mendez'))) {
+    avatar = null;
+  }
   return {
     id: user.id,
     email: user.email,
@@ -321,7 +330,7 @@ function sanitizeUser(user) {
     role: user.role,
     entity: user.entity,
     employeeId: user.employee_id,
-    avatar: user.avatar,
+    avatar: avatar || null,
     lastLoginAt: user.last_login_at,
   };
 }

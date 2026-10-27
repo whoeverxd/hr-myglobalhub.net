@@ -9,8 +9,13 @@ function getUserAvatarMap() {
   try {
     const users = db.query(`SELECT employee_id, email, avatar FROM users WHERE avatar IS NOT NULL`);
     for (const u of users) {
-      if (u.employee_id && u.avatar) map.set(u.employee_id, u.avatar);
-      if (u.email && u.avatar) map.set(u.email.toLowerCase(), u.avatar);
+      const av = u.avatar;
+      if (!av || typeof av !== 'string') continue;
+      if (av.includes('assets/avatars/') || av.includes('person-') || av.includes('carlos-mendez')) continue;
+      if (av.startsWith('http') || av.startsWith('data:') || av.startsWith('/api/uploads/')) {
+        if (u.employee_id) map.set(u.employee_id, av);
+        if (u.email) map.set(u.email.toLowerCase(), av);
+      }
     }
   } catch (_) {}
   return map;
@@ -18,12 +23,14 @@ function getUserAvatarMap() {
 
 function resolveCleanAvatar(e, userMap) {
   let avatar = e.avatar;
-  const userAvatar = userMap.get(e.id) || (e.email ? userMap.get(e.email.toLowerCase()) : null);
+  const userAvatar = userMap ? (userMap.get(e.id) || (e.email ? userMap.get(e.email.toLowerCase()) : null)) : null;
   if (userAvatar && (userAvatar.startsWith('http') || userAvatar.startsWith('data:') || userAvatar.startsWith('/api/uploads/'))) {
     return userAvatar;
   }
-  if (avatar && (avatar.startsWith('http') || avatar.startsWith('data:') || avatar.startsWith('/api/uploads/'))) {
-    return avatar;
+  if (avatar && typeof avatar === 'string' && !avatar.includes('assets/avatars/') && !avatar.includes('person-') && !avatar.includes('carlos-mendez')) {
+    if (avatar.startsWith('http') || avatar.startsWith('data:') || avatar.startsWith('/api/uploads/')) {
+      return avatar;
+    }
   }
   return null;
 }

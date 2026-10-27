@@ -27,7 +27,8 @@ function Avatar({
   const [bg, fg] = P[h % P.length];
   const [broken, setBroken] = React.useState(false);
   React.useEffect(() => { setBroken(false); }, [src]);
-  const showImg = !!src && !broken;
+  const isDummy = typeof src === 'string' && (src.includes('assets/avatars/person-') || src.includes('carlos-mendez'));
+  const showImg = !!src && !broken && !isDummy;
   const sc = {
     online: 'var(--mgh-success)',
     away: 'var(--mgh-warning-400)',

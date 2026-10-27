@@ -201,7 +201,10 @@ export default function TopBar({
   const resolvedEmail = userEmail || (currentUser && currentUser.email) || (rbacMe && rbacMe.email) || 'admin@myglobalhub.net';
   const resolvedRole = userRole || (currentUser && currentUser.role ? currentUser.role.toUpperCase() : '') || (rbacMe && rbacMe.title) || (typeof window !== 'undefined' && window.MGH_RBAC ? window.MGH_RBAC.role : 'Colaborador');
   const resolvedEntity = userEntity || (currentUser && currentUser.entity) || (rbacOrg && rbacOrg.short) || 'MGH Dominicana SRL';
-  const resolvedAvatar = avatar || (currentUser && currentUser.avatar) || (rbacMe && rbacMe.avatar) || null;
+  let resolvedAvatar = avatar || (currentUser && currentUser.avatar) || (rbacMe && rbacMe.avatar) || null;
+  if (resolvedAvatar && typeof resolvedAvatar === 'string' && (resolvedAvatar.includes('assets/avatars/person-') || resolvedAvatar.includes('carlos-mendez'))) {
+    resolvedAvatar = null;
+  }
   const resolvedEmpId = empId || (currentUser && currentUser.id) || (rbacMe && rbacMe.emp) || 'MGH-1042';
 
   const handleNav = (targetRoute, param) => {

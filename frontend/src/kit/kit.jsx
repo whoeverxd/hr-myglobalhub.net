@@ -12,7 +12,7 @@ import { getCurrentPeriod, getQuincenaForDate, getPeriodsForYear } from '../lib/
 const A = 'assets/avatars/';
 const EMPLOYEES = [
   { id: 'MGH-1001', name: 'Edwin Montalvo', role: 'Chief Executive Officer / Dueño', dept: 'Executive', type: 'Full-time', entity: 'MGH Dominicana SRL', loc: 'Santo Domingo, DR', mgr: 'Board of Directors', project: 'Global Platform', rate: 120, reg: 0, ot: 0, pto: 0, match: 100, status: 'Draft', avatar: null, bank: 'Banco Popular', joined: 'Jan 01, 2022' },
-  { id: 'MGH-1042', name: 'Joshua Hernandez', role: 'Project Manager & Lead', dept: 'Engineering', type: 'Full-time', entity: 'MGH Dominicana SRL', loc: 'Punta Cana, DR', mgr: 'Edwin Montalvo', project: 'MSHP — Project Planning', rate: 65, reg: 0, ot: 0, pto: 0, match: 100, status: 'Draft', avatar: null, bank: 'Banco BHD León', joined: 'Mar 15, 2023' },
+  { id: 'MGH-1042', name: 'Joshua Hernandez', role: 'Project Manager & Lead', dept: 'Engineering', type: 'Full-time', entity: 'MGH Dominicana SRL', loc: 'Punta Cana, DR', mgr: 'Edwin Montalvo', project: 'MSHP — Project Planning', rate: 65, reg: 0, ot: 0, pto: 0, match: 100, status: 'Draft', avatar: 'https://lh3.googleusercontent.com/a/ACg8ocIbwZhRWfile1B8LjT1SHb6EYXpIY1tl02ZKuXfwRA5l08ySGLc=s96-c', bank: 'Banco BHD León', joined: 'Mar 15, 2023' },
   { id: 'MGH-1043', name: 'Zain Rondon', role: 'Full Stack Developer', dept: 'Engineering', type: 'Contractor', entity: 'MGH Dominicana SRL', loc: 'Santiago, DR', mgr: 'Joshua Hernandez', project: 'MSHP — Project Planning', rate: 50, reg: 0, ot: 0, pto: 0, match: 100, status: 'Draft', avatar: null, bank: 'Banco BHD León', joined: 'Feb 10, 2024' },
   { id: 'MGH-1044', name: 'Luis Rodriguez', role: 'Backend & Mobile Developer', dept: 'Engineering', type: 'Full-time', entity: 'MGH Dominicana SRL', loc: 'Santo Domingo, DR', mgr: 'Joshua Hernandez', project: 'MSHP — Project Planning', rate: 50, reg: 0, ot: 0, pto: 0, match: 100, status: 'Draft', avatar: null, bank: 'Banreservas', joined: 'May 02, 2024' },
   { id: 'MGH-1045', name: 'Lissandra', role: 'UI/UX Designer & Frontend Developer', dept: 'Engineering', type: 'Full-time', entity: 'MGH Dominicana SRL', loc: 'Santo Domingo, DR', mgr: 'Joshua Hernandez', project: 'MSHP — Project Planning', rate: 45, reg: 0, ot: 0, pto: 0, match: 100, status: 'Draft', avatar: null, bank: 'Banco BHD León', joined: 'Jun 10, 2024' },
@@ -280,7 +280,7 @@ function ApprovalWorkspace(props) {
   return canAccess ? <ApprovalWorkspaceInner {...props} /> : window.__mghEmpty('Approval Workspace', ['Approvals', 'Approval Workspace'], 'No timesheets in your scope for this organization.');
 }
 
-function ApprovalWorkspaceInner({ notify, empId }) {
+function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
   const activeQuincena = typeof getCurrentPeriod === 'function' ? getCurrentPeriod() : { code: 'PP-2026-20', label: '15 al 31 de Octubre 2026', rangeShort: '15 Oct – 31 Oct', startDate: '2026-10-15', endDate: '2026-10-31', phase: 'Periodo Actual • En Curso', daysRemaining: 8 };
   const availablePeriods = React.useMemo(() => [
     { code: activeQuincena.code, label: `${activeQuincena.code} (${activeQuincena.rangeShort || activeQuincena.range || '15 Oct – 31 Oct, 2026'})`, phase: activeQuincena.phase || 'Periodo Actual • En Curso', start: activeQuincena.startDate, end: activeQuincena.endDate, startDate: activeQuincena.startDate, endDate: activeQuincena.endDate, daysRemaining: activeQuincena.daysRemaining },
@@ -342,8 +342,21 @@ function ApprovalWorkspaceInner({ notify, empId }) {
 
   // Merge scoped employees with timesheet from DB & #attDaily punch calculations
   const list = React.useMemo(() => {
-    const base = EMPLOYEES.filter(emp => MGH_RBAC.canAny(['timesheets.view', 'timesheets.approve', 'payroll.generate'], emp));
+    const curUser = currentUser || window.__mghCurrentUser || (window.MGH_AUTH && window.MGH_AUTH.user);
+    const empSource = (window.EMPLOYEES && window.EMPLOYEES.length > 0) ? window.EMPLOYEES : EMPLOYEES;
+    const base = empSource.filter(emp => MGH_RBAC.canAny(['timesheets.view', 'timesheets.approve', 'payroll.generate'], emp));
     return base.map(emp => {
+      const isCur = curUser && (
+        curUser.employeeId === emp.id ||
+        curUser.employee_id === emp.id ||
+        curUser.id === emp.id ||
+        (curUser.email && emp.email && curUser.email.toLowerCase() === emp.email.toLowerCase()) ||
+        (emp.name && curUser.name && curUser.name.toLowerCase() === emp.name.toLowerCase())
+      );
+      let resolvedAvatar = (isCur && curUser.avatar) ? curUser.avatar : emp.avatar;
+      if (resolvedAvatar && typeof resolvedAvatar === 'string' && (resolvedAvatar.includes('assets/avatars/') || resolvedAvatar.includes('person-') || resolvedAvatar.includes('carlos-mendez'))) {
+        resolvedAvatar = null;
+      }
       const ts = backendTimesheets.find(t => t.emp === emp.id && (t.period === periodCode || t.period === periodCode.replace('PP-', '')));
       const empPunches = backendPunches.filter(p => (p.emp || p.employee_id) === emp.id);
       let punchHours = 0, punchOt = 0;
@@ -370,6 +383,7 @@ function ApprovalWorkspaceInner({ notify, empId }) {
 
       return {
         ...emp,
+        avatar: resolvedAvatar,
         reg,
         ot,
         pto,
@@ -383,7 +397,7 @@ function ApprovalWorkspaceInner({ notify, empId }) {
         history: ts ? ts.history : []
       };
     });
-  }, [backendTimesheets, backendPunches, periodCode, curPeriod, empActivities.length, reconcil, empId]);
+  }, [backendTimesheets, backendPunches, periodCode, curPeriod, empActivities.length, reconcil, empId, currentUser]);
 
   const [cur, setCur] = React.useState(() => {
     if (empId && list.some(x => x.id === empId)) return empId;
@@ -5210,10 +5224,35 @@ class ViewBoundary extends React.Component {
 }
 
 function KitScreen({ route, go, notify, empId, currentUser, openRoleModal, onReloadData }) {
-  const fix = v => typeof v === 'string' ? v.replace(/(\.\.\/)+assets\//g, 'assets/') : v;
+  if (currentUser) {
+    window.__mghCurrentUser = currentUser;
+  }
+  const fix = v => {
+    if (typeof v !== 'string') return v;
+    if (v.includes('assets/avatars/person-') || v.includes('carlos-mendez.jpg')) return null;
+    return v.replace(/(\.\.\/)+assets\//g, 'assets/');
+  };
+  const prevEmps = window.EMPLOYEES;
   Object.assign(window, window.__MGH_DATA || {}); // DS bundle also defines these globals — keep the kit's versions
+  if (prevEmps && prevEmps.length > 0) {
+    window.EMPLOYEES = prevEmps;
+  }
   window.AVATARS = 'assets/avatars/'; window.__mghGo = go; window.__mghNotify = notify;
-  (window.EMPLOYEES || []).forEach(e => { e.avatar = fix(e.avatar); });
+  const curUser = currentUser || window.__mghCurrentUser || (window.MGH_AUTH && window.MGH_AUTH.user);
+  (window.EMPLOYEES || []).forEach(e => {
+    const isCur = curUser && (
+      curUser.employeeId === e.id ||
+      curUser.employee_id === e.id ||
+      curUser.id === e.id ||
+      (curUser.email && e.email && curUser.email.toLowerCase() === e.email.toLowerCase()) ||
+      (e.name && curUser.name && curUser.name.toLowerCase() === e.name.toLowerCase())
+    );
+    if (isCur && curUser.avatar) {
+      e.avatar = curUser.avatar;
+    } else {
+      e.avatar = fix(e.avatar);
+    }
+  });
   const K = window.__MGH_KIT || {}; const S = K[route] || K.dashboard;
   return (
     <div style={{ background: '#fff', minHeight: '100%' }}>
