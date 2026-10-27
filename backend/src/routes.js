@@ -56,6 +56,18 @@ router.get('/auth/firebase-config', authController.getFirebaseConfig);
 router.get('/auth/me', authenticate, authController.getMe);
 router.post('/auth/logout', authenticate, authController.logout);
 
+/* ---------- System users (Administration screen) ---------- */
+router.get('/users', authenticate, requireRole('hr', 'admin'), (req, res, next) => {
+  try {
+    const rows = db.query(
+      `SELECT id, email, name, role, entity, employee_id, avatar, is_active, last_login_at, created_at FROM users ORDER BY created_at ASC`
+    );
+    res.json(rows.map((u) => ({ ...u, is_active: u.is_active !== 0 })));
+  } catch (err) {
+    next(err);
+  }
+});
+
 /* ---------- Bootstrap (initial load) ---------- */
 router.get('/bootstrap', authenticate, (req, res, next) => {
   try {

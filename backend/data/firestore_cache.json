@@ -21682,6 +21682,61 @@
       "created_at": "2026-10-27T23:25:55.331Z",
       "id": "1817"
     },
+    "1818": {
+      "actor": "User",
+      "action": "USER_LOGOUT",
+      "entity_type": "session",
+      "entity_id": "usr_1793141848610_ilsyi",
+      "old_values": null,
+      "new_values": null,
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-27T23:32:51.971Z",
+      "id": "1818"
+    },
+    "1819": {
+      "actor": "Carmen Perez De La Matta",
+      "action": "USER_LOGIN",
+      "entity_type": "user",
+      "entity_id": "usr_1793141848610_ilsyi",
+      "old_values": null,
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"employee\",\"provider\":\"google\",\"googleUid\":\"jkSExeoyUNMU4HkHTnmpfC7378R2\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-27T23:33:16.432Z",
+      "id": "1819"
+    },
+    "1820": {
+      "actor": "Joshua Hernandez",
+      "action": "USER_LOGIN",
+      "entity_type": "user",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "old_values": null,
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\",\"provider\":\"google\",\"googleUid\":\"aJhVPkkiWePUXE5ufREZovS160E2\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-27T23:33:32.388Z",
+      "id": "1820"
+    },
+    "1821": {
+      "actor": "Carmen Perez De La Matta",
+      "action": "USER_LOGIN",
+      "entity_type": "user",
+      "entity_id": "usr_1793141848610_ilsyi",
+      "old_values": null,
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"employee\",\"provider\":\"google\",\"googleUid\":\"jkSExeoyUNMU4HkHTnmpfC7378R2\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-27T23:47:40.208Z",
+      "id": "1821"
+    },
+    "1822": {
+      "actor": "Joshua Hernandez",
+      "action": "USER_LOGIN",
+      "entity_type": "user",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "old_values": null,
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\",\"provider\":\"google\",\"googleUid\":\"aJhVPkkiWePUXE5ufREZovS160E2\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-27T23:48:25.961Z",
+      "id": "1822"
+    },
     "audit_test_1793052942079": {
       "id": "audit_test_1793052942079",
       "actor": "Test Runner",
@@ -22469,7 +22524,7 @@
       "_migratedAt": "2026-10-27T17:59:42.800Z",
       "last_name": null,
       "tax": null,
-      "avatar": "assets/avatars/person-2.jpg",
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocIbwZhRWfile1B8LjT1SHb6EYXpIY1tl02ZKuXfwRA5l08ySGLc=s96-c",
       "dept": "Engineering",
       "pmethod": "Bank Deposit",
       "phone": null,
@@ -28566,13 +28621,37 @@
       "created_at": "2026-10-27T22:57:28.613Z",
       "id": "doc_1793141848613_y58by"
     },
-    "doc_1793143555331_n4hnk": {
-      "token": "ff1901dfd6f3abcc4f1b0689dbb87c19f96cf228bcf5e4bb0661b7e1164270bb",
+    "doc_1793143996432_osxnf": {
+      "token": "c252fc5d55c99d1ce834ced6a0f9bb9304e52e0d5b1e7870f56387d28bd83010",
       "user_id": "usr_1793141848610_ilsyi",
       "ip_address": "127.0.0.1",
-      "expires_at": "2026-11-03T23:25:55.330Z",
-      "created_at": "2026-10-27T23:25:55.331Z",
-      "id": "doc_1793143555331_n4hnk"
+      "expires_at": "2026-11-03T23:33:16.431Z",
+      "created_at": "2026-10-27T23:33:16.432Z",
+      "id": "doc_1793143996432_osxnf"
+    },
+    "doc_1793144012388_87da0": {
+      "token": "f4856fcfbe1e4c740886d59e89a7b1eb2e4024fc4f615baad770b12fa1a6121b",
+      "user_id": "usr_1793131618127_8yfuy",
+      "ip_address": "127.0.0.1",
+      "expires_at": "2026-11-03T23:33:32.387Z",
+      "created_at": "2026-10-27T23:33:32.388Z",
+      "id": "doc_1793144012388_87da0"
+    },
+    "doc_1793144860207_vgkaa": {
+      "token": "3d6cce17c87bef60dace82ed3200e408e135d3b76e7dec3781b0911f67d8a998",
+      "user_id": "usr_1793141848610_ilsyi",
+      "ip_address": "127.0.0.1",
+      "expires_at": "2026-11-03T23:47:40.207Z",
+      "created_at": "2026-10-27T23:47:40.207Z",
+      "id": "doc_1793144860207_vgkaa"
+    },
+    "doc_1793144905961_hbz47": {
+      "token": "aa612d47f3c6e215a1af6a9f96e0ad0aa50302ff3a44d3aa80e8b127479e3f17",
+      "user_id": "usr_1793131618127_8yfuy",
+      "ip_address": "127.0.0.1",
+      "expires_at": "2026-11-03T23:48:25.960Z",
+      "created_at": "2026-10-27T23:48:25.961Z",
+      "id": "doc_1793144905961_hbz47"
     }
   },
   "test_sandbox": {
@@ -29348,7 +29427,7 @@
       "email": "zain@myglobalhub.net",
       "entity": "MGH Dominicana SRL",
       "last_login_at": "2026-10-27T18:31:57.798Z",
-      "updated_at": "2026-10-27T22:30:09.780Z"
+      "updated_at": "2026-10-27T23:48:25.990Z"
     },
     "usr-zain-com": {
       "id": "usr-zain-com",
@@ -29413,7 +29492,7 @@
       "avatar": "https://lh3.googleusercontent.com/a/ACg8ocIbwZhRWfile1B8LjT1SHb6EYXpIY1tl02ZKuXfwRA5l08ySGLc=s96-c",
       "is_active": 1,
       "created_at": "2026-10-27T20:06:58.129Z",
-      "last_login_at": "2026-10-27T20:26:42.004Z"
+      "last_login_at": "2026-10-27T23:48:25.961Z"
     },
     "usr_1793141848610_ilsyi": {
       "id": "usr_1793141848610_ilsyi",
@@ -29427,7 +29506,7 @@
       "avatar": "https://lh3.googleusercontent.com/a/ACg8ocJbltZrUJYYEvRsMA8dllgtnOfxuiS_EM9EiuumDibY4vqHuL4=s96-c",
       "is_active": 1,
       "created_at": "2026-10-27T22:57:28.611Z",
-      "last_login_at": "2026-10-27T23:25:55.331Z",
+      "last_login_at": "2026-10-27T23:47:40.208Z",
       "updated_at": "2026-10-27T23:01:15.335Z"
     }
   },

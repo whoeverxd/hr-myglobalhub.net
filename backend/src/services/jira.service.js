@@ -156,20 +156,8 @@ const jiraService = {
    * Garantiza que los proyectos base existan en la tabla jira_projects
    */
   ensureDefaultProjects() {
-    try {
-      const row = db.getOne('SELECT COUNT(*) as count FROM jira_projects');
-      if (!row || row.count === 0) {
-        db.transaction(() => {
-          for (const p of DEFAULT_PROJECTS) {
-            db.execute(
-              `INSERT OR IGNORE INTO jira_projects (id, key, name, lead, people, budget, spent, hrs, bill, st)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-              [p.id, p.key, p.name, p.lead, p.people, p.budget, p.spent, p.hrs, p.bill, p.st]
-            );
-          }
-        });
-      }
-    } catch (_) {}
+    // Intencionalmente vacío: los proyectos los crea el usuario o se sincronizan desde Jira.
+    // Antes sembraba DEFAULT_PROJECTS (datos de demostración) cada vez que la tabla estaba vacía.
   },
 
   /**
@@ -213,18 +201,18 @@ const jiraService = {
           name: p.name,
           lead: p.lead || 'Sin asignar',
           people: peopleCount,
-          budget: p.budget || 50000,
+          budget: p.budget || 0,
           spent: p.spent || 0,
           hrs: p.hrs || 0,
-          bill: p.bill != null ? p.bill : 100,
+          bill: p.bill != null ? p.bill : 0,
           st: p.st || 'On track',
           last_sync_at: lastSync || null,
           tasks_count: tasksCount,
         };
       });
     } catch (e) {
-      console.warn('[Jira] listProjects fallback:', e.message);
-      return DEFAULT_PROJECTS;
+      console.warn('[Jira] listProjects error:', e.message);
+      return [];
     }
   },
 
@@ -512,25 +500,6 @@ const jiraService = {
       rows = db.query(sql, params);
     } catch (e) {
       console.warn('[Jira] getProjectIssues error:', e.message);
-    }
-
-    // Si no hay tareas para este proyecto en la base de datos pero coincide con alguno de respaldo
-    if (rows.length === 0 && !qLower && (!status || status === 'all')) {
-      const fallbacks = DEFAULT_JIRA_ISSUES.filter((i) => i.key.startsWith(normKey + '-'));
-      if (fallbacks.length > 0) {
-        rows = fallbacks.map((f) => ({
-          key: f.key,
-          summary: f.summary,
-          issue_type: f.type,
-          status: f.status,
-          assignee_name: f.assignee,
-          estimate_hours: f.estimate,
-          logged_hours: 0,
-          url: `${config.host}/browse/${f.key}`,
-          jira_updated_at: null,
-          cached_at: null,
-        }));
-      }
     }
 
     // Obtener última fecha de sincronización
@@ -841,13 +810,8 @@ const jiraService = {
       console.warn('[Jira] SQLite cache query error:', e.message);
     }
 
-    // Fallback al catálogo de respaldo si la tabla está vacía
-    if (!qLower) {
-      return DEFAULT_JIRA_ISSUES.slice(0, limit);
-    }
-    return DEFAULT_JIRA_ISSUES.filter(
-      (iss) => iss.key.toLowerCase().includes(qLower) || iss.summary.toLowerCase().includes(qLower)
-    ).slice(0, limit);
+    // Sin caché local no hay tareas que mostrar (no se devuelven tareas de demostración)
+    return [];
   },
 
   /**
@@ -875,7 +839,6 @@ const jiraService = {
 
     // Mapa de estimaciones combinando SQLite cache y fallback
     const estimatesMap = new Map();
-    DEFAULT_JIRA_ISSUES.forEach((iss) => estimatesMap.set(iss.key, iss.estimate));
     try {
       const cached = db.query(`SELECT key, estimate_hours FROM jira_issues_cache`);
       cached.forEach((c) => {

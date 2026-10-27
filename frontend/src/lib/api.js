@@ -236,6 +236,7 @@ export const api = {
     return request('GET', `/payroll/export/usdc${q ? `?${q}` : ''}`);
   },
   confirmUsdc: (payload) => request('POST', '/payroll/rails/usdc/confirm', payload),
+  users: () => request('GET', '/users'),
   paystubs: (empId) => request('GET', `/payroll/paystubs${empId ? `?empId=${encodeURIComponent(empId)}` : ''}`),
   getPaystub: (employeeId, periodId) =>
     request('GET', `/payroll/paystub/${encodeURIComponent(employeeId)}/${encodeURIComponent(periodId)}`),

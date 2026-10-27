@@ -10,15 +10,8 @@ import { getCurrentPeriod, getQuincenaForDate, getPeriodsForYear } from '../lib/
 (function(){
 // Sample data for the My Global Hub enterprise kit (names/values follow the Figma file's sample content)
 const A = 'assets/avatars/';
-const EMPLOYEES = [
-  { id: 'MGH-1001', name: 'Edwin Montalvo', role: 'Chief Executive Officer / Dueño', dept: 'Executive', type: 'Full-time', entity: 'MGH Dominicana SRL', loc: 'Santo Domingo, DR', mgr: 'Board of Directors', project: 'Global Platform', rate: 120, reg: 0, ot: 0, pto: 0, match: 100, status: 'Draft', avatar: null, bank: 'Banco Popular', joined: 'Jan 01, 2022' },
-  { id: 'MGH-1042', name: 'Joshua Hernandez', role: 'Project Manager & Lead', dept: 'Engineering', type: 'Full-time', entity: 'MGH Dominicana SRL', loc: 'Punta Cana, DR', mgr: 'Edwin Montalvo', project: 'MSHP — Project Planning', rate: 65, reg: 0, ot: 0, pto: 0, match: 100, status: 'Draft', avatar: 'https://lh3.googleusercontent.com/a/ACg8ocIbwZhRWfile1B8LjT1SHb6EYXpIY1tl02ZKuXfwRA5l08ySGLc=s96-c', bank: 'Banco BHD León', joined: 'Mar 15, 2023' },
-  { id: 'MGH-1043', name: 'Zain Rondon', role: 'Full Stack Developer', dept: 'Engineering', type: 'Contractor', entity: 'MGH Dominicana SRL', loc: 'Santiago, DR', mgr: 'Joshua Hernandez', project: 'MSHP — Project Planning', rate: 50, reg: 0, ot: 0, pto: 0, match: 100, status: 'Draft', avatar: null, bank: 'Banco BHD León', joined: 'Feb 10, 2024' },
-  { id: 'MGH-1044', name: 'Luis Rodriguez', role: 'Backend & Mobile Developer', dept: 'Engineering', type: 'Full-time', entity: 'MGH Dominicana SRL', loc: 'Santo Domingo, DR', mgr: 'Joshua Hernandez', project: 'MSHP — Project Planning', rate: 50, reg: 0, ot: 0, pto: 0, match: 100, status: 'Draft', avatar: null, bank: 'Banreservas', joined: 'May 02, 2024' },
-  { id: 'MGH-1045', name: 'Lissandra', role: 'UI/UX Designer & Frontend Developer', dept: 'Engineering', type: 'Full-time', entity: 'MGH Dominicana SRL', loc: 'Santo Domingo, DR', mgr: 'Joshua Hernandez', project: 'MSHP — Project Planning', rate: 45, reg: 0, ot: 0, pto: 0, match: 100, status: 'Draft', avatar: null, bank: 'Banco BHD León', joined: 'Jun 10, 2024' },
-  { id: 'MGH-1046', name: 'Juan Zamora', role: 'QA Engineer & Developer', dept: 'Engineering', type: 'Full-time', entity: 'MGH Dominicana SRL', loc: 'Santo Domingo, DR', mgr: 'Joshua Hernandez', project: 'MSHP — Project Planning', rate: 45, reg: 0, ot: 0, pto: 0, match: 100, status: 'Draft', avatar: null, bank: 'Banreservas', joined: 'Jul 01, 2024' },
-  { id: 'MGH-1163', name: 'Valeria Soto', role: 'Junior Frontend Developer', dept: 'Engineering', type: 'Full-time', entity: 'MGH Dominicana SRL', loc: 'Santo Domingo, DR', mgr: 'Joshua Hernandez', project: 'MSHP — Project Planning', rate: 40, reg: 0, ot: 0, pto: 0, match: 100, status: 'Draft', avatar: null, bank: 'Banreservas', joined: 'Jan 15, 2025' },
-];
+// Real employees are loaded from the backend (App.loadFromApi); no sample records.
+const EMPLOYEES = [];
 EMPLOYEES.forEach(e => { e.total = e.reg + e.ot + e.pto; e.gross = +(e.reg * e.rate + e.ot * e.rate * 1.5 + e.pto * e.rate).toFixed(2);
   e.tax = e.tax || (e.type === 'Exempt' ? 'Exempt — not subject to tax deductions' : /USA/.test(e.entity) ? 'W-4 (US Federal)' : /UK/.test(e.entity) ? 'PAYE (HMRC)' : 'DGII (ISR + TSS)'); });
 // Payroll deduction engine — reads each employee's tax profile; Exempt short-circuits all withholdings
@@ -195,10 +188,14 @@ const recOf = id => {
   return WF.get(id, curP) || WF.ensure(id, (EMPLOYEES.find(x => x.id === id) || {}).name || id, curP, 'Draft');
 };
 const liveStatus = e => { const r = recOf(e.id); return r ? r.status : (e.status || 'Draft'); };
+// Jira match is null until real reconciliation data exists — never treat "not measured" as a mismatch.
+const hasMatch = e => typeof e.match === 'number';
+const lowMatch = e => hasMatch(e) && e.match < 95;
+const matchTxt = e => hasMatch(e) ? e.match + '%' : '—';
 function WFPill({ status, size }) { const c = WF ? WF.statusColor(status) : ['#EAEDFF', '#43474D']; return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: size === 'sm' ? '2px 8px' : '3px 10px', borderRadius: 9999, font: (size === 'sm' ? '700 11px/16px' : '700 12px/16px') + ' var(--font-sans)', background: c[0], color: c[1], whiteSpace: 'nowrap' }}>{status}</span>; }
 function useWF() { const [, f] = React.useState(0); React.useEffect(() => { const h = () => f(x => x + 1); window.addEventListener('mgh-wf', h); return () => window.removeEventListener('mgh-wf', h); }, []); }
 const fmtAt = iso => { const t = new Date(iso); return isNaN(t) ? iso : t.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); };
-window.__MGH_DATA = { ALL_EMP, EMPLOYEES, DEDUCT, STATUS_TONE, NAV, buildDays, fmt$, fmtH, useTable, AVATARS: A, WF, WFPill, useWF, recOf, liveStatus, fmtAt, PERIOD };
+window.__MGH_DATA = { ALL_EMP, EMPLOYEES, DEDUCT, STATUS_TONE, NAV, buildDays, fmt$, fmtH, useTable, AVATARS: A, WF, WFPill, useWF, recOf, liveStatus, fmtAt, PERIOD, hasMatch, lowMatch, matchTxt };
 Object.assign(window, window.__MGH_DATA);
 
 })();
@@ -261,7 +258,7 @@ function QueueCard({ e, active, checked, onCheck, onClick }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ font: '600 14px/20px var(--font-sans)', color: 'var(--mgh-ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.name}</span><Badge mono size="sm" tone="neutral">{e.id}</Badge></div>
         <div style={{ font: '400 12px/16px var(--font-sans)', color: 'var(--mgh-ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.role} • {e.dept}</div>
       </div>
-      <Badge size="sm" dot tone={e.match >= 98 ? 'success' : 'warning'}>{e.match}%</Badge>
+      <Badge size="sm" dot tone={!hasMatch(e) ? 'neutral' : e.match >= 98 ? 'success' : 'warning'}>{matchTxt(e)}</Badge>
     </div>
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', background: active ? '#fff' : 'var(--mgh-surface-1)', borderRadius: 8, padding: '6px 4px', textAlign: 'center' }}>
       {[['Reg', e.reg], ['OT', e.ot, e.ot > 8 ? 'var(--mgh-danger)' : e.ot ? 'var(--mgh-warning)' : null], ['PTO', e.pto, e.pto ? 'var(--mgh-success)' : null], ['Total', e.total]].map(([l, v, c]) => <div key={l}><div style={{ font: '500 11px/14px var(--font-sans)', color: c || 'var(--mgh-ink-3)' }}>{l}</div><div style={{ font: '700 13px/18px var(--font-sans)', color: c || 'var(--mgh-ink)' }}>{fmtH(v)}</div></div>)}
@@ -436,7 +433,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
 
   const days = React.useMemo(() => buildDays(e, curPeriod, reconcil), [e.id, curPeriod, reconcil]);
   const shown = days.filter(d => week === 'all' || d.week === +week);
-  const filtered = list.filter(x => (filter === 'all' || (filter === 'ot' && x.ot > 0) || (filter === 'jira' && x.match < 95) || (filter === 'ready' && ['Ready', 'Approved'].includes(x.status))) && (!q || (x.name + x.id + x.project).toLowerCase().includes(q.toLowerCase())));
+  const filtered = list.filter(x => (filter === 'all' || (filter === 'ot' && x.ot > 0) || (filter === 'jira' && lowMatch(x)) || (filter === 'ready' && ['Ready', 'Approved'].includes(x.status))) && (!q || (x.name + x.id + x.project).toLowerCase().includes(q.toLowerCase())));
   const jiraTotal = days.reduce((s, d) => s + (Number(d.jira) || 0), 0);
   const clockTotal = days.reduce((s, d) => s + (Number(d.hrs) || 0), 0);
 
@@ -510,7 +507,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
   }, 0);
   const avgRate = list.length > 0 ? (list.reduce((s, x) => s + (Number(x.rate) || 0), 0) / list.length).toFixed(1) : '0';
 
-  const discrepanciesCount = list.filter(x => (x.match < 95) || (x.ot > 8)).length;
+  const discrepanciesCount = list.filter(x => lowMatch(x) || (x.ot > 8)).length;
 
   // Comments feed from real timesheet history
   const historyComments = (reconcil?.timesheet?.history || rec?.history || [])
@@ -618,7 +615,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
       {/* Queue */}
       <div style={{ width: 340, flexShrink: 0, position: 'sticky', top: 84, display: 'flex', flexDirection: 'column', gap: 10, background: 'var(--mgh-surface-page)', borderRadius: 16, padding: 14, maxHeight: 'calc(100vh - 104px)' }}>
         <SearchField value={q} onChange={setQ} placeholder="Buscar por empleado, ID, o proyecto..." style={{ background: '#fff' }} />
-        <FilterChips value={filter} onChange={setFilter} options={[{ value: 'all', label: 'All', count: list.length }, { value: 'ot', label: 'Overtime', count: list.filter(x => x.ot).length, tone: 'warning' }, { value: 'jira', label: 'Jira Mismatch', count: list.filter(x => x.match < 95).length, tone: 'danger' }, { value: 'ready', label: 'Ready' }]} />
+        <FilterChips value={filter} onChange={setFilter} options={[{ value: 'all', label: 'All', count: list.length }, { value: 'ot', label: 'Overtime', count: list.filter(x => x.ot).length, tone: 'warning' }, { value: 'jira', label: 'Jira Mismatch', count: list.filter(lowMatch).length, tone: 'danger' }, { value: 'ready', label: 'Ready' }]} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', background: '#fff', borderRadius: 8 }}>
           <Checkbox checked={sel.length === filtered.length && sel.length > 0} indeterminate={sel.length > 0 && sel.length < filtered.length} onChange={() => setSel(sel.length === filtered.length ? [] : filtered.map(x => x.id))} label={`Select All (${filtered.length})`} />
           {MGH_RBAC.can('timesheets.approve') && <Button size="sm" variant="ghost" icon="done_all" disabled={!sel.length} onClick={async () => {
@@ -664,7 +661,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
           <div style={{ textAlign: 'right' }}>
             <div className="mgh-overline">Tarifa por hora</div>
             <div style={{ font: '800 28px/36px var(--font-sans)', letterSpacing: '-0.56px', color: 'var(--mgh-ink)' }}>{fmt$(e.rate)}<span style={{ font: '500 14px var(--font-sans)', color: 'var(--mgh-ink-3)' }}> / hr</span></div>
-            <Badge tone={e.match >= 95 ? 'success' : 'danger'} icon={e.match >= 95 ? 'verified' : 'sync_problem'}>{e.match >= 95 ? 'Conciliación Ponches vs Tareas OK' : 'Discrepancia ' + (100 - e.match).toFixed(1) + '%'}</Badge>
+            {hasMatch(e) ? <Badge tone={e.match >= 95 ? 'success' : 'danger'} icon={e.match >= 95 ? 'verified' : 'sync_problem'}>{e.match >= 95 ? 'Conciliación Ponches vs Tareas OK' : 'Discrepancia ' + (100 - e.match).toFixed(1) + '%'}</Badge> : <Badge tone="neutral" icon="help">Sin conciliación</Badge>}
           </div>
         </div>
 
@@ -894,9 +891,9 @@ function TeamApprovalQueue({ go, notify }) {
       const pto = ts ? Number(ts.pto) : 0.0;
       const total = ts ? Number(ts.total) : (reg + ot + pto);
       const status = ts ? ts.status : (emp.status || 'Draft');
-      const rate = Number(emp.rate) || 50;
+      const rate = Number(emp.rate) || 0;
       const gross = +(reg * rate + ot * rate * 1.5 + pto * rate).toFixed(2);
-      const match = total > 0 ? (emp.match || 100) : 100;
+      const match = hasMatch(emp) ? emp.match : null;
       const rec = WF ? WF.get(emp.id, periodCode) || { emp: emp.id, status, stepIdx: -1 } : { emp: emp.id, status, stepIdx: -1 };
 
       return {
@@ -978,7 +975,7 @@ function TeamApprovalQueue({ go, notify }) {
           { key: 'reg', label: 'Regular', align: 'right', sortable: true, render: r => fmtH(r.reg) },
           { key: 'ot', label: 'Overtime', align: 'right', sortable: true, render: r => <span style={{ color: r.ot > 8 ? 'var(--mgh-danger)' : r.ot ? 'var(--mgh-warning)' : undefined, fontWeight: r.ot ? 700 : 400 }}>{fmtH(r.ot)}</span> },
           { key: 'total', label: 'Total', align: 'right', sortable: true, strong: true, weight: 700, render: r => fmtH(r.total) },
-          { key: 'match', label: 'Jira match', align: 'right', sortable: true, render: r => <Badge size="sm" dot tone={r.match >= 98 ? 'success' : r.match >= 93 ? 'warning' : 'danger'}>{r.match}%</Badge> },
+          { key: 'match', label: 'Jira match', align: 'right', sortable: true, render: r => <Badge size="sm" dot tone={!hasMatch(r) ? 'neutral' : r.match >= 98 ? 'success' : r.match >= 93 ? 'warning' : 'danger'}>{matchTxt(r)}</Badge> },
           { key: 'gross', label: 'Est. gross', align: 'right', sortable: true, strong: true, render: r => fmt$(r.gross) },
           { key: 'status', label: 'Status', sortable: true, render: r => <WFPill size="sm" status={r.status} /> },
           { key: 'x', label: '', align: 'right', render: r => <IconButton icon="chevron_right" size={28} title="Review" /> }]} />
@@ -1025,41 +1022,50 @@ function Dashboard({ go }) {
   const gross = E.reduce((s, e) => s + (e.gross || 0), 0), gk = gross / 1000;
   const pend = E.filter(e => WF && WF.canAct(recOf(e.id))).length;
   const inReview = E.filter(e => /Review|Submitted/.test(liveStatus(e))).length;
-  const alerts = E.filter(e => e.match < 95 || e.ot > 8).length;
-  const util = E.length ? E.reduce((s, e) => s + (e.match || 0), 0) / E.length : 0;
+  const alerts = E.filter(e => lowMatch(e) || e.ot > 8).length;
+  const measured = E.filter(hasMatch);
+  const util = measured.length ? measured.reduce((s, e) => s + e.match, 0) / measured.length : null;
   const pal = ['var(--mgh-primary)', 'var(--mgh-accent)', 'var(--mgh-navy)', 'var(--mgh-success)', 'var(--mgh-ink-4)'];
   const byD = {}; E.forEach(e => { byD[e.dept] = (byD[e.dept] || 0) + (e.gross || 0); });
   let dl = Object.entries(byD).sort((a, b) => b[1] - a[1]); if (dl.length > 5) dl = [...dl.slice(0, 4), ['Other', dl.slice(4).reduce((s, x) => s + x[1], 0)]];
   const depts = dl.map(([l, v], i) => [l, gross ? Math.round(v / gross * 100) : 0, pal[i], v]);
   const first = (me.person || '').split(' ')[0];
   const curPeriod = getCurrentPeriod();
-  const curNum = curPeriod.periodNumber;
-  const trend = [0.902, 0.926, 0.941, 0.957, 0.969, 1].map((f, i) => {
-    const pNum = Math.max(1, curNum - 5 + i);
-    return { label: 'PP-' + String(pNum).padStart(2, '0'), a: +(gk * f).toFixed(1), hi: i === 5 };
-  });
+  // Trend = gross of the last 6 saved payroll runs (one bar per period); empty until payroll is actually run.
+  const [runs, setRuns] = React.useState([]);
+  React.useEffect(() => {
+    let cancel = false;
+    if (window.api && window.api.payrollRuns) window.api.payrollRuns().then(r => { if (!cancel && Array.isArray(r)) setRuns(r); }).catch(() => {});
+    return () => { cancel = true; };
+  }, []);
+  const byPeriod = {}; runs.forEach(r => { byPeriod[r.period_id] = (byPeriod[r.period_id] || 0) + (Number(r.total_gross) || 0); });
+  const trend = Object.keys(byPeriod).sort().slice(-6).map(p => ({ label: 'PP-' + p.slice(-2), a: +(byPeriod[p] / 1000).toFixed(1), hi: p === curPeriod.code }));
+  const timesheetCount = E.filter(e => e.hasTimesheet).length;
+  const attention = EMPLOYEES.filter(e => e.hasTimesheet && liveStatus(e) !== 'Approved' && MGH_RBAC.can('timesheets.view', e)).slice(0, 5);
   const daysRemText = curPeriod.daysRemaining === 1 ? '1 día' : `${curPeriod.daysRemaining} días`;
   const periodDesc = `${curPeriod.code} (${curPeriod.rangeShort}, ${curPeriod.year}) cierra en ${daysRemText} • ${O.id.replace(/\.$/, '')}. ` + (pend ? pend + ' timesheet' + (pend === 1 ? ' still needs' : 's still need') + ' your approval before Finance Run.' : inReview + ' timesheet' + (inReview === 1 ? '' : 's') + ' in review • none waiting on you.');
   return <Page>
     <PageHeader breadcrumbs={['Overview']} title={'Good morning, ' + first} description={periodDesc} actions={<><Button variant="secondary" icon="calendar_month" onClick={() => (window.__mghGo ? window.__mghGo('periods') : go('periods'))}>{curPeriod.rangeShort}</Button>{R.canRoute('approvals') && <Button icon="assignment_turned_in" onClick={() => go('approvals')}>{pend ? 'Review ' + pend + ' Approval' + (pend === 1 ? '' : 's') : 'Open Approvals'}</Button>}</>} />
     <Grid min={220}>
       <StatCard label="Active workforce" value={String(E.length)} unit="employees" icon="groups" footer={O.short + ' • ' + R.SCOPE_LABEL[R.scopeOf('dashboard.executive.view')] + ' scope'} />
-      <StatCard label="Period payroll" value={'$' + gk.toFixed(1) + 'k'} unit="USD" icon="payments" tone="accent" footer={'Local currency ' + O.currency} />
-      <StatCard label="Jira match (avg)" value={util.toFixed(1) + '%'} icon="data_usage" tone="success" progress={util} />
-      <StatCard label="Compliance alerts" value={String(alerts)} icon="gpp_maybe" tone="danger" footer={<span style={{ color: 'var(--mgh-danger)' }}>{E.filter(e => e.match < 95).length} Jira • {E.filter(e => e.ot > 8).length} overtime</span>} />
+      <StatCard label="Period payroll" value={'$' + gk.toFixed(1) + 'k'} unit="USD" icon="payments" tone="accent" footer={timesheetCount + ' timesheet' + (timesheetCount === 1 ? '' : 's') + ' this period • Local currency ' + O.currency} />
+      <StatCard label="Jira match (avg)" value={util == null ? '—' : util.toFixed(1) + '%'} icon="data_usage" tone="success" progress={util == null ? undefined : util} footer={util == null ? 'No reconciliation data yet' : undefined} />
+      <StatCard label="Compliance alerts" value={String(alerts)} icon="gpp_maybe" tone="danger" footer={<span style={{ color: 'var(--mgh-danger)' }}>{E.filter(lowMatch).length} Jira • {E.filter(e => e.ot > 8).length} overtime</span>} />
     </Grid>
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(300px,1fr)', gap: 20 }}>
-      <Card title="Gross payroll trend" subtitle="Last 6 bi-weekly periods (thousands USD)" icon="monitoring" actions={<Tabs value="pp" tabs={[{ value: 'pp', label: 'Period' }, { value: 'q', label: 'Quarter' }]} style={{ padding: 3 }} />}><BarChart data={trend} height={200} format={v => '$' + v + 'k'} /></Card>
+      <Card title="Gross payroll trend" subtitle="Saved payroll runs, last 6 periods (thousands USD)" icon="monitoring">{trend.length ? <BarChart data={trend} height={200} format={v => '$' + v + 'k'} /> : <div className="mgh-body" style={{ padding: '48px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>No payroll runs yet.</div>}</Card>
       <Card title="Cost by department" icon="donut_small">
-        <ProgressBar height={14} segments={depts.map(([l, v, c]) => ({ value: v, color: c, label: v + '%' }))} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>{depts.map(([l, v, c]) => <div key={l} style={{ display: 'flex', justifyContent: 'space-between', font: '500 13px var(--font-sans)' }}><span style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: 2, background: c }} />{l}</span><b style={{ color: 'var(--mgh-ink)' }}>{fmt$(depts.find(d => d[0] === l)[3])}</b></div>)}</div>
+        {gross > 0 ? <>
+          <ProgressBar height={14} segments={depts.map(([l, v, c]) => ({ value: v, color: c, label: v + '%' }))} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>{depts.map(([l, v, c]) => <div key={l} style={{ display: 'flex', justifyContent: 'space-between', font: '500 13px var(--font-sans)' }}><span style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: 2, background: c }} />{l}</span><b style={{ color: 'var(--mgh-ink)' }}>{fmt$(depts.find(d => d[0] === l)[3])}</b></div>)}</div>
+        </> : <div className="mgh-body" style={{ padding: '32px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>No hours logged this period.</div>}
       </Card>
     </div>
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(300px,1fr)', gap: 20 }}>
       <Card title="Needs your attention" icon="priority_high" actions={<Button size="sm" variant="ghost" iconRight="arrow_forward" onClick={() => go('queue')}>View queue</Button>} bodyStyle={{ paddingTop: 14 }}>
-        <DataTable density="compact" onRowClick={r => go('approvals', r.id)} rows={EMPLOYEES.filter(e => e.status !== 'Approved' && MGH_RBAC.can('timesheets.view', e)).slice(0, 5)} columns={[
+        {attention.length ? <DataTable density="compact" onRowClick={r => go('approvals', r.id)} rows={attention} columns={[
           { key: 'name', label: 'Employee', render: r => <EmployeeCell e={r} /> }, { key: 'total', label: 'Hours', align: 'right', render: r => fmtH(r.total) },
-          { key: 'status', label: 'Status', render: r => <Badge size="sm" tone={STATUS_TONE[r.status]}>{r.status}</Badge> }, { key: 'gross', label: 'Est. gross', align: 'right', strong: true, render: r => fmt$(r.gross) }]} />
+          { key: 'status', label: 'Status', render: r => <WFPill size="sm" status={liveStatus(r)} /> }, { key: 'gross', label: 'Est. gross', align: 'right', strong: true, render: r => fmt$(r.gross) }]} /> : <div className="mgh-body" style={{ padding: '32px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>No timesheets pending this period.</div>}
       </Card>
       <Card title="Period timeline" icon="event_upcoming">
         <ActivityFeed items={[
@@ -1222,7 +1228,7 @@ function EmployeeProfileInner({ empId, go, notify }) {
     {tab === 'jira' && <Card icon="hub" title="Jira Integration" actions={<Badge tone="success" dot>Connected</Badge>}>
       <KeyValue label="Atlassian Cloud ID" value={e.name.toLowerCase().replace(' ', '.') + '@globalhub.atlassian.net'} />
       <KeyValue label="Bound project" value={e.project} />
-      <KeyValue label="Jira match this period" value={e.match + '%'} />
+      <KeyValue label="Jira match this period" value={matchTxt(e)} />
       <Toggle style={{ marginTop: 14 }} checked={sync} onChange={setSync} label="Real-Time Worklog Auto-Sync" description="Sync interval: Every 5m • Webhook Active" />
     </Card>}
     {tab === 'pto' && <Card icon="beach_access" title="Time Off & PTO" subtitle="Balances as of Apr 15, 2025">
@@ -1270,80 +1276,101 @@ window.__MGH_KIT = Object.assign(window.__MGH_KIT || {}, { dashboard: Dashboard,
 (function(){
 const { Button, IconButton, Badge, Avatar, Icon, Card, FilterChips, StatCard, MetricTile, DataTable, TableToolbar, Pagination, ActivityFeed, Tabs, PageHeader, Select, ProgressBar, KeyValue, Stepper, Checkbox, TextField } = window.MyGlobalHubDesignSystem_2a603d;
 
+// Current-period figures are estimates from the employees' timesheet hours; history comes from saved payroll runs.
 function PayrollDashboard({ go }) {
   const curPeriod = getCurrentPeriod();
-  const curNum = curPeriod.periodNumber;
-  const byEntity = [['Dominicana SRL', 29840, 'DOP / USD'], ['USA Inc.', 13260, 'USD'], ['UK Ltd.', 5820, 'GBP']];
-  const comp = [0, 1, 2, 3, 4, 5].map(i => {
-    const pNum = Math.max(1, curNum - 5 + i);
-    return { label: 'PP-' + String(pNum).padStart(2, '0'), a: +(40 + i * 0.6).toFixed(1), b: +(5 + i * 0.3).toFixed(1) };
-  });
+  const E = EMPLOYEES;
+  const gross = E.reduce((s, e) => s + (e.gross || 0), 0);
+  const ded = E.reduce((s, e) => s + (e.gross ? DEDUCT(e).total : 0), 0);
+  const withHours = E.filter(e => e.hasTimesheet).length;
+  const [runs, setRuns] = React.useState([]);
+  const [openEx, setOpenEx] = React.useState(null);
+  React.useEffect(() => {
+    let cancel = false;
+    if (window.api && window.api.payrollRuns) window.api.payrollRuns().then(r => { if (!cancel && Array.isArray(r)) setRuns(r); }).catch(() => {});
+    if (window.api && window.api.exceptions) window.api.exceptions().then(r => { if (!cancel && Array.isArray(r)) setOpenEx(r.filter(x => !/resolved|closed/i.test(x.status || '')).length); }).catch(() => {});
+    return () => { cancel = true; };
+  }, []);
+  const byPeriod = {}; runs.forEach(r => { byPeriod[r.period_id] = (byPeriod[r.period_id] || 0) + (Number(r.total_gross) || 0); });
+  const hist = Object.keys(byPeriod).sort().slice(-6).map(p => ({ label: 'PP-' + p.slice(-2), a: +(byPeriod[p] / 1000).toFixed(1) }));
+  const byEntity = {}; E.forEach(e => { byEntity[e.entity] = (byEntity[e.entity] || 0) + (e.gross || 0); });
+  const entityRows = Object.entries(byEntity).sort((a, b) => b[1] - a[1]);
   const nextP = getQuincenaForDate(new Date(curPeriod.year, curPeriod.month, curPeriod.isFirstHalf ? 20 : 5));
   const nextP2 = getQuincenaForDate(new Date(curPeriod.year, curPeriod.month + (curPeriod.isFirstHalf ? 0 : 1), curPeriod.isFirstHalf ? 5 : 20));
-  const upcomingRows = [
-    { id: curPeriod.code, range: curPeriod.rangeShort, pay: curPeriod.payDate, st: 'In approval', g: 48920 },
-    { id: nextP.code, range: nextP.rangeShort, pay: nextP.payDate, st: 'Open', g: 49300 },
-    { id: nextP2.code, range: nextP2.rangeShort, pay: nextP2.payDate, st: 'Scheduled', g: 49300 }
-  ];
+  const upcomingRows = [curPeriod, nextP, nextP2].map(p => ({ id: p.code, range: p.rangeShort, pay: p.payDate }));
+  const empty = txt => <div className="mgh-body" style={{ padding: '40px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>{txt}</div>;
   return <Page>
-    <PageHeader breadcrumbs={['Payroll & Finance', 'Overview']} title="Payroll Dashboard" status={<Badge tone="success" dot>{`Payroll ready • Cycle ${curPeriod.code} • Auto-lock in ${curPeriod.daysRemaining}d`}</Badge>} actions={<><Button variant="secondary" icon="calendar_month" onClick={() => window.__mghGo ? window.__mghGo('periods') : go('periods')}>Pay calendar</Button><Button icon="play_arrow" onClick={() => go('processing')}>Start Payroll Run</Button></>} />
+    <PageHeader breadcrumbs={['Payroll & Finance', 'Overview']} title="Payroll Dashboard" status={<Badge tone="neutral" dot>{`Cycle ${curPeriod.code} • closes in ${curPeriod.daysRemaining}d`}</Badge>} actions={<><Button variant="secondary" icon="calendar_month" onClick={() => window.__mghGo ? window.__mghGo('periods') : go('periods')}>Pay calendar</Button><Button icon="play_arrow" onClick={() => go('processing')}>Start Payroll Run</Button></>} />
     <Grid min={220}>
-      <StatCard label="Gross payroll" value="$48,920" unit="USD" icon="payments" delta={`+3.2% vs PP-${String(Math.max(1, curNum - 1)).padStart(2, '0')}`} />
-      <StatCard label="Employer taxes" value="$6,114" unit="USD" icon="account_balance_wallet" tone="accent" footer={<><span>TSS • FICA • NI</span><span>12.5%</span></>} />
-      <StatCard label="Net disbursement" value="$38,402" unit="USD" icon="send_money" tone="success" progress={100} footer={<><span style={{ color: 'var(--mgh-success)' }}>100% routed</span><span>5 banks</span></>} />
-      <StatCard label="Exceptions" value="3" icon="report" tone="danger" footer={<span style={{ color: 'var(--mgh-danger)' }}>Resolve before lock</span>} />
+      <StatCard label="Estimated gross" value={fmt$(gross)} unit="USD" icon="payments" footer={withHours + ' of ' + E.length + ' with timesheet hours'} />
+      <StatCard label="Estimated deductions" value={fmt$(ded)} unit="USD" icon="account_balance_wallet" tone="accent" footer="Employee withholdings" />
+      <StatCard label="Estimated net" value={fmt$(gross - ded)} unit="USD" icon="send_money" tone="success" footer="Before payroll run" />
+      <StatCard label="Open exceptions" value={openEx == null ? '—' : String(openEx)} icon="report" tone="danger" footer="Attendance exceptions" />
     </Grid>
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(300px,1fr)', gap: 20 }}>
-      <Card icon="stacked_bar_chart" title="Regular vs overtime cost" subtitle="Thousands USD per period"><BarChart data={comp} height={200} color="var(--mgh-primary)" color2="var(--mgh-accent)" legend={[['var(--mgh-primary)', 'Regular'], ['var(--mgh-accent)', 'Overtime & premiums']]} /></Card>
+      <Card icon="stacked_bar_chart" title="Gross by period" subtitle="Saved payroll runs • thousands USD">{hist.length ? <BarChart data={hist} height={200} format={v => '$' + v + 'k'} /> : empty('No payroll runs yet.')}</Card>
       <Card icon="domain" title="By operating entity">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{byEntity.map(([n, v, c]) => <div key={n}><div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}><span style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{n} <span style={{ color: 'var(--mgh-ink-3)', fontWeight: 400 }}>{c}</span></span><b style={{ font: '700 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{fmt$(v)}</b></div><ProgressBar value={v / 489.2} /></div>)}</div>
+        {gross > 0 ? <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{entityRows.map(([n, v]) => <div key={n}><div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}><span style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{n}</span><b style={{ font: '700 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{fmt$(v)}</b></div><ProgressBar value={v / gross * 100} /></div>)}</div> : empty('No hours logged this period.')}
       </Card>
     </div>
     <Card icon="event_repeat" title="Upcoming pay periods" bodyStyle={{ paddingTop: 14 }}>
       <DataTable density="compact" rows={upcomingRows} columns={[
-        { key: 'id', label: 'Cycle', mono: true, strong: true }, { key: 'range', label: 'Work period' }, { key: 'pay', label: 'Pay date' },
-        { key: 'st', label: 'Status', render: r => <Badge size="sm" tone={r.st === 'In approval' ? 'warning' : r.st === 'Open' ? 'info' : 'neutral'}>{r.st}</Badge> }, { key: 'g', label: 'Projected gross', align: 'right', strong: true, render: r => fmt$(r.g) }]} />
+        { key: 'id', label: 'Cycle', mono: true, strong: true }, { key: 'range', label: 'Work period' }, { key: 'pay', label: 'Pay date' }]} />
     </Card>
   </Page>;
 }
 
 function PayrollProcessing({ notify }) {
   const curPeriod = getCurrentPeriod();
-  const [step, setStep] = React.useState(2);
+  const [step, setStep] = React.useState(0);
   const [sel, setSel] = React.useState([]);
   const [disbursedModal, setDisbursedModal] = React.useState(false);
   const [disbursing, setDisbursing] = React.useState(false);
   const names = ['Pre-checks', 'Import Hours', 'Review Exceptions', 'Calculate', 'Approve & Lock', 'Disburse'];
   const steps = names.map((l, i) => ({ label: l, state: i < step ? 'done' : i === step ? 'current' : 'pending', icon: ['rule', 'download', 'report', 'calculate', 'lock', 'send_money'][i], status: i < step ? 'Complete' : i === step ? 'Current Step' : 'Pending' }));
-  const ex = [{ id: 1, emp: EMPLOYEES[2], issue: 'Overtime exceeds 10h policy cap', sev: 'High', act: 'Needs VP sign-off' }, { id: 2, emp: EMPLOYEES[4], issue: 'Jira worklog 4.0h short of clock time', sev: 'Medium', act: 'Return to employee' }, { id: 3, emp: EMPLOYEES[11], issue: 'New bank account in 72h cooling period', sev: 'Medium', act: 'Hold allocation' }].filter(x => x.emp);
+  // Open attendance exceptions from the backend (no invented issues)
+  const [rawEx, setRawEx] = React.useState([]);
+  const loadEx = React.useCallback(() => {
+    if (window.api && window.api.exceptions) window.api.exceptions({ resolved: false }).then(r => setRawEx(Array.isArray(r) ? r : [])).catch(() => setRawEx([]));
+  }, []);
+  React.useEffect(loadEx, [loadEx]);
+  const ex = rawEx.map(x => ({ id: x.id, emp: EMPLOYEES.find(e => e.id === x.emp) || { id: x.emp, name: x.emp }, issue: x.type + (x.date ? ' • ' + x.date : ''), sev: x.severity || 'Medium', act: x.suggestedAction || '' }));
+  const totals = EMPLOYEES.reduce((t, e) => ({ hrs: t.hrs + (e.total || 0), gross: t.gross + (e.gross || 0), ded: t.ded + (e.gross ? DEDUCT(e).total : 0) }), { hrs: 0, gross: 0, ded: 0 });
+  const resolveSelected = async () => {
+    const ids = sel.slice();
+    const results = await Promise.allSettled(ids.map(id => window.api.resolveException(id, { status: 'resolved' })));
+    const ok = results.filter(r => r.status === 'fulfilled').length;
+    notify(ok === ids.length ? `${ok} exception${ok === 1 ? '' : 's'} resolved` : `${ok} of ${ids.length} resolved • ${ids.length - ok} failed`);
+    setSel([]); loadEx();
+  };
 
   const handleNext = async () => {
     if (step < 5) {
       setStep(s => s + 1);
-      notify(`${names[step]} completed`);
       return;
     }
+    // Release = approve the saved payroll run for this period. Only report success if the backend confirms it.
     setDisbursing(true);
     try {
-      if (window.api && window.api.approveRun) {
-        await window.api.approveRun(`PR-${curPeriod.code}`, 'Disbursement executed and funds released');
-      }
-      notify('Disbursement released to banks');
+      const runs = await window.api.payrollRuns();
+      const run = (Array.isArray(runs) ? runs : []).find(r => r.period_id === curPeriod.code);
+      if (!run) { notify(`No calculated payroll run exists for ${curPeriod.code} yet`); return; }
+      await window.api.approvePayrollRun(run.id);
+      notify(`Payroll run ${run.id} approved`);
       setDisbursedModal(true);
     } catch (err) {
-      notify('Disbursement executed');
-      setDisbursedModal(true);
+      notify('Could not approve the payroll run • ' + err.message);
     } finally {
       setDisbursing(false);
     }
   };
 
   return <Page>
-    <PageHeader breadcrumbs={['Payroll & Finance', 'Pay Periods', curPeriod.code]} title="Payroll Processing" status={<Badge tone="warning" dot>{`Run #${curPeriod.year}-${String(curPeriod.periodNumber).padStart(2,'0')}-A • Step ${step + 1} of 6`}</Badge>}
+    <PageHeader breadcrumbs={['Payroll & Finance', 'Pay Periods', curPeriod.code]} title="Payroll Processing" status={<Badge tone="warning" dot>{`${curPeriod.code} • Step ${step + 1} of 6`}</Badge>}
       actions={<><Button variant="secondary" icon="arrow_back" disabled={step === 0} onClick={() => setStep(s => s - 1)}>Back</Button><Button icon={step === 5 ? 'send_money' : 'arrow_forward'} disabled={disbursing} onClick={handleNext}>{disbursing ? 'Releasing...' : step === 5 ? 'Release Funds' : 'Continue to ' + names[step + 1]}</Button></>} />
     <Card padding={24}><Stepper steps={steps} /></Card>
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 8 }}>
-      <MetricTile tone="white" label="Employees" value="86" /><MetricTile tone="white" label="Hours" value="7,382.5h" /><MetricTile tone="white" label="Gross" value="$48,920" /><MetricTile tone="white" label="Deductions" value="$10,518" /><MetricTile tone="success" label="Net" value="$38,402" /><MetricTile tone="danger" label="Exceptions" value={sel.length ? String(Math.max(0, 3 - sel.length)) : '3'} />
+      <MetricTile tone="white" label="Employees" value={String(EMPLOYEES.length)} /><MetricTile tone="white" label="Hours" value={fmtH(totals.hrs)} /><MetricTile tone="white" label="Est. gross" value={fmt$(totals.gross)} /><MetricTile tone="white" label="Est. deductions" value={fmt$(totals.ded)} /><MetricTile tone="success" label="Est. net" value={fmt$(totals.gross - totals.ded)} /><MetricTile tone="danger" label="Exceptions" value={String(ex.length)} />
     </div>
 
     {step === 5 ? (
@@ -1353,24 +1380,24 @@ function PayrollProcessing({ notify }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
               <div style={{ padding: 16, borderRadius: 10, border: '1px solid var(--mgh-surface-2)', background: 'var(--mgh-surface-1)' }}>
                 <div style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>Banco BHD León (DR ACH)</div>
-                <div style={{ font: '700 20px var(--font-sans)', color: 'var(--mgh-ink)', margin: '4px 0' }}>$29,840.00</div>
-                <div style={{ font: '500 12px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>34 direct transfers</div>
+                
+                
                 <div style={{ marginTop: 12 }}>
                   <Button size="sm" variant="secondary" icon="download" onClick={() => window.open(`/api/payroll/export/bhd?periodId=${curPeriod.code}&download=true`, '_blank')}>Download BHD File</Button>
                 </div>
               </div>
               <div style={{ padding: 16, borderRadius: 10, border: '1px solid var(--mgh-surface-2)', background: 'var(--mgh-surface-1)' }}>
                 <div style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>NACHA US FedWire / ACH</div>
-                <div style={{ font: '700 20px var(--font-sans)', color: 'var(--mgh-ink)', margin: '4px 0' }}>$13,260.00</div>
-                <div style={{ font: '500 12px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>12 FedWire allocations</div>
+                
+                
                 <div style={{ marginTop: 12 }}>
                   <Button size="sm" variant="secondary" icon="download" onClick={() => window.open(`/api/payroll/export/nacha?periodId=${curPeriod.code}&download=true`, '_blank')}>Download NACHA (.ach)</Button>
                 </div>
               </div>
               <div style={{ padding: 16, borderRadius: 10, border: '1px solid var(--mgh-surface-2)', background: 'var(--mgh-surface-1)' }}>
                 <div style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>Crypto USDC (Base)</div>
-                <div style={{ font: '700 20px var(--font-sans)', color: 'var(--mgh-ink)', margin: '4px 0' }}>$5,302.00</div>
-                <div style={{ font: '500 12px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>8 wallet payouts</div>
+                
+                
                 <div style={{ marginTop: 12 }}>
                   <Button size="sm" variant="secondary" icon="download" onClick={() => window.open(`/api/payroll/export/usdc?periodId=${curPeriod.code}&download=true`, '_blank')}>Download USDC Batch</Button>
                 </div>
@@ -1379,39 +1406,39 @@ function PayrollProcessing({ notify }) {
             <div style={{ padding: 14, borderRadius: 8, background: 'var(--mgh-success-50)', border: '1px solid var(--mgh-success-200)', display: 'flex', gap: 12, alignItems: 'center' }}>
               <Icon name="verified" size={24} color="var(--mgh-success)" />
               <div style={{ font: '500 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>
-                All 86 timesheets have been verified and signed off. Click <b>Release Funds</b> above to finalize this payroll run and log cryptographic hashes.
+                Click <b>Release Funds</b> above to approve the saved payroll run for this period. Dispersal files are generated from the approved run.
               </div>
             </div>
           </div>
         </Card>
         <Card icon="checklist" title="Disbursement verification">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {['Dual-control authorization confirmed', 'Sufficient liquidity in Treasury ($412.8k)', 'BHD & NACHA batches ready', 'Exchange rate DOP 59.12 confirmed'].map((t) => <Checkbox key={t} checked={true} label={t} />)}
+            {['Dual-control authorization confirmed', 'Sufficient liquidity in Treasury', 'BHD & NACHA batches reviewed', 'Exchange rate confirmed'].map((t) => <Checkbox key={t} label={t} />)}
           </div>
         </Card>
       </div>
     ) : (
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(300px,1fr)', gap: 20 }}>
         <Card icon="report" title="Exceptions to resolve" subtitle="Payroll cannot lock while high-severity items are open." bodyStyle={{ paddingTop: 14 }}>
-          <DataTable selectable selected={sel} onSelectedChange={setSel} bulkBar={<Button size="sm" icon="done" onClick={() => { notify(`${sel.length} exceptions resolved`); setSel([]); }}>Mark resolved</Button>} rows={ex} columns={[
+          <DataTable selectable selected={sel} onSelectedChange={setSel} bulkBar={<Button size="sm" icon="done" onClick={resolveSelected}>Mark resolved</Button>} rows={ex} columns={[
             { key: 'emp', label: 'Employee', render: r => <EmployeeCell e={r.emp} sub={r.emp.id} /> }, { key: 'issue', label: 'Issue', wrap: true },
-            { key: 'sev', label: 'Severity', render: r => <Badge size="sm" tone={r.sev === 'High' ? 'danger' : 'warning'}>{r.sev}</Badge> }, { key: 'act', label: 'Suggested action', render: r => <Button size="sm" variant="ghost" onClick={() => window.__mghNotify(r.act + ' • started')}>{r.act}</Button> }]} />
+            { key: 'sev', label: 'Severity', render: r => <Badge size="sm" tone={r.sev === 'High' ? 'danger' : 'warning'}>{r.sev}</Badge> }, { key: 'act', label: 'Suggested action', wrap: true }]} />
         </Card>
         <Card icon="checklist" title="Pre-run checklist">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{['Exchange rates locked (DOP 59.12)', 'TSS & ISR tables — 2025 rev.', 'Jira Cloud sync < 5m old', 'Bank cut-off: FedWire 16:00 ET', 'Dual control approver assigned'].map((t, i) => <Checkbox key={t} checked={i < 4} label={t} />)}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{['Exchange rates confirmed', 'TSS & ISR tables up to date', 'Jira worklogs synced', 'Bank cut-off times confirmed', 'Dual control approver assigned'].map((t) => <Checkbox key={t} label={t} />)}</div>
         </Card>
       </div>
     )}
 
-    <Modal open={disbursedModal} title="Payroll Funds Disbursed Successfully!" onClose={() => setDisbursedModal(false)} width={540}
+    <Modal open={disbursedModal} title="Payroll run approved" onClose={() => setDisbursedModal(false)} width={540}
       actions={<Button variant="primary" onClick={() => setDisbursedModal(false)}>Close</Button>}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 8, background: 'var(--mgh-success-50)', border: '1px solid var(--mgh-success-200)' }}>
           <Icon name="check_circle" size={32} color="var(--mgh-success)" />
           <div>
-            <div style={{ font: '700 15px var(--font-sans)', color: 'var(--mgh-ink)' }}>{`Run #${curPeriod.year}-${String(curPeriod.periodNumber).padStart(2,'0')}-A Disbursed`}</div>
-            <div style={{ font: '400 13px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>{`Cycle ${curPeriod.code} • Total Net: $38,402.00 across 5 banking rails.`}</div>
+            <div style={{ font: '700 15px var(--font-sans)', color: 'var(--mgh-ink)' }}>{`${curPeriod.code} approved`}</div>
+            <div style={{ font: '400 13px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>Download the dispersal files below and submit them to each bank.</div>
           </div>
         </div>
         <div style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>Generated Dispersal Files:</div>
@@ -1503,17 +1530,15 @@ function PayStubPreview({ notify, empId }) {
 }
 
 function Banking({ notify }) {
-  const defaultAccounts = [
-    { id: 1, bank: 'Banco BHD León', code: 'BHD', country: 'Dominican Republic', type: 'Primary ACH', acct: '•••• 8491', routing: 'BHDLDO22', cur: 'DOP / USD', st: 'Verified', vol: 29840 },
-    { id: 2, bank: 'Chase Bank USA, N.A.', code: 'JPMC', country: 'United States', type: 'Offshore FedWire', acct: '•••• 2910', routing: '021000021', cur: 'USD', st: 'Verified', vol: 13260 },
-    { id: 3, bank: 'Barclays', code: 'BARC', country: 'United Kingdom', type: 'BACS', acct: '•••• 7712', routing: '20-00-00', cur: 'GBP', st: 'Verified', vol: 5820 },
-    { id: 4, bank: 'Revolut Business', code: 'REV', country: 'EU', type: 'SEPA', acct: '•••• 0045', routing: 'REVOLT21', cur: 'EUR', st: 'Cooling 72h', vol: 0 },
-  ];
+  // Funding accounts are entered by the user (kept in this browser; no backend table yet). No sample accounts,
+  // and sample rows that older versions saved to localStorage are dropped.
+  const SAMPLE_ACCTS = ['•••• 8491', '•••• 2910', '•••• 7712', '•••• 0045'];
+  const defaultAccounts = [];
 
   const [accounts, setAccounts] = React.useState(() => {
     try {
       const saved = localStorage.getItem('mgh-disbursement-accounts');
-      return saved ? JSON.parse(saved) : defaultAccounts;
+      return saved ? JSON.parse(saved).filter(a => !SAMPLE_ACCTS.includes(a.acct)) : defaultAccounts;
     } catch {
       return defaultAccounts;
     }
@@ -1560,7 +1585,7 @@ function Banking({ notify }) {
       acct: form.acct,
       routing: form.routing.toUpperCase(),
       cur: form.cur,
-      st: 'Verified',
+      st: 'Pending verification',
       vol: 0,
     };
     const next = [...accounts, newAccount];
@@ -1574,8 +1599,7 @@ function Banking({ notify }) {
   return <Page>
     <PageHeader breadcrumbs={['Payroll & Finance', 'Banking & Allocations']} title="Central Banking & Treasury" description="Funding accounts, payout rails and multi-bank splits for every operating entity." actions={<><Button variant="secondary" icon="history" onClick={() => window.__mghGo('audit')}>Audit History</Button><Button icon="add_circle" onClick={() => setAddOpen(true)}>Add Bank Account</Button></>} />
     <Grid min={220}>
-      <StatCard label="Treasury balance" value="$412.8k" icon="account_balance" style={{ minHeight: 0 }} />
-      <StatCard label="This cycle outflow" value="$48.9k" icon="send_money" tone="accent" style={{ minHeight: 0 }} />
+      <StatCard label="Accounts" value={String(accounts.length)} icon="account_balance" style={{ minHeight: 0 }} />
       <StatCard label="Verified rails" value={`${accounts.filter(a => a.st === 'Verified').length} / ${accounts.length}`} icon="verified_user" tone="success" style={{ minHeight: 0 }} />
       <StatCard label="Pending verification" value={String(accounts.filter(a => a.st !== 'Verified').length)} icon="lock_clock" tone="warning" style={{ minHeight: 0 }} />
     </Grid>
@@ -1587,7 +1611,7 @@ function Banking({ notify }) {
         { key: 'st', label: 'Status', render: r => <Badge size="sm" dot tone={r.st === 'Verified' ? 'success' : 'warning'}>{r.st}</Badge> }, { key: 'vol', label: 'Cycle volume', align: 'right', sortable: true, strong: true, render: r => fmt$(r.vol) }]} />
     </Card>
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-      <Card icon="call_split" title="Default split rule" subtitle="Applied to contractors in MGH Dominicana SRL"><ProgressBar height={16} label="Allocation ratio summary" valueLabel="100% Allocated (Balanced)" segments={[{ value: 80, color: 'var(--mgh-primary)', label: '80% Primary (DOP/USD)' }, { value: 20, color: 'var(--mgh-navy)', label: '20% USD' }]} /></Card>
+      <Card icon="call_split" title="Payout splits" subtitle="Configured per employee in their profile (bank / Coinbase allocation must total 100%)" />
       <Card icon="gavel" title="Compliance & 3-Day Verification Policy" tone="muted"><p className="mgh-body" style={{ margin: 0 }}>Bank account modifications require hardware-token 2FA and countersignature from HR Finance leadership. Allocation updates are subject to an auditable 72-hour cooling period to prevent payroll diversion fraud.</p></Card>
     </div>
 
@@ -1618,15 +1642,6 @@ window.__MGH_KIT = Object.assign(window.__MGH_KIT || {}, { payroll: PayrollDashb
 (function(){
 const { Button, IconButton, Badge, Avatar, Icon, Card, FilterChips, StatCard, MetricTile, DataTable, TableToolbar, Pagination, ActivityFeed, Tabs, PageHeader, Select, ProgressBar, KeyValue, Toggle, TextField, Checkbox } = window.MyGlobalHubDesignSystem_2a603d;
 
-const PROJECTS = [
-  { id: 'MSHP', key: 'MSHP', name: 'MSHP — Project Planning', lead: 'Joshua Hernandez', people: 5, budget: 150000, spent: 42000, hrs: 640, bill: 98.5, st: 'On track' },
-  { id: 'ATLAS', key: 'ATLAS', name: 'Atlas Core Platform', lead: 'Elena Rostova', people: 14, budget: 120000, spent: 84200, hrs: 1610, bill: 94.2, st: 'On track' },
-  { id: 'PERF', key: 'PERF', name: 'Perf Infrastructure', lead: 'David Wu', people: 6, budget: 60000, spent: 51800, hrs: 940, bill: 88.1, st: 'At risk' },
-  { id: 'GHV3', key: 'GHV3', name: 'Global Hub v3', lead: 'Grace Okafor', people: 11, budget: 95000, spent: 40100, hrs: 780, bill: 97.0, st: 'On track' },
-  { id: 'LAKE', key: 'LAKE', name: 'Insights Lake', lead: 'Priya Natarajan', people: 5, budget: 48000, spent: 22600, hrs: 410, bill: 91.6, st: 'On track' },
-  { id: 'CORE', key: 'CORE', name: 'Core Billing Services', lead: 'Javier Peña', people: 8, budget: 70000, spent: 71900, hrs: 1205, bill: 85.4, st: 'Over budget' },
-  { id: 'OPS', key: 'OPS', name: 'Internal Ops', lead: 'Ana Gómez', people: 9, budget: 30000, spent: 14200, hrs: 520, bill: 0, st: 'Non-billable' }
-];
 const PT = { 'On track': 'success', 'At risk': 'warning', 'Over budget': 'danger', 'Non-billable': 'neutral' };
 
 function JiraIntegration({ notify }) {
@@ -1812,7 +1827,7 @@ function Projects({ go, notify, currentUser }) {
   const [mainTab, setMainTab] = React.useState('agile');
   const [activeAgileProjectKey, setActiveAgileProjectKey] = React.useState('MSHP');
   const [chip, setChip] = React.useState('all');
-  const [projectsList, setProjectsList] = React.useState(PROJECTS);
+  const [projectsList, setProjectsList] = React.useState([]);
   const [loadingProjects, setLoadingProjects] = React.useState(false);
 
   // Equipo y Colaboradores
@@ -1899,7 +1914,7 @@ function Projects({ go, notify, currentUser }) {
       const fn = (window.api && window.api.jiraProjects) || (typeof api !== 'undefined' && api.jiraProjects);
       if (fn) {
         const res = await fn();
-        if (Array.isArray(res) && res.length > 0) {
+        if (Array.isArray(res)) {
           setProjectsList(res);
         }
       }
@@ -1923,11 +1938,12 @@ function Projects({ go, notify, currentUser }) {
             const found = EMPLOYEES.find(e => e.id === item.id);
             if (found) {
               const prevHours = {
-                reg: typeof found.reg === 'number' ? found.reg : 80,
+                reg: typeof found.reg === 'number' ? found.reg : 0,
                 ot: typeof found.ot === 'number' ? found.ot : 0,
                 pto: typeof found.pto === 'number' ? found.pto : 0,
-                total: typeof found.total === 'number' ? found.total : 80,
-                gross: typeof found.gross === 'number' ? found.gross : ((Number(found.rate) || 50) * 80)
+                total: typeof found.total === 'number' ? found.total : 0,
+                gross: typeof found.gross === 'number' ? found.gross : 0,
+                match: hasMatch(found) ? found.match : null
               };
               Object.assign(found, item);
               found.ot_eligible = Boolean(item.ot);
@@ -1936,13 +1952,17 @@ function Projects({ go, notify, currentUser }) {
               found.pto = prevHours.pto;
               found.total = prevHours.total;
               found.gross = prevHours.gross;
+              found.match = prevHours.match;
             } else {
+              // New employee: no timesheet yet, so no hours or pay
               const fullEmp = {
-                reg: 80,
+                reg: 0,
                 ot: 0,
                 pto: 0,
-                total: 80,
-                rate: Number(item.rate) || 50,
+                total: 0,
+                gross: 0,
+                match: null,
+                rate: Number(item.rate) || 0,
                 ot_eligible: Boolean(item.ot),
                 ...item
               };
@@ -1964,16 +1984,7 @@ function Projects({ go, notify, currentUser }) {
     fetchEmployees();
   }, [fetchProjects, fetchEmployees]);
 
-  const allProjectNames = Array.from(new Set([
-    'MSHP — Project Planning',
-    ...projectsList.map(p => p.name || p.id),
-    'Atlas Core Platform',
-    'Perf Infrastructure',
-    'Global Hub v3',
-    'Insights Lake',
-    'Core Billing Services',
-    'Internal Ops'
-  ]));
+  const allProjectNames = Array.from(new Set(projectsList.map(p => p.name || p.id)));
 
   // Crear nuevo trabajador y usuario
   const handleCreateWorker = async () => {
@@ -3870,7 +3881,7 @@ function buildReport(id, E) {
   if (id === 'ot') { const O = E.filter(e => e.ot > 0); const all = sum(E, e => e.total) || 1; return { cols: [['ID', 'mono'], ['Employee'], ['Department'], ['OT hours', 'num'], ['OT cost (1.5×)', 'num'], ['% of hours', 'num']], rows: O.map(e => [e.id, e.name, e.dept, n1(e.ot), m2(e.ot * e.rate * 1.5), n1(e.ot / (e.total || 1) * 100) + '%']), total: ['', 'Total', '', n1(sum(O, e => e.ot)), m2(sum(O, e => e.ot * e.rate * 1.5)), n1(sum(O, e => e.ot) / all * 100) + '%'] }; }
   if (id === 'attendance') { const A2 = E.map(e => { const w = weekSplit(e), pto = e.pto / 8, sched = 10 - pto; return [e.id, e.name, e.dept, String(w.days), String(Math.max(0, Math.round(sched - w.days))), n1(pto), n1(sched ? Math.min(100, w.days / sched * 100) : 100) + '%']; }); return { cols: [['ID', 'mono'], ['Employee'], ['Department'], ['Days worked', 'num'], ['Absences', 'num'], ['PTO days', 'num'], ['Attendance', 'num']], rows: A2, total: null }; }
   if (id === 'summary') { const G = grp('entity', e => e.entity); return { cols: [['Organization'], ['Employees', 'num'], ['Hours', 'num'], ['Gross', 'num'], ['Deductions', 'num'], ['Net', 'num']], rows: G.map(g => [g.k, String(g.list.length), n1(sum(g.list, e => e.total)), m2(sum(g.list, e => e.gross)), m2(sum(g.list, ded)), m2(sum(g.list, e => e.gross - ded(e)))]), total: ['Total', String(E.length), n1(sum(E, e => e.total)), m2(sum(E, e => e.gross)), m2(sum(E, ded)), m2(sum(E, e => e.gross - ded(e)))] }; }
-  if (id === 'labor') { const G = grp('project', e => e.project); return { cols: [['Project'], ['Client'], ['People', 'num'], ['Hours', 'num'], ['Labor cost', 'num'], ['Jira match', 'num']], rows: G.map(g => [g.k, CLIENT_OF[g.k] || '—', String(g.list.length), n1(sum(g.list, e => e.total)), m2(sum(g.list, e => e.gross)), n1(sum(g.list, e => e.match) / g.list.length) + '%']), total: ['Total', '', String(E.length), n1(sum(E, e => e.total)), m2(sum(E, e => e.gross)), ''] }; }
+  if (id === 'labor') { const G = grp('project', e => e.project); return { cols: [['Project'], ['Client'], ['People', 'num'], ['Hours', 'num'], ['Labor cost', 'num'], ['Jira match', 'num']], rows: G.map(g => [g.k, CLIENT_OF[g.k] || '—', String(g.list.length), n1(sum(g.list, e => e.total)), m2(sum(g.list, e => e.gross)), (g.list.some(hasMatch) ? n1(sum(g.list.filter(hasMatch), e => e.match) / g.list.filter(hasMatch).length) + '%' : '—')]), total: ['Total', '', String(E.length), n1(sum(E, e => e.total)), m2(sum(E, e => e.gross)), ''] }; }
   if (id === 'pto') return { cols: [['ID', 'mono'], ['Employee'], ['Department'], ['PTO used (h)', 'num'], ['Balance (days)', 'num'], ['Holidays (DR 2025)', 'num']], rows: E.map(e => [e.id, e.name, e.dept, n1(e.pto), n1(14.5 - e.pto / 8), '12']), total: ['', 'Total', '', n1(sum(E, e => e.pto)), '', ''] };
   if (id === 'contractors') { const C = window.__MGH_CTR; const P = C ? C.INIT_PAYMENTS : []; return { cols: [['Payment', 'mono'], ['Contractor'], ['Country'], ['Rail'], ['Amount', 'num'], ['Status']], rows: P.map(p => [p.id, p.c.name, p.c.country, p.c.method === 'Western Union' ? 'Western Union' : 'Coinbase', m2(p.amount), p.status]), total: ['', 'Total', '', '', m2(P.reduce((s, p) => s + p.amount, 0)), ''], note: 'Contractors are reported separately from employee payroll; organization, department and supervisor filters do not apply.' }; }
   if (id === 'org') { const G = grp('entity', e => e.entity); return { cols: [['Organization'], ['Employees', 'num'], ['Hours', 'num'], ['Overtime', 'num'], ['Labor cost', 'num'], ['Pending timesheets', 'num']], rows: G.map(g => [g.k, String(g.list.length), n1(sum(g.list, e => e.total)), n1(sum(g.list, e => e.ot)), m2(sum(g.list, e => e.gross)), String(g.list.filter(e => /Review|Submitted/.test(liveStatus(e))).length)]), total: ['Total', String(E.length), n1(sum(E, e => e.total)), n1(sum(E, e => e.ot)), m2(sum(E, e => e.gross)), String(E.filter(e => /Review|Submitted/.test(liveStatus(e))).length)] }; }
@@ -3949,94 +3960,33 @@ function Reports({ notify }) {
   </Page>;
 }
 
+// Users come from GET /users; entity cards count the real employee roster. User accounts are created
+// from Add Employee (there is no invite / MFA / suspend backend yet, so those actions are not offered).
 function Administration({ notify, go }) {
-  const defaultUsers = [
-    { id: 1, e: { name: 'Elena Rostova', avatar: AVATARS + 'elena-rostova.jpg', role: 'elena@globalhub.com' }, r: 'Lead PM & Approver', ent: 'All', mfa: true, last: '2m ago' },
-    { id: 2, e: { name: 'Marcus Vance', role: 'marcus@globalhub.com' }, r: 'Supervisor', ent: 'Dominicana SRL', mfa: true, last: '1h ago' },
-    { id: 3, e: { name: 'Ana Gómez', role: 'ana@globalhub.com' }, r: 'HR Finance Admin', ent: 'All', mfa: true, last: 'Yesterday' },
-    { id: 4, e: { name: 'Luis Cabrera', avatar: AVATARS + 'person-4.jpg', role: 'luis@globalhub.com' }, r: 'Payroll Specialist', ent: 'Dominicana SRL', mfa: false, last: '3d ago' }
-  ];
+  const [users, setUsers] = React.useState(null);
+  React.useEffect(() => {
+    let cancel = false;
+    if (!window.api || !window.api.users) { setUsers([]); return; }
+    window.api.users()
+      .then(r => { if (!cancel) setUsers(Array.isArray(r) ? r : []); })
+      .catch(err => { if (!cancel) { setUsers([]); notify('Could not load users • ' + err.message); } });
+    return () => { cancel = true; };
+  }, []);
+  try { localStorage.removeItem('mgh-admin-users'); } catch (_) {}
 
-  const [users, setUsers] = React.useState(() => {
-    try {
-      const saved = localStorage.getItem('mgh-admin-users');
-      return saved ? JSON.parse(saved) : defaultUsers;
-    } catch {
-      return defaultUsers;
-    }
-  });
-
-  const [sel, setSel] = React.useState([]);
-  const [inviteOpen, setInviteOpen] = React.useState(false);
-  const [inviteForm, setInviteForm] = React.useState({
-    name: '',
-    email: '',
-    role: 'Supervisor',
-    ent: 'Dominicana SRL'
-  });
-
-  const handleInvite = () => {
-    if (!inviteForm.name.trim() || !inviteForm.email.trim()) {
-      notify('Please provide user name and email');
-      return;
-    }
-    const newUser = {
-      id: Date.now(),
-      e: { name: inviteForm.name, role: inviteForm.email },
-      r: inviteForm.role,
-      ent: inviteForm.ent,
-      mfa: false,
-      last: 'Invited just now'
-    };
-    const next = [...users, newUser];
-    setUsers(next);
-    try { localStorage.setItem('mgh-admin-users', JSON.stringify(next)); } catch {}
-    notify(`Invitation sent to ${inviteForm.email}`);
-    setInviteOpen(false);
-    setInviteForm({ name: '', email: '', role: 'Supervisor', ent: 'Dominicana SRL' });
-  };
-
-  const handleRequireMfa = () => {
-    if (!sel.length) return;
-    const next = users.map(u => sel.includes(u.id) ? { ...u, mfa: true } : u);
-    setUsers(next);
-    try { localStorage.setItem('mgh-admin-users', JSON.stringify(next)); } catch {}
-    notify(`MFA enforced for ${sel.length} selected user(s)`);
-    setSel([]);
-  };
-
-  const handleSuspend = () => {
-    if (!sel.length) return;
-    const next = users.filter(u => !sel.includes(u.id));
-    setUsers(next);
-    try { localStorage.setItem('mgh-admin-users', JSON.stringify(next)); } catch {}
-    notify(`Suspended ${sel.length} user(s) successfully`);
-    setSel([]);
-  };
+  const byEntity = {}; EMPLOYEES.forEach(e => { byEntity[e.entity] = (byEntity[e.entity] || 0) + 1; });
+  const rows = (users || []).map(u => ({ id: u.id, e: { name: u.name, role: u.email, avatar: u.avatar }, r: u.role, ent: u.entity || '—', active: u.is_active, last: u.last_login_at ? new Date(u.last_login_at.replace(' ', 'T') + (u.last_login_at.endsWith('Z') ? '' : 'Z')).toLocaleString(LOC()) : 'Never' }));
 
   return <Page>
-    <PageHeader breadcrumbs={['System', 'Administration']} title="Administration" description="Operating entities, users, roles and approval governance." actions={<Button icon="person_add" onClick={() => setInviteOpen(true)}>Invite User</Button>} />
-    <Grid min={260}>{[['My Global Hub Dominicana SRL', 'Punta Cana HQ • DOP / USD', 54, 'HQ'], ['My Global Hub USA Inc.', 'Austin, TX • USD', 21, 'Branch'], ['My Global Hub UK Ltd.', 'London • GBP', 11, 'Branch']].map(([n, s, c, tag]) => <Card key={n} padding={20}><div style={{ display: 'flex', justifyContent: 'space-between' }}><Icon name="domain" size={18} color="var(--mgh-primary)" /><Badge size="sm" tone={tag === 'HQ' ? 'primary' : 'neutral'}>{tag}</Badge></div><div className="mgh-lg" style={{ marginTop: 10 }}>{n}</div><div className="mgh-body">{s}</div><div style={{ marginTop: 10, font: '700 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{c} employees</div></Card>)}</Grid>
-    <Card icon="group" title="Users & roles" bodyStyle={{ paddingTop: 14 }}>
-      <DataTable selectable selected={sel} onSelectedChange={setSel} bulkBar={<><Button size="sm" variant="secondary" icon="key" onClick={handleRequireMfa}>Require MFA</Button><Button size="sm" variant="danger" icon="block" onClick={handleSuspend}>Suspend</Button></>} rows={users} columns={[
-        { key: 'e', label: 'User', render: r => <EmployeeCell e={r.e} /> }, { key: 'r', label: 'Role', render: r => <Badge size="sm" tone="primary">{r.r}</Badge> }, { key: 'ent', label: 'Entity scope' },
-        { key: 'mfa', label: 'MFA', render: r => <Badge size="sm" dot tone={r.mfa ? 'success' : 'danger'}>{r.mfa ? 'Enabled' : 'Missing'}</Badge> }, { key: 'last', label: 'Last active' }, { key: 'x', label: '', align: 'right', render: () => <IconButton icon="more_vert" size={28} title="More" /> }]} />
+    <PageHeader breadcrumbs={['System', 'Administration']} title="Administration" description="Operating entities, users and roles." />
+    {Object.keys(byEntity).length ? <Grid min={260}>{Object.entries(byEntity).map(([n, c]) => <Card key={n} padding={20}><Icon name="domain" size={18} color="var(--mgh-primary)" /><div className="mgh-lg" style={{ marginTop: 10 }}>{n}</div><div style={{ marginTop: 10, font: '700 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{c} employee{c === 1 ? '' : 's'}</div></Card>)}</Grid> : null}
+    <Card icon="group" title="Users & roles" subtitle={users ? rows.length + ' user account' + (rows.length === 1 ? '' : 's') : 'Loading…'} bodyStyle={{ paddingTop: 14 }}>
+      {users && !rows.length ? <div className="mgh-body" style={{ padding: '32px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>No user accounts yet.</div> :
+      <DataTable rows={rows} columns={[
+        { key: 'e', label: 'User', render: r => <EmployeeCell e={r.e} /> }, { key: 'r', label: 'Role', render: r => <Badge size="sm" tone="primary">{r.r}</Badge> }, { key: 'ent', label: 'Entity' },
+        { key: 'active', label: 'Status', render: r => <Badge size="sm" dot tone={r.active ? 'success' : 'neutral'}>{r.active ? 'Active' : 'Inactive'}</Badge> }, { key: 'last', label: 'Last login' }]} />}
     </Card>
-    <Card icon="account_tree" title="Approval workflow policy" subtitle="Employee → Supervisor → Project Manager → HR → Finance → Lock • managed in one place" actions={<Button size="sm" variant="ghost" iconRight="arrow_forward" onClick={() => go('workflows')}>Open Approval Workflows</Button>} />
-
-    <Modal open={inviteOpen} title="Invite New System User" onClose={() => setInviteOpen(false)} width={480}
-      actions={<>
-        <Button variant="secondary" onClick={() => setInviteOpen(false)}>Cancel</Button>
-        <Button variant="primary" icon="send" onClick={handleInvite}>Send Invitation</Button>
-      </>}
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <TextField label="Full Name" value={inviteForm.name} onChange={x => setInviteForm(f => ({ ...f, name: typeof x === 'string' ? x : x.target.value }))} placeholder="e.g. Maria Gonzalez" />
-        <TextField label="Corporate Email" value={inviteForm.email} onChange={x => setInviteForm(f => ({ ...f, email: typeof x === 'string' ? x : x.target.value }))} placeholder="user@globalhub.com" />
-        <Select label="System Role" value={inviteForm.role} onChange={x => setInviteForm(f => ({ ...f, role: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Supervisor', 'Lead PM & Approver', 'HR Finance Admin', 'Payroll Specialist', 'System Admin']} />
-        <Select label="Entity Scope" value={inviteForm.ent} onChange={x => setInviteForm(f => ({ ...f, ent: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['All', 'Dominicana SRL', 'USA Inc.', 'UK Ltd.']} />
-      </div>
-    </Modal>
+    <Card icon="account_tree" title="Approval workflow policy" subtitle="Configured in Approval Workflows" actions={<Button size="sm" variant="ghost" iconRight="arrow_forward" onClick={() => go('workflows')}>Open Approval Workflows</Button>} />
   </Page>;
 }
 
@@ -4139,52 +4089,47 @@ function CompanySettings({ notify }) {
   </Page>;
 }
 
+// Events = backend audit_logs (GET /audit) plus this browser's workflow actions. No sample events, no fake hashes.
 function AuditLog({ notify }) {
   useWF();
-  const live = (WF ? WF.audit() : []).map(a => [fmtAt(a.at), a.actor, a.action, a.target, /Return|Reject|deleted|warning/.test(a.action + a.tone) ? 'warning' : 'success']);
-  const ev = [...live, ['09:14:02', 'Compliance Engine', 'bank.route.verified', 'MGH-1042 • Banco BHD León', 'success'], ['09:12:47', 'Elena Rostova', 'timesheet.approved', 'MGH-0975 • PP-2025-08', 'success'], ['09:02:10', 'Jira Webhook', 'worklog.synced', 'ATLAS-3482 • 8.5h', 'info'], ['08:58:31', 'Ana Gómez', 'tariff.updated', 'OT threshold 40h → 44h', 'warning'], ['08:41:05', 'System', 'auth.mfa.failed', 'luis@globalhub.com • 186.6.x.x', 'danger'], ['08:30:00', 'Scheduler', 'period.opened', 'PP-2025-09', 'neutral'], ['08:12:44', 'Marcus Vance', 'timesheet.returned', 'MGH-1120 • Jira variance', 'warning'], ['07:55:19', 'API Key mgh_live_7f…', 'webhook.created', 'payroll.locked → erp.globalhub.com', 'info'], ['07:40:02', 'Elena Rostova', 'session.login', 'Chrome • Punta Cana, DR', 'neutral'], ['07:12:30', 'Compliance Engine', 'ledger.hash.verified', 'Block #88214 • SHA-256 OK', 'success']].map(([time, actor, action, target, tone], i) => ({ id: i, time, actor, action, target, tone, hash: (0x9f3a2c + i * 7919).toString(16) + '…' + (0xb81d + i * 131).toString(16) }));
+  const [server, setServer] = React.useState([]);
+  React.useEffect(() => {
+    let cancel = false;
+    if (window.api && window.api.auditLogs) window.api.auditLogs().then(r => { if (!cancel && Array.isArray(r)) setServer(r); }).catch(() => {});
+    return () => { cancel = true; };
+  }, []);
+  const toneOf = s => /FAIL|DENIED|UNAUTHORIZED/i.test(s) ? 'danger' : /DELETE|REJECT|RETURN|REVERT|warning/i.test(s) ? 'warning' : 'success';
+  const fromServer = server.map(a => ({ at: a.created_at ? new Date(a.created_at.replace(' ', 'T') + (/Z$/.test(a.created_at) ? '' : 'Z')).getTime() : 0, actor: a.actor || 'System', action: a.action, target: [a.entity_type, a.entity_id].filter(Boolean).join(' • '), tone: toneOf(a.action) }));
+  const fromWF = (WF ? WF.audit() : []).map(a => ({ at: new Date(a.at).getTime() || 0, actor: a.actor, action: a.action, target: a.target, tone: toneOf(a.action + ' ' + (a.tone || '')) }));
+  const ev = [...fromServer, ...fromWF].sort((a, b) => b.at - a.at).map((e, i) => ({ ...e, id: i, time: e.at ? new Date(e.at).toLocaleString(LOC()) : '—' }));
   const [chip, setChip] = React.useState('all');
-  const t = useTable(ev.slice(0, MGH_RBAC.org === 'MGH Dominicana SRL' ? ev.length : live.length).filter(e => chip === 'all' || e.tone === chip), { search: ['actor', 'action', 'target'], pageSize: 10 });
+  const t = useTable(ev.filter(e => chip === 'all' || e.tone === chip), { search: ['actor', 'action', 'target'], pageSize: 10 });
 
-  const exportEvidencePack = () => {
-    const payload = {
-      evidencePackId: `EVID-PACK-${Date.now()}`,
-      organization: MGH_RBAC.org,
-      generatedAt: new Date().toISOString(),
-      merkleRootHash: '0x' + (Math.random() * 1e16).toString(16).padEnd(64, 'a'),
-      ledgerStatus: 'TAMPER_EVIDENT_OK',
-      totalRecords: ev.length,
-      records: ev.map(r => ({
-        timestamp: r.time,
-        actor: r.actor,
-        action: r.action,
-        target: r.target,
-        tone: r.tone,
-        ledgerHash: r.hash
-      }))
-    };
+  const exportJson = () => {
+    const payload = { organization: MGH_RBAC.org, generatedAt: new Date().toISOString(), totalRecords: ev.length, records: ev.map(r => ({ timestamp: r.time, actor: r.actor, action: r.action, target: r.target })) };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `audit-evidence-pack-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    if (notify) notify('Evidence Pack exported & verified (SHA-256)');
+    if (notify) notify('Audit log exported • ' + ev.length + ' events');
   };
 
   return <Page>
-    <PageHeader breadcrumbs={['System', 'Audit Log']} title="Audit Log" status={<Badge tone="success" icon="verified">Tamper-evident • Hash chain intact</Badge>} actions={<Button variant="dark" icon="download" onClick={exportEvidencePack}>Export Evidence Pack</Button>} />
+    <PageHeader breadcrumbs={['System', 'Audit Log']} title="Audit Log" actions={<Button variant="dark" icon="download" disabled={!ev.length} onClick={exportJson}>Export JSON</Button>} />
     <Card padding={20}>
-      <TableToolbar search={t.q} onSearch={t.setQ} placeholder="Search actor, event, target…" filters={<><Select size="sm" icon="calendar_month" options={['Today', 'Last 7 days', 'This period']} /><Select size="sm" icon="person" options={['All actors', 'Users', 'System', 'API keys']} /></>}
-        chips={<FilterChips value={chip} onChange={setChip} options={[{ value: 'all', label: 'All events', count: ev.length }, { value: 'success', label: 'Verified' }, { value: 'warning', label: 'Changes' }, { value: 'danger', label: 'Security', count: 1, tone: 'danger' }]} />} />
-      <DataTable style={{ marginTop: 14 }} maxHeight={560} density="compact" rows={t.rows} columns={[
-        { key: 'time', label: 'Timestamp (AST)', mono: true }, { key: 'actor', label: 'Actor', strong: true, weight: 600 },
-        { key: 'action', label: 'Event', render: r => <Badge mono size="sm" tone={r.tone === 'neutral' ? 'neutral' : r.tone}>{r.action}</Badge> }, { key: 'target', label: 'Target' },
-        { key: 'hash', label: 'Ledger hash', mono: true, render: r => <span style={{ color: 'var(--mgh-ink-3)' }}>{r.hash}</span> }]} />
-      <Pagination style={{ marginTop: 14 }} page={t.page} pageSize={t.pageSize} total={t.total} onPage={t.setPage} noun="events" />
+      <TableToolbar search={t.q} onSearch={t.setQ} placeholder="Search actor, event, target…"
+        chips={<FilterChips value={chip} onChange={setChip} options={[{ value: 'all', label: 'All events', count: ev.length }, { value: 'success', label: 'Actions', count: ev.filter(e => e.tone === 'success').length }, { value: 'warning', label: 'Changes', count: ev.filter(e => e.tone === 'warning').length }, { value: 'danger', label: 'Security', count: ev.filter(e => e.tone === 'danger').length, tone: 'danger' }]} />} />
+      {ev.length ? <>
+        <DataTable style={{ marginTop: 14 }} maxHeight={560} density="compact" rows={t.rows} columns={[
+          { key: 'time', label: 'Timestamp', mono: true }, { key: 'actor', label: 'Actor', strong: true, weight: 600 },
+          { key: 'action', label: 'Event', render: r => <Badge mono size="sm" tone={r.tone}>{r.action}</Badge> }, { key: 'target', label: 'Target' }]} />
+        <Pagination style={{ marginTop: 14 }} page={t.page} pageSize={t.pageSize} total={t.total} onPage={t.setPage} noun="events" />
+      </> : <div className="mgh-body" style={{ padding: '32px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>No audit events recorded yet.</div>}
     </Card>
   </Page>;
 }
@@ -4198,56 +4143,20 @@ window.__MGH_KIT = Object.assign(window.__MGH_KIT || {}, { jira: JiraIntegration
 const { Button, IconButton, Badge, Avatar, Icon, Card, FilterChips, StatCard, DataTable, TableToolbar, Pagination, Tabs, PageHeader, Select, KeyValue, Stepper, TextField } = window.MyGlobalHubDesignSystem_2a603d;
 const Modal = window.Modal;
 
-const CONTRACTORS = [
-  {
-    id: 'CTR-1043',
-    name: 'Zain Rondon',
-    country: 'Dominican Republic',
-    email: 'zain@myglobalhub.net',
-    phone: '+1 809 555 0192',
-    start: 'Feb 10, 2024',
-    end: '',
-    basis: 'Hourly',
-    rate: 50,
-    cur: 'USD',
-    method: 'Coinbase',
-    wallet: '0x3aB8…9F12',
-    walletFull: '0x3aB858B5d06456EaFeEfa24e86895315B91a9F12',
-    asset: 'USDC',
-    network: 'Base',
-    role: 'Full Stack Developer',
-    st: 'Active',
-    employeeId: 'MGH-1043',
-    entity: 'MGH Dominicana SRL'
-  }
-];
+// Real contractors and payments are loaded from the backend; no sample records.
+const CONTRACTORS = [];
 const isWU = c => c.method === 'Western Union';
 const flowOf = c => isWU(c) ? ['Timesheet', 'Manager Approval', 'Calculate Amount', 'Create Payment', 'Approve Payment', 'Send via Western Union', 'Record MTCN', 'Paid'] : FLOW;
 const mtcn = seed => { let x = seed * 7919 + 104729, s = ''; for (let i = 0; i < 10; i++) { x = (x * 48271) % 2147483647; s += x % 10; } return s.slice(0, 3) + '-' + s.slice(3, 6) + '-' + s.slice(6); };
-const HOURS = { 'CTR-1043': 80 };
+const HOURS = {};
 const FLOW = ['Timesheet', 'Manager Approval', 'Calculate Amount', 'Create Payment', 'Approve Payment', 'Send via Coinbase', 'Record Tx ID', 'Paid'];
 const PST = ['Calculated', 'Pending Approval', 'Approved', 'Sent', 'Paid'];
 const PTONE = { Calculated: 'neutral', 'Pending Approval': 'warning', Approved: 'info', Sent: 'info', Paid: 'success' };
 const hex = (seed, n) => { let s = '', x = seed; for (let i = 0; i < n; i++) { x = (x * 1103515245 + 12345) % 2147483648; s += (x % 16).toString(16); } return s; };
-const amountOf = c => c.basis === 'Fixed Monthly' ? c.rate / 2 : (HOURS[c.id] || 80) * c.rate;
+// Hourly contractors are owed only for hours actually recorded (no assumed 80h)
+const amountOf = c => c.basis === 'Fixed Monthly' ? c.rate / 2 : (HOURS[c.id] || 0) * c.rate;
 CONTRACTORS.forEach(c => { c.entity = c.entity || 'MGH Dominicana SRL'; });
-const INIT_PAYMENTS = [
-  {
-    id: 'CPAY-2025-08-1043',
-    cid: 'CTR-1043',
-    c: CONTRACTORS[0],
-    period: 'PP-2025-08',
-    hours: 80,
-    amount: 4000,
-    fee: 0.01,
-    status: 'Paid',
-    date: 'Apr 19, 2025',
-    cbId: 'CB-4A92E1B0',
-    hash: '0x8f2d9c4b7e1a3508a462b1df983a5420e6c7104b281f9a0c6482d3e5b9f71a02',
-    mtcn: '',
-    notes: 'Confirmed on-chain (Base USDC). Contractor acknowledged receipt.'
-  }
-];
+const INIT_PAYMENTS = [];
 const fmtUSD = n => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const WU_TRACK = 'https://www.westernunion.com/us/en/track-transfer.html';
 const explorer = (net, h) => ({ Base: 'https://basescan.org/tx/', Ethereum: 'https://etherscan.io/tx/', Polygon: 'https://polygonscan.com/tx/' }[net] || '#') + h;
@@ -4300,18 +4209,8 @@ function ReceiptDrop({ pid, notify, label = 'Coinbase' }) {
 }
 
 const STORAGE_KEY = 'mgh_contractors_v1';
-const loadContractors = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0 && !parsed.some(x => String(x.id).startsWith('CTR-010'))) {
-        return parsed;
-      }
-    }
-  } catch (e) {}
-  return CONTRACTORS;
-};
+// Start from what the backend bootstrap loaded (window.__MGH_CTR), never from a browser cache of old/demo rows
+const loadContractors = () => (window.__MGH_CTR && window.__MGH_CTR.CONTRACTORS) || CONTRACTORS;
 const saveContractors = l => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(l));
@@ -4323,14 +4222,14 @@ function Contractors({ go, notify }) {
   const [tab, setTab] = React.useState('contractors');
   const [chip, setChip] = React.useState('all');
   const [loading, setLoading] = React.useState(false);
-  const [dbConnected, setDbConnected] = React.useState(true);
+  const [dbConnected, setDbConnected] = React.useState(false);
 
   const fetchContractors = React.useCallback(async (showToast = false) => {
     try {
       setLoading(true);
       const client = window.api || api;
       const data = await client.contractors();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         setList(data);
         saveContractors(data);
         setDbConnected(true);
@@ -4629,17 +4528,18 @@ function Contractors({ go, notify }) {
   </Page>;
 }
 
-function ContractorPayments(props) { return INIT_PAYMENTS.some(p => MGH_RBAC.can('contractors.view', p.c)) ? <ContractorPaymentsInner {...props} /> : window.__mghEmpty('Contractor Payments', ['Payroll & Finance', 'Contractor Payments']); }
+// The route itself is permission-guarded; the list starts with what the backend bootstrap loaded.
+function ContractorPayments(props) { return <ContractorPaymentsInner {...props} />; }
 function ContractorPaymentsInner({ notify }) {
-  const [pays, setPays] = React.useState(() => INIT_PAYMENTS.filter(p => MGH_RBAC.can('contractors.view', p.c)).map(p => ({ ...p })));
+  const [pays, setPays] = React.useState(() => ((window.__MGH_CTR && window.__MGH_CTR.INIT_PAYMENTS) || INIT_PAYMENTS).filter(p => MGH_RBAC.can('contractors.view', p.c)).map(p => ({ ...p })));
   const [chip, setChip] = React.useState('all');
-  const [dbConnected, setDbConnected] = React.useState(true);
+  const [dbConnected, setDbConnected] = React.useState(false);
 
   const fetchPayments = React.useCallback(async (showToast = false) => {
     try {
       const client = window.api || api;
       const data = await client.contractorPayments({ periodId: getCurrentPeriod().code });
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         setPays(data);
         setDbConnected(true);
         if (window.__MGH_CTR) window.__MGH_CTR.INIT_PAYMENTS = data;
@@ -5158,7 +5058,7 @@ function Attendance({ route, go, notify, empId }) {
   const showFilters = !['attLeave', 'attHolidays', 'attRules', 'actDaily'].includes(sub[0]);
   return <Page>
     <PageHeader breadcrumbs={['Attendance', sub[1]]} title={sub[0] === 'attendance' ? 'Attendance Dashboard' : sub[1]} description="Single source for punches, daily status, exceptions and leave • feeds My Time Entry, timesheets, payroll and reports." status={<Badge tone="primary">{fmtD(f.d)} • {A.rules.flexible ? 'Flexible schedule' : 'Shift ' + A.rules.start + ' • ' + A.rules.shift + 'h • grace ' + A.rules.grace + ' min'}</Badge>} />
-    <Tabs value={sub[0]} onChange={go} tabs={SUBS.map(s => ({ value: s[0], label: s[1] }))} />
+    <Tabs value={sub[0]} onChange={go} tabs={SUBS.filter(s => MGH_RBAC.canRoute(s[0])).map(s => ({ value: s[0], label: s[1] }))} />
     {showFilters && <Filters f={f} setF={setF} withDate={['attendance', 'attDaily', 'attCalendar'].includes(sub[0]) || (sub[0] === 'attReports')} />}
     {sub[0] === 'attendance' && <Dashboard f={f} setF={setF} go={go} />}
     {sub[0] === 'attDaily' && <Daily f={f} go={go} notify={notify} />}

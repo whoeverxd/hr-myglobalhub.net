@@ -14,9 +14,9 @@ import { DAY, MON, U, add, f, fy, ANCHOR, TODAY, LOCKED, STATUSES, SHORT, TONE, 
 export default class App extends React.Component {
   state={
     route: (typeof window !== 'undefined' && window.MGH_RBAC ? window.MGH_RBAC.homeRoute() : 'periods'),
-    empId:'MGH-1042',toast:'',dialog:null,ov:{},periodFilter:'all',pq:'',offset:6,autoGen:true,adjFilter:'all',adj:ADJ,stage:1,ruleOn:[1,1,1,1,1],notifOn:[1,1,1,1,1,1],
-    myPeriodKey:'09',myWeek:'1',myDays:MYDAYS(),wl:{cat:'Jira Issue',issue:'ATLAS-412',title:'',hours:'',desc:'',date:'2025-04-15',project:'Atlas Core',type:'Regular',file:''},wlEdit:null,myTab:null,
-    worklogs:[{src:'jira',key:'ATLAS-412',title:'GraphQL API Optimization',desc:'Resolver batching for payroll register query',hrs:0.75,date:'2025-04-15',project:'Atlas Core',client:'Kairoon',type:'Regular'},{src:'other',key:'MEETING',title:'Weekly Payroll Sync',desc:'Finance + HR alignment on PP-2025-08 approvals',hrs:0.5,date:'2025-04-15',project:'Internal Ops',client:'Internal',type:'Regular',cat:'Meeting'}],
+    empId:'MGH-1042',toast:'',dialog:null,ov:{},periodFilter:'all',pq:'',offset:6,autoGen:true,adjFilter:'all',adj:[],stage:1,ruleOn:[1,1,1,1,1],notifOn:[1,1,1,1,1,1],
+    myPeriodKey:'09',myWeek:'1',myDays:MYDAYS(),wl:{cat:'Jira Issue',issue:'',title:'',hours:'',desc:'',date:'2025-04-15',project:'',type:'Regular',file:''},wlEdit:null,myTab:null,
+    worklogs:[],
     ne:{first:'',last:'',email:'',phone:'',nid:'',dob:'',entity:'My Global Hub Dominicana SRL',dept:'Engineering',title:'',mgr:'Elena Rostova',etype:'Full-time',start:'2025-04-21',loc:'Punta Cana, DR',freq:'Bi-Weekly',rate:'',cur:'USD',ot:true,tax:'DGII ISR + TSS (Dominican Republic)',bank:'Banco BHD León',acct:'',route:'',alloc:'100',bank2:'',jira:'',projects:'ATLAS',flow:'Employee → Supervisor → PM → HR → Finance',pmethod:'Bank Deposit',cbEmail:'',cbId:'',cbNetwork:'Base',cbAsset:'USDC',cbWallet:'',cbAlloc:'20',cbW8:false,cbKyc:false,cbCountry:'Colombia',cStart:'2025-04-21',cEnd:'2026-04-20',cTax:'W-8BEN (non-US individual)',cInvoice:true,plang:'Español',wuName:'',wuDelivery:'Cash Pickup',wuCountry:'Mexico',wuCity:'',wuCur:'Local currency',wuIdType:'National ID',wuIdNum:'',wuBankName:'',wuAcct:'',wuPhone:''},
     pf:{transfer:'bhd',ref:'',date:'2025-04-20'},pfFile:null,drag:false,proofs:(()=>{try{return JSON.parse(localStorage.getItem('mgh-proofs')||'[]')}catch(e){return []}})(),
     orgMenu: false,
@@ -67,11 +67,6 @@ export default class App extends React.Component {
     this._t0 = Date.now();
     this._rs = () => this.setState({ vw: window.innerWidth });
     window.addEventListener('resize', this._rs);
-    const WF = window.MGH_WF;
-    if (WF) {
-      WF.ensure('MGH-1042', 'Joshua Hernandez', 'PP-2025-08', 'Supervisión PM');
-      WF.ensure('MGH-1042', 'Joshua Hernandez', 'PP-2025-09', 'Draft');
-    }
     this._wf = () => this.forceUpdate();
     this._rb = () => {
       if (!(location.hash || '').slice(1) && window.MGH_RBAC && !window.MGH_RBAC.canRoute(this.state.route)) {
@@ -142,21 +137,26 @@ export default class App extends React.Component {
     try{
       const [d, periods, emps] = await Promise.all([
         api.bootstrap(),
-        api.periods(2025).catch(() => null),
+        api.periods(getCurrentPeriod().year).catch(() => null),
         api.employees().catch(() => null)
       ]);
       const ov = d.periodOverrides || {};
       if (periods && Array.isArray(periods)) {
         for (const p of periods) ov[p.id] = p.status;
       }
-      if (emps && Array.isArray(emps) && emps.length > 0) {
+      if (Array.isArray(emps)) {
         const curUser = this.state.currentUser || (window.MGH_AUTH && window.MGH_AUTH.user);
+        // Hours come only from the employee's timesheet for the current period; no timesheet → 0h, $0.
+        const curCode = getCurrentPeriod().code;
+        const tsByEmp = {};
+        (d.timesheets || []).forEach(t => { if (t.period === curCode) tsByEmp[t.emp] = t; });
         window.EMPLOYEES = emps.map(e => {
-          const rate = Number(e.rate) || 45;
-          const reg = Number(e.reg) || 80;
-          const ot = Number(e.ot) || 0;
-          const pto = Number(e.pto) || 0;
-          const gross = Number(e.gross) || +(reg * rate + ot * rate * 1.5 + pto * rate).toFixed(2);
+          const ts = tsByEmp[e.id] || {};
+          const rate = Number(e.rate) || 0;
+          const reg = Number(ts.reg) || 0;
+          const ot = Number(ts.ot) || 0;
+          const pto = Number(ts.pto) || 0;
+          const gross = +(reg * rate + ot * rate * 1.5 + pto * rate).toFixed(2);
           const isMe = curUser && (
             curUser.employeeId === e.id ||
             curUser.employee_id === e.id ||
@@ -171,26 +171,28 @@ export default class App extends React.Component {
           return {
             id: e.id,
             name: e.name || `${e.first || ''} ${e.last || ''}`.trim(),
-            role: e.role || 'Contributor',
-            dept: e.dept || 'Engineering',
+            role: e.role || '',
+            dept: e.dept || 'Unassigned',
             type: e.type || 'Full-time',
             entity: e.entity || 'MGH Dominicana SRL',
-            loc: e.loc || 'Punta Cana, DR',
+            loc: e.loc || '',
             phone: e.phone || '',
-            mgr: e.mgr || 'Elena Rostova',
-            project: e.project || 'Atlas Core',
+            mgr: e.mgr || '',
+            project: e.project || '',
             rate,
             reg,
             ot,
             pto,
             total: reg + ot + pto,
             gross,
-            match: e.match || 98.5,
+            hasTimesheet: Boolean(tsByEmp[e.id]),
+            // No Jira reconciliation data exists per employee yet; null means "not measured".
+            match: null,
             status: e.status || 'Active',
             avatar: avatar || null,
-            bank: e.bank || 'Banco BHD León',
+            bank: e.bank || '',
             tax: e.tax || (e.type === 'Contractor / Exempt' ? 'Exempt — not subject to tax deductions' : /USA/.test(e.entity) ? 'W-4 (US Federal)' : /UK/.test(e.entity) ? 'PAYE (HMRC)' : 'DGII (ISR + TSS)'),
-            joined: e.start || e.start_date || 'Apr 21, 2025'
+            joined: e.start || e.start_date || ''
           };
         });
         if (window.__MGH_DATA) {
@@ -210,7 +212,7 @@ export default class App extends React.Component {
       window.dispatchEvent(new Event('mgh-att'));
       window.dispatchEvent(new Event('mgh-wf'));
 
-      if (d.contractors && Array.isArray(d.contractors) && d.contractors.length > 0) {
+      if (Array.isArray(d.contractors)) {
         try {
           localStorage.setItem('mgh_contractors_v1', JSON.stringify(d.contractors));
         } catch (_) {}
