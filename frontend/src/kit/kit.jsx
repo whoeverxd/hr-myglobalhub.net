@@ -12,6 +12,8 @@ import { getCurrentPeriod, getQuincenaForDate, getPeriodsForYear } from '../lib/
 // Sample data for the My Global Hub enterprise kit (names/values follow the Figma file's sample content)
 const A = 'assets/avatars/';
 // Real employees are loaded from the backend (App.loadFromApi); no sample records.
+// UI locale for dates (shared by every screen in this file)
+const LOC = () => window.MGH_I18N ? window.MGH_I18N.locale() : 'en-US';
 const EMPLOYEES = [];
 EMPLOYEES.forEach(e => { e.total = e.reg + e.ot + e.pto; e.gross = +(e.reg * e.rate + e.ot * e.rate * 1.5 + e.pto * e.rate).toFixed(2);
   e.tax = e.tax || (e.type === 'Exempt' ? 'Exempt — not subject to tax deductions' : /USA/.test(e.entity) ? 'W-4 (US Federal)' : /UK/.test(e.entity) ? 'PAYE (HMRC)' : 'DGII (ISR + TSS)'); });
@@ -4984,7 +4986,6 @@ const RANGES = (() => {
 })();
 const RANGE_KEYS = Object.keys(RANGES);
 const SUBS = [['attendance', 'Dashboard', 'how_to_reg'], ['attDaily', 'Registro por horas', 'today'], ['actDaily', 'Registro por actividades', 'task_alt'], ['attCalendar', 'Calendar', 'calendar_month'], ['attExceptions', 'Exceptions', 'report'], ['attLeave', 'Leave Requests', 'beach_access'], ['attHolidays', 'Holidays', 'celebration'], ['attReports', 'Reports', 'summarize'], ['attRules', 'Rules', 'rule']];
-const LOC = () => window.MGH_I18N ? window.MGH_I18N.locale() : 'en-US';
 const fmtD = d => { const t = new Date(d + 'T00:00:00Z'); return t.toLocaleDateString(LOC(), { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }); };
 const v = x => typeof x === 'string' ? x : x && x.target ? x.target.value : x;
 // Leave requests change from other accounts: refresh them from the backend whenever a screen that lists them opens
