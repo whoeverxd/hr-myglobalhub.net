@@ -40,6 +40,10 @@ router.get('/health', (req, res) => {
     database: 'Cloud Firestore (Firebase NoSQL)',
     dialect: db.getDialect(),
     firebaseConfigured: firebaseService.isConfigured(),
+    // firebaseConfigured only says the credential file parsed. This says whether the
+    // data being served actually came from Cloud Firestore on this boot, or from the
+    // possibly stale local snapshot after a failed hydration.
+    hydration: db.hydrationStatus(),
     auth: 'sessions-rbac',
     time: new Date().toISOString(),
   });

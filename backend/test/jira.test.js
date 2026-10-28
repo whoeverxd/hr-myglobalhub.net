@@ -147,6 +147,16 @@ test('Jira Service: Validate and link project rejects invalid key without saving
 
 test('Jira Service: Validate and link real Jira project without duplicates', async () => {
   const originalFetch = global.fetch;
+  const originalEmail = process.env.JIRA_EMAIL;
+  const originalToken = process.env.JIRA_API_TOKEN;
+
+  // getConfig() reads these at call time and validateAndLinkProject refuses to run
+  // without them, so this test only passed on a machine that happened to have real
+  // Jira credentials in its .env. Fake credentials keep it hermetic: the point of the
+  // test is the no-duplicates rule, not the connection.
+  process.env.JIRA_EMAIL = 'tests@example.invalid';
+  process.env.JIRA_API_TOKEN = 'fake-token-for-tests';
+
   global.fetch = async (url) => {
     if (String(url).includes('/project/MSHP')) {
       return {
@@ -160,7 +170,9 @@ test('Jira Service: Validate and link real Jira project without duplicates', asy
         }),
       };
     }
-    return typeof originalFetch === 'function' ? originalFetch(url) : { ok: false, status: 404 };
+    // The old stub fell through to the real fetch here, so any call the service made
+    // besides the stubbed one left the test process and hit Atlassian for real.
+    throw new Error(`unstubbed network call in test: ${url}`);
   };
 
   try {
@@ -190,6 +202,10 @@ test('Jira Service: Validate and link real Jira project without duplicates', asy
     assert.equal(countAfter, 1, 'Should still have exactly 1 record for MSHP (no duplication)');
   } finally {
     global.fetch = originalFetch;
+    if (originalEmail === undefined) delete process.env.JIRA_EMAIL;
+    else process.env.JIRA_EMAIL = originalEmail;
+    if (originalToken === undefined) delete process.env.JIRA_API_TOKEN;
+    else process.env.JIRA_API_TOKEN = originalToken;
   }
 });
 

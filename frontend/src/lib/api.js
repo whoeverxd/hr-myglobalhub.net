@@ -1,6 +1,15 @@
 // Thin client for the Node/Express backend (../backend). In development Vite proxies /api
 // to http://localhost:5050 (see vite.config.js). Set VITE_API_URL to point elsewhere.
-const BASE = (import.meta.env && import.meta.env.VITE_API_URL) || '/api';
+//
+// VITE_API_URL replaces the default wholesale -- the `/api` prefix included. A production
+// build made with `https://api.myglobalhub.net` therefore sent POST /auth/login to the
+// host root and every call 404'd, with the login down in production. The server always
+// mounts its routes under /api (server.js: app.use('/api', routes)), so normalise here
+// and accept both spellings instead of leaving the trap armed for the next deploy.
+const RAW_BASE = (import.meta.env && import.meta.env.VITE_API_URL) || '/api';
+const BASE = /\/api\/?$/.test(RAW_BASE)
+  ? RAW_BASE.replace(/\/$/, '')
+  : RAW_BASE.replace(/\/$/, '') + '/api';
 
 const TOKEN_KEY = 'mgh-auth-token';
 const USER_KEY = 'mgh-auth-user';
