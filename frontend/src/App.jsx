@@ -91,7 +91,8 @@ export default class App extends React.Component {
     this._lang = () => this.forceUpdate();
     this._miss = () => { if (this.state.route === 'languages') this.forceUpdate(); };
     window.addEventListener('mgh-lang', this._lang);
-    window.addEventListener('mgh-stub', this._lang);
+    this._stub = () => { this.loadStubPayout(); this.forceUpdate(); };
+    window.addEventListener('mgh-stub', this._stub);
     window.addEventListener('mgh-open-password', this.openPassword);
     window.addEventListener('mgh-i18n-missing', this._miss);
 
@@ -643,63 +644,77 @@ export default class App extends React.Component {
     this.flash('Finiquito legal generado para impresión y firma');
   };
 
+  // CSV cell: quoted, inner quotes doubled; missing values stay blank (never a default bank, rate or hours)
+  csvCell = v => (v == null || v === '' ? '' : '"' + String(v).replace(/"/g, '""') + '"');
+  csvNum = (v, d) => (v == null || v === '' || !Number.isFinite(Number(v)) ? '' : Number(v).toFixed(d));
+  downloadCSV(name, headers, rows) {
+    const text = [headers.map(this.csvCell).join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob(['\ufeff' + text], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', name);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // Register of the CURRENT quincena: hours and gross come only from each employee's timesheet (loadFromApi)
   exportPayrollRegisterCSV = () => {
+    if (!window.MGH_RBAC || !window.MGH_RBAC.can('payroll.view')) {
+      this.flash('Your role cannot export the payroll register');
+      return;
+    }
     const emps = window.EMPLOYEES || [];
     if (!emps.length) {
       this.flash('No employee data available to export');
       return;
     }
-    const headers = ['Employee ID', 'Name', 'Role', 'Department', 'Entity', 'Hourly Rate', 'Reg Hours', 'OT Hours', 'PTO Hours', 'Total Hours', 'Est Gross Pay', 'Primary Bank', 'Payment Method'];
-    const rows = emps.map(e => [
-      e.id,
-      `"${e.name || ''}"`,
-      `"${e.role || ''}"`,
-      `"${e.dept || ''}"`,
-      `"${e.entity || ''}"`,
-      e.rate || 0,
-      e.reg || 80,
-      e.ot || 0,
-      e.pto || 0,
-      (Number(e.reg || 80) + Number(e.ot || 0) + Number(e.pto || 0)).toFixed(1),
-      (Number(e.gross) || (Number(e.rate || 50) * 80)).toFixed(2),
-      `"${e.bank || 'Banco BHD León'}"`,
-      `"${e.pmethod || 'Bank Deposit'}"`
-    ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `MGH_Payroll_Register_2025.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    this.flash('Payroll register exported as CSV file');
+    const code = getCurrentPeriod().code;
+    const headers = ['Period', 'Employee ID', 'Name', 'Role', 'Department', 'Entity', 'Hourly Rate', 'Reg Hours', 'OT Hours', 'PTO Hours', 'Total Hours', 'Est Gross Pay', 'Timesheet', 'Primary Bank', 'Payment Method'];
+    const C = this.csvCell, N = this.csvNum;
+    const rows = emps.map(e => {
+      const ts = !!e.hasTimesheet;
+      return [
+        C(code), C(e.id), C(e.name), C(e.role), C(e.dept), C(e.entity),
+        N(e.rate, 2),
+        ts ? N(e.reg, 1) : '', ts ? N(e.ot, 1) : '', ts ? N(e.pto, 1) : '',
+        ts ? N((Number(e.reg) || 0) + (Number(e.ot) || 0) + (Number(e.pto) || 0), 1) : '',
+        ts ? N(e.gross, 2) : '',
+        C(ts ? 'Yes' : 'Sin hoja'),
+        C(e.bank), C(e.pmethod)
+      ];
+    });
+    this.downloadCSV(`MGH_Payroll_Register_${code}.csv`, headers, rows);
+    this.flash('Payroll register ' + code + ' exported as CSV file');
   };
 
   exportPayrollRunDisbursementCSV = (run) => {
-    if (!run || !run.items) return;
+    if (!run || !Array.isArray(run.items)) return;
+    const C = this.csvCell, N = this.csvNum;
+    // Placeholders written by the payroll engine when nothing is stored are not accounts
+    const realAcct = v => { const x = String(v == null ? '' : v).trim(); return !x || /^(wallet|primary bank account|secondary account)$/i.test(x) || /^[•*]+0000$/.test(x) ? '' : x; };
     const headers = ['Employee ID', 'Employee Name', 'Role', 'Regular Hours', 'Overtime Hours', 'Gross Earnings', 'Statutory Deductions', 'Net Payout', 'Payout Rail', 'Target Account / Hash'];
-    const rows = run.items.map(it => [
-      it.employee_id || it.id || 'MGH-000',
-      `"${it.employee_name || it.name}"`,
-      `"${it.employee_role || it.role}"`,
-      it.hours ? it.hours.regular : (it.reg_hours || 80),
-      it.hours ? it.hours.overtime : (it.ot_hours || 0),
-      Number(it.gross_pay || (it.earnings && it.earnings.grossPay) || 0).toFixed(2),
-      Number(it.total_deductions || (it.deductions && it.deductions.total) || 0).toFixed(2),
-      Number(it.net_pay || it.netPay || 0).toFixed(2),
-      `"${it.payoutDistribution && it.payoutDistribution[0] ? it.payoutDistribution[0].rail : 'ACH Direct Deposit'}"`,
-      `"${it.payoutDistribution && it.payoutDistribution[0] ? (it.payoutDistribution[0].account || it.payoutDistribution[0].wallet || '••••9012') : '••••9012'}"`
-    ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Disbursement_Batch_${run.periodId || 'Run'}_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    this.flash(`Disbursement file downloaded for ${run.periodId}`);
+    const rows = run.items.map(it => {
+      const d = Array.isArray(it.payoutDistribution) && it.payoutDistribution[0] ? it.payoutDistribution[0] : null;
+      const acct = d ? realAcct(d.accountMasked || d.account || d.wallet) : '';
+      return [
+        C(it.employeeId || it.employee_id || it.id),
+        C(it.employee_name || it.name),
+        C(it.employee_role || it.role),
+        N(it.hours ? it.hours.regular : it.reg_hours, 2),
+        N(it.hours ? it.hours.overtime : it.ot_hours, 2),
+        N(it.gross_pay ?? (it.earnings && it.earnings.grossPay), 2),
+        N(it.total_deductions ?? (it.deductions && it.deductions.total), 2),
+        N(it.net_pay ?? it.netPay, 2),
+        C(d && d.rail ? d.rail : ''),
+        C(acct || 'SIN CUENTA')
+      ];
+    });
+    const code = run.periodId || run.period_id || '';
+    this.downloadCSV(`Disbursement_Batch_${code || 'run'}_${Date.now()}.csv`, headers, rows);
+    this.flash('Disbursement file downloaded' + (code ? ' for ' + code : ''));
   };
 
   sync(p,what){p.catch(e=>{console.warn('[api]',e.message);if(this.state.apiOnline)this.flash(what+' blocked by server: '+e.message)})}
@@ -711,7 +726,7 @@ export default class App extends React.Component {
     window.removeEventListener('mgh-att-leave', this._attLeave);
     window.removeEventListener('mgh-att-punch', this._attPunch);
     window.removeEventListener('mgh-lang', this._lang);
-    window.removeEventListener('mgh-stub', this._lang);
+    window.removeEventListener('mgh-stub', this._stub);
     window.removeEventListener('mgh-open-password', this.openPassword);
     window.removeEventListener('mgh-i18n-missing', this._miss);
     window.removeEventListener('hashchange', this.onHash);
@@ -732,7 +747,7 @@ export default class App extends React.Component {
     if (!myEmpId) return;
     (days||this.state.myDays).forEach(e=>{if(e.type==='Regular'&&(e.in||e.out))A.setPunches(myEmpId,e.d.toISOString().slice(0,10),e);});
   }
-  componentDidUpdate(pp,ps){if(ps&&ps.myDays!==this.state.myDays)this.syncAtt();}
+  componentDidUpdate(pp,ps){if(ps&&ps.myDays!==this.state.myDays)this.syncAtt();const st=window.__mghStub,sp=this.state.stubPay;if((st?st.id+'|'+st.period:null)!==(sp?sp.key:null))this.loadStubPayout();}
   applyLeave(){
     const A=window.MGH_ATT;if(!A)return;
     const myEmpId = this.state.currentUser && (this.state.currentUser.employeeId || this.state.currentUser.employee_id);
@@ -950,18 +965,60 @@ export default class App extends React.Component {
     const isImg=/^image\//.test(file.type);
     if(isImg){const fr=new FileReader();fr.onload=()=>this.setState({pfFile:{name:file.name,type:file.type,size:file.size,thumb:fr.result},drag:false});fr.readAsDataURL(file)}
     else this.setState({pfFile:{name:file.name,type:file.type,size:file.size,thumb:null},drag:false});}
+  // Payout lines of the pay stub on screen (#paystub). The kit only publishes {id, name, period, net} on
+  // window.__mghStub, so the stub's real payoutDistribution is read from GET /payroll/paystubs.
+  loadStubPayout=()=>{
+    const st=window.__mghStub;
+    if(!st||!st.id||!st.period){if(this.state.stubPay)this.setState({stubPay:null});return}
+    const key=st.id+'|'+st.period;
+    if(this.state.stubPay&&this.state.stubPay.key===key)return;
+    this.setState({stubPay:{key,list:null,currency:''}});
+    const done=(list,currency)=>this.setState(s=>s.stubPay&&s.stubPay.key===key?{stubPay:{key,list,currency}}:null);
+    if(!window.MGH_RBAC||!window.MGH_RBAC.can('payroll.generate')){done([],'');return}
+    api.paystubs(st.id).then(L=>{
+      const x=(Array.isArray(L)?L:[]).find(y=>y.employeeId===st.id&&y.periodId===st.period);
+      done(x&&Array.isArray(x.payoutDistribution)?x.payoutDistribution:[],(x&&x.currency)||'');
+    }).catch(()=>done([],''));
+  };
   proofVals(){
-    const s=this.state;
-    const TR={bhd:{bank:'Banco BHD León',amount:'$3,042.39 USD',rail:'ACH',ref:'Batch ID #BHD-8823',refLabel:'Trace / reference #',refPh:'BHD-8823-0420'},chase:{bank:'Chase Bank USA, N.A.',amount:'$760.60 USD',rail:'FedWire',ref:'FEDWIRE #US-042119',refLabel:'IMAD / OMAD #',refPh:'20250420MMQFMP2N000119'},coinbase:{bank:'Coinbase • USDC (Base)',amount:'—',rail:'On-chain',ref:'Not used for this employee',refLabel:'Transaction hash',refPh:'0x…64 hex characters'}};
-    const has=k=>s.proofs.some(p=>p.transfer===k);
-    const t=TR[s.pf.transfer],f=s.pfFile;
+    const s=this.state,stub=window.__mghStub||null;
+    const sp=stub&&s.stubPay&&s.stubPay.key===stub.id+'|'+stub.period?s.stubPay:null;
+    const loading=!!stub&&(!sp||sp.list===null);
+    // Values the payroll engine writes when nothing is stored are not real accounts: show them as missing
+    const PH=/^(primary bank account|secondary account|wallet)$/i;
+    const real=v=>{const x=String(v==null?'':v).trim();return !x||PH.test(x)||/^[•*]+0000$/.test(x)?'':x};
+    const cur=(sp&&sp.currency)||'';
+    const amt=n=>n==null||n===''||!Number.isFinite(Number(n))?'—':Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+(cur?' '+cur:'');
+    // Proof keys accepted by the backend: 'bhd' = first bank line, 'chase' = second bank line, 'coinbase' = crypto line
+    let bankN=0;const used={};
+    const lines=((sp&&sp.list)||[]).map(d=>{
+      if(!d)return null;
+      const isCb=/coinbase|usdc|crypto|btc|eth/i.test(String(d.rail||'')+' '+String(d.target||''));
+      const key=isCb?'coinbase':(bankN++===0?'bhd':'chase');
+      if(used[key])return null;used[key]=true;
+      const acct=real(d.accountMasked||d.account||d.wallet);
+      return {key,isCb,bank:real(d.target)||(isCb?'Coinbase':'Banco no registrado'),amount:amt(d.amount),rail:String(d.rail||'').trim()||'—',
+        ref:(acct||'SIN CUENTA')+(d.percentage!=null&&d.percentage!==''?' • '+d.percentage+'%':''),
+        refLabel:isCb?'Transaction hash':'Trace / reference #',refPh:isCb?'0x…64 hex characters':'Referencia de la transferencia'};
+    }).filter(Boolean);
+    // Only proofs of THIS stub (employee + period); older proofs without that link are not attributed to it
+    const mine=stub?(s.proofs||[]).filter(p=>p&&p.emp===stub.id&&p.period===stub.period):[];
+    const has=k=>mine.some(p=>p.transfer===k);
+    const nDone=lines.filter(t=>has(t.key)).length;
+    const sel=lines.find(t=>t.key===s.pf.transfer)||lines[0]||null;
+    const f=s.pfFile;
     const val=v=>typeof v==='string'?v:(v&&v.target?v.target.value:'');
     return {
-      isStub:s.route==='paystub'&&!!window.__mghStub&&window.MGH_RBAC.can('payroll.generate'),
-      proofBadge:this.el('Badge',{tone:has('bhd')&&has('chase')?'success':'warning',dot:true},has('bhd')&&has('chase')?'All transfers confirmed':((has('bhd')?1:0)+(has('chase')?1:0))+' of 2 transfers confirmed'),
-      transfers:['bhd','chase'].map(k=>({...TR[k],status:has(k)?'Proof Attached':'Awaiting Proof',tone:has(k)?'success':'warning',bg:has(k)?'var(--mgh-success-bg)':'var(--mgh-surface-1)'})),
-      transferOpts:[{value:'bhd',label:'Banco BHD León • ACH • 80%'},{value:'chase',label:'Chase Bank USA • FedWire • 20%'},{value:'coinbase',label:'Coinbase • USDC transaction hash'}],
-      pf:{...s.pf,refLabel:t.refLabel,refPh:t.refPh},
+      isStub:s.route==='paystub'&&!!stub&&window.MGH_RBAC.can('payroll.generate'),
+      proofBadge:this.el('Badge',{tone:lines.length&&nDone===lines.length?'success':lines.length?'warning':'neutral',dot:true},
+        loading?'Cargando…':!lines.length?'Sin transferencias':nDone===lines.length?'All transfers confirmed':nDone+' of '+lines.length+' transfers confirmed'),
+      hasTransfers:lines.length>0,
+      transfersEmpty:loading?'Cargando transferencias del recibo…':'Sin transferencias para este recibo',
+      transfers:lines.map(t=>({...t,status:has(t.key)?'Proof Attached':'Awaiting Proof',tone:has(t.key)?'success':'warning',bg:has(t.key)?'var(--mgh-success-bg)':'var(--mgh-surface-1)'})),
+      transferOpts:lines.map(t=>({value:t.key,label:t.bank+' • '+t.rail+(t.isCb?' • transaction hash':'')})),
+      pf:{...s.pf,transfer:sel?sel.key:'',refLabel:sel?sel.refLabel:'Reference #',refPh:sel?sel.refPh:''},
+      canAttach:!!sel,
+      proofNote:stub?'Proofs can be removed until '+stub.period+' is locked. After lock they become part of the period record.':'',
       setPfTransfer:v=>this.setState(st=>({pf:{...st.pf,transfer:val(v)}})),setPfRef:v=>this.setState(st=>({pf:{...st.pf,ref:val(v)}})),setPfDate:v=>this.setState(st=>({pf:{...st.pf,date:val(v)}})),
       dz:{border:s.drag?'var(--mgh-primary)':f?'var(--mgh-success)':'var(--mgh-surface-3)',bg:s.drag?'var(--mgh-primary-50)':f?'var(--mgh-success-bg)':'var(--surface-app)',icon:f?(f.thumb?'image':'picture_as_pdf'):'cloud_upload',
         title:f?f.name:'Drop the bank transfer confirmation here',sub:f?(Math.round(f.size/1024)+' KB • click to replace'):'PDF, PNG or JPG up to 8 MB • or click to browse'},
@@ -969,15 +1026,17 @@ export default class App extends React.Component {
       onDrop:e=>{e.preventDefault();this.readFile(e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0])},
       onPick:e=>this.readFile(e.target.files&&e.target.files[0]),
       attachProof:()=>{
-        const isCb=s.pf.transfer==='coinbase';
-        if(isCb&&!/^0x[a-fA-F0-9]{64}$/.test(s.pf.ref)){this.flash('Enter a valid transaction hash (0x + 64 hex)');return}
-        if(!isCb&&!f){this.flash('Drop or choose the confirmation file first');return}
-        if(!isCb&&!s.pf.ref.trim()){this.flash('Enter the '+t.refLabel.toLowerCase());return}
-        const p={id:Date.now(),by:(s.currentUser&&s.currentUser.name)||'',transfer:s.pf.transfer,bank:t.bank,amount:t.amount,ref:t.refLabel+': '+s.pf.ref,date:s.pf.date,file:f?f.name:'On-chain record',thumb:f&&f.thumb,type:f?f.type:'hash',when:new Date().toLocaleString('en-US',{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'})};
-        const next=[...s.proofs.filter(x=>x.transfer!==p.transfer),p];this.saveProofs(next);
-        this.setState({proofs:next,pfFile:null,pf:{...s.pf,ref:''}});this.sync(api.saveProof(p),'Proof of payment');this.flash('Proof attached'+(window.__mghStub?' to '+window.__mghStub.id+' • '+window.__mghStub.period:''));},
-      hasProofs:s.proofs.length>0,
-      proofs:s.proofs.map(p=>({...p,thumb:p.thumb?'url('+p.thumb+')':'none',noThumb:!p.thumb,icon:p.type==='hash'?'link':'picture_as_pdf',remove:()=>{const next=s.proofs.filter(x=>x.id!==p.id);this.saveProofs(next);this.setState({proofs:next});this.sync(api.deleteProof(p.id),'Proof removal');this.flash('Proof removed')}}))};
+        if(!stub||!sel){this.flash('Sin transferencias para este recibo');return}
+        const ref=String(s.pf.ref||'').trim();
+        if(sel.isCb&&!/^0x[a-fA-F0-9]{64}$/.test(ref)){this.flash('Enter a valid transaction hash (0x + 64 hex)');return}
+        if(!sel.isCb&&!f){this.flash('Drop or choose the confirmation file first');return}
+        if(!sel.isCb&&!ref){this.flash('Enter the '+sel.refLabel.toLowerCase());return}
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(s.pf.date||'')){this.flash('Enter the value date');return}
+        const p={id:Date.now(),emp:stub.id,period:stub.period,by:(s.currentUser&&s.currentUser.name)||'',transfer:sel.key,bank:sel.bank,amount:sel.amount,ref:sel.refLabel+': '+ref,date:s.pf.date,file:f?f.name:'On-chain record',thumb:f&&f.thumb,type:f?f.type:'hash',when:new Date().toLocaleString('en-US',{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'})};
+        const next=[...(s.proofs||[]).filter(x=>!(x.transfer===p.transfer&&x.emp===p.emp&&x.period===p.period)),p];this.saveProofs(next);
+        this.setState({proofs:next,pfFile:null,pf:{...s.pf,ref:''}});this.sync(api.saveProof(p),'Proof of payment');this.flash('Proof attached to '+stub.id+' • '+stub.period);},
+      hasProofs:mine.length>0,
+      proofs:mine.map(p=>({...p,thumb:p.thumb?'url('+p.thumb+')':'none',noThumb:!p.thumb,icon:p.type==='hash'?'link':'picture_as_pdf',remove:()=>{const next=(this.state.proofs||[]).filter(x=>x.id!==p.id);this.saveProofs(next);this.setState({proofs:next});this.sync(api.deleteProof(p.id),'Proof removal');this.flash('Proof removed')}}))};
   }
   renderVals(){
     const o=this._rv(),R=window.MGH_RBAC;if(!R)return o;
@@ -1120,7 +1179,7 @@ export default class App extends React.Component {
         {label:(window.MGH_RBAC&&window.MGH_RBAC.orgSettings()?window.MGH_RBAC.orgSettings().short:'Dominicana'),icon:'domain',variant:'secondary',onClick:()=>this.setState(st=>({orgMenu:!st.orgMenu,langMenu:false}))},
         {label:(window.MGH_I18N?window.MGH_I18N.lang:'es').toUpperCase().slice(0,2),icon:'language',variant:'secondary',onClick:()=>this.setState(st=>({langMenu:!st.langMenu,orgMenu:false}))},
         {label:'Bulk Actions',icon:'checklist',variant:'secondary',onClick:()=>this.go('queue')},
-        {label:'Export Register',icon:'download',variant:'secondary',onClick:()=>this.exportPayrollRegisterCSV()}
+        ...(window.MGH_RBAC&&window.MGH_RBAC.can('payroll.view')?[{label:'Export Register',icon:'download',variant:'secondary',onClick:()=>this.exportPayrollRegisterCSV()}]:[])
       ]),
       ...this.langVals(),
       ...this.wfCfgVals(),
@@ -1627,6 +1686,12 @@ export default class App extends React.Component {
               <div style={{ padding: "0 28px 28px", maxWidth: "1600px" }}>
                 <DS.Card icon="task_alt" title="Proof of Payment" subtitle="Attach bank transfer confirmations or Coinbase transaction hashes • printed on the pay stub and logged to the Audit Log" actions={v.proofBadge}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                    {v.hasTransfers ? null : (
+                      <div style={{ padding: "14px", borderRadius: "12px", background: "var(--mgh-surface-1)", display: "flex", alignItems: "center", gap: "10px", font: "500 13px/18px var(--font-sans)", color: "var(--mgh-ink-2)" }}>
+                        <DS.Icon name="info" size={18} color="var(--mgh-ink-3)" />
+                        {v.transfersEmpty}
+                      </div>
+                    )}
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,260px),1fr))", gap: "10px" }}>
                       {(v.transfers || []).map((t, _i0) => (
                         <Fragment key={_i0}>
@@ -1668,9 +1733,9 @@ export default class App extends React.Component {
                     </label>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                       <span style={{ font: "400 12px/16px var(--font-sans)", color: "var(--mgh-ink-3)" }}>
-                        Proofs can be removed until PP-2025-08 is locked (Apr 21). After lock they become part of the sealed record.
+                        {v.proofNote}
                       </span>
-                      <DS.Button icon="attach_file" onClick={v.attachProof}>
+                      <DS.Button icon="attach_file" disabled={!v.canAttach} onClick={v.attachProof}>
                         Attach Proof to Pay Stub
                       </DS.Button>
                     </div>
