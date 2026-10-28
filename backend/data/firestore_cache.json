@@ -23641,6 +23641,39 @@
       "created_at": "2026-10-28T20:30:40.062Z",
       "id": "2000"
     },
+    "2001": {
+      "actor": "User",
+      "action": "USER_LOGOUT",
+      "entity_type": "session",
+      "entity_id": "usr_1792629459554_8iac1",
+      "old_values": null,
+      "new_values": null,
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-28T21:43:47.688Z",
+      "id": "2001"
+    },
+    "2002": {
+      "actor": "Joshua Hernandez",
+      "action": "USER_LOGIN",
+      "entity_type": "user",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "old_values": null,
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-28T21:44:08.808Z",
+      "id": "2002"
+    },
+    "2003": {
+      "actor": "Joshua Hernandez",
+      "action": "USER_LOGIN",
+      "entity_type": "user",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "old_values": null,
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-28T22:28:23.616Z",
+      "id": "2003"
+    },
     "audit_test_1793052942079": {
       "id": "audit_test_1793052942079",
       "actor": "Test Runner",
@@ -26164,7 +26197,7 @@
       "updated_at": "2026-10-28T20:30:40.057Z",
       "_syncedAt": "2026-10-26T22:05:47.817Z",
       "cutoff": "2026-01-31T23:59",
-      "start_date": "2026-01-15",
+      "start_date": "2026-01-16",
       "status": "Open"
     },
     "PP-2026-03": {
@@ -26194,7 +26227,7 @@
       "updated_at": "2026-10-28T20:30:40.058Z",
       "_syncedAt": "2026-10-26T22:05:47.817Z",
       "cutoff": "2026-02-28T23:59",
-      "start_date": "2026-02-15",
+      "start_date": "2026-02-16",
       "status": "Open"
     },
     "PP-2026-05": {
@@ -26224,7 +26257,7 @@
       "updated_at": "2026-10-28T20:30:40.059Z",
       "_syncedAt": "2026-10-26T22:05:47.817Z",
       "cutoff": "2026-03-31T23:59",
-      "start_date": "2026-03-15",
+      "start_date": "2026-03-16",
       "status": "Open"
     },
     "PP-2026-07": {
@@ -26254,7 +26287,7 @@
       "updated_at": "2026-10-28T20:30:40.059Z",
       "_syncedAt": "2026-10-26T22:05:47.817Z",
       "cutoff": "2026-04-30T23:59",
-      "start_date": "2026-04-15",
+      "start_date": "2026-04-16",
       "status": "Open"
     },
     "PP-2026-09": {
@@ -26284,7 +26317,7 @@
       "updated_at": "2026-10-28T20:30:40.060Z",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-05-31T23:59",
-      "start_date": "2026-05-15",
+      "start_date": "2026-05-16",
       "status": "Open"
     },
     "PP-2026-11": {
@@ -26314,7 +26347,7 @@
       "updated_at": "2026-10-28T20:30:40.060Z",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-06-30T23:59",
-      "start_date": "2026-06-15",
+      "start_date": "2026-06-16",
       "status": "Open"
     },
     "PP-2026-13": {
@@ -26344,7 +26377,7 @@
       "updated_at": "2026-10-28T20:30:40.061Z",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-07-31T23:59",
-      "start_date": "2026-07-15",
+      "start_date": "2026-07-16",
       "status": "Open"
     },
     "PP-2026-15": {
@@ -26374,7 +26407,7 @@
       "updated_at": "2026-10-28T20:30:40.061Z",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-08-31T23:59",
-      "start_date": "2026-08-15",
+      "start_date": "2026-08-16",
       "status": "Open"
     },
     "PP-2026-17": {
@@ -26404,7 +26437,7 @@
       "updated_at": "2026-10-28T20:30:40.062Z",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-09-30T23:59",
-      "start_date": "2026-09-15",
+      "start_date": "2026-09-16",
       "status": "Open"
     },
     "PP-2026-19": {
@@ -27080,16 +27113,6 @@
       "created_at": "2026-10-23 17:03:29",
       "ip_address": "127.0.0.1",
       "token": "933df9b6e433b33098196db6eff4aad2aa9acb498a1b03bc3f24b98c44926eb0"
-    },
-    "a7c3978bfe729eeda414e5383fc9afa70125643f24036c636e295c4d85d6cd64": {
-      "id": "a7c3978bfe729eeda414e5383fc9afa70125643f24036c636e295c4d85d6cd64",
-      "expires_at": "2026-10-29T18:06:30.225Z",
-      "user_id": "usr_1792629459554_8iac1",
-      "_migratedAt": "2026-10-27T17:59:46.150Z",
-      "_syncedAt": "2026-10-26T22:05:51.742Z",
-      "created_at": "2026-10-22 18:06:30",
-      "ip_address": "127.0.0.1",
-      "token": "a7c3978bfe729eeda414e5383fc9afa70125643f24036c636e295c4d85d6cd64"
     },
     "b8c30a3d97a4075223a990547c114efbf563eb85031e2684accc6708aad89c3f": {
       "id": "b8c30a3d97a4075223a990547c114efbf563eb85031e2684accc6708aad89c3f",
@@ -28469,6 +28492,22 @@
       "expires_at": "2026-11-04T18:48:55.422Z",
       "created_at": "2026-10-28T18:48:55.423Z",
       "id": "doc_1793213335423_rlzwh"
+    },
+    "doc_1793223848807_l25py": {
+      "token": "02214f1e9eff520161c5bb5d8f938566b455cf27f2dff4fa5015e2c7a0c7bf93",
+      "user_id": "usr_1793131618127_8yfuy",
+      "ip_address": "127.0.0.1",
+      "expires_at": "2026-11-04T21:44:08.807Z",
+      "created_at": "2026-10-28T21:44:08.807Z",
+      "id": "doc_1793223848807_l25py"
+    },
+    "doc_1793226503614_pi6ap": {
+      "token": "abd9af52b26ea2954d40dac90d0197bf1681ea998e995d9e28ee002ebd60ec99",
+      "user_id": "usr_1793131618127_8yfuy",
+      "ip_address": "127.0.0.1",
+      "expires_at": "2026-11-04T22:28:23.613Z",
+      "created_at": "2026-10-28T22:28:23.614Z",
+      "id": "doc_1793226503614_pi6ap"
     }
   },
   "test_sandbox": {},
@@ -29069,7 +29108,7 @@
       "email": "zain@myglobalhub.net",
       "entity": "MGH Dominicana SRL",
       "last_login_at": "2026-10-27T18:31:57.798Z",
-      "updated_at": "2026-10-28T18:55:15.406Z"
+      "updated_at": "2026-10-28T22:34:11.666Z"
     },
     "usr-zain-com": {
       "id": "usr-zain-com",
@@ -29134,7 +29173,7 @@
       "employee_id": "MGH-1042",
       "password_hash": "7bd4f1703ab6c1f83839942480b500b41274c6676204ed81fbf530019f75bc08a027860abd058d04bc7ae8e812a94ba8f0836fc17fa507e038ee1092a010ebfe",
       "name": "Joshua Hernandez",
-      "last_login_at": "2026-10-28T18:48:55.426Z"
+      "last_login_at": "2026-10-28T22:28:23.616Z"
     },
     "usr_1793141848610_ilsyi": {
       "id": "usr_1793141848610_ilsyi",
