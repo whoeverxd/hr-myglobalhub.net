@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const jiraService = require('../src/services/jira.service');
 const activitiesController = require('../src/controllers/activities.controller');
 const { getAuditLogs } = require('../src/controllers/audit.controller');
+const db = require('../src/db');
 
 test('Jira Service: Get config and verify connection mode', async () => {
   const config = jiraService.getConfig();
@@ -42,6 +43,27 @@ test('Jira Service: Worklog synchronization and discrepancy reporting', () => {
   const testDate = '2025-04-19';
   const empId = 'MGH-1042';
 
+  // The estimate comes from the Jira cache only (there is no invented 4h fallback any more): arrange it explicitly.
+  db.execute('DELETE FROM jira_issues_cache WHERE key IN (?, ?)', ['MSH-220', 'MSH-221']);
+  db.execute(
+    `INSERT INTO jira_issues_cache (key, project_key, summary, issue_type, status, estimate_hours, logged_hours) VALUES (?, 'MSH', ?, 'Test', 'To Do', ?, 0)`,
+    ['MSH-220', 'Pruebas unitarias de cálculo de retenciones impositivas', 4.0]
+  );
+  db.execute(
+    `INSERT INTO jira_issues_cache (key, project_key, summary, issue_type, status, estimate_hours, logged_hours) VALUES (?, 'MSH', ?, 'Test', 'To Do', NULL, 0)`,
+    ['MSH-221', 'Issue sin estimado en Jira']
+  );
+  // An issue with no estimate is never flagged against an invented one
+  const actNoEstimate = activitiesController.createActivity({
+    employeeId: empId,
+    date: testDate,
+    jiraKey: 'MSH-221',
+    jiraSummary: 'Issue sin estimado en Jira',
+    hours: 9.0,
+    workType: 'Pruebas',
+    description: 'Sin estimado',
+  }, 'Carlos Mendez');
+
   // 1. Create an activity that severely exceeds Jira estimate (Estimate: 4.0h for MSH-220, log 9.0h -> OVER_ESTIMATE)
   const actOver = activitiesController.createActivity({
     employeeId: empId,
@@ -71,6 +93,7 @@ test('Jira Service: Worklog synchronization and discrepancy reporting', () => {
   assert.equal(foundDisc.loggedHours, 9.0);
   assert.equal(foundDisc.estimatedHours, 4.0);
   assert.equal(foundDisc.deltaHours, 5.0);
+  assert.equal(syncResult.discrepancies.find((d) => d.activityId === actNoEstimate.id), undefined, 'no estimate → no discrepancy');
 
   // 3. Verify audit trail
   const audits = getAuditLogs({ entityType: 'jira_sync' });
@@ -79,6 +102,8 @@ test('Jira Service: Worklog synchronization and discrepancy reporting', () => {
 
   // Clean up
   activitiesController.deleteActivity(actOver.id, 'Carlos Mendez');
+  activitiesController.deleteActivity(actNoEstimate.id, 'Carlos Mendez');
+  db.execute('DELETE FROM jira_issues_cache WHERE key IN (?, ?)', ['MSH-220', 'MSH-221']);
 });
 
 test('Jira Service: List projects from SQLite with task counts', () => {

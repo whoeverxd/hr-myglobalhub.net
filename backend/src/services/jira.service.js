@@ -17,32 +17,6 @@ if (!process.env.JIRA_API_TOKEN) {
   } catch (_) {}
 }
 
-const DEFAULT_PROJECTS = [
-  { id: 'ATLAS', key: 'ATLAS', name: 'Atlas Core Platform', lead: 'Elena Rostova', people: 14, budget: 120000, spent: 84200, hrs: 1610, bill: 94.2, st: 'On track' },
-  { id: 'PERF', key: 'PERF', name: 'Perf Infrastructure', lead: 'David Wu', people: 6, budget: 60000, spent: 51800, hrs: 940, bill: 88.1, st: 'At risk' },
-  { id: 'GHV3', key: 'GHV3', name: 'Global Hub v3', lead: 'Grace Okafor', people: 11, budget: 95000, spent: 40100, hrs: 780, bill: 97.0, st: 'On track' },
-  { id: 'LAKE', key: 'LAKE', name: 'Insights Lake', lead: 'Priya Natarajan', people: 5, budget: 48000, spent: 22600, hrs: 410, bill: 91.6, st: 'On track' },
-  { id: 'CORE', key: 'CORE', name: 'Core Billing Services', lead: 'Javier Peña', people: 8, budget: 70000, spent: 71900, hrs: 1205, bill: 85.4, st: 'Over budget' },
-  { id: 'OPS', key: 'OPS', name: 'Internal Ops', lead: 'Ana Gómez', people: 9, budget: 30000, spent: 14200, hrs: 520, bill: 0, st: 'Non-billable' },
-];
-
-// Catálogo corporativo de respaldo para modo offline o desarrollo inicial
-const DEFAULT_JIRA_ISSUES = [
-  { key: 'MSHP-101', summary: 'Configuración inicial del tablero y flujos de trabajo Jira', type: 'Story', status: 'In Progress', estimate: 8.0, assignee: 'Elena Rostova' },
-  { key: 'MSHP-102', summary: 'Integración de webhooks y sincronización de registros de trabajo', type: 'Task', status: 'In Progress', estimate: 6.0, assignee: 'Carlos Mendez' },
-  { key: 'MSHP-105', summary: 'Módulo de conciliación quincenal y alertas de discrepancia', type: 'Feature', status: 'To Do', estimate: 10.0, assignee: 'Sofia Almonte' },
-  { key: 'MSH-201', summary: 'Refactorización del servicio de nómina y deducciones DGII/TSS', type: 'Story', status: 'In Progress', estimate: 8.0, assignee: 'Carlos Mendez' },
-  { key: 'MSH-205', summary: 'Diseño e integración de componentes en el Design System', type: 'Task', status: 'In Progress', estimate: 6.0, assignee: 'Sofia Almonte' },
-  { key: 'MSH-210', summary: 'Auditoría y optimización de base de datos SQLite', type: 'Story', status: 'In Review', estimate: 5.0, assignee: 'David Wu' },
-  { key: 'MSH-214', summary: 'Implementación del backend relacional SQLite y sesiones', type: 'Story', status: 'Done', estimate: 8.0, assignee: 'Carlos Mendez' },
-  { key: 'MSH-215', summary: 'Módulo de registro por actividades y equivalencia quincenal', type: 'Feature', status: 'In Progress', estimate: 12.0, assignee: 'Carlos Mendez' },
-  { key: 'MSH-220', summary: 'Pruebas unitarias de cálculo de retenciones impositivas', type: 'Test', status: 'To Do', estimate: 4.0, assignee: 'Mariana Reyes' },
-  { key: 'MSH-224', summary: 'Generador de archivos NACHA ACH y dispersión electrónica BHD', type: 'Feature', status: 'In Review', estimate: 8.0, assignee: 'Carlos Mendez' },
-  { key: 'MSH-230', summary: 'Módulo de evidencias multimedia y vista previa en Lightbox', type: 'Story', status: 'Done', estimate: 6.0, assignee: 'Sofia Almonte' },
-  { key: 'ATLAS-412', summary: 'GraphQL API Optimization & query batching', type: 'Task', status: 'In Progress', estimate: 7.5, assignee: 'David Wu' },
-  { key: 'ATLAS-420', summary: 'Hotfix: Redis Cluster Failover y reconciliación', type: 'Task', status: 'Done', estimate: 4.0, assignee: 'David Wu' },
-];
-
 /**
  * Normaliza y obtiene la configuración de Jira Cloud desde las variables de entorno
  */
@@ -219,7 +193,7 @@ const jiraService = {
   /**
    * Crea un nuevo proyecto en SQLite
    */
-  createProject({ key, name, lead, budget, bill, st, user = 'Joshua Hernandez', ip = '127.0.0.1' } = {}) {
+  createProject({ key, name, lead, budget, bill, st, user = 'System', ip = '127.0.0.1' } = {}) {
     this.ensureDefaultProjects();
     const cleanName = (name || '').trim();
     if (!cleanName) {
@@ -242,9 +216,10 @@ const jiraService = {
       throw err;
     }
 
-    const leadName = lead || user || 'Joshua Hernandez';
-    const numBudget = Number(budget) || 50000;
-    const numBill = bill != null ? Number(bill) : 100;
+    // Nothing is invented: no lead, budget or billable % unless the creator gives one
+    const leadName = (lead && String(lead).trim()) || null;
+    const numBudget = budget != null && budget !== '' && Number.isFinite(Number(budget)) ? Number(budget) : null;
+    const numBill = bill != null && bill !== '' && Number.isFinite(Number(bill)) ? Number(bill) : null;
     const status = st || 'On track';
 
     db.execute(
@@ -284,7 +259,7 @@ const jiraService = {
   /**
    * Actualiza los datos de un proyecto en SQLite
    */
-  updateProject(key, { name, lead, budget, bill, st, user = 'Joshua Hernandez', ip = '127.0.0.1' } = {}) {
+  updateProject(key, { name, lead, budget, bill, st, user = 'System', ip = '127.0.0.1' } = {}) {
     this.ensureDefaultProjects();
     const normKey = (key || '').trim().toUpperCase();
     const existing = db.getOne('SELECT * FROM jira_projects WHERE key = ? OR id = ?', [normKey, normKey]);
@@ -336,7 +311,7 @@ const jiraService = {
   /**
    * Elimina un proyecto de SQLite
    */
-  deleteProject(key, { user = 'Joshua Hernandez', ip = '127.0.0.1' } = {}) {
+  deleteProject(key, { user = 'System', ip = '127.0.0.1' } = {}) {
     this.ensureDefaultProjects();
     const normKey = (key || '').trim().toUpperCase();
     const existing = db.getOne('SELECT * FROM jira_projects WHERE key = ? OR id = ?', [normKey, normKey]);
@@ -435,7 +410,7 @@ const jiraService = {
       db.execute(
         `INSERT INTO jira_projects
          (id, key, name, lead, people, budget, spent, hrs, bill, st, jira_id, created_at, updated_at)
-         VALUES (?, ?, ?, ?, 1, 50000, 0, 0, 100, 'On track', ?, datetime('now'), datetime('now'))`,
+         VALUES (?, ?, ?, ?, 0, NULL, 0, 0, NULL, 'On track', ?, datetime('now'), datetime('now'))`,
         [realKey, realKey, realName, realLead, String(realId)]
       );
       project = db.getOne('SELECT * FROM jira_projects WHERE key = ?', [realKey]);
@@ -533,7 +508,7 @@ const jiraService = {
         assignee: r.assignee_name || 'Sin asignar',
         assigneeEmail: r.assignee_email || null,
         updated: r.jira_updated_at || r.cached_at || null,
-        estimate: r.estimate_hours != null ? r.estimate_hours : 4.0,
+        estimate: r.estimate_hours != null ? r.estimate_hours : null,
         logged: r.logged_hours || 0,
         url: r.url || `${config.host}/browse/${r.key}`,
       })),
@@ -645,7 +620,7 @@ const jiraService = {
           const assigneeAvatar = iss.fields?.assignee?.avatarUrls?.['48x48'] || null;
           const estimateHours = iss.fields?.timeoriginalestimate
             ? round2(iss.fields.timeoriginalestimate / 3600)
-            : 4.0;
+            : null; // no estimate in Jira = no estimate here (never invented)
           const loggedHours = iss.fields?.timespent
             ? round2(iss.fields.timespent / 3600)
             : 0.0;
@@ -799,7 +774,7 @@ const jiraService = {
           status: r.status || 'In Progress',
           assignee: r.assignee_name || 'Sin asignar',
           assigneeEmail: r.assignee_email,
-          estimate: r.estimate_hours != null ? r.estimate_hours : 4.0,
+          estimate: r.estimate_hours != null ? r.estimate_hours : null,
           logged: r.logged_hours || 0,
           url: r.url || `${config.host}/browse/${r.key}`,
           project: r.project_key,
@@ -854,7 +829,9 @@ const jiraService = {
 
       syncedCount += 1;
       const loggedHours = Number(act.hours) || 0;
-      const estimatedHours = estimatesMap.get(act.jira_key) || 4.0;
+      const estimatedHours = estimatesMap.get(act.jira_key) || 0;
+      // Without a real Jira estimate there is nothing to compare against: no discrepancy is invented
+      if (!estimatedHours) return;
       const delta = round2(loggedHours - estimatedHours);
 
       let flag = 'MATCH';

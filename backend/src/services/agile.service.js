@@ -697,7 +697,7 @@ class AgileService {
     // 2. Buscar datos originales en caché de Jira o intentar conexión
     let jiraIssue = db.getOne('SELECT * FROM jira_issues_cache WHERE UPPER(key) = ?', [cleanJiraKey]);
     if (!jiraIssue) {
-      // Intentar buscar en DEFAULT_JIRA_ISSUES
+      // Intentar buscar en la caché local de Jira
       const fallback = jiraService.searchIssues({ query: cleanJiraKey, limit: 1 });
       if (fallback && fallback.length > 0 && fallback[0].key.toUpperCase() === cleanJiraKey) {
         jiraIssue = fallback[0];
@@ -708,7 +708,8 @@ class AgileService {
     const desc = jiraIssue && jiraIssue.description
       ? jiraIssue.description
       : `Ticket clonado desde Jira Legacy (${cleanJiraKey}).`;
-    const estimateHours = jiraIssue && jiraIssue.estimate_hours ? jiraIssue.estimate_hours : 4.0;
+    // Only a real Jira estimate is copied; without one the task starts unestimated (0)
+    const estimateHours = jiraIssue ? Number(jiraIssue.estimate_hours ?? jiraIssue.estimate) || 0 : 0;
     const jiraUrl = jiraIssue && jiraIssue.url ? jiraIssue.url : `https://myglobalhub.atlassian.net/browse/${cleanJiraKey}`;
     const assigneeName = jiraIssue ? (jiraIssue.assignee_name || jiraIssue.assignee) : null;
     const assigneeAvatar = jiraIssue ? jiraIssue.assignee_avatar : null;
@@ -721,7 +722,7 @@ class AgileService {
       task_type: taskType,
       priority: 'Medium',
       estimate_hours: estimateHours,
-      story_points: Math.round(estimateHours / 2) || 1,
+      story_points: estimateHours ? Math.round(estimateHours / 2) || 1 : 0,
       sprint_id: sprintId,
       status_id: statusId,
       assignee_name: assigneeName,
