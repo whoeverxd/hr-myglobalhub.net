@@ -4,3 +4,6 @@ data/db.json
 data/*.db*
 uploads/*
 !uploads/.gitkeep
+# prod-cleanup.js outputs (contain removed production data)
+data/audit-export-*.json
+data/firestore_cache.before-prod-cleanup-*.json

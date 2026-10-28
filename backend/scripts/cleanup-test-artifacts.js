@@ -123,4 +123,9 @@ async function main() {
   console.log(`\nDeleted ${deleted} of ${total} records.`);
 }
 
-main().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });
+// Reused by prod-cleanup.js (which folds these fingerprints into its plan): only run when executed directly
+if (require.main === module) {
+  main().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });
+}
+
+module.exports = { selectors, demoSelectors };
