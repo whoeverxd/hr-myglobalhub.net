@@ -973,10 +973,11 @@ router.get('/activities', authenticate, (req, res, next) => {
   }
 });
 
-// Activities belong to their employee: only they log/change them (admin may correct), and only while the
-// quincena's timesheet is still Draft/Returned. After submission corrections go through "return" by the reviewer.
+// Roles that may log one meeting for several attendees (POST /activities with `attendees`)
 const MEETING_ORGANIZER_ROLES = ['pm', 'supervisor', 'admin'];
 
+// Activities belong to their employee: only they log/change them (admin may correct), and only while the
+// quincena's timesheet is still Draft/Returned. After submission corrections go through "return" by the reviewer.
 function activityWriteError(user, empId, date) {
   const myEmpId = user && (user.employeeId || user.id);
   if (user && user.role !== 'admin' && empId && empId !== myEmpId) {
