@@ -71,7 +71,7 @@ function MyTimeEntry({ user, empId, notify, go }) {
     return todayQ.dateFrom === quincena.dateFrom && todayQ.dateTo === quincena.dateTo;
   }, [quincena]);
 
-  // Load activities for the period from SQLite backend API
+  // Load activities for the period from the backend API
   const loadPeriodActivities = useCallback(async () => {
     if (!activeEmpId) { setActivities([]); return; }
     setLoading(true);

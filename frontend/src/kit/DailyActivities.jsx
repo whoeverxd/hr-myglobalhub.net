@@ -96,7 +96,7 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
     }
   };
 
-  // Sugerencias de Jira reactivas con API, caché SQLite y estados de carga / error
+  // Sugerencias de Jira reactivas con API, tareas guardadas y estados de carga / error
   const [liveJiraTickets, setLiveJiraTickets] = useState([]);
   const [loadingJira, setLoadingJira] = useState(false);
   const [jiraError, setJiraError] = useState(null);

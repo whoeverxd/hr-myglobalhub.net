@@ -1894,8 +1894,6 @@ const { Button, IconButton, Badge, Avatar, Icon, Card, FilterChips, StatCard, Me
 const PT = { 'On track': 'success', 'At risk': 'warning', 'Over budget': 'danger', 'Non-billable': 'neutral' };
 
 function JiraIntegration({ notify }) {
-  const [auto, setAuto] = React.useState(true);
-  const [map, setMap] = React.useState(true);
   const [status, setStatus] = React.useState(null);
   const [issues, setIssues] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -1940,7 +1938,7 @@ function JiraIntegration({ notify }) {
     setSyncing(true);
     setErrorMsg(null);
     try {
-      const res = await window.api.syncJiraIssues({ projectKey: status?.projectKey || 'MSHP' });
+      const res = await window.api.syncJiraIssues(status?.projectKey ? { projectKey: status.projectKey } : {});
       if (res && res.ok) {
         if (notify) notify(`Sincronización completada: ${res.syncedCount || 0} tareas actualizadas desde Jira Cloud`);
         loadData();
@@ -2006,7 +2004,7 @@ function JiraIntegration({ notify }) {
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: 13 }}>{errorMsg}</div>
           <div style={{ fontSize: 12, color: '#B91C1C', marginTop: 2 }}>
-            La aplicación continúa operando con la <strong>Base de datos local SQLite</strong> ({totalCached} tareas en caché). Puedes registrar y conciliar jornadas sin interrupción.
+            La aplicación sigue usando las tareas ya guardadas en la base de datos ({totalCached} en total). Puedes registrar actividades mientras se restablece la conexión.
           </div>
         </div>
         <Button size="sm" variant="secondary" onClick={handleSyncNow} disabled={syncing}>
@@ -2016,14 +2014,14 @@ function JiraIntegration({ notify }) {
     )}
 
     <Grid min={220}>
-      <StatCard label="Tareas en caché local (SQLite)" value={totalCached.toString()} icon="inventory_2" tone="accent" />
-      <StatCard label="Estado de sincronización" value={isConnected ? 'Activo (En vivo)' : 'Caché Resiliente'} icon={isConnected ? 'check_circle' : 'database'} tone={isConnected ? 'success' : 'warning'} />
-      <StatCard label="Proyecto configurado" value={status?.projectKey || 'MSHP'} icon="folder_open" tone="primary" />
-      <StatCard label="Última sincronización" value={lastSyncStr} icon="history" delta={status?.sync?.status === 'SUCCESS' ? 'Completado' : 'Local'} deltaTone={isConnected ? 'success' : 'neutral'} />
+      <StatCard label="Tareas guardadas" value={String(totalCached)} icon="inventory_2" tone="accent" />
+      <StatCard label="Estado de sincronización" value={isConnected ? 'Conectado' : 'Sin conexión'} icon={isConnected ? 'check_circle' : 'database'} tone={isConnected ? 'success' : 'warning'} />
+      <StatCard label="Proyecto configurado" value={status?.projectKey || '—'} icon="folder_open" tone="primary" />
+      <StatCard label="Última sincronización" value={lastSyncStr} icon="history" delta={status?.sync?.status === 'SUCCESS' ? 'Completado' : (status?.sync?.status || undefined)} deltaTone={isConnected ? 'success' : 'neutral'} />
     </Grid>
 
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.6fr) minmax(300px,1fr)', gap: 20 }}>
-      <Card icon="hub" title="Arquitectura de Datos" subtitle="Protocolo: Jira (Autoridad) → SQLite (Lectura Ultrarrápida)">
+      <Card icon="hub" title="Arquitectura de Datos" subtitle="Jira es la fuente; la aplicación guarda una copia de las tareas">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0' }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <div style={{ background: 'var(--mgh-surface-2)', padding: 8, borderRadius: 8 }}><Icon name="verified" size={20} color="var(--mgh-primary)" /></div>
@@ -2035,8 +2033,8 @@ function JiraIntegration({ notify }) {
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <div style={{ background: 'var(--mgh-surface-2)', padding: 8, borderRadius: 8 }}><Icon name="bolt" size={20} color="#10B981" /></div>
             <div>
-              <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--mgh-ink)' }}>Base de Datos Local SQLite (&lt; 5ms)</div>
-              <div style={{ fontSize: 12, color: 'var(--mgh-ink-2)' }}>Lectura instantánea de tareas, estados y estimaciones para el selector de actividades diarias y reportes de conciliación sin trabas.</div>
+              <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--mgh-ink)' }}>Copia en la base de datos de la aplicación</div>
+              <div style={{ fontSize: 12, color: 'var(--mgh-ink-2)' }}>Las tareas sincronizadas se guardan para el selector de actividades diarias y los reportes de conciliación.</div>
             </div>
           </div>
         </div>
@@ -2044,16 +2042,14 @@ function JiraIntegration({ notify }) {
 
       <Card icon="settings_ethernet" title="Conexión Jira Cloud">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <KeyValue label="Sitio Atlassian" value={status?.host ? status.host.replace('https://', '') : 'myglobalhub.atlassian.net'} mono aside={<Badge tone={isConnected ? 'success' : 'warning'} size="sm">{status?.mode || 'Local'}</Badge>} />
-          <KeyValue label="Proyecto" value={status?.projectKey || 'MSHP'} mono />
-          <KeyValue label="Cuenta / Correo" value={status?.email || 'dev-ops@myglobalhub.com'} mono />
-          <Toggle checked={auto} onChange={setAuto} label="Sincronización periódica" description="Consulta de novedades y actualización de caché" />
-          <Toggle checked={map} onChange={setMap} label="Resiliencia local" description="Servir catálogo local si Jira no responde" />
+          <KeyValue label="Sitio Atlassian" value={status?.host ? status.host.replace('https://', '') : 'No configurado'} mono aside={<Badge tone={isConnected ? 'success' : 'warning'} size="sm">{status?.mode || (isConnected ? 'Conectado' : 'Sin conexión')}</Badge>} />
+          <KeyValue label="Proyecto" value={status?.projectKey || '—'} mono />
+          <KeyValue label="Cuenta / Correo" value={status?.email || 'No configurado'} mono />
         </div>
       </Card>
     </div>
 
-    <Card icon="list_alt" title={`Tareas de Jira en Base de Datos Local (${totalCached})`} bodyStyle={{ paddingTop: 14 }}>
+    <Card icon="list_alt" title={`Tareas de Jira guardadas (${totalCached})`} bodyStyle={{ paddingTop: 14 }}>
       <DataTable
         density="compact"
         rows={issues.map((iss, idx) => ({ id: iss.key || idx, ...iss }))}
@@ -2091,6 +2087,8 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
   const [teamProjectFilter, setTeamProjectFilter] = React.useState('all');
   const [teamTypeFilter, setTeamTypeFilter] = React.useState('all');
 
+  // Empty numeric inputs are sent as null: never invent a budget or a billable %
+  const numOrNull = x => { if (x == null || String(x).trim() === '') return null; const n = Number(x); return Number.isFinite(n) ? n : null; };
   // Modal para Crear Nuevo Proyecto
   const [createProjectOpen, setCreateProjectOpen] = React.useState(false);
   const [creatingProject, setCreatingProject] = React.useState(false);
@@ -2098,8 +2096,8 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
     name: '',
     key: '',
     lead: (currentUser && (currentUser.name || currentUser.userName)) || '',
-    budget: '50000',
-    bill: '100',
+    budget: '',
+    bill: '',
     st: 'On track'
   });
 
@@ -2111,8 +2109,8 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
     key: '',
     name: '',
     lead: '',
-    budget: '50000',
-    bill: '100',
+    budget: '',
+    bill: '',
     st: 'On track'
   });
 
@@ -2163,7 +2161,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
   const [taskQuery, setTaskQuery] = React.useState('');
   const [taskStatusFilter, setTaskStatusFilter] = React.useState('all');
 
-  // Cargar proyectos desde el backend (SQLite)
+  // Cargar proyectos desde el backend
   const fetchProjects = React.useCallback(async () => {
     try {
       setLoadingProjects(true);
@@ -2181,7 +2179,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
     }
   }, []);
 
-  // Cargar empleados desde el backend (SQLite)
+  // Cargar empleados desde el backend
   const fetchEmployees = React.useCallback(async () => {
     try {
       setLoadingEmployees(true);
@@ -2252,12 +2250,16 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
       if (notify) notify('Ingresa un correo electrónico corporativo válido.');
       return;
     }
-    if (workerForm.password && (workerForm.password.length < 10 || !/[a-z]/.test(workerForm.password) || !/[A-Z]/.test(workerForm.password) || !/d/.test(workerForm.password))) {
+    if (workerForm.password && (workerForm.password.length < 10 || !/[a-z]/.test(workerForm.password) || !/[A-Z]/.test(workerForm.password) || !/\d/.test(workerForm.password))) {
       if (notify) notify('La contraseña debe tener al menos 10 caracteres con mayúscula, minúscula y número (o déjala vacía para generar una segura).');
       return;
     }
     if (!(Number(workerForm.rate) > 0)) {
       if (notify) notify('Ingresa la tarifa por hora del trabajador.');
+      return;
+    }
+    if (!workerForm.project) {
+      if (notify) notify('Selecciona el proyecto inicial del trabajador.');
       return;
     }
 
@@ -2328,8 +2330,8 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
         name: projectForm.name.trim(),
         key: projectForm.key ? projectForm.key.trim().toUpperCase() : undefined,
         lead: projectForm.lead || '',
-        budget: Number(projectForm.budget) || 50000,
-        bill: Number(projectForm.bill) || 100,
+        budget: numOrNull(projectForm.budget),
+        bill: numOrNull(projectForm.bill),
         st: projectForm.st || 'On track'
       });
       if (notify) notify(`Proyecto '${res.name}' (${res.key}) creado exitosamente`);
@@ -2338,8 +2340,8 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
         name: '',
         key: '',
         lead: (currentUser && (currentUser.name || currentUser.userName)) || '',
-        budget: '50000',
-        bill: '100',
+        budget: '',
+        bill: '',
         st: 'On track'
       });
       fetchProjects();
@@ -2357,8 +2359,8 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
       key: proj.key || proj.id,
       name: proj.name || '',
       lead: proj.lead || '',
-      budget: String(proj.budget || 50000),
-      bill: String(proj.bill != null ? proj.bill : 100),
+      budget: proj.budget != null && proj.budget !== '' ? String(proj.budget) : '',
+      bill: proj.bill != null && proj.bill !== '' ? String(proj.bill) : '',
       st: proj.st || 'On track'
     });
     setEditProjectOpen(true);
@@ -2378,8 +2380,8 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
       await fn(projectToEdit.key || projectToEdit.id, {
         name: editProjectForm.name.trim(),
         lead: editProjectForm.lead,
-        budget: Number(editProjectForm.budget) || 50000,
-        bill: Number(editProjectForm.bill) || 100,
+        budget: numOrNull(editProjectForm.budget),
+        bill: numOrNull(editProjectForm.bill),
         st: editProjectForm.st
       });
       if (notify) notify(`Proyecto '${editProjectForm.name}' actualizado exitosamente`);
@@ -2483,7 +2485,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
         }
       }
     } catch (err) {
-      setTasksError('No se ha podido conectar con Jira. Mostrando datos locales de SQLite.');
+      setTasksError('No se ha podido conectar con Jira. Mostrando las tareas ya guardadas.');
       setIsOfflineTasks(true);
     } finally {
       setLoadingTasks(false);
@@ -2755,7 +2757,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
           />
           <StatCard
             label="Presupuesto Asignado"
-            value={`$${Math.round(projectsList.reduce((s, p) => s + (p.budget || 0), 0) / 1000)}k`}
+            value={(() => { const withBudget = projectsList.filter(p => Number(p.budget) > 0); return withBudget.length ? `$${Math.round(withBudget.reduce((s, p) => s + Number(p.budget), 0) / 1000)}k` : '—'; })()}
             unit="USD"
             icon="account_balance_wallet"
             tone="accent"
@@ -2793,7 +2795,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 <Button size="sm" variant="secondary" icon="cloud_sync" onClick={() => { setLinkError(null); setLinkedResult(null); setLinkModalOpen(true); }}>
                   Vincular Jira
                 </Button>
-                <Button size="sm" variant="secondary" icon="download" disabled={!projectsList.length} onClick={() => window.__mghNotify(window.__mghExport('csv', 'Projects', '', { cols: [['Key'], ['Name'], ['Lead'], ['People'], ['Budget'], ['Spent'], ['Hours'], ['Status']], rows: projectsList.map(p => [p.key || p.id, p.name, p.lead || '', p.people || 0, p.budget || 0, p.spent || 0, p.hrs || 0, p.st || '']) }))}>
+                <Button size="sm" variant="secondary" icon="download" disabled={!projectsList.length} onClick={() => window.__mghNotify(window.__mghExport('csv', 'Projects', '', { cols: [['Key'], ['Name'], ['Lead'], ['People'], ['Budget'], ['Spent'], ['Hours'], ['Status']], rows: projectsList.map(p => [p.key || p.id, p.name, p.lead || '', p.people || 0, p.budget != null ? p.budget : '', p.spent != null ? p.spent : '', p.hrs || 0, p.st || '']) }))}>
                   Exportar
                 </Button>
               </div>
@@ -2855,20 +2857,22 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 sortable: true,
                 width: 200,
                 render: r => {
-                  const pct = r.budget > 0 ? Math.round((r.spent / r.budget) * 100) : 0;
+                  const budget = Number(r.budget), spent = Number(r.spent) || 0;
+                  if (!(budget > 0)) return <span style={{ color: 'var(--mgh-ink-3)' }}>—</span>;
+                  const pct = Math.round((spent / budget) * 100);
                   return (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <ProgressBar
                         style={{ flex: 1 }}
                         value={pct}
-                        tone={r.spent > r.budget ? 'danger' : pct > 85 ? 'warning' : 'primary'}
+                        tone={spent > budget ? 'danger' : pct > 85 ? 'warning' : 'primary'}
                       />
                       <span style={{ font: '600 12px var(--font-sans)', width: 40, textAlign: 'right' }}>{pct}%</span>
                     </div>
                   );
                 }
               },
-              { key: 'bill', label: 'Facturable', align: 'right', sortable: true, render: r => r.bill ? r.bill + '%' : '—' },
+              { key: 'bill', label: 'Facturable', align: 'right', sortable: true, render: r => r.bill != null && r.bill !== '' ? r.bill + '%' : '—' },
               { key: 'st', label: 'Estado', render: r => <Badge size="sm" dot tone={PT[r.st] || 'neutral'}>{r.st}</Badge> },
               {
                 key: 'actions',
@@ -3056,8 +3060,8 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 label: 'Cargo / Especialidad',
                 render: r => (
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--mgh-ink)' }}>{r.role || r.title || 'Developer'}</div>
-                    <div style={{ fontSize: 11, color: 'var(--mgh-ink-3)' }}>{r.dept || 'Engineering'}</div>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--mgh-ink)' }}>{r.role || r.title || '—'}</div>
+                    <div style={{ fontSize: 11, color: 'var(--mgh-ink-3)' }}>{r.dept || '—'}</div>
                   </div>
                 )
               },
@@ -3065,7 +3069,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 key: 'type',
                 label: 'Tipo',
                 render: r => {
-                  const tp = r.etype || r.type || 'Full-time';
+                  const tp = r.etype || r.type || '—';
                   return <Badge size="xs" tone={tp === 'Contractor' ? 'accent' : 'neutral'}>{tp}</Badge>;
                 }
               },
@@ -3099,7 +3103,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 align: 'right',
                 render: r => (
                   <span style={{ font: '600 13px var(--font-mono, monospace)', color: 'var(--mgh-ink)' }}>
-                    ${r.rate != null ? Number(r.rate).toFixed(2) : '50.00'}/h
+                    {r.rate != null && r.rate !== '' && Number.isFinite(Number(r.rate)) ? '$' + Number(r.rate).toFixed(2) + '/h' : '—'}
                   </span>
                 )
               },
@@ -3121,7 +3125,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                       size="sm"
                       variant="ghost"
                       icon="visibility"
-                      onClick={() => go && go('employee', r.id)}
+                      onClick={() => go && go('profile', r.id)}
                       title="Ver perfil"
                     >
                       Perfil
@@ -3163,7 +3167,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
         {!linkedResult ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ font: '400 13px var(--font-sans)', color: 'var(--mgh-ink-2)', lineHeight: '18px' }}>
-              Ingresa la clave oficial del proyecto en Jira Cloud. El backend verificará la existencia en vivo del proyecto y los permisos de la cuenta antes de registrarlo en la base de datos local SQLite.
+              Ingresa la clave oficial del proyecto en Jira Cloud. El backend verificará la existencia en vivo del proyecto y los permisos de la cuenta antes de registrarlo.
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -3175,7 +3179,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 autoFocus
                 value={projectKeyInput}
                 onChange={e => setProjectKeyInput(e.target.value.toUpperCase())}
-                placeholder="ej. MSHP, TRES, KAN, AR..."
+                placeholder="ej. MSHP, ARW, TR3"
                 disabled={linking}
                 style={{
                   height: 40,
@@ -3194,7 +3198,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 }}
               />
               <div style={{ font: '400 11px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>
-                Puedes ingresar claves como <strong>MSHP</strong> o la clave real de TR3SLOG (<strong>TRES</strong>).
+                Puedes ingresar claves como <strong>MSHP</strong> (Wokokai), <strong>ARW</strong> (Arawaki) o <strong>TR3</strong> (Tr3slog).
               </div>
             </div>
 
@@ -3242,7 +3246,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 ID oficial Jira: <code>{linkedResult.jira_id || linkedResult.id}</code> • Líder: {linkedResult.lead}
               </div>
               <div style={{ font: '400 12px var(--font-sans)', color: 'var(--mgh-ink-3)', borderTop: '1px solid #A7F3D0', paddingTop: 8 }}>
-                Guardado en SQLite sin duplicados y añadido a la tabla de proyectos.
+                Guardado sin duplicados y añadido a la tabla de proyectos.
               </div>
             </div>
 
@@ -3315,7 +3319,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
             </Button>
           </div>
 
-          {/* Notificación de Modo Resiliente SQLite cuando Jira falla o no está conectado */}
+          {/* Notificación de sin conexión cuando Jira falla o no está conectado */}
           {isOfflineTasks && (
             <div style={{
               background: '#FFFBEB',
@@ -3330,7 +3334,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
             }}>
               <Icon name="dns" size={18} color="#D97706" style={{ flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
-                <strong>Modo Resiliente SQLite:</strong> Jira Cloud no respondió o no está disponible. Utilizando tareas almacenadas localmente en SQLite (Última sincronización: {formatSyncDate(tasksLastSyncAt)}).
+                <strong>Sin conexión con Jira:</strong> Jira Cloud no respondió o no está disponible. Se muestran las tareas ya guardadas (Última sincronización: {formatSyncDate(tasksLastSyncAt)}).
               </div>
             </div>
           )}
@@ -3413,7 +3417,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
           }}>
             {loadingTasks ? (
               <div style={{ padding: 40, textAlign: 'center', color: 'var(--mgh-ink-3)', font: '500 13px var(--font-sans)' }}>
-                Cargando incidencias de SQLite...
+                Cargando incidencias...
               </div>
             ) : filteredTasks.length === 0 ? (
               <div style={{ padding: 40, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
@@ -3422,7 +3426,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                   {projectTasks.length === 0 ? 'No hay tareas sincronizadas aún para este proyecto' : 'No hay incidencias que coincidan con la búsqueda'}
                 </div>
                 <div style={{ font: '400 12px var(--font-sans)', color: 'var(--mgh-ink-3)', maxWidth: 400 }}>
-                  {projectTasks.length === 0 ? 'Pulsa "Sincronizar ahora" para consultar Jira Cloud y guardar las incidencias en la base de datos local SQLite.' : 'Intenta ajustar los filtros o el término de búsqueda.'}
+                  {projectTasks.length === 0 ? 'Pulsa "Sincronizar ahora" para consultar Jira Cloud y guardar las incidencias.' : 'Intenta ajustar los filtros o el término de búsqueda.'}
                 </div>
                 {projectTasks.length === 0 && (
                   <Button size="sm" icon="sync" onClick={handleSyncCurrentProject} disabled={syncingTasks}>
@@ -3470,7 +3474,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                     label: 'Estado',
                     render: r => (
                       <Badge size="xs" tone={getStatusTone(r.status)}>
-                        {r.status || 'In Progress'}
+                        {r.status || '—'}
                       </Badge>
                     )
                   },
@@ -3545,10 +3549,12 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
               <Icon name="check_circle" size={28} color="#059669" />
               <div>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#065F46' }}>
-                  ¡Cuenta creada exitosamente!
+                  Colaborador registrado
                 </div>
                 <div style={{ fontSize: 12, color: '#047857', marginTop: 2 }}>
-                  El trabajador ha sido registrado en la base de datos y su usuario de acceso está habilitado.
+                  {createdSummary.account && ['created', 'linked'].includes(createdSummary.account.status)
+                    ? 'El colaborador quedó registrado y su usuario de acceso está habilitado.'
+                    : 'El colaborador quedó registrado. Revisa abajo el estado de su acceso.'}
                 </div>
               </div>
             </div>
@@ -3560,9 +3566,9 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 <KeyValue label="Correo Electrónico" value={createdSummary.email} mono />
                 {createdSummary.password ? <KeyValue label="Contraseña Temporal" value={createdSummary.password} mono aside={<Badge size="sm" tone="warning">Debe cambiarla al entrar</Badge>} /> : null}
                 {window.__mghAccountNotice(createdSummary.account) ? <div style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--mgh-warning-bg)', font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-ink)' }}>{window.__mghAccountNotice(createdSummary.account)}</div> : null}
-                <KeyValue label="Cargo / Especialidad" value={createdSummary.role} />
-                <KeyValue label="Proyecto Asignado" value={createdSummary.project} aside={<Badge mono tone="primary">{createdSummary.project}</Badge>} />
-                <KeyValue label="Tarifa Acordada" value={`$${createdSummary.rate}/h`} mono />
+                <KeyValue label="Cargo / Especialidad" value={createdSummary.role || '—'} />
+                <KeyValue label="Proyecto Asignado" value={createdSummary.project || '—'} />
+                <KeyValue label="Tarifa Acordada" value={createdSummary.rate != null && createdSummary.rate !== '' ? `$${createdSummary.rate}/h` : '—'} mono />
               </div>
             </Card>
           </div>
@@ -3637,7 +3643,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                   style={{ height: 38, padding: '0 10px', borderRadius: 8, border: '1px solid var(--mgh-surface-3, #CBD5E1)', fontSize: 13, background: '#fff' }}
                 >
                   <option value="employee">Empleado Estándar (Registrar horas, ver proyectos)</option>
-                  <option value="contractor">Contratista Internacional (Facturación por invoice)</option>
+                  <option value="contractor">Contratista</option>
                   <option value="supervisor">Supervisor (Supervisión de equipo)</option>
                   {['hr', 'admin'].includes((MGH_RBAC.user || {}).role) && <option value="pm">Project Manager (Gestión de proyectos y equipo)</option>}
                   {(MGH_RBAC.user || {}).role === 'admin' && <><option value="hr">Recursos Humanos</option><option value="finance">Finanzas</option><option value="admin">Administrador (acceso total)</option></>}
@@ -3679,6 +3685,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                   onChange={e => setWorkerForm(p => ({ ...p, project: e.target.value }))}
                   style={{ height: 38, padding: '0 10px', borderRadius: 8, border: '1px solid var(--mgh-surface-3, #CBD5E1)', fontSize: 13, background: '#fff' }}
                 >
+                  <option value="">Selecciona…</option>
                   {allProjectNames.map(pn => (
                     <option key={pn} value={pn}>{pn}</option>
                   ))}
@@ -3779,7 +3786,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 step="5000"
                 value={projectForm.budget}
                 onChange={e => setProjectForm(p => ({ ...p, budget: e.target.value }))}
-                placeholder="50000"
+                placeholder="Opcional"
                 style={{ height: 38, padding: '0 10px', borderRadius: 8, border: '1px solid var(--mgh-surface-3, #CBD5E1)', fontSize: 13 }}
               />
             </div>
@@ -3794,7 +3801,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 max="100"
                 value={projectForm.bill}
                 onChange={e => setProjectForm(p => ({ ...p, bill: e.target.value }))}
-                placeholder="100"
+                placeholder="Opcional"
                 style={{ height: 38, padding: '0 10px', borderRadius: 8, border: '1px solid var(--mgh-surface-3, #CBD5E1)', fontSize: 13 }}
               />
             </div>
