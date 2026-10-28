@@ -200,7 +200,7 @@ export default class App extends React.Component {
             tax: e.tax || (e.type === 'Contractor / Exempt' ? 'Exempt — not subject to tax deductions' : 'DGII (ISR + TSS)'),
             joined: e.start || e.start_date || '',
             // Stored fields shown on the profile (acct / nid are masked by the backend)
-            email: e.email || '', nid: e.nid || '', acct: e.acct || '', freq: e.freq || '', pmethod: e.pmethod || '',
+            email: e.email || '', nid: e.nid || '', acct: e.acct || '', freq: e.freq || '', pmethod: e.pmethod || '', cur: e.cur || 'USD',
             alloc: e.alloc != null ? Number(e.alloc) : 100, cryptoAlloc: Number(e.cryptoAlloc || 0),
             cryptoAsset: e.cryptoAsset || '', cryptoNetwork: e.cryptoNetwork || '', cryptoWallet: e.cryptoWallet || '',
             jira: e.jira || ''
@@ -481,6 +481,10 @@ export default class App extends React.Component {
       this.flash('Please provide valid employee, type and numeric amount');
       return;
     }
+    if (!String(newAdj.target || '').trim()) {
+      this.flash('Enter the disbursement target (the employee has no bank on file)');
+      return;
+    }
     try {
       await api.createAdjustment({
         id: `ADJ-${Date.now().toString().slice(-6)}`,
@@ -504,7 +508,10 @@ export default class App extends React.Component {
     }
   }
 
-  queueSeveranceAdjustment = async (sevEmp, totalSeverance) => {
+  queueSeveranceAdjustment = async (sevEmp, totalSeverance, calc) => {
+    if (!sevEmp || !sevEmp.id) { this.flash('No hay empleados para liquidar'); return; }
+    if (calc && calc.blocked) { this.flash(calc.blocked); return; }
+    if (!sevEmp.bank) { this.flash('El empleado no tiene banco registrado • complete el perfil antes de encolar la liquidación'); return; }
     try {
       await api.createAdjustment({
         id: `ADJ-${Date.now().toString().slice(-6)}`,
@@ -517,10 +524,10 @@ export default class App extends React.Component {
         amt: totalSeverance,
         tax: 'Statutory Exempt (Art. 86)',
         taxTone: 'success',
-        target: sevEmp.bank || 'Banco BHD León',
+        target: sevEmp.bank,
         status: 'Pending Approval'
       });
-      this.flash(`Liquidación de $${totalSeverance.toLocaleString('en-US', { minimumFractionDigits: 2 })} encolada en ajustes para ${sevEmp.name}`);
+      this.flash(`Liquidación de ${totalSeverance.toLocaleString('en-US', { minimumFractionDigits: 2 })} ${sevEmp.cur || ''} encolada en ajustes para ${sevEmp.name}`);
       await this.loadFromApi();
     } catch(e) {
       this.flash('Error encolando ajuste: ' + (e.message || 'Error'));
@@ -528,6 +535,8 @@ export default class App extends React.Component {
   };
 
   exportFiniquito = (sevEmp, calc) => {
+    if (!sevEmp || !sevEmp.id) { this.flash('No hay empleados para liquidar'); return; }
+    if (calc && calc.blocked) { this.flash(calc.blocked); return; }
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       this.flash('Por favor habilite ventanas emergentes para imprimir finiquito');
@@ -581,8 +590,8 @@ export default class App extends React.Component {
     <div><strong>Cargo:</strong> ${sevEmp.role}</div>
     <div><strong>ID Empleado:</strong> ${sevEmp.id}</div>
     <div><strong>Tiempo en servicio:</strong> ${calc.tenureYears} años, ${calc.tenureMonths} meses</div>
-    <div><strong>Salario ordinario mensual:</strong> $${calc.monthlySal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-    <div><strong>Salario diario promedio:</strong> $${calc.dailySal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+    <div><strong>Salario ordinario mensual:</strong> ${calc.monthlySal.toLocaleString('en-US', { minimumFractionDigits: 2 })} ${calc.cur}</div>
+    <div><strong>Salario diario promedio:</strong> ${calc.dailySal.toLocaleString('en-US', { minimumFractionDigits: 2 })} ${calc.cur}</div>
     <div><strong>Causa de terminación:</strong> ${calc.causeLabel}</div>
   </div>
   <table>
@@ -590,33 +599,33 @@ export default class App extends React.Component {
       <tr>
         <th>Concepto de Liquidación</th>
         <th>Base de Cálculo</th>
-        <th class="num">Monto (USD)</th>
+        <th class="num">Monto (${calc.cur || '—'})</th>
       </tr>
     </thead>
     <tbody>
       <tr>
         <td>Preaviso Legal (Art. 76)</td>
-        <td>${calc.preavisoDays} días @ $${calc.dailySal.toFixed(2)}/día</td>
-        <td class="num">$${calc.preavisoAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+        <td>${calc.preavisoDays} días @ ${calc.dailySal.toFixed(2)}/día</td>
+        <td class="num">${calc.preavisoAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
       </tr>
       <tr>
         <td>Auxilio de Cesantía (Art. 80)</td>
-        <td>${calc.cesantiaDays} días @ $${calc.dailySal.toFixed(2)}/día</td>
-        <td class="num">$${calc.cesantiaAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+        <td>${calc.cesantiaDays} días @ ${calc.dailySal.toFixed(2)}/día</td>
+        <td class="num">${calc.cesantiaAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
       </tr>
       <tr>
         <td>Vacaciones No Gozadas (Art. 177-181)</td>
-        <td>${calc.vacationDays} días @ $${calc.dailySal.toFixed(2)}/día</td>
-        <td class="num">$${calc.vacationAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+        <td>${calc.vacationDays} días @ ${calc.dailySal.toFixed(2)}/día</td>
+        <td class="num">${calc.vacationAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
       </tr>
       <tr>
         <td>Salario de Navidad Proporcional (Regalía Pascual - Art. 219)</td>
-        <td>Ley 16-92 Art. 219 (Exento de TSS e ISR)</td>
-        <td class="num">$${calc.regaliaAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+        <td>${calc.regaliaMonths} meses en ${new Date().getFullYear()} / 12 • Ley 16-92 Art. 219</td>
+        <td class="num">${calc.regaliaAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
       </tr>
       <tr class="total-row">
         <td colspan="2">TOTAL LIQUIDACIÓN Y DESCARGO FINIQUITO</td>
-        <td class="num">$${calc.totalSeverance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+        <td class="num">${calc.totalSeverance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
       </tr>
     </tbody>
   </table>
@@ -1225,7 +1234,7 @@ export default class App extends React.Component {
       notifRows:[['New pay period opens','All employees • Email + in-app'],['Timesheets are due','24h and 2h before deadline • Email + Slack'],['Approvals are pending','Every 4h until SLA • Approvers'],['Payroll is approved','Payroll admins & Finance'],['Payroll has been paid','All employees • pay stub link'],['A new pay period begins','Day 1 • 07:00 AST']].map((x,i)=>({ev:x[0],meta:x[1],on:!!s.notifOn[i],toggle:()=>this.setState(st=>{const a=[...st.notifOn];a[i]=a[i]?0:1;return {notifOn:a}})})),
       goAudit:()=>this.go('audit'),
       // adjustments
-      adjCrumbs:['Payroll & Finance','Adjustments',cur.id],
+      adjCrumbs:['Payroll & Finance','Adjustments'],
       adjActions:this.btns([
         
         
@@ -1239,12 +1248,12 @@ export default class App extends React.Component {
         const sev=L.filter(a=>/sever|cesant|preaviso|liquidaci/i.test((a.kind||'')+' '+(a.type||'')+' '+(a.cat||'')));
         const exAmt=L.filter(a=>/exempt|exento/i.test(a.tax||'')).reduce((t,a)=>t+abs(a),0),allAmt=L.reduce((t,a)=>t+abs(a),0);
         const exPct=allAmt?Math.round(exAmt/allAmt*100):null;
-        return [{label:'Total cycle adjustments',value:money(net).replace('+',''),icon:'tune',tone:'primary',footer:L.length+' record'+(L.length===1?'':'s')+' • '+cur.id},
+        return [{label:'Total adjustments',value:money(net).replace('+',''),icon:'tune',tone:'primary',footer:L.length+' record'+(L.length===1?'':'s')+' • all periods'},
           {label:'Pending approval',value:String(pend.length),icon:'pending_actions',tone:'success',footer:pend.length?money(pend.reduce((t,a)=>t+(Number(a.amt)||0),0))+' awaiting approval':'Nothing pending'},
           {label:'Severance cases',value:String(sev.length),icon:'gavel',tone:'warning',footer:'Preaviso, cesantía & liquidación records'},
           {label:'Taxable vs exempt',value:exPct==null?'—':(100-exPct)+'% / '+exPct+'%',icon:'pie_chart',tone:'accent',footer:'By adjustment amount'}];
       })(),
-      adjTitle:`Cycle ${cur.id} Adjustments & Bonuses Register`,
+      adjTitle:'Adjustments & Bonuses Register',
       adjFilterOpts:[{value:'all',label:'All Adjustments',count:cnt('all')},{value:'bonus',label:'Discretionary Bonuses',count:cnt('bonus')},{value:'stipend',label:'Expense Stipends',count:cnt('stipend')},{value:'deduction',label:'Statutory Deductions',count:cnt('deduction')},{value:'retro',label:'Retroactive Corrections',count:cnt('retro')}],
       adjFilter:s.adjFilter,setAdjFilter:v=>this.setState({adjFilter:v}),
       adjCols:[['Employee ID & name','left'],['Type & category','left'],['Gross amount','right'],['Tax treatment','left'],['Allocation target','left'],['Approved by & timestamp','left'],['Status','left'],['Actions','right']].map(x=>({label:x[0],align:x[1]})),
@@ -1254,15 +1263,32 @@ export default class App extends React.Component {
       sevCalc: (() => {
         const pool = (window.__MGH_DATA && window.__MGH_DATA.EMPLOYEES) || window.EMPLOYEES || [];
         // Real employee only (no sample person); tenure defaults to the employee's start date
-        const emp = pool.find(x => x.id === s.sevEmpId) || pool[0] || { id: '', name: '—', role: '', rate: 0, gross: 0, bank: '' };
-        const monthlySal = (emp.rate ? emp.rate * 160 : (emp.gross ? emp.gross * 2 : 0));
+        const found = pool.find(x => x.id === s.sevEmpId) || pool[0] || null;
+        const emp = found || { id: '', name: '—', role: '', rate: 0, bank: '', cur: '' };
+        const cur = emp.cur || '';
+        // Monthly ordinary salary from the stored hourly rate and the DR 44h week (44 × 52 / 12 h); no other source
+        const rate = Number(emp.rate) || 0;
+        const monthlySal = rate > 0 ? +(rate * 44 * 52 / 12).toFixed(2) : 0;
         const dailySal = +(monthlySal / 23.83).toFixed(2);
         const cause = s.sevCause || 'desahucio_employer';
         const startIso = /^\d{4}-\d{2}-\d{2}/.test(String(emp.joined || '')) ? String(emp.joined).slice(0, 10) : null;
-        const tenM = startIso ? Math.max(0, (() => { const a = new Date(startIso + 'T00:00:00'), b = new Date(); return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth()) - (b.getDate() < a.getDate() ? 1 : 0); })()) : 0;
+        const monthsBetween = (a, b) => (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth()) - (b.getDate() < a.getDate() ? 1 : 0);
+        const today = new Date();
+        const tenM = startIso ? Math.max(0, monthsBetween(new Date(startIso + 'T00:00:00'), today)) : 0;
         const tenureYears = s.sevTenureYears ?? Math.floor(tenM / 12);
         const tenureMonths = s.sevTenureMonths ?? tenM % 12;
         const vacationDays = s.sevVacationDays ?? 0;
+        // Regalía: whole months worked in the current calendar year, from max(Jan 1, start date)
+        let regaliaMonths = null;
+        if (startIso) {
+          const jan1 = new Date(today.getFullYear(), 0, 1), st = new Date(startIso + 'T00:00:00');
+          const from = st > jan1 ? st : jan1;
+          regaliaMonths = from > today ? 0 : Math.max(0, Math.min(12, monthsBetween(from, today)));
+        }
+        const blocked = !found ? 'No hay empleados registrados'
+          : !(monthlySal > 0) ? 'Sin salario registrado para ' + emp.name + ' • registre su tarifa en el perfil'
+          : !startIso ? 'Sin fecha de ingreso registrada para ' + emp.name
+          : '';
 
         let preavisoDays = 0;
         if (cause === 'desahucio_employer' || cause === 'dimision') {
@@ -1283,8 +1309,9 @@ export default class App extends React.Component {
         const preavisoAmt = +(preavisoDays * dailySal).toFixed(2);
         const cesantiaAmt = +(cesantiaDays * dailySal).toFixed(2);
         const vacationAmt = +(vacationDays * dailySal).toFixed(2);
-        const regaliaAmt = +((((tenureMonths % 12) || 4) / 12) * monthlySal).toFixed(2);
+        const regaliaAmt = +(((regaliaMonths || 0) / 12) * monthlySal).toFixed(2);
         const totalSeverance = +(preavisoAmt + cesantiaAmt + vacationAmt + regaliaAmt).toFixed(2);
+        const fmt = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (cur ? ' ' + cur : '');
 
         const causeLabels = {
           desahucio_employer: 'Desahucio por Empleador (con Preaviso)',
@@ -1296,9 +1323,13 @@ export default class App extends React.Component {
 
         return {
           emp,
+          hasEmp: !!found,
           pool,
+          cur,
+          blocked,
           monthlySal,
           dailySal,
+          salaryText: monthlySal > 0 ? 'Salario base mensual ' + fmt(monthlySal) + ' (promedio ' + fmt(dailySal) + '/día)' : 'Sin salario registrado',
           cause,
           causeLabel: causeLabels[cause] || cause,
           tenureYears,
@@ -1309,13 +1340,15 @@ export default class App extends React.Component {
           cesantiaDays,
           cesantiaAmt,
           vacationAmt,
+          regaliaMonths: regaliaMonths == null ? '—' : regaliaMonths,
           regaliaAmt,
           totalSeverance,
-          lines: [
-            { k: `Preaviso legal (${preavisoDays} días • Art. 76)`, v: '$' + preavisoAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-            { k: `Auxilio de Cesantía (${cesantiaDays} días • Art. 80)`, v: '$' + cesantiaAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-            { k: `Vacaciones no gozadas (${vacationDays} días • Art. 177)`, v: '$' + vacationAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-            { k: `Regalía Pascual proporcional (Art. 219)`, v: '$' + regaliaAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+          totalText: blocked ? '—' : fmt(totalSeverance),
+          lines: blocked ? [] : [
+            { k: `Preaviso legal (${preavisoDays} días • Art. 76)`, v: fmt(preavisoAmt) },
+            { k: `Auxilio de Cesantía (${cesantiaDays} días • Art. 80)`, v: fmt(cesantiaAmt) },
+            { k: `Vacaciones no gozadas (${vacationDays} días • Art. 177)`, v: fmt(vacationAmt) },
+            { k: `Regalía Pascual proporcional (${regaliaMonths} meses • Art. 219)`, v: fmt(regaliaAmt) }
           ]
         };
       })(),
@@ -2290,7 +2323,7 @@ export default class App extends React.Component {
                                 {a.target}
                               </td>
                               <td style={{ padding: "12px 14px", font: "400 12px/16px var(--font-sans)", color: "var(--mgh-ink-2)" }}>
-                                {a.by}
+                                {a.by || '—'}
                               </td>
                               <td style={{ padding: "12px 14px" }}>
                                 <DS.Badge tone={a.tone} dot={true} size="sm">
@@ -2314,7 +2347,7 @@ export default class App extends React.Component {
                     {v.adjShown}
                     {" of "}
                     {v.adjTotal}
-                    {" active cycle adjustments • Net total "}
+                    {" adjustments (all periods) • Net total "}
                     {v.adjNet}
                   </div>
                 </DS.Card>
@@ -2346,7 +2379,7 @@ export default class App extends React.Component {
                             Eligible employees
                           </div>
                           <div style={{ font: "700 16px/22px var(--font-sans)", color: "var(--mgh-ink)" }}>
-                            {(window.EMPLOYEES || []).filter(e => !/contractor|exempt/i.test(e.type || '') && e.status !== 'Inactive').length} active staff
+                            {(window.EMPLOYEES || []).filter(e => !/contractor|exempt/i.test(e.type || '') && e.status === 'Active').length} active staff
                           </div>
                           <div style={{ font: "600 11px/14px var(--font-sans)", color: "var(--mgh-ink-3)" }}>
                             Accrual is computed from saved payroll runs
@@ -2376,6 +2409,7 @@ export default class App extends React.Component {
                             onChange={e => this.setState({ sevEmpId: e.target.value })}
                             style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--mgh-surface-3)', background: '#fff', font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}
                           >
+                            {(v.sevCalc.pool || []).length ? null : <option value="">Sin empleados</option>}
                             {(v.sevCalc.pool || []).map(e => <option key={e.id} value={e.id}>{e.name} ({e.id})</option>)}
                           </select>
                         </div>
@@ -2417,7 +2451,7 @@ export default class App extends React.Component {
                             {v.sevCalc.emp.name}
                           </div>
                           <div style={{ font: "400 12px/16px var(--font-sans)", color: "var(--mgh-ink-3)" }}>
-                            {v.sevCalc.emp.role} • Salario base mensual ${v.sevCalc.monthlySal.toLocaleString('en-US', { minimumFractionDigits: 2 })} (Promedio ${v.sevCalc.dailySal}/día)
+                            {v.sevCalc.emp.role ? v.sevCalc.emp.role + ' • ' : ''}{v.sevCalc.salaryText}
                           </div>
                         </div>
                         <DS.Badge tone="neutral" size="sm">
@@ -2425,6 +2459,12 @@ export default class App extends React.Component {
                         </DS.Badge>
                       </div>
 
+                      {v.sevCalc.blocked ? (
+                        <div style={{ padding: "12px", borderRadius: "8px", background: "var(--mgh-warning-bg)", color: "#8A5A00", font: "600 13px/18px var(--font-sans)", display: "flex", alignItems: "center", gap: "8px" }}>
+                          <DS.Icon name="info" size={18} color="#8A5A00" />
+                          {v.sevCalc.blocked}
+                        </div>
+                      ) : null}
                       <div style={{ display: "flex", flexDirection: "column" }}>
                         {(v.sevCalc.lines || []).map((s, _i0) => (
                           <Fragment key={_i0}>
@@ -2446,19 +2486,19 @@ export default class App extends React.Component {
                             Total pasivo laboral a liquidar
                           </div>
                           <div style={{ font: "600 11px/14px var(--font-sans)", color: "var(--mgh-success-300)" }}>
-                            Exención TSS & ISR verificada (Ley 16-92 Art. 86)
+                            Exención TSS & ISR (no verificada) • Ley 16-92 Art. 86
                           </div>
                         </div>
                         <span style={{ font: "800 28px/32px var(--font-sans)", letterSpacing: "-1px" }}>
-                          ${v.sevCalc.totalSeverance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {v.sevCalc.totalText}
                         </span>
                       </div>
 
                       <div style={{ display: 'flex', gap: 8 }}>
-                        <DS.Button variant="secondary" icon="picture_as_pdf" style={{ flex: 1 }} onClick={() => this.exportFiniquito(v.sevCalc.emp, v.sevCalc)}>
+                        <DS.Button variant="secondary" icon="picture_as_pdf" style={{ flex: 1 }} disabled={!!v.sevCalc.blocked} onClick={() => this.exportFiniquito(v.sevCalc.emp, v.sevCalc)}>
                           Imprimir Finiquito
                         </DS.Button>
-                        <DS.Button variant="dark" icon="add_task" style={{ flex: 1 }} onClick={() => this.queueSeveranceAdjustment(v.sevCalc.emp, v.sevCalc.totalSeverance)}>
+                        <DS.Button variant="dark" icon="add_task" style={{ flex: 1 }} disabled={!!v.sevCalc.blocked} onClick={() => this.queueSeveranceAdjustment(v.sevCalc.emp, v.sevCalc.totalSeverance, v.sevCalc)}>
                           Encolar en Ajustes
                         </DS.Button>
                       </div>
@@ -2816,7 +2856,7 @@ export default class App extends React.Component {
                       const emp = (window.EMPLOYEES || []).find(x => x.id === empId);
                       if (emp) {
                         this.setState(s => ({
-                          newAdj: { ...s.newAdj, employeeId: emp.id, name: emp.name, role: emp.role, avatar: emp.avatar, target: emp.bank || 'Banco BHD León' }
+                          newAdj: { ...s.newAdj, employeeId: emp.id, name: emp.name, role: emp.role, avatar: emp.avatar, target: emp.bank || '' }
                         }));
                       }
                     }}
@@ -2860,13 +2900,13 @@ export default class App extends React.Component {
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                   <div>
-                    <label style={{ display: "block", font: "600 12px/16px var(--font-sans)", color: "var(--mgh-ink-2)", marginBottom: "6px" }}>Gross Amount (USD)</label>
+                    <label style={{ display: "block", font: "600 12px/16px var(--font-sans)", color: "var(--mgh-ink-2)", marginBottom: "6px" }}>{'Gross Amount (' + (((window.EMPLOYEES || []).find(x => x.id === this.state.newAdj.employeeId) || {}).cur || '—') + ')'}</label>
                     <input
                       type="number"
                       step="0.01"
                       value={this.state.newAdj.amt}
                       onChange={e => this.setState(s => ({ newAdj: { ...s.newAdj, amt: e.target.value } }))}
-                      placeholder="1500.00"
+                      placeholder="0.00"
                       style={{ width: "100%", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--mgh-surface-3)", font: "600 14px var(--font-mono)", color: "var(--mgh-ink)" }}
                     />
                   </div>
@@ -2895,7 +2935,7 @@ export default class App extends React.Component {
                     type="text"
                     value={this.state.newAdj.target}
                     onChange={e => this.setState(s => ({ newAdj: { ...s.newAdj, target: e.target.value } }))}
-                    placeholder="e.g. Banco BHD León • Checking"
+                    placeholder="Banco y cuenta del empleado (obligatorio)"
                     style={{ width: "100%", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--mgh-surface-3)", font: "500 14px var(--font-sans)", color: "var(--mgh-ink)" }}
                   />
                 </div>
