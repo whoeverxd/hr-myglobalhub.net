@@ -155,7 +155,7 @@ function useTable(rows, { search = [], pageSize = 8, initialSort } = {}) {
 // Employees come only from the backend; drop the old browser-side cache of "new employees".
 try { localStorage.removeItem('mgh-new-employees'); } catch (_) {}
 const WF = window.MGH_WF;
-const curPeriodInit = typeof getCurrentPeriod === 'function' ? getCurrentPeriod() : { code: 'PP-2026-20' };
+const curPeriodInit = getCurrentPeriod();
 if (WF) EMPLOYEES.forEach(e => WF.ensure(e.id, e.name, curPeriodInit.code, 'Draft'));
 // Tenant scoping: EMPLOYEES is the active organization's repository view; ALL_EMP is the store.
 const ALL_EMP = EMPLOYEES.slice();
@@ -171,10 +171,10 @@ if (window.MGH_ATT) window.MGH_ATT.setRoster(EMPLOYEES);
 // (timesheets.controller); the UI never adds leave hours on top, so nothing is double counted.
 window.addEventListener('mgh-att', () => { window.dispatchEvent(new Event('mgh-wf')); });
 window.addEventListener('mgh-rbac', () => { scopeTenant(); if (window.MGH_ATT) window.MGH_ATT.setRoster(EMPLOYEES); });
-const PERIOD = typeof getCurrentPeriod === 'function' ? getCurrentPeriod().code : 'PP-2026-20';
+const PERIOD = getCurrentPeriod().code;
 const recOf = id => {
   if (!WF) return null;
-  const curP = typeof getCurrentPeriod === 'function' ? getCurrentPeriod().code : 'PP-2026-20';
+  const curP = getCurrentPeriod().code;
   return WF.get(id, curP) || WF.ensure(id, (EMPLOYEES.find(x => x.id === id) || {}).name || id, curP, 'Draft');
 };
 const liveStatus = e => { const r = recOf(e.id); return r ? r.status : (e.status || 'Draft'); };
@@ -244,7 +244,7 @@ function EmployeeCell({ e, sub }) {
     <div style={{ minWidth: 0 }}><div style={{ font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-ink)' }}>{e.name}</div><div style={{ font: '400 11px/14px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>{sub || e.role}</div></div></div>;
 }
 
-const PERIOD = typeof getCurrentPeriod === 'function' ? getCurrentPeriod() : { code: 'PP-2026-20', range: '(15 Oct – 31 Oct, 2026)', phase: 'Supervisor Approval Phase' };
+const PERIOD = getCurrentPeriod();
 
 function QueueCard({ e, active, checked, onCheck, onClick }) {
   const tone = STATUS_TONE[e.status];
@@ -276,9 +276,9 @@ function ApprovalWorkspace(props) {
 }
 
 function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
-  const activeQuincena = typeof getCurrentPeriod === 'function' ? getCurrentPeriod() : { code: 'PP-2026-20', label: '15 al 31 de Octubre 2026', rangeShort: '15 Oct – 31 Oct', startDate: '2026-10-15', endDate: '2026-10-31', phase: 'Periodo Actual • En Curso', daysRemaining: 8 };
+  const activeQuincena = getCurrentPeriod();
   const availablePeriods = React.useMemo(() => [
-    { code: activeQuincena.code, label: `${activeQuincena.code} (${activeQuincena.rangeShort || activeQuincena.range || '15 Oct – 31 Oct, 2026'})`, phase: activeQuincena.phase || 'Periodo Actual • En Curso', start: activeQuincena.startDate, end: activeQuincena.endDate, startDate: activeQuincena.startDate, endDate: activeQuincena.endDate, daysRemaining: activeQuincena.daysRemaining },
+    { code: activeQuincena.code, label: `${activeQuincena.code} (${activeQuincena.rangeShort || activeQuincena.range || ''})`, phase: activeQuincena.phase || 'Periodo Actual • En Curso', start: activeQuincena.startDate, end: activeQuincena.endDate, startDate: activeQuincena.startDate, endDate: activeQuincena.endDate, daysRemaining: activeQuincena.daysRemaining },
     ...window.__mghPrevPeriods(activeQuincena, 2),
   ], [activeQuincena.code]);
   const [periodCode, setPeriodCode] = React.useState(activeQuincena.code);
@@ -883,9 +883,9 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
 
 function TeamApprovalQueue({ go, notify }) {
   useWF();
-  const activeQuincena = typeof getCurrentPeriod === 'function' ? getCurrentPeriod() : { code: 'PP-2026-20', label: '15 al 31 de Octubre 2026', rangeShort: '15 Oct – 31 Oct', startDate: '2026-10-15', endDate: '2026-10-31', phase: 'Periodo Actual • En Curso', daysRemaining: 8 };
+  const activeQuincena = getCurrentPeriod();
   const availablePeriods = React.useMemo(() => [
-    { code: activeQuincena.code, label: `${activeQuincena.code} (${activeQuincena.rangeShort || activeQuincena.range || '15 Oct – 31 Oct, 2026'})`, phase: activeQuincena.phase || 'Periodo Actual • En Curso', start: activeQuincena.startDate, end: activeQuincena.endDate, startDate: activeQuincena.startDate, endDate: activeQuincena.endDate, daysRemaining: activeQuincena.daysRemaining },
+    { code: activeQuincena.code, label: `${activeQuincena.code} (${activeQuincena.rangeShort || activeQuincena.range || ''})`, phase: activeQuincena.phase || 'Periodo Actual • En Curso', start: activeQuincena.startDate, end: activeQuincena.endDate, startDate: activeQuincena.startDate, endDate: activeQuincena.endDate, daysRemaining: activeQuincena.daysRemaining },
     ...window.__mghPrevPeriods(activeQuincena, 2),
   ], [activeQuincena.code]);
 
@@ -1448,7 +1448,7 @@ function EmployeeProfileInner({ empId, go, notify }) {
         <TextField label="Job Title / Role" value={form.role} onChange={x => setForm(f => ({ ...f, role: typeof x === 'string' ? x : x.target.value }))} />
         <Select label="Department" value={form.dept} onChange={x => setForm(f => ({ ...f, dept: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Executive', 'Engineering', 'Product', 'Design', 'Operations', 'Finance', 'Human Resources']} />
         <TextField label="Base Rate (USD/hr)" type="number" value={String(form.rate)} onChange={x => setForm(f => ({ ...f, rate: typeof x === 'string' ? x : x.target.value }))} />
-        <Select label="Operating Entity" value={form.entity} onChange={x => setForm(f => ({ ...f, entity: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['MGH Dominicana SRL']} />
+        <Select label="Empresa" value={form.entity} onChange={x => setForm(f => ({ ...f, entity: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['MGH Dominicana SRL']} />
         <TextField label="Direct Manager" value={form.mgr} onChange={x => setForm(f => ({ ...f, mgr: typeof x === 'string' ? x : x.target.value }))} />
         <TextField label="Primary Bank" value={form.bank} onChange={x => setForm(f => ({ ...f, bank: typeof x === 'string' ? x : x.target.value }))} />
         <TextField label="RNC / Cédula Personal" value={form.nid} mono onChange={x => setForm(f => ({ ...f, nid: typeof x === 'string' ? x : x.target.value }))} />
