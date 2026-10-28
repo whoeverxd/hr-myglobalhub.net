@@ -1,6 +1,7 @@
 import React from 'react';
 import DailyActivities from './DailyActivities.jsx';
 import AgileWorkspace from './AgileWorkspace.jsx';
+import MyProjects from './MyProjects.jsx';
 import { api } from '../lib/api.js';
 import { getCurrentPeriod, getQuincenaForDate, getPeriodsForYear } from '../lib/periodService.js';
 
@@ -1174,7 +1175,7 @@ function EmployeeProfileInner({ empId, go, notify }) {
     <nav style={{ display: 'flex', gap: 6, alignItems: 'center', font: '500 13px var(--font-sans)', color: 'var(--mgh-ink-2)' }}><a onClick={() => go('employees')} style={{ cursor: 'pointer', color: 'var(--mgh-ink-2)', fontWeight: 500 }}>Workforce</a><Icon name="chevron_right" size={14} /><a onClick={() => go('employees')} style={{ cursor: 'pointer', color: 'var(--mgh-ink-2)', fontWeight: 500 }}>Employee Directory</a><Icon name="chevron_right" size={14} /><b style={{ color: 'var(--mgh-ink)' }}>{e.name} ({e.id})</b></nav>
     <Card padding={24}>
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-        <div style={{ width: 120, height: 120, borderRadius: 12, background: e.avatar ? `url(${e.avatar}) center/cover` : 'var(--mgh-primary-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '700 40px var(--font-sans)', color: 'var(--mgh-primary)', flexShrink: 0 }}>{!e.avatar && e.name.split(' ').map(s => s[0]).join('')}</div>
+        <div style={{ width: 120, height: 120, borderRadius: 12, background: e.avatar ? `url(${e.avatar}) center/cover` : 'var(--mgh-primary-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '700 40px var(--font-sans)', color: 'var(--mgh-primary)', flexShrink: 0 }}>{!e.avatar && String(e.name || '?').split(' ').map(s => s[0]).join('')}</div>
         <div style={{ flex: 1, minWidth: 280 }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}><span className="mgh-title">{e.name}</span><Badge tone={e.status === 'Active' ? 'success' : 'neutral'}>{e.status || '—'}</Badge></div>
           <Badge mono size="sm" style={{ marginTop: 4 }}>{e.id}</Badge>
@@ -1189,7 +1190,7 @@ function EmployeeProfileInner({ empId, go, notify }) {
     {tab === 'overview' && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,420px),1fr))', gap: 20 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <Card icon="badge" title="Employment details">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}><KeyValue label="Email" value={e.email || '—'} /><KeyValue label="Manager" value={e.mgr || '—'} /><KeyValue label="Work location" value={e.loc || '—'} /><KeyValue label="Pay frequency" value={e.freq || '—'} /><KeyValue label="Tax profile" value={e.tax.split(' — ')[0]} aside={<Badge tone={/^Exempt/.test(e.tax) ? 'success' : 'info'} size="sm">{/^Exempt/.test(e.tax) ? 'No withholdings' : 'Withholding'}</Badge>} /><KeyValue label="Primary bank" value={e.bank || '—'} /><KeyValue label="RNC / Cédula Personal" value={e.nid || '—'} mono /><KeyValue label="Payment method" value={e.pmethod || '—'} /></div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}><KeyValue label="Email" value={e.email || '—'} /><KeyValue label="Manager" value={e.mgr || '—'} /><KeyValue label="Work location" value={e.loc || '—'} /><KeyValue label="Pay frequency" value={e.freq || '—'} /><KeyValue label="Tax profile" value={String(e.tax || '—').split(' — ')[0]} aside={<Badge tone={/^Exempt/.test(e.tax) ? 'success' : 'info'} size="sm">{/^Exempt/.test(e.tax) ? 'No withholdings' : 'Withholding'}</Badge>} /><KeyValue label="Primary bank" value={e.bank || '—'} /><KeyValue label="RNC / Cédula Personal" value={e.nid || '—'} mono /><KeyValue label="Payment method" value={e.pmethod || '—'} /></div>
         </Card>
         <Card icon="payments" title="Compensation & Overtime Rules" actions={canEdit && <Button size="sm" variant="ghost" onClick={() => setEditOpen(true)}>Edit Tariff</Button>}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}><MetricTile label="Base hourly" value={fmt$(e.rate)} sub="USD / hr" align="center" /><MetricTile tone="success" label="Overtime 1.5×" value={fmt$(e.rate * 1.5)} sub={WF ? WF.otLabel() : ''} align="center" /></div>
@@ -1822,10 +1823,15 @@ function JiraIntegration({ notify }) {
   </Page>;
 }
 
-function Projects({ go, notify, currentUser }) {
+// Employees, contractors and supervisors see only their projects (members-only); PM/admin get the full workspace
+function Projects(props) {
+  const role = window.MGH_RBAC ? window.MGH_RBAC.role : '';
+  return ['Employee', 'Contractor', 'Supervisor'].includes(role) ? <MyProjects {...props} /> : <ProjectsWorkspace {...props} />;
+}
+function ProjectsWorkspace({ go, notify, currentUser }) {
   const ModalComp = window.Modal || (window.MyGlobalHubDesignSystem_2a603d && window.MyGlobalHubDesignSystem_2a603d.Modal);
   const [mainTab, setMainTab] = React.useState('agile');
-  const [activeAgileProjectKey, setActiveAgileProjectKey] = React.useState('MSHP');
+  const [activeAgileProjectKey, setActiveAgileProjectKey] = React.useState(null);
   const [chip, setChip] = React.useState('all');
   const [projectsList, setProjectsList] = React.useState([]);
   const [loadingProjects, setLoadingProjects] = React.useState(false);
@@ -1947,7 +1953,7 @@ function Projects({ go, notify, currentUser }) {
                 gross: typeof found.gross === 'number' ? found.gross : 0,
                 match: hasMatch(found) ? found.match : null
               };
-              Object.assign(found, item);
+              Object.assign(found, Object.fromEntries(Object.entries(item).filter(([, v]) => v != null && v !== '')));
               found.ot_eligible = Boolean(item.ot);
               found.ot = prevHours.ot;
               found.reg = prevHours.reg;
@@ -4168,7 +4174,9 @@ const hex = (seed, n) => { let s = '', x = seed; for (let i = 0; i < n; i++) { x
 const amountOf = c => c.basis === 'Fixed Monthly' ? c.rate / 2 : (HOURS[c.id] || 0) * c.rate;
 CONTRACTORS.forEach(c => { c.entity = c.entity || 'MGH Dominicana SRL'; });
 const INIT_PAYMENTS = [];
-const fmtUSD = n => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtUSD = n => (n == null || isNaN(Number(n))) ? '—' : '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// A payment whose contractor record is missing still renders (the screen reads p.c everywhere)
+const withContractor = p => ({ ...p, c: p.c || { id: p.cid || p.contractorId, name: (p.cid || p.contractorId || 'Unknown') + ' (contractor not found)', country: '—', rate: null, basis: 'Hourly', method: '', st: 'Unknown' } });
 const WU_TRACK = 'https://www.westernunion.com/us/en/track-transfer.html';
 const explorer = (net, h) => ({ Base: 'https://basescan.org/tx/', Ethereum: 'https://etherscan.io/tx/', Polygon: 'https://polygonscan.com/tx/' }[net] || '#') + h;
 
@@ -4541,7 +4549,7 @@ function Contractors({ go, notify }) {
 // The route itself is permission-guarded; the list starts with what the backend bootstrap loaded.
 function ContractorPayments(props) { return <ContractorPaymentsInner {...props} />; }
 function ContractorPaymentsInner({ notify }) {
-  const [pays, setPays] = React.useState(() => ((window.__MGH_CTR && window.__MGH_CTR.INIT_PAYMENTS) || INIT_PAYMENTS).filter(p => MGH_RBAC.can('contractors.view', p.c)).map(p => ({ ...p })));
+  const [pays, setPays] = React.useState(() => ((window.__MGH_CTR && window.__MGH_CTR.INIT_PAYMENTS) || INIT_PAYMENTS).map(withContractor).filter(p => MGH_RBAC.can('contractors.view', p.c)));
   const [chip, setChip] = React.useState('all');
   const [dbConnected, setDbConnected] = React.useState(false);
 
@@ -4550,7 +4558,7 @@ function ContractorPaymentsInner({ notify }) {
       const client = window.api || api;
       const data = await client.contractorPayments({ periodId: getCurrentPeriod().code });
       if (Array.isArray(data)) {
-        setPays(data);
+        setPays(data.map(withContractor));
         setDbConnected(true);
         if (window.__MGH_CTR) window.__MGH_CTR.INIT_PAYMENTS = data;
         if (showToast) notify('Payments synchronized with database (' + data.length + ' records)');

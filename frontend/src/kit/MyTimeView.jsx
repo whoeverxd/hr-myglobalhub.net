@@ -114,6 +114,15 @@ function MyTimeEntry({ user, empId, notify, go }) {
     : sheetStatus && !EDITABLE.includes(sheetStatus) ? `Esta quincena está "${statusLabel(sheetStatus)}": ya no se puede editar. Si hay un error, pide al PM que te la devuelva.`
     : '';
 
+  // Tasks of my projects (backend scopes the search to projects I'm a member of); mine first
+  const [projectTasks, setProjectTasks] = useState([]);
+  useEffect(() => {
+    if (!window.api || !window.api.searchTasks) return;
+    window.api.searchTasks({ limit: '200' })
+      .then(r => { const l = Array.isArray(r) ? r : []; setProjectTasks(l.sort((a, b) => (b.assignee_id === myEmpId) - (a.assignee_id === myEmpId))); })
+      .catch(() => {});
+  }, [myEmpId]);
+
   // Load Jira issues from database cache
   useEffect(() => {
     async function loadJira() {
@@ -262,6 +271,19 @@ function MyTimeEntry({ user, empId, notify, go }) {
       setSavingTask(false);
     }
   };
+
+  // Arriving from "Mis proyectos → Registrar horas": open the form with that task once the sheet status is known
+  const pendingTask = React.useRef((() => { try { const k = sessionStorage.getItem('mgh-myentry-task'); sessionStorage.removeItem('mgh-myentry-task'); return k; } catch (_) { return null; } })());
+  useEffect(() => {
+    if (!pendingTask.current || sheetStatus == null) return;
+    const k = pendingTask.current;
+    pendingTask.current = null;
+    if (readOnly) { if (notify) notify(lockReason); return; }
+    openNewTaskModal();
+    setJiraKey(k);
+    const t = projectTasks.find(x => x.task_key === k);
+    if (t) setJiraSummary(t.title);
+  }, [sheetStatus, projectTasks.length]);
 
   // Delete activity
   const handleDeleteTask = async (id, taskName) => {
@@ -1029,8 +1051,8 @@ function MyTimeEntry({ user, empId, notify, go }) {
                   onChange={(e) => {
                     const k = e.target.value;
                     setJiraKey(k);
-                    const found = jiraIssues.find(i => i.key === k);
-                    if (found) setJiraSummary(found.summary);
+                    const found = projectTasks.find(t => t.task_key === k) || jiraIssues.find(i => i.key === k);
+                    if (found) setJiraSummary(found.title || found.summary);
                   }}
                   style={{
                     padding: '8px 12px',
@@ -1041,12 +1063,21 @@ function MyTimeEntry({ user, empId, notify, go }) {
                     background: '#fff'
                   }}
                 >
-                  <option value="">Seleccionar ticket Jira (o ingresar personalizado)...</option>
-                  {jiraIssues.map(i => (
-                    <option key={i.key} value={i.key}>
-                      {i.key} • {i.summary.slice(0, 50)}
-                    </option>
-                  ))}
+                  <option value="">Seleccionar tarea (o ingresar referencia)...</option>
+                  {projectTasks.length ? <optgroup label="Mis proyectos">
+                    {projectTasks.map(t => (
+                      <option key={t.id} value={t.task_key}>
+                        {t.task_key} • {String(t.title || '').slice(0, 50)}{t.assignee_id === myEmpId ? ' (asignada a ti)' : ''}
+                      </option>
+                    ))}
+                  </optgroup> : null}
+                  {jiraIssues.length ? <optgroup label="Jira">
+                    {jiraIssues.filter(i => !projectTasks.some(t => t.task_key === i.key)).map(i => (
+                      <option key={i.key} value={i.key}>
+                        {i.key} • {String(i.summary || '').slice(0, 50)}
+                      </option>
+                    ))}
+                  </optgroup> : null}
                   <option value="CUSTOM">+ Ingresar ticket o referencia manual...</option>
                 </select>
 

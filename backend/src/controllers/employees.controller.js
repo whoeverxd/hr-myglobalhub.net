@@ -281,6 +281,9 @@ function createEmployee(data, user = 'Elena Rostova', ip = '127.0.0.1') {
     }
   }
 
+  // Projects chosen at creation become memberships, so the new person sees those projects and their tasks
+  syncProjectMemberships(id, employeeRecord.project, user, ip);
+
   // If contractor type, also sync to contractors table
   const isContractor = String(employeeRecord.type || '').toLowerCase().includes('contractor');
   if (isContractor) {
@@ -392,7 +395,33 @@ function updateEmployee(id, data, { user = 'System', ip = '127.0.0.1' } = {}) {
     });
   });
 
+  if (data.projects !== undefined || data.project !== undefined) syncProjectMemberships(id, project, user, ip);
+
   return getEmployeeById(id);
+}
+
+/**
+ * Adds the employee as a member of each project named in `projectList` ("WOK, Arawaki", key or name,
+ * case-insensitive). Unknown names are ignored. Never removes memberships (a PM does that per project).
+ */
+function syncProjectMemberships(employeeId, projectList, user = 'System', ip = '127.0.0.1') {
+  const names = String(projectList || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (!names.length) return [];
+  const agileService = require('../services/agile.service'); // lazy: avoids a require cycle at load time
+  const projects = db.query('SELECT id, key, name FROM jira_projects')
+    .filter((p) => names.includes(String(p.key).toLowerCase()) || names.includes(String(p.name).toLowerCase()));
+  const added = [];
+  for (const p of projects) {
+    try {
+      if (!db.getOne('SELECT id FROM project_members WHERE project_id = ? AND user_id = ?', [p.id, employeeId])) {
+        agileService.addMember(p.id, { userId: employeeId, role: 'member' }, user, ip);
+        added.push(p.key);
+      }
+    } catch (e) {
+      console.warn('[employees] project membership skipped:', p.key, e.message);
+    }
+  }
+  return added;
 }
 
 module.exports = {

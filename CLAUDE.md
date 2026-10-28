@@ -37,6 +37,12 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   (+ approved paid leave, paid holidays; OT by org rule) and frozen on submit; 0 worked+leave hours can't be submitted;
   only sheets under review can be approved/returned/adjusted; nobody but admin approves their own sheet; activities are
   written only by their owner (admin may correct) and locked once the sheet leaves Draft/Returned.
+- Projects (`jira_projects`): MSHP "Wokokai" (keeps the Jira key), ARW "Arawaki", TR3 "Tr3slog"
+  (`backend/scripts/setup-mgh-projects.js`). Membership = `project_members.user_id` = employee id (or the employee
+  profile's `project`). Employees/contractors/supervisors see only member projects (`#projects` → `MyProjects.jsx`),
+  create tasks (auto-assigned to themselves) and move tasks assigned to them; PM/admin manage projects, members,
+  sprints, statuses and assign by employee id (`AgileWorkspace.jsx`). Add Employee "Projects" creates memberships.
+  Backend enforcement in `routes.js` (`requireProjectMember`, `taskAccess`); task search is membership-scoped.
 - Accounts: never a shared default password. New employee/contractor logins get a random one-time password
   (`initialPassword`, shown once). Google-only accounts have no local password until they set one via
   `POST /api/auth/password` (current password, Google re-verification, or none set yet).

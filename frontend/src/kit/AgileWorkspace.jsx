@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 export default function AgileWorkspace({
-  currentProjectKey = 'MSHP',
+  currentProjectKey = null,
   projects = [],
   onSelectProject,
   currentUser,
@@ -24,6 +24,7 @@ export default function AgileWorkspace({
   const [sprints, setSprints] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [members, setMembers] = useState([]);
+  const [newMember, setNewMember] = useState({ userId: '', role: 'member' });
   const [loading, setLoading] = useState(false);
 
   // Filtros del tablero
@@ -43,6 +44,7 @@ export default function AgileWorkspace({
     estimateHours: '4.0',
     storyPoints: '2',
     assigneeName: '',
+    assigneeId: '',
     sprintId: '',
     statusId: ''
   });
@@ -81,12 +83,14 @@ export default function AgileWorkspace({
   const [cloning, setCloning] = useState(false);
   const [clonedSuccess, setClonedSuccess] = useState(null);
 
-  // Sincronizar selección externa de proyecto
+  // Sincronizar selección externa de proyecto; sin selección, el primer proyecto real
   useEffect(() => {
     if (currentProjectKey && currentProjectKey !== selectedProjectKey) {
       setSelectedProjectKey(currentProjectKey);
+    } else if (!currentProjectKey && !selectedProjectKey && projects.length) {
+      setSelectedProjectKey(projects[0].key || projects[0].id);
     }
-  }, [currentProjectKey]);
+  }, [currentProjectKey, projects.length]);
 
   // Cargar datos del proyecto (estados, sprints, tareas, miembros)
   const loadProjectData = useCallback(async (projKey) => {
@@ -114,6 +118,29 @@ export default function AgileWorkspace({
   useEffect(() => {
     loadProjectData(selectedProjectKey);
   }, [selectedProjectKey, loadProjectData]);
+
+  // Members are employees; adding one gives them access to the project and lets the PM assign them tasks
+  const addMember = async () => {
+    if (!newMember.userId) return;
+    try {
+      await window.api.addProjectMember(selectedProjectKey, { userId: newMember.userId, role: newMember.role });
+      if (notify) notify('Miembro añadido a ' + selectedProjectKey);
+      setNewMember({ userId: '', role: 'member' });
+      loadProjectData(selectedProjectKey);
+    } catch (err) {
+      if (notify) notify('No se pudo añadir • ' + err.message);
+    }
+  };
+  const removeMember = async (m) => {
+    if (!window.confirm(`¿Quitar a ${m.user_name} de ${selectedProjectKey}? Perderá acceso a sus tareas.`)) return;
+    try {
+      await window.api.removeProjectMember(selectedProjectKey, m.user_id);
+      if (notify) notify(m.user_name + ' ya no es miembro');
+      loadProjectData(selectedProjectKey);
+    } catch (err) {
+      if (notify) notify('No se pudo quitar • ' + err.message);
+    }
+  };
 
   // Identificar sprint activo
   const activeSprint = useMemo(() => {
@@ -246,7 +273,7 @@ export default function AgileWorkspace({
             priority: taskForm.priority,
             estimateHours: Number(taskForm.estimateHours) || 0,
             storyPoints: parseInt(taskForm.storyPoints, 10) || 0,
-            assigneeName: taskForm.assigneeName || null,
+            assigneeId: taskForm.assigneeId || null,
             sprintId: taskForm.sprintId || null,
             statusId: taskForm.statusId || null
           });
@@ -261,7 +288,7 @@ export default function AgileWorkspace({
             priority: taskForm.priority,
             estimateHours: Number(taskForm.estimateHours) || 0,
             storyPoints: parseInt(taskForm.storyPoints, 10) || 0,
-            assigneeName: taskForm.assigneeName || null,
+            assigneeId: taskForm.assigneeId || null,
             sprintId: taskForm.sprintId || null,
             statusId: taskForm.statusId || null
           });
@@ -287,6 +314,7 @@ export default function AgileWorkspace({
       estimateHours: String(task.estimate_hours || 4.0),
       storyPoints: String(task.story_points || 2),
       assigneeName: task.assignee_name || '',
+      assigneeId: task.assignee_id || '',
       sprintId: task.sprint_id || '',
       statusId: task.status_id || ''
     });
@@ -531,7 +559,8 @@ export default function AgileWorkspace({
                   priority: 'Medium',
                   estimateHours: '4.0',
                   storyPoints: '2',
-                  assigneeName: '',
+                  assigneeName: '', assigneeId: '',
+    assigneeId: '',
                   sprintId: activeSprint ? activeSprint.id : '',
                   statusId: statuses[0]?.id || ''
                 });
@@ -784,7 +813,8 @@ export default function AgileWorkspace({
                           priority: 'Medium',
                           estimateHours: '4.0',
                           storyPoints: '2',
-                          assigneeName: '',
+                          assigneeName: '', assigneeId: '', assigneeId: '',
+    assigneeId: '',
                           sprintId: activeSprint ? activeSprint.id : '',
                           statusId: status.id
                         });
@@ -1511,15 +1541,32 @@ export default function AgileWorkspace({
                 Colaboradores y Miembros del Proyecto
               </span>
               <div style={{ fontSize: 13, color: 'var(--mgh-ink-3)', marginTop: 2 }}>
-                Todos los miembros tienen visibilidad total de las tareas y sprints del proyecto <strong>{selectedProjectKey}</strong>.
+                Solo los miembros ven <strong>{selectedProjectKey}</strong>, sus tareas y sprints, y pueden recibir tareas asignadas.
               </div>
             </div>
           </div>
 
+          {isPrivileged && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14, padding: 12, borderRadius: 10, background: 'var(--mgh-surface-1)' }}>
+              <select value={newMember.userId} onChange={e => setNewMember(p => ({ ...p, userId: e.target.value }))}
+                style={{ flex: '1 1 260px', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--mgh-surface-3)', fontSize: 13, background: '#fff' }}>
+                <option value="">Selecciona un empleado…</option>
+                {(window.EMPLOYEES || []).filter(e => !members.some(m => m.user_id === e.id)).map(e => <option key={e.id} value={e.id}>{e.name} ({e.id})</option>)}
+              </select>
+              <select value={newMember.role} onChange={e => setNewMember(p => ({ ...p, role: e.target.value }))}
+                style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid var(--mgh-surface-3)', fontSize: 13, background: '#fff' }}>
+                <option value="member">Miembro</option>
+                <option value="lead">Project Lead</option>
+                <option value="viewer">Solo lectura</option>
+              </select>
+              <Button size="sm" icon="person_add" disabled={!newMember.userId} onClick={addMember}>Añadir miembro</Button>
+            </div>
+          )}
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
             {members.length === 0 ? (
               <div style={{ padding: 24, textAlign: 'center', color: 'var(--mgh-ink-3)', fontSize: 13 }}>
-                No hay miembros explícitos en este proyecto. Los empleados asignados en el perfil tienen acceso general.
+                Este proyecto aún no tiene miembros. Añade empleados para que lo vean y puedan recibir tareas.
               </div>
             ) : (
               members.map(m => (
@@ -1558,8 +1605,9 @@ export default function AgileWorkspace({
                     </div>
                   </div>
                   <Badge size="xs" tone={m.role === 'lead' ? 'warning' : 'primary'}>
-                    {m.role === 'lead' ? 'Project Lead' : 'Miembro'}
+                    {m.role === 'lead' ? 'Project Lead' : m.role === 'viewer' ? 'Solo lectura' : 'Miembro'}
                   </Badge>
+                  {isPrivileged && <IconButton icon="person_remove" size={28} title="Quitar del proyecto" onClick={() => removeMember(m)} />}
                 </div>
               ))
             )}
@@ -1725,13 +1773,17 @@ export default function AgileWorkspace({
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--mgh-ink-2)', marginBottom: 4 }}>
                     Responsable Asignado
                   </label>
-                  <input
-                    type="text"
-                    placeholder="Nombre del colaborador..."
-                    value={taskForm.assigneeName}
-                    onChange={e => setTaskForm(prev => ({ ...prev, assigneeName: e.target.value }))}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--mgh-surface-3)', fontSize: 12 }}
-                  />
+                  {/* Only project members can be assigned (by employee id), so "my tasks" works for them */}
+                  <select
+                    value={taskForm.assigneeId}
+                    onChange={e => setTaskForm(prev => ({ ...prev, assigneeId: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--mgh-surface-3)', fontSize: 12, background: '#fff' }}
+                  >
+                    <option value="">Sin asignar</option>
+                    {members.map(m => <option key={m.user_id} value={m.user_id}>{m.user_name} ({m.user_id})</option>)}
+                    {taskForm.assigneeId && !members.some(m => m.user_id === taskForm.assigneeId) ? <option value={taskForm.assigneeId}>{taskForm.assigneeName || taskForm.assigneeId} (no es miembro)</option> : null}
+                  </select>
+                  {!members.length ? <div style={{ fontSize: 11, color: 'var(--mgh-ink-3)', marginTop: 4 }}>Añade miembros en la pestaña Miembros para poder asignar.</div> : null}
                 </div>
 
                 <div>

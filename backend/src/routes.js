@@ -19,6 +19,8 @@ const signoffController = require('./controllers/signoff.controller');
 const rolloutController = require('./controllers/rollout.controller');
 const contractorsController = require('./controllers/contractors.controller');
 const agileController = require('./controllers/agile.controller');
+const jiraService = require('./services/jira.service');
+const agileService = require('./services/agile.service');
 const { authenticate, requireRole } = require('./middleware/auth.middleware');
 const firebaseService = require('./services/firebase.service');
 const payrollEngine = require('./services/payroll-engine.service');
@@ -979,44 +981,100 @@ router.get('/uploads/download/:id', uploadsController.downloadFile);
 router.delete('/uploads/:id', authenticate, uploadsController.deleteFile);
 
 /* ---------- Projects & Jira Integration (Phase 7 & PM CRUD) ---------- */
+// Project access: PM / HR / finance / admin see and manage every project. Employees, contractors and supervisors
+// only see projects they are members of (project_members by employee id, or their profile's project).
+const PROJECT_SCOPED_ROLES = ['employee', 'contractor', 'supervisor'];
+const projectScoped = (user) => !!user && PROJECT_SCOPED_ROLES.includes(String(user.role || '').toLowerCase());
+function requireProjectMember(req, res, next) {
+  if (!projectScoped(req.user)) return next();
+  if (!agileService.resolveProject(req.params.key)) return res.status(404).json({ error: 'Project not found' });
+  if (!agileService.isMember(req.params.key, req.user.employeeId)) {
+    return res.status(403).json({ error: 'You are not a member of this project' });
+  }
+  return next();
+}
+// Task-level access for scoped roles: member of the task's project; changes only on tasks assigned to them
+function taskAccess({ write = false } = {}) {
+  return (req, res, next) => {
+    if (!projectScoped(req.user)) return next();
+    const task = agileService.getTask(req.params.id);
+    if (!task) return res.status(404).json({ error: 'Tarea no encontrada' });
+    if (!agileService.isMember(task.project_id, req.user.employeeId)) return res.status(403).json({ error: 'You are not a member of this project' });
+    if (write) {
+      if (task.assignee_id && task.assignee_id !== req.user.employeeId) return res.status(403).json({ error: 'You can only update tasks assigned to you' });
+      const b = req.body || {};
+      const newAssignee = b.assignee_id || b.assigneeId;
+      if (newAssignee && newAssignee !== req.user.employeeId) return res.status(403).json({ error: 'Only a PM can assign tasks to other people' });
+    }
+    return next();
+  };
+}
+function listProjectsScoped(req, res, next) {
+  try {
+    const list = jiraService.listProjects();
+    if (!projectScoped(req.user)) return res.json(list);
+    const mine = new Set(agileService.projectsForEmployee(req.user.employeeId).map((p) => p.key));
+    return res.json(list.filter((p) => mine.has(p.key)));
+  } catch (err) {
+    return next(err);
+  }
+}
+
 router.get('/jira/status', authenticate, jiraController.getStatus);
-router.get('/jira/projects', authenticate, jiraController.getProjects);
+router.get('/jira/projects', authenticate, listProjectsScoped);
 router.post('/jira/projects', authenticate, requireRole('pm', 'admin'), jiraController.createProject);
 router.put('/jira/projects/:key', authenticate, requireRole('pm', 'admin'), jiraController.updateProject);
 router.delete('/jira/projects/:key', authenticate, requireRole('pm', 'admin'), jiraController.deleteProject);
 
-router.get('/projects', authenticate, jiraController.getProjects);
+router.get('/projects', authenticate, listProjectsScoped);
 router.post('/projects', authenticate, requireRole('pm', 'admin'), jiraController.createProject);
 router.put('/projects/:key', authenticate, requireRole('pm', 'admin'), jiraController.updateProject);
 router.delete('/projects/:key', authenticate, requireRole('pm', 'admin'), jiraController.deleteProject);
 
-router.post('/jira/projects/link', authenticate, jiraController.linkProject);
-router.get('/jira/projects/:key/issues', authenticate, jiraController.getProjectIssues);
-router.post('/jira/projects/:key/sync', authenticate, jiraController.syncProject);
+router.post('/jira/projects/link', authenticate, requireRole('pm', 'admin'), jiraController.linkProject);
+router.get('/jira/projects/:key/issues', authenticate, requireProjectMember, jiraController.getProjectIssues);
+router.post('/jira/projects/:key/sync', authenticate, requireRole('pm', 'admin'), jiraController.syncProject);
 router.get('/jira/issues', authenticate, jiraController.searchIssues);
 router.post('/jira/sync-issues', authenticate, requireRole('pm', 'supervisor', 'admin'), jiraController.syncIssues);
 router.post('/jira/sync', authenticate, requireRole('pm', 'supervisor', 'admin'), jiraController.syncWorklogs);
 
 /* ---------- Native Agile Management: Sprints, Tasks, Statuses & Cloner ---------- */
 // Sprints
-router.get('/projects/:key/sprints', authenticate, agileController.listSprints);
+router.get('/projects/:key/sprints', authenticate, requireProjectMember, agileController.listSprints);
 router.post('/projects/:key/sprints', authenticate, requireRole('pm', 'admin'), agileController.createSprint);
 router.put('/sprints/:id', authenticate, requireRole('pm', 'admin'), agileController.updateSprint);
 router.post('/sprints/:id/start', authenticate, requireRole('pm', 'admin'), agileController.startSprint);
 router.post('/sprints/:id/complete', authenticate, requireRole('pm', 'admin'), agileController.completeSprint);
 router.delete('/sprints/:id', authenticate, requireRole('pm', 'admin'), agileController.deleteSprint);
 
-// Tasks (Visible to project members & team, manageable by assignee / PM)
-router.get('/tasks/search', authenticate, agileController.searchAllTasks);
-router.get('/projects/:key/tasks', authenticate, agileController.listTasks);
-router.post('/projects/:key/tasks', authenticate, agileController.createTask);
-router.get('/tasks/:id', authenticate, agileController.getTask);
-router.put('/tasks/:id', authenticate, agileController.updateTask);
-router.patch('/tasks/:id/move', authenticate, agileController.moveTask);
+// Tasks: members see their projects' tasks; they create tasks (assigned to themselves) and update tasks assigned
+// to them; PM/admin manage everything
+router.get('/tasks/search', authenticate, (req, res, next) => {
+  try {
+    const { query = '', projectKey, assigneeId, limit = 15, mine } = req.query;
+    const projectIds = projectScoped(req.user) ? agileService.projectsForEmployee(req.user.employeeId).map((p) => p.id) : null;
+    const assignee = mine === '1' || mine === 'true' ? req.user.employeeId : assigneeId;
+    res.json(agileService.searchAllTasks({ query, projectKey, assigneeId: assignee, limit, projectIds }));
+  } catch (err) {
+    next(err);
+  }
+});
+router.get('/projects/:key/tasks', authenticate, requireProjectMember, agileController.listTasks);
+router.post('/projects/:key/tasks', authenticate, requireProjectMember, (req, res, next) => {
+  if (projectScoped(req.user)) {
+    const body = { ...(req.body || {}) };
+    delete body.assignee_id; delete body.assignee_name; delete body.assigneeName;
+    req.body = { ...body, assigneeId: req.user.employeeId };
+  }
+  return agileController.createTask(req, res, next);
+});
+router.get('/tasks/:id', authenticate, taskAccess(), agileController.getTask);
+router.put('/tasks/:id', authenticate, taskAccess({ write: true }), agileController.updateTask);
+router.patch('/tasks/:id/move', authenticate, taskAccess({ write: true }), agileController.moveTask);
 router.delete('/tasks/:id', authenticate, requireRole('pm', 'admin'), agileController.deleteTask);
 
 // Workflow Statuses (Configurable per project)
-router.get('/projects/:key/statuses', authenticate, agileController.getStatuses);
+router.get('/projects/:key/statuses', authenticate, requireProjectMember, agileController.getStatuses);
 router.post('/projects/:key/statuses', authenticate, requireRole('pm', 'admin'), agileController.createStatus);
 router.put('/projects/:key/statuses', authenticate, requireRole('pm', 'admin'), agileController.updateStatuses);
 router.delete('/projects/:key/statuses/:id', authenticate, requireRole('pm', 'admin'), agileController.deleteStatus);
@@ -1025,7 +1083,7 @@ router.delete('/projects/:key/statuses/:id', authenticate, requireRole('pm', 'ad
 router.post('/jira/clone-issue', authenticate, requireRole('pm', 'admin'), agileController.cloneJiraIssue);
 
 // Project Members
-router.get('/projects/:key/members', authenticate, agileController.listMembers);
+router.get('/projects/:key/members', authenticate, requireProjectMember, agileController.listMembers);
 router.post('/projects/:key/members', authenticate, requireRole('pm', 'admin'), agileController.addMember);
 router.delete('/projects/:key/members/:userId', authenticate, requireRole('pm', 'admin'), agileController.removeMember);
 

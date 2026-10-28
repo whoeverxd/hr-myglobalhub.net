@@ -55,7 +55,7 @@
     'contractors.view':           row('Contractors', 'View contractors',            G, O, O, O, G, O, N, N, S),
     'contractors.pay':            row('Contractors', 'Release contractor payments', G, O, N, O, N, O, N, N, N),
     'jira.view':                  row('Projects / Jira', 'View Jira sync',          G, O, N, N, N, O, T, N, N),
-    'projects.view':              row('Projects / Jira', 'View projects',           G, O, N, N, G, O, T, N, N),
+    'projects.view':              row('Projects / Jira', 'View projects (members see only their own)', G, O, N, N, G, O, T, S, S),
     'admin.org':                  row('Administration', 'Organizations & Multi-HQ', G, O, N, N, N, N, N, N, N),
     'workflows.manage':           row('Administration', 'Configure approval workflow & overtime', G, O, N, N, N, N, N, N, N),
     'audit.view':                 row('Administration', 'View audit logs',          G, O, O, O, G, N, N, N, N),

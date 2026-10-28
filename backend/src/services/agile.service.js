@@ -502,20 +502,11 @@ class AgileService {
     const originJiraUrl = data.origin_jira_url || data.originJiraUrl || null;
     const labels = Array.isArray(data.labels) ? JSON.stringify(data.labels) : (typeof data.labels === 'string' ? data.labels : null);
 
-    // Resolver info de assignee
-    let assigneeId = data.assignee_id || data.assigneeId || null;
-    let assigneeName = data.assignee_name || data.assigneeName || null;
-    let assigneeAvatar = data.assignee_avatar || data.assigneeAvatar || null;
-
-    if (assigneeId && !assigneeName) {
-      const emp = db.getOne('SELECT name, avatar FROM employees WHERE id = ?', [assigneeId])
-        || db.getOne('SELECT name FROM contractors WHERE id = ?', [assigneeId])
-        || db.getOne('SELECT name, avatar FROM users WHERE id = ?', [assigneeId]);
-      if (emp) {
-        assigneeName = emp.name;
-        assigneeAvatar = emp.avatar || null;
-      }
-    }
+    // Assignee is an employee (id), so "my tasks" can be found reliably; free text only if no employee matches
+    const resolved = this.resolveAssignee(data);
+    let assigneeId = resolved ? resolved.id : null;
+    let assigneeName = resolved ? resolved.name : (data.assignee_name || data.assigneeName || null);
+    let assigneeAvatar = resolved ? resolved.avatar : null;
 
     // Calcular order_index
     const maxOrder = db.getOne(
@@ -568,21 +559,14 @@ class AgileService {
     const orderIndex = typeof data.order_index !== 'undefined' ? Number(data.order_index) : (typeof data.orderIndex !== 'undefined' ? Number(data.orderIndex) : existing.order_index);
     const loggedHours = typeof data.logged_hours !== 'undefined' ? Number(data.logged_hours) : (typeof data.loggedHours !== 'undefined' ? Number(data.loggedHours) : existing.logged_hours);
 
-    let assigneeId = typeof data.assignee_id !== 'undefined' ? data.assignee_id : (typeof data.assigneeId !== 'undefined' ? data.assigneeId : existing.assignee_id);
-    let assigneeName = typeof data.assignee_name !== 'undefined' ? data.assignee_name : (typeof data.assigneeName !== 'undefined' ? data.assigneeName : existing.assignee_name);
-    let assigneeAvatar = typeof data.assignee_avatar !== 'undefined' ? data.assignee_avatar : (typeof data.assigneeAvatar !== 'undefined' ? data.assigneeAvatar : existing.assignee_avatar);
-
-    if (assigneeId && assigneeId !== existing.assignee_id) {
-      const emp = db.getOne('SELECT name, avatar FROM employees WHERE id = ?', [assigneeId])
-        || db.getOne('SELECT name FROM contractors WHERE id = ?', [assigneeId])
-        || db.getOne('SELECT name, avatar FROM users WHERE id = ?', [assigneeId]);
-      if (emp) {
-        assigneeName = emp.name;
-        assigneeAvatar = emp.avatar || null;
-      }
-    } else if (assigneeId === null) {
-      assigneeName = null;
-      assigneeAvatar = null;
+    let assigneeId = existing.assignee_id, assigneeName = existing.assignee_name, assigneeAvatar = existing.assignee_avatar;
+    const assigneeGiven = ['assignee_id', 'assigneeId', 'assignee_name', 'assigneeName'].some((k) => typeof data[k] !== 'undefined');
+    if (assigneeGiven) {
+      const cleared = [data.assignee_id, data.assigneeId, data.assignee_name, data.assigneeName].every((v) => v === null || v === '' || typeof v === 'undefined');
+      const resolved = cleared ? null : this.resolveAssignee(data);
+      assigneeId = resolved ? resolved.id : null;
+      assigneeName = resolved ? resolved.name : (cleared ? null : (data.assignee_name || data.assigneeName || null));
+      assigneeAvatar = resolved ? resolved.avatar : null;
     }
 
     db.execute(
@@ -650,7 +634,14 @@ class AgileService {
   /**
    * Búsqueda unificada de tareas para DailyActivities, Backlogs y Autocompletado
    */
-  searchAllTasks({ query = '', projectKey = null, assigneeId = null, limit = 15 } = {}) {
+  searchAllTasks({ query = '', projectKey = null, assigneeId = null, limit = 15, projectIds = null } = {}) {
+    // projectIds: restrict to these projects (membership scope); filtered in JS so the adapters stay simple
+    if (Array.isArray(projectIds)) {
+      const allowed = new Set(projectIds);
+      return this.searchAllTasks({ query, projectKey, assigneeId, limit: 1000 })
+        .filter((t) => allowed.has(t.project_id))
+        .slice(0, Number(limit) || 15);
+    }
     let sql = `
       SELECT pt.*,
              jp.name as project_name,
@@ -758,7 +749,36 @@ class AgileService {
 
   /* =========================================================================
      PROJECT MEMBERS
+     Membership is per EMPLOYEE (project_members.user_id = employees.id). An employee whose profile "project"
+     names the project (key or name) is also treated as a member, for records created before memberships existed.
      ========================================================================= */
+
+  isMember(projectKeyOrId, employeeId) {
+    if (!employeeId) return false;
+    const proj = this.resolveProject(projectKeyOrId);
+    if (!proj) return false;
+    if (db.getOne('SELECT id FROM project_members WHERE project_id = ? AND user_id = ?', [proj.id, employeeId])) return true;
+    // Profile "project" may list several ("MSHP — Project Planning, Arawaki"): a token matches when it equals the
+    // project key/name or starts with it followed by a separator
+    const emp = db.getOne('SELECT project FROM employees WHERE id = ?', [employeeId]);
+    const tokens = String((emp && emp.project) || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+    const names = [String(proj.key).toLowerCase(), String(proj.name).toLowerCase()];
+    return tokens.some((t) => names.some((n) => t === n || (t.startsWith(n) && /^[\s—–\-:(]/.test(t.slice(n.length)))));
+  }
+
+  projectsForEmployee(employeeId) {
+    return db.query('SELECT * FROM jira_projects').filter((p) => this.isMember(p.id, employeeId));
+  }
+
+  // Resolve a task assignee to an employee (by id, or by exact name for legacy free-text input)
+  resolveAssignee(data) {
+    const id = data.assignee_id || data.assigneeId || null;
+    const name = data.assignee_name || data.assigneeName || null;
+    const emp = id
+      ? db.getOne('SELECT id, name, avatar FROM employees WHERE id = ?', [id])
+      : name ? db.getOne('SELECT id, name, avatar FROM employees WHERE LOWER(name) = ?', [String(name).trim().toLowerCase()]) : null;
+    return emp ? { id: emp.id, name: emp.name, avatar: emp.avatar || null } : null;
+  }
 
   listMembers(projectKeyOrId) {
     const proj = this.resolveProject(projectKeyOrId);
@@ -781,32 +801,31 @@ class AgileService {
     const proj = this.resolveProject(projectKeyOrId);
     if (!proj) throw new Error(`Proyecto no encontrado: ${projectKeyOrId}`);
 
-    const userId = data.userId || data.user_id;
+    const userId = data.userId || data.user_id || data.employeeId;
     if (!userId) throw new Error('ID de usuario / colaborador obligatorio.');
 
     const role = ['lead', 'member', 'viewer'].includes(data.role) ? data.role : 'member';
 
-    // Resolver nombre y email
-    let userName = data.userName || data.user_name || null;
-    let userEmail = data.userEmail || data.user_email || null;
-
-    if (!userName) {
-      const emp = db.getOne('SELECT name, email FROM employees WHERE id = ?', [userId])
-        || db.getOne('SELECT name, email FROM contractors WHERE id = ?', [userId])
-        || db.getOne('SELECT name, email FROM users WHERE id = ?', [userId]);
-      if (emp) {
-        userName = emp.name;
-        userEmail = emp.email;
-      }
+    // Members are employees: the id must exist in the roster
+    const emp = db.getOne('SELECT id, name, email FROM employees WHERE id = ?', [userId]);
+    if (!emp) {
+      const err = new Error(`El empleado ${userId} no existe`);
+      err.status = 400;
+      throw err;
     }
 
-    const id = `pm_${crypto.randomUUID().slice(0, 8)}`;
-
-    db.execute(
-      `INSERT OR REPLACE INTO project_members (id, project_id, user_id, user_name, user_email, role)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [id, proj.id, userId, userName || userId, userEmail, role]
-    );
+    // Re-adding updates the role instead of creating a duplicate membership
+    const existing = db.getOne('SELECT id FROM project_members WHERE project_id = ? AND user_id = ?', [proj.id, emp.id]);
+    if (existing) {
+      db.execute('UPDATE project_members SET role = ?, user_name = ?, user_email = ? WHERE id = ?', [role, emp.name, emp.email || null, existing.id]);
+    } else {
+      db.execute(
+        `INSERT INTO project_members (id, project_id, user_id, user_name, user_email, role)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [`pm_${crypto.randomUUID().slice(0, 8)}`, proj.id, emp.id, emp.name, emp.email || null, role]
+      );
+    }
+    const userName = emp.name;
 
     logAction({
       actor: user,

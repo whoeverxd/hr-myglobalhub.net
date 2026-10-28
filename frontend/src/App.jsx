@@ -141,6 +141,8 @@ export default class App extends React.Component {
         api.periods(getCurrentPeriod().year).catch(() => null),
         api.employees().catch(() => null)
       ]);
+      // Project names for the Add Employee form (membership is created from them)
+      api.jiraProjects().then(ps => this.setState({ projectNames: (Array.isArray(ps) ? ps : []).map(x => x.name) })).catch(() => {});
       const ov = d.periodOverrides || {};
       if (periods && Array.isArray(periods)) {
         for (const p of periods) ov[p.id] = p.status;
@@ -892,7 +894,7 @@ export default class App extends React.Component {
           ...(n.pmethod==='Coinbase Only'?[]:[T('cbAlloc','Coinbase share of net pay',{suffix:'%',err:cbA>0&&cbA<100?'':'Use 1–99% for a split'})]),
           G('cbKyc','Coinbase identity verified (KYC)','Required before the first payout'),
           G('cbW8','W-8BEN / tax form on file','Non-US contractors • no US withholding')]}]:[]),
-        {icon:'sync_alt',title:'Jira & Approvals',sub:'Worklog binding and approval routing',fields:[L('project','Assigned Project',['MSHP — Project Planning','Atlas Core Platform','Perf Infrastructure','Global Hub v3','Insights Lake','Core Billing Services','Internal Ops']),T('jira','Atlassian account email',{ph:'name@globalhub.atlassian.net'}),T('projects','Projects',{ph:'Arawaki, Wokokai, Treslog',mono:true}),L('flow','Approval route',['Employee → Supervisor → PM → HR → Finance','Employee → Supervisor → HR → Finance'])]}],
+        {icon:'sync_alt',title:'Jira & Approvals',sub:'Worklog binding and approval routing',fields:[L('project','Assigned Project',['MSHP — Project Planning','Atlas Core Platform','Perf Infrastructure','Global Hub v3','Insights Lake','Core Billing Services','Internal Ops']),T('jira','Atlassian account email',{ph:'name@globalhub.atlassian.net'}),T('projects','Projects',{ph:(this.state.projectNames||[]).join(', ')||'No projects yet',mono:true,hint:'Comma-separated. The employee becomes a member of these projects and can see their tasks. Available: '+((this.state.projectNames||[]).join(', ')||'none — create them in Projects first')}),L('flow','Approval route',['Employee → Supervisor → PM → HR → Finance','Employee → Supervisor → HR → Finance'])]}],
       newEmp:{fullName,titleLine:(n.title||'Job title')+' • '+n.dept,
         facts:[['Employee ID','Assigned on save'],['Entity',n.entity],['Supervisor',n.mgr],['Type',n.etype],['Rate',n.rate?'$'+Number(n.rate).toFixed(2)+' / hr '+n.cur:'—'],['First period',firstP.split(' ')[0]],['Payout split',[useBank?(n.bank2?n.bank+' '+alloc+'% • '+n.bank2+' '+(bankTarget-alloc)+'%':n.bank+' '+bankTarget+'%'):'',useCb?'Coinbase '+n.cbAsset+' ('+n.cbNetwork+') '+cbA+'%':''].filter(Boolean).join(' • ')],...(useCb&&n.cbWallet?[['Wallet',n.cbWallet.slice(0,6)+'…'+n.cbWallet.slice(-4)]]:[])].map(x=>({k:x[0],v:x[1]})),
         payEst:{show:pay,exempt:pc.exempt,hoursLabel:n.freq+' • '+pc.hours+'h',gross:fmtC(pc.gross,n.cur),net:fmtC(pc.net,n.cur),lines:pc.lines.map(l=>({k:l[0],v:l[1]==='Exempt'?'Exempt':'−'+fmtC(l[2],n.cur)})),note:pc.exempt?'Tax-exempt profile • no statutory withholding applied':'Estimate based on '+n.tax},
