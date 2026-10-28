@@ -4,11 +4,11 @@
    A person holds a role per organization (membership). Scopes: self < team < department < project < organization < global. */
 (function () {
   const LS_P = 'mgh-rbac-persona', LS_O = 'mgh-rbac-org';
-  const DR = 'MGH Dominicana SRL', US = 'MGH USA Inc.', UK = 'MGH UK Ltd.';
+  // My Global Hub is the single (umbrella) company. Its products — Arawaki (e-commerce), Wokokai (social network),
+  // Treslog (shipping app) — are PROJECTS inside it, not separate legal entities / tenants.
+  const DR = 'MGH Dominicana SRL';
   const ORGS = [
-    { id: DR, short: 'Dominicana', country: 'Dominican Republic', currency: 'DOP', timezone: 'America/Santo_Domingo', language: 'es', locale: 'es-DO', hour12: false, workdays: 'Mon–Fri', payroll: 'Bi-weekly • DGII (ISR + TSS)' },
-    { id: US, short: 'USA', country: 'United States', currency: 'USD', timezone: 'America/Chicago', language: 'en', locale: 'en-US', hour12: true, workdays: 'Mon–Fri', payroll: 'Bi-weekly • Federal + State' },
-    { id: UK, short: 'UK', country: 'United Kingdom', currency: 'GBP', timezone: 'Europe/London', language: 'en', locale: 'en-GB', hour12: false, workdays: 'Mon–Fri', payroll: 'Bi-weekly • HMRC PAYE' },
+    { id: DR, short: 'Dominicana', country: 'Dominican Republic', currency: 'DOP', timezone: 'America/Santo_Domingo', language: 'es', locale: 'es-DO', hour12: false, workdays: 'Mon–Fri', payroll: 'Quincenal • DGII (ISR + TSS)' },
   ];
   const SCOPES = ['self', 'team', 'department', 'project', 'organization', 'global'];
   const SCOPE_LABEL = { self: 'Self', team: 'Team', department: 'Department', project: 'Project', organization: 'Organization', global: 'Global' };
@@ -146,7 +146,8 @@
     if (t == null) return true;
     const u = P();
     const e = typeof t === 'string' ? DATA().find(x => x.id === t) || { id: t } : t;
-    if (e.entity && e.entity !== org) return false; // tenancy: never cross organizations
+    // tenancy: never cross organizations (compare resolved org ids, so 'My Global Hub Dominicana SRL' = 'MGH Dominicana SRL')
+    if (e.entity && API.orgSettings(e.entity).id !== API.orgSettings(org).id) return false;
     if (scope === 'global' || scope === 'organization') return true;
 
     // Determine if the target record matches the active user (self scope)

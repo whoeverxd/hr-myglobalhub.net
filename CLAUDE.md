@@ -22,12 +22,17 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
 
 ## Data conventions
 - Pay periods: `PP-{YYYY}-{NN}` quincenas (`frontend/src/lib/periodService.js`, `backend/src/payroll.js`): 1–15 and
-  15–end of month (day 15 currently belongs to both — pending business decision). The app uses
+  16–end of month; pay date = period end + 5 days. Unlocked existing rows are corrected on load. The app uses
   the real current date (attendance engine `MGH_ATT.TODAY` included); no frozen demo date.
 - No sample data: screens show backend data or an empty state. A day without punches is "No Record", not "Absent".
 - 12 statuses: Draft → Open → Awaiting Employee/Supervisor/PM/HR/Finance → Processing → Approved → Paid →
   Closed → Archived. Locked periods are immutable; corrections only via Payroll Adjustments.
-- Companies: My Global Hub (Dominicana SRL, RNC 133-474018, Punta Cana), Kairoon, Arawaki.
+- Company: My Global Hub (Dominicana SRL, RNC 133-474018, Punta Cana) is the single umbrella company and the only
+  organization/tenant (`MGH Dominicana SRL` in RBAC). Arawaki (e-commerce), Wokokai (social network) and Treslog
+  (shipping app) are PROJECTS inside it — not legal entities, tenants or clients. No "MGH USA Inc." / "MGH UK Ltd.".
+- Accounts: never a shared default password. New employee/contractor logins get a random one-time password
+  (`initialPassword`, shown once). Google-only accounts have no local password until they set one via
+  `POST /api/auth/password` (current password, Google re-verification, or none set yet).
 - Payouts: bank, Coinbase (USDC/BTC/ETH on Base/Ethereum/Polygon/Solana) or split; must total 100%.
   Coinbase requires KYC + W-8BEN.
 

@@ -55,6 +55,7 @@ router.post('/auth/google', authController.loginWithGoogle);
 router.get('/auth/firebase-config', authController.getFirebaseConfig);
 router.get('/auth/me', authenticate, authController.getMe);
 router.post('/auth/logout', authenticate, authController.logout);
+router.post('/auth/password', authenticate, authController.changePassword);
 
 /* ---------- System users (Administration screen) ---------- */
 router.get('/users', authenticate, requireRole('hr', 'admin'), (req, res, next) => {

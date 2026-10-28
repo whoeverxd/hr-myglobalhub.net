@@ -18,7 +18,7 @@ export const MONTHS_SHORT_ES = [
 /**
  * Returns the exact quincenal pay period for any date.
  * If day <= 15: 1 al 15 del mes.
- * If day > 15: 15/16 al fin de mes (e.g. 15 al 31 de octubre).
+ * If day > 15: 16 al fin de mes (e.g. 16 al 31 de octubre).
  */
 export function getQuincenaForDate(dateInput = new Date()) {
   const d = new Date(dateInput);
@@ -32,7 +32,7 @@ export function getQuincenaForDate(dateInput = new Date()) {
   const pad = (n) => String(n).padStart(2, '0');
   const code = `PP-${year}-${pad(periodNumber)}`;
 
-  const startDay = isFirstHalf ? 1 : 15;
+  const startDay = isFirstHalf ? 1 : 16;
   const endDay = isFirstHalf ? 15 : lastDay;
 
   const startDate = `${year}-${pad(month + 1)}-${pad(startDay)}`;

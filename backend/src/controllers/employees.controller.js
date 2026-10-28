@@ -123,6 +123,7 @@ function getNextEmployeeId() {
 }
 
 function createEmployee(data, user = 'Elena Rostova', ip = '127.0.0.1') {
+  let initialPassword = null; // returned once so HR can hand it to the employee
   if (data.email && !EMAIL_REGEX.test(data.email)) {
     const err = new Error('Invalid email');
     err.status = 400;
@@ -265,15 +266,16 @@ function createEmployee(data, user = 'Elena Rostova', ip = '127.0.0.1') {
     }
 
     try {
-      ensureUserForEmployee({
+      const account = ensureUserForEmployee({
         email: employeeRecord.email,
         name: employeeRecord.name,
         role: userRole,
         entity: employeeRecord.entity,
         employeeId: id,
-        password: data.password || 'Password123!',
+        password: data.password || null,
         avatar: employeeRecord.avatar,
       });
+      if (account && account.initialPassword) initialPassword = account.initialPassword;
     } catch (e) {
       console.warn('[employee creation: user provisioning error]', e);
     }
@@ -315,7 +317,8 @@ function createEmployee(data, user = 'Elena Rostova', ip = '127.0.0.1') {
     }
   }
 
-  return getEmployeeById(id);
+  const created = getEmployeeById(id);
+  return initialPassword ? { ...created, initialPassword } : created;
 }
 
 function updateEmployee(id, data, { user = 'System', ip = '127.0.0.1' } = {}) {

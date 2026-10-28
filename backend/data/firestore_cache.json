@@ -26032,7 +26032,7 @@
       "updated_at": "2026-10-23 23:16:38",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-10-31T23:59",
-      "start_date": "2026-10-15",
+      "start_date": "2026-10-16",
       "status": "Open"
     },
     "PP-2026-21": {
@@ -26062,7 +26062,7 @@
       "updated_at": "2026-10-23 23:16:38",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-11-30T23:59",
-      "start_date": "2026-11-15",
+      "start_date": "2026-11-16",
       "status": "Draft"
     },
     "PP-2026-23": {
@@ -26092,7 +26092,7 @@
       "updated_at": "2026-10-23 23:16:38",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-12-31T23:59",
-      "start_date": "2026-12-15",
+      "start_date": "2026-12-16",
       "status": "Draft"
     }
   },
@@ -29427,7 +29427,7 @@
       "email": "zain@myglobalhub.net",
       "entity": "MGH Dominicana SRL",
       "last_login_at": "2026-10-27T18:31:57.798Z",
-      "updated_at": "2026-10-28T00:16:24.290Z"
+      "updated_at": "2026-10-28T00:37:43.428Z"
     },
     "usr-zain-com": {
       "id": "usr-zain-com",

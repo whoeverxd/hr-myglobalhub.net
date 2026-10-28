@@ -90,6 +90,8 @@ export const api = {
   },
   getFirebaseConfig: () => request('GET', '/auth/firebase-config'),
   me: () => request('GET', '/auth/me'),
+  // { newPassword, currentPassword?, googleIdToken? } — see auth.service.changePassword
+  changePassword: (payload) => request('POST', '/auth/password', payload),
   logout: async () => {
     try {
       await request('POST', '/auth/logout');

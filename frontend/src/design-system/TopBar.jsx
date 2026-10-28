@@ -695,6 +695,13 @@ export default function TopBar({
                   description="Comprobantes fiscales y pagos emitidos"
                   onClick={() => handleNav('paystub', resolvedEmpId)}
                 />
+
+                <MenuItem
+                  icon="key"
+                  title={currentUser && currentUser.hasPassword === false ? 'Crear contraseña' : 'Cambiar contraseña'}
+                  description={currentUser && currentUser.hasPassword === false ? 'Entraste con Google • define una para acceder con correo' : 'Acceso con correo y contraseña'}
+                  onClick={() => { setMenuOpen(false); window.dispatchEvent(new Event('mgh-open-password')); }}
+                />
               </div>
 
               {/* Section 2: Preferencias y Simulación */}

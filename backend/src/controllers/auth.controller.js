@@ -38,8 +38,17 @@ function getFirebaseConfig(req, res) {
 
 function getMe(req, res) {
   res.json({
-    user: req.user,
+    user: req.user ? { ...req.user, hasPassword: authService.hasLocalPassword(req.user.id) } : req.user,
   });
+}
+
+async function changePassword(req, res, next) {
+  try {
+    const { currentPassword, newPassword, googleIdToken } = req.body || {};
+    res.json(await authService.changePassword({ userId: req.user.id, currentPassword, newPassword, googleIdToken, ip: getClientIp(req) }));
+  } catch (err) {
+    next(err);
+  }
 }
 
 function logout(req, res, next) {
@@ -58,5 +67,6 @@ module.exports = {
   loginWithGoogle,
   getFirebaseConfig,
   getMe,
+  changePassword,
   logout,
 };

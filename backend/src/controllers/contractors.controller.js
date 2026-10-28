@@ -119,7 +119,8 @@ function syncContractorEmployees() {
           role: 'contractor',
           entity: emp.entity || 'MGH Dominicana SRL',
           employeeId: emp.id,
-          password: 'Password123!',
+          // Random, not shown: these people sign in with Google or get a password from HR
+          password: null,
           avatar: emp.avatar || null,
         });
       }
@@ -226,13 +227,13 @@ function createContractor(data, user = 'System', ip = '127.0.0.1') {
   const id = data.id && /^CTR-\d+$/i.test(data.id) ? data.id : `CTR-${employeeId.replace(/\D/g, '')}`;
 
   // 2. Ensure system login user exists for contractor with role 'contractor'
-  ensureUserForEmployee({
+  const account = ensureUserForEmployee({
     email,
     name,
     role: 'contractor',
     entity,
     employeeId,
-    password: data.password || 'Password123!',
+    password: data.password || null,
     avatar: null
   });
 
@@ -261,7 +262,9 @@ function createContractor(data, user = 'System', ip = '127.0.0.1') {
     });
   });
 
-  return getContractor(id);
+  // A generated initial password is returned once so it can be handed to the contractor
+  const created = getContractor(id);
+  return account && account.initialPassword ? { ...created, initialPassword: account.initialPassword } : created;
 }
 
 function updateContractor(id, patch, user = 'System', ip = '127.0.0.1') {

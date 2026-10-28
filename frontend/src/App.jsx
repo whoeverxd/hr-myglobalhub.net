@@ -17,7 +17,7 @@ export default class App extends React.Component {
     empId:null,toast:'',dialog:null,ov:{},periodFilter:'all',pq:'',offset:6,autoGen:true,adjFilter:'all',adj:[],stage:1,ruleOn:[1,1,1,1,1],notifOn:[1,1,1,1,1,1],
     myPeriodKey:'09',myWeek:'1',myDays:[],wl:{cat:'Jira Issue',issue:'',title:'',hours:'',desc:'',date:(window.MGH_ATT&&window.MGH_ATT.TODAY)||new Date().toISOString().slice(0,10),project:'',type:'Regular',file:''},wlEdit:null,myTab:null,
     worklogs:[],
-    ne:{first:'',last:'',email:'',phone:'',nid:'',dob:'',entity:'My Global Hub Dominicana SRL',dept:'Engineering',title:'',mgr:'',etype:'Full-time',start:new Date().toISOString().slice(0,10),loc:'',freq:'Bi-Weekly',rate:'',cur:'USD',ot:true,tax:'DGII ISR + TSS (Dominican Republic)',bank:'Banco BHD León',acct:'',route:'',alloc:'100',bank2:'',jira:'',projects:'',flow:'Employee → Supervisor → PM → HR → Finance',pmethod:'Bank Deposit',cbEmail:'',cbId:'',cbNetwork:'Base',cbAsset:'USDC',cbWallet:'',cbAlloc:'20',cbW8:false,cbKyc:false,cbCountry:'Colombia',cStart:new Date().toISOString().slice(0,10),cEnd:'',cTax:'W-8BEN (non-US individual)',cInvoice:true,plang:'Español',wuName:'',wuDelivery:'Cash Pickup',wuCountry:'Mexico',wuCity:'',wuCur:'Local currency',wuIdType:'National ID',wuIdNum:'',wuBankName:'',wuAcct:'',wuPhone:''},
+    ne:{first:'',last:'',email:'',phone:'',nid:'',dob:'',entity:'MGH Dominicana SRL',dept:'Engineering',title:'',mgr:'',etype:'Full-time',start:new Date().toISOString().slice(0,10),loc:'',freq:'Bi-Weekly',rate:'',cur:'USD',ot:true,tax:'DGII ISR + TSS (Dominican Republic)',bank:'Banco BHD León',acct:'',route:'',alloc:'100',bank2:'',jira:'',projects:'',flow:'Employee → Supervisor → PM → HR → Finance',pmethod:'Bank Deposit',cbEmail:'',cbId:'',cbNetwork:'Base',cbAsset:'USDC',cbWallet:'',cbAlloc:'20',cbW8:false,cbKyc:false,cbCountry:'Colombia',cStart:new Date().toISOString().slice(0,10),cEnd:'',cTax:'W-8BEN (non-US individual)',cInvoice:true,plang:'Español',wuName:'',wuDelivery:'Cash Pickup',wuCountry:'Mexico',wuCity:'',wuCur:'Local currency',wuIdType:'National ID',wuIdNum:'',wuBankName:'',wuAcct:'',wuPhone:''},
     pf:{transfer:'bhd',ref:'',date:'2025-04-20'},pfFile:null,drag:false,proofs:(()=>{try{return JSON.parse(localStorage.getItem('mgh-proofs')||'[]')}catch(e){return []}})(),
     orgMenu: false,
     langMenu: false,
@@ -91,6 +91,7 @@ export default class App extends React.Component {
     this._miss = () => { if (this.state.route === 'languages') this.forceUpdate(); };
     window.addEventListener('mgh-lang', this._lang);
     window.addEventListener('mgh-stub', this._lang);
+    window.addEventListener('mgh-open-password', this.openPassword);
     window.addEventListener('mgh-i18n-missing', this._miss);
 
     this._iv = setInterval(() => { if (this.state.route === 'mytime') this.forceUpdate(); }, 15000);
@@ -367,6 +368,67 @@ export default class App extends React.Component {
     }
   }
 
+  // ---- Password: change it (current password or Google re-verification) or set the first one (Google-only accounts)
+  openPassword = () => this.setState({ pw: { current: '', next: '', confirm: '', googleToken: null, googleEmail: '', saving: false, error: '' } });
+  verifyWithGoogle = async () => {
+    try {
+      const { signInWithGoogle } = await import('./lib/firebase');
+      const { idToken, email } = await signInWithGoogle();
+      this.setState(s => ({ pw: { ...s.pw, googleToken: idToken, googleEmail: email || '', error: '' } }));
+    } catch (e) {
+      this.setState(s => ({ pw: { ...s.pw, error: 'Google verification failed: ' + e.message } }));
+    }
+  };
+  submitPassword = async () => {
+    const { pw, currentUser } = this.state;
+    const hasPw = !(currentUser && currentUser.hasPassword === false);
+    const set = patch => this.setState(s => ({ pw: { ...s.pw, ...patch } }));
+    if (pw.next !== pw.confirm) return set({ error: 'The new passwords do not match' });
+    if (pw.next.length < 10 || !/[a-z]/.test(pw.next) || !/[A-Z]/.test(pw.next) || !/\d/.test(pw.next)) return set({ error: 'Use at least 10 characters with upper case, lower case and a number' });
+    if (hasPw && !pw.current && !pw.googleToken) return set({ error: 'Enter your current password or verify with Google' });
+    set({ saving: true, error: '' });
+    try {
+      await api.changePassword({ newPassword: pw.next, currentPassword: pw.current || undefined, googleIdToken: pw.googleToken || undefined });
+      this.setState(s => ({ pw: null, currentUser: s.currentUser ? { ...s.currentUser, hasPassword: true } : s.currentUser }));
+      this.flash(hasPw ? 'Password changed' : 'Password created • you can now also sign in with email and password');
+    } catch (e) {
+      set({ saving: false, error: e.message });
+    }
+  };
+  renderPasswordModal() {
+    const { pw, currentUser } = this.state;
+    const hasPw = !(currentUser && currentUser.hasPassword === false);
+    const set = k => e => { const v = e.target.value; this.setState(s => ({ pw: { ...s.pw, [k]: v, error: '' } })); };
+    const close = () => this.setState({ pw: null });
+    const input = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--mgh-surface-3)', font: '500 14px var(--font-sans)', boxSizing: 'border-box' };
+    const label = { display: 'block', font: '600 12px/16px var(--font-sans)', color: 'var(--mgh-ink-2)', marginBottom: 6 };
+    return (
+      <div onClick={close} style={{ position: 'fixed', inset: 0, zIndex: 120, background: 'rgba(19,27,46,.6)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div onClick={e => e.stopPropagation()} style={{ width: 460, maxWidth: '100%', background: '#fff', borderRadius: 16, boxShadow: 'var(--shadow-lg)', padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><DS.Icon name="key" size={22} color="var(--mgh-primary)" /><span style={{ font: '700 20px/26px var(--font-sans)', color: 'var(--mgh-ink)' }}>{hasPw ? 'Change password' : 'Create a password'}</span></div>
+              <span style={{ font: '400 13px/18px var(--font-sans)', color: 'var(--mgh-ink-2)', marginTop: 4, display: 'block' }}>{hasPw ? 'Confirm it is you with your current password, or verify with Google if you usually sign in with Google.' : 'You signed in with Google. Create a password to also sign in with ' + ((currentUser && currentUser.email) || 'your email') + '.'}</span>
+            </div>
+            <button onClick={close} style={{ background: 'transparent', border: 0, cursor: 'pointer', padding: 4 }}><DS.Icon name="close" size={20} color="var(--mgh-ink-3)" /></button>
+          </div>
+          {hasPw && !pw.googleToken ? <div><label style={label}>Current password</label><input type="password" autoComplete="current-password" value={pw.current} onChange={set('current')} style={input} /></div> : null}
+          {hasPw ? (pw.googleToken
+            ? <div style={{ font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-success)' }}>Verified with Google{pw.googleEmail ? ' • ' + pw.googleEmail : ''}</div>
+            : <DS.Button variant="secondary" icon="login" onClick={this.verifyWithGoogle}>Forgot it? Verify with Google instead</DS.Button>) : null}
+          <div><label style={label}>New password</label><input type="password" autoComplete="new-password" value={pw.next} onChange={set('next')} style={input} /></div>
+          <div><label style={label}>Confirm new password</label><input type="password" autoComplete="new-password" value={pw.confirm} onChange={set('confirm')} style={input} /></div>
+          <span style={{ font: '400 12px/16px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>At least 10 characters, with upper case, lower case and a number.</span>
+          {pw.error ? <div style={{ font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-danger)' }}>{pw.error}</div> : null}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <DS.Button variant="secondary" onClick={close}>Cancel</DS.Button>
+            <DS.Button icon="save" disabled={pw.saving} onClick={this.submitPassword}>{pw.saving ? 'Saving…' : hasPw ? 'Change password' : 'Create password'}</DS.Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   openNewAdjustmentModal = () => {
     const emps = window.EMPLOYEES || [];
     if (!emps.length) { this.flash('Add an employee before creating adjustments'); return; }
@@ -629,6 +691,7 @@ export default class App extends React.Component {
     window.removeEventListener('mgh-att-punch', this._attPunch);
     window.removeEventListener('mgh-lang', this._lang);
     window.removeEventListener('mgh-stub', this._lang);
+    window.removeEventListener('mgh-open-password', this.openPassword);
     window.removeEventListener('mgh-i18n-missing', this._miss);
     window.removeEventListener('hashchange', this.onHash);
   }
@@ -656,7 +719,7 @@ export default class App extends React.Component {
     this.setState(s=>({myDays:s.myDays.map(e=>{const l=A.leaveOn(myEmpId,e.d.toISOString().slice(0,10));return l&&e.type!=='Weekend'?{...e,type:l.type==='Sick'?'Sick':'PTO',leaveId:l.id}:e})}));
   }
   pclient(p){
-    const M=window.__MGH_CLIENT_OF||{'Atlas Core':'Kairoon','Global Hub v3':'My Global Hub','Perf Infra':'Arawaki','Insights Lake':'Kairoon','Internal Ops':'Internal'};
+    const M=window.__MGH_CLIENT_OF||{};
     return p?(M[p]||'—'):'—';
   }
   crumbRoute(txt){
@@ -748,7 +811,7 @@ export default class App extends React.Component {
     const m = Math.floor((n - 1) / 2);
     const isFirstHalf = (n - 1) % 2 === 0;
     const lastDay = new Date(year, m + 1, 0).getDate();
-    const startDay = isFirstHalf ? 1 : 15;
+    const startDay = isFirstHalf ? 1 : 16;
     const endDay = isFirstHalf ? 15 : lastDay;
     const s = new Date(Date.UTC(year, m, startDay));
     const e = new Date(Date.UTC(year, m, endDay));
@@ -809,12 +872,12 @@ export default class App extends React.Component {
     const missing=[];if(!personal)missing.push('personal info');if(!employ)missing.push('job title & start date');if(!pay)missing.push('hourly rate');if(useBank&&!(n.acct&&n.route&&allocOk))missing.push('bank details');if(!cbOk)missing.push('Coinbase payout details');
     return {
       isAddEmp:this.state.route==='addEmployee',addCrumbs:['Workforce','Employee Directory','Add Employee'],
-      addActions:this.btns([['ghost','close','Cancel',()=>this.go('employees')],['primary','person_add','Create Employee',()=>{const make=async pending=>{try{const r=await api.createEmployee({...n,fullName,pending});const newId=r&&r.id;if(!newId)throw new Error('the server did not return an employee ID');const facts=[['Employee ID',newId],['Job title',n.title||'—'],['Department',n.dept],['Entity',n.entity],['Supervisor',n.mgr],['Type',n.etype],['Start date',n.start||'—'],['First period',firstP],['Rate',n.rate?'$'+Number(n.rate).toFixed(2)+' / hr '+n.cur:'—'],['Payment method',n.pmethod],['Tax profile',n.tax],['Est. gross / period',pay?fmtC(pc.gross,n.cur):'—'],['Est. deductions',pay?(pc.exempt?'Exempt • '+fmtC(0,n.cur):fmtC(pc.ded,n.cur)):'—'],['Est. net / period',pay?fmtC(pc.net,n.cur):'—'],['Approval route',n.flow]];this.setState({dialog:null,created:{id:newId,by:(this.state.currentUser&&this.state.currentUser.name)||'',name:fullName,title:(n.title||'Job title pending')+' • '+n.dept,email:n.email,pending,facts,useCb,useBank,jira:!!n.jira,when:new Date().toLocaleString('en-US',{month:'short',day:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}});this.go('empCreated');this.flash(fullName+' created as '+newId+' • saved to database');await this.loadFromApi();}catch(err){this.setState({dialog:null});this.flash('Creation blocked: '+err.message);}};
+      addActions:this.btns([['ghost','close','Cancel',()=>this.go('employees')],['primary','person_add','Create Employee',()=>{const make=async pending=>{try{const r=await api.createEmployee({...n,fullName,pending});const newId=r&&r.id;if(!newId)throw new Error('the server did not return an employee ID');const facts=[['Employee ID',newId],['Job title',n.title||'—'],['Department',n.dept],['Entity',n.entity],['Supervisor',n.mgr],['Type',n.etype],['Start date',n.start||'—'],['First period',firstP],['Rate',n.rate?'$'+Number(n.rate).toFixed(2)+' / hr '+n.cur:'—'],['Payment method',n.pmethod],['Tax profile',n.tax],['Est. gross / period',pay?fmtC(pc.gross,n.cur):'—'],['Est. deductions',pay?(pc.exempt?'Exempt • '+fmtC(0,n.cur):fmtC(pc.ded,n.cur)):'—'],['Est. net / period',pay?fmtC(pc.net,n.cur):'—'],['Approval route',n.flow]];this.setState({dialog:null,created:{id:newId,initialPassword:(r&&r.initialPassword)||'',by:(this.state.currentUser&&this.state.currentUser.name)||'',name:fullName,title:(n.title||'Job title pending')+' • '+n.dept,email:n.email,pending,facts,useCb,useBank,jira:!!n.jira,when:new Date().toLocaleString('en-US',{month:'short',day:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}});this.go('empCreated');this.flash(fullName+' created as '+newId+' • saved to database');await this.loadFromApi();}catch(err){this.setState({dialog:null});this.flash('Creation blocked: '+err.message);}};
           if(missing.length){this.setState({dialog:{title:'Create with missing details?',body:'Still missing: '+missing.join(', ')+'. The record will be created as Pending Onboarding and excluded from payroll until these are completed.',confirm:'Create as Pending',variant:'primary',icon:'person_add',run:()=>make(missing)}});return}make([])}]]),
       addSteps:['Personal','Employment','Payroll','Banking','Jira & Approvals'].map((l,i)=>({label:l,state:i===cur?'current':st([personal,employ,pay,bank,jira][i])})),
       addSections:[
-        {icon:'person',title:'Personal Information',sub:'Legal identity used on pay stubs and statutory filings',fields:[T('first','First name',{ph:'Ana'}),T('last','Last name',{ph:'Martínez'}),T('email','Work email',{ph:'name@myglobalhub.com',err:n.email&&!emailOk?'Enter a valid email':''}),T('password','Initial access password',{ph:'Password123!',hint:'Default: Password123!'}),T('phone','Phone',{ph:'+1 (809) 555-0142'}),T('nid','Cédula / SSN / NI number',{ph:'001-0000000-0',mono:true}),T('dob','Date of birth',{type:'date'})]},
-        {icon:'work',title:'Employment',sub:'Entity, reporting line and contract',fields:[L('entity','Operating entity',['My Global Hub Dominicana SRL','MGH USA Inc.','MGH UK Ltd.','Kairoon','Arawaki']),L('dept','Department',['Engineering','Product','Infrastructure','Quality','Analytics','Finance','Security','HR & People']),T('title','Job title',{ph:'Backend Engineer'}),L('mgr','Supervisor',['',...(window.EMPLOYEES||[]).map(e=>e.name).filter(Boolean)]),L('etype','Employment type',['Full-time','Part-time','Contractor / Exempt']),T('start','Start date',{type:'date',hint:'First period: '+firstP}),T('loc','Work location',{ph:'Santo Domingo, DR'})]},
+        {icon:'person',title:'Personal Information',sub:'Legal identity used on pay stubs and statutory filings',fields:[T('first','First name',{ph:'Ana'}),T('last','Last name',{ph:'Martínez'}),T('email','Work email',{ph:'name@myglobalhub.com',err:n.email&&!emailOk?'Enter a valid email':''}),T('password','Initial access password (optional)',{ph:'Leave empty to generate a secure one',hint:'If empty, a random password is generated and shown once after saving'}),T('phone','Phone',{ph:'+1 (809) 555-0142'}),T('nid','Cédula / SSN / NI number',{ph:'001-0000000-0',mono:true}),T('dob','Date of birth',{type:'date'})]},
+        {icon:'work',title:'Employment',sub:'Entity, reporting line and contract',fields:[L('entity','Operating entity',['MGH Dominicana SRL']),L('dept','Department',['Engineering','Product','Infrastructure','Quality','Analytics','Finance','Security','HR & People']),T('title','Job title',{ph:'Backend Engineer'}),L('mgr','Supervisor',['',...(window.EMPLOYEES||[]).map(e=>e.name).filter(Boolean)]),L('etype','Employment type',['Full-time','Part-time','Contractor / Exempt']),T('start','Start date',{type:'date',hint:'First period: '+firstP}),T('loc','Work location',{ph:'Santo Domingo, DR'})]},
         {icon:'payments',title:'Payroll & Compensation',sub:'Bi-weekly by default • 80h standard period',fields:[L('freq','Pay frequency',['Bi-Weekly','Weekly','Semi-Monthly','Monthly']),T('rate','Hourly rate',{ph:'50.00',prefix:'$',suffix:'/ hr'}),L('cur','Pay currency',['USD','DOP','GBP']),L('tax','Tax profile',['DGII ISR + TSS (Dominican Republic)','US Federal W-4 + State','UK PAYE + NI','Exempt (no tax deductions)']),G('ot','Overtime eligible','1.5× after 44h / week')]},
         ...(n.etype==='Contractor / Exempt'?[{icon:'handshake',title:'Contract Details',sub:'Contractors appear on the Contractors page and stay out of payroll tax reports',fields:[T('cStart','Contract start',{type:'date'}),T('cEnd','Contract end',{type:'date'}),L('cTax','Tax form',['W-8BEN (non-US individual)','W-8BEN-E (non-US entity)','W-9 (US person)','Local invoice + RNC (DR)']),G('cInvoice','Invoice required per period','Contractor uploads an invoice before payout')]}]:[]),
         {icon:'payments',title:'Payment Method',sub:'International employees can be paid in USDC through Coinbase Business',fields:[Object.assign(L('pmethod','How is this employee paid?',['Bank Deposit','Coinbase Only','Split: Bank + Coinbase']),{set:v=>{const m=typeof v==='string'?v:v.target.value;this.setState(s=>({ne:{...s.ne,pmethod:m,...(m==='Split: Bank + Coinbase'?{cbAlloc:'20',alloc:'80',bank2:''}:m==='Bank Deposit'?{alloc:'100'}:{})}}))}})]},
@@ -829,7 +892,7 @@ export default class App extends React.Component {
           ...(n.pmethod==='Coinbase Only'?[]:[T('cbAlloc','Coinbase share of net pay',{suffix:'%',err:cbA>0&&cbA<100?'':'Use 1–99% for a split'})]),
           G('cbKyc','Coinbase identity verified (KYC)','Required before the first payout'),
           G('cbW8','W-8BEN / tax form on file','Non-US contractors • no US withholding')]}]:[]),
-        {icon:'sync_alt',title:'Jira & Approvals',sub:'Worklog binding and approval routing',fields:[L('project','Assigned Project',['MSHP — Project Planning','Atlas Core Platform','Perf Infrastructure','Global Hub v3','Insights Lake','Core Billing Services','Internal Ops']),T('jira','Atlassian account email',{ph:'name@globalhub.atlassian.net'}),T('projects','Bound Jira projects',{ph:'MSHP, ATLAS, CORE',mono:true}),L('flow','Approval route',['Employee → Supervisor → PM → HR → Finance','Employee → Supervisor → HR → Finance'])]}],
+        {icon:'sync_alt',title:'Jira & Approvals',sub:'Worklog binding and approval routing',fields:[L('project','Assigned Project',['MSHP — Project Planning','Atlas Core Platform','Perf Infrastructure','Global Hub v3','Insights Lake','Core Billing Services','Internal Ops']),T('jira','Atlassian account email',{ph:'name@globalhub.atlassian.net'}),T('projects','Projects',{ph:'Arawaki, Wokokai, Treslog',mono:true}),L('flow','Approval route',['Employee → Supervisor → PM → HR → Finance','Employee → Supervisor → HR → Finance'])]}],
       newEmp:{fullName,titleLine:(n.title||'Job title')+' • '+n.dept,
         facts:[['Employee ID','Assigned on save'],['Entity',n.entity],['Supervisor',n.mgr],['Type',n.etype],['Rate',n.rate?'$'+Number(n.rate).toFixed(2)+' / hr '+n.cur:'—'],['First period',firstP.split(' ')[0]],['Payout split',[useBank?(n.bank2?n.bank+' '+alloc+'% • '+n.bank2+' '+(bankTarget-alloc)+'%':n.bank+' '+bankTarget+'%'):'',useCb?'Coinbase '+n.cbAsset+' ('+n.cbNetwork+') '+cbA+'%':''].filter(Boolean).join(' • ')],...(useCb&&n.cbWallet?[['Wallet',n.cbWallet.slice(0,6)+'…'+n.cbWallet.slice(-4)]]:[])].map(x=>({k:x[0],v:x[1]})),
         payEst:{show:pay,exempt:pc.exempt,hoursLabel:n.freq+' • '+pc.hours+'h',gross:fmtC(pc.gross,n.cur),net:fmtC(pc.net,n.cur),lines:pc.lines.map(l=>({k:l[0],v:l[1]==='Exempt'?'Exempt':'−'+fmtC(l[2],n.cur)})),note:pc.exempt?'Tax-exempt profile • no statutory withholding applied':'Estimate based on '+n.tax},
@@ -1064,7 +1127,7 @@ export default class App extends React.Component {
         const rules=A?A.rulesFor(O&&O.id):null;
         const hols=A?A.holidays(O&&O.id).filter(h=>String(h.date).startsWith(String(curYear))).length:0;
         const flow=W&&W.config&&W.config.steps?W.config.steps.filter(x=>x.enabled).map(x=>x.label||x.key).join(' → '):'—';
-        return [['Pay frequency','Quincenal (1–15 / 15–end of month)'],['Standard shift',rules?rules.start+' • '+rules.shift+'h/day':'—'],['Overtime rule',W&&W.otLabel?W.otLabel():'—'],['Holiday calendar',(O?O.country:'')+' '+curYear+' • '+hols+' day'+(hols===1?'':'s')],['Time zone',O?O.timezone:'—'],['Payroll cutoff time','23:59 on work end'],['Approval workflow',flow]].map(x=>({k:x[0],v:x[1]}));
+        return [['Pay frequency','Quincenal (1–15 / 16–end of month)'],['Standard shift',rules?rules.start+' • '+rules.shift+'h/day':'—'],['Overtime rule',W&&W.otLabel?W.otLabel():'—'],['Holiday calendar',(O?O.country:'')+' '+curYear+' • '+hols+' day'+(hols===1?'':'s')],['Time zone',O?O.timezone:'—'],['Payroll cutoff time','23:59 on work end'],['Approval workflow',flow]].map(x=>({k:x[0],v:x[1]}));
       })(),
       offset:s.offset,offUp:()=>this.setState(st=>({offset:Math.min(14,st.offset+1)})),offDown:()=>this.setState(st=>({offset:Math.max(3,st.offset-1)})),
       autoGen:s.autoGen,toggleAuto:()=>this.setState(st=>({autoGen:!st.autoGen})),
@@ -1255,7 +1318,7 @@ export default class App extends React.Component {
             </div>
 
             <div style={{ font: "400 11px/16px var(--font-mono)", color: "rgba(255,255,255,0.45)" }}>
-              MGH Core v3.4.10 • Dominic Republic SRL • US Inc • UK Ltd
+              My Global Hub • Dominicana SRL
             </div>
           </div>
 
@@ -1799,6 +1862,19 @@ export default class App extends React.Component {
                     </div>
                   </div>
                 </DS.Card>
+                {v.created.initialPassword ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 20px", borderRadius: "12px", background: "var(--mgh-primary-50)", flexWrap: "wrap" }}>
+                    <DS.Icon name="key" size={18} color="var(--mgh-primary)" />
+                    <div style={{ flex: "1", minWidth: "220px", display: "flex", flexDirection: "column", gap: "2px" }}>
+                      <span style={{ font: "600 13px/18px var(--font-sans)", color: "var(--mgh-ink)" }}>
+                        {"Initial password for " + (v.created.email || "this account") + " — shown only once"}
+                      </span>
+                      <span style={{ font: "700 16px/22px var(--font-mono)", color: "var(--mgh-ink)", letterSpacing: "0.5px" }}>{v.created.initialPassword}</span>
+                      <span style={{ font: "400 12px/16px var(--font-sans)", color: "var(--mgh-ink-3)" }}>Share it privately. They can change it from the user menu → Cambiar contraseña, or sign in with Google.</span>
+                    </div>
+                    <DS.Button size="sm" variant="secondary" icon="content_copy" onClick={() => { try { navigator.clipboard.writeText(v.created.initialPassword); this.flash("Password copied"); } catch (e) { this.flash("Copy failed • select and copy it manually"); } }}>Copy</DS.Button>
+                  </div>
+                ) : null}
                 {v.createdPending ? (
                   <>
                     <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 20px", borderRadius: "12px", background: "var(--mgh-warning-bg)", flexWrap: "wrap" }}>
@@ -1987,7 +2063,7 @@ export default class App extends React.Component {
                       {" pay cycles in 2025 • Standard Bi-Weekly Schedule (Dominicana SRL)"}
                     </span>
                     <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--mgh-ink-3)" }}>
-                      {"Numbering: PP-{YYYY}-{NN} • quincenas 1–15 and 15–end of month • pay date +5 days"}
+                      {"Numbering: PP-{YYYY}-{NN} • quincenas 1–15 and 16–end of month • pay date +5 days"}
                     </span>
                   </div>
                 </DS.Card>
@@ -2013,7 +2089,7 @@ export default class App extends React.Component {
                   </DS.Card>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,460px),1fr))", gap: "20px", alignItems: "start" }}>
-                  <DS.Card icon="tune" title="Payroll Settings" subtitle="Applies to My Global Hub • Kairoon • Arawaki" actions={v.saveSettingsBtn}>
+                  <DS.Card icon="tune" title="Payroll Settings" subtitle="Applies to My Global Hub and all its projects" actions={v.saveSettingsBtn}>
                     <div style={{ display: "flex", flexDirection: "column" }}>
                       {(v.settingsRows || []).map((s, _i0) => (
                         <Fragment key={_i0}>
@@ -2637,6 +2713,9 @@ export default class App extends React.Component {
             </div>
           </div>
         ) : null}
+
+        {/* CHANGE / SET PASSWORD MODAL */}
+        {this.state.pw ? this.renderPasswordModal() : null}
 
         {/* NEW ADJUSTMENT ENTRY MODAL */}
         {this.state.showAdjModal ? (

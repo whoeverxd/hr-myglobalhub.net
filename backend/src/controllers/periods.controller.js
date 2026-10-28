@@ -1,9 +1,20 @@
 const db = require('../db');
-const { STATUSES, SEALED, LOCKED, defaultStatus, buildPeriods } = require('../payroll');
+const { STATUSES, SEALED, LOCKED, buildPeriods } = require('../payroll');
 const { logAction } = require('./audit.controller');
 
 function ensurePeriodsForYear(year) {
   const existing = db.getOne('SELECT COUNT(*) as c FROM pay_periods WHERE year = ?', [year]);
+  if (existing && existing.c > 0) {
+    // Rows created before the 16th-day rule started the second quincena on the 15th. Fix unlocked ones only:
+    // locked periods are immutable (corrections go through Payroll Adjustments).
+    const want = Object.fromEntries(buildPeriods(year).map((p) => [p.id, p]));
+    for (const r of db.query('SELECT id, start_date, is_locked FROM pay_periods WHERE year = ?', [year])) {
+      const w = want[r.id];
+      if (w && !r.is_locked && r.start_date !== w.start) {
+        db.execute('UPDATE pay_periods SET start_date = ? WHERE id = ?', [w.start, r.id]);
+      }
+    }
+  }
   if (!existing || existing.c === 0) {
     const generated = buildPeriods(year);
     if (generated && generated.length > 0) {
@@ -83,15 +94,11 @@ function getCurrentPeriod() {
   return buildPeriods(year).find(p => p.start <= todayStr && p.end >= todayStr) || buildPeriods(year)[0];
 }
 
-function getPeriodOverrides() {
-  const rows = db.query(`SELECT id, period_number, status FROM pay_periods WHERE year = 2025`);
+// Stored status of every period of the current year (the frontend shows these instead of date-derived defaults)
+function getPeriodOverrides(year = new Date().getFullYear()) {
+  const rows = db.query(`SELECT id, status FROM pay_periods WHERE year = ?`, [year]);
   const overrides = {};
-  for (const r of rows) {
-    const def = defaultStatus(r.period_number);
-    if (r.status !== def) {
-      overrides[r.id] = r.status;
-    }
-  }
+  for (const r of rows) overrides[r.id] = r.status;
   return overrides;
 }
 

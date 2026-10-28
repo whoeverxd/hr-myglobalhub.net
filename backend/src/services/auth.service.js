@@ -1,7 +1,7 @@
 const db = require('../db');
 const firebaseService = require('./firebase.service');
 const { logAction } = require('../controllers/audit.controller');
-const { verifyPassword, generateToken, generateSalt, hashPassword } = require('../utils/crypto');
+const { verifyPassword, generateToken, generateSalt, hashPassword, generateTempPassword, passwordProblem } = require('../utils/crypto');
 
 function resolveEmployeeForEmail(email) {
   const normalized = (email || '').trim().toLowerCase();
@@ -236,14 +236,13 @@ async function loginWithGoogle({ idToken, ip = '127.0.0.1' }) {
       role = 'employee';
     }
 
-    const salt = generateSalt();
-    const hash = hashPassword(Math.random().toString(36), salt);
+    // Google-only account: no local password until the user sets one (POST /auth/password)
     const userId = 'usr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
 
     db.execute(
       `INSERT INTO users (id, email, password_hash, salt, name, role, entity, employee_id, avatar, is_active)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
-      [userId, email, hash, salt, name, role, entity, employeeId, picture]
+      [userId, email, '', '', name, role, entity, employeeId, picture]
     );
 
     user = db.getOne(`SELECT * FROM users WHERE id = ?`, [userId]);
@@ -363,7 +362,78 @@ function sanitizeUser(user) {
     employeeId: user.employee_id,
     avatar: avatar || null,
     lastLoginAt: user.last_login_at,
+    hasPassword: Boolean(user.password_hash),
   };
+}
+
+function hasLocalPassword(userId) {
+  const row = db.getOne(`SELECT password_hash FROM users WHERE id = ?`, [userId]);
+  return Boolean(row && row.password_hash);
+}
+
+/**
+ * Change (or first-time set) the signed-in user's password.
+ * Authorized by ONE of: the current password; a fresh Google ID token for the same email (covers Google accounts
+ * whose local password was never known); or the account having no local password yet.
+ */
+async function changePassword({ userId, currentPassword, newPassword, googleIdToken, ip = '127.0.0.1' }) {
+  const user = db.getOne(`SELECT * FROM users WHERE id = ? AND is_active = 1`, [userId]);
+  if (!user) {
+    const err = new Error('User not found');
+    err.status = 404;
+    throw err;
+  }
+  const problem = passwordProblem(newPassword);
+  if (problem) {
+    const err = new Error(problem);
+    err.status = 400;
+    throw err;
+  }
+
+  let authorizedBy = null;
+  if (!user.password_hash) authorizedBy = 'no-password';
+  else if (currentPassword && verifyPassword(currentPassword, user.password_hash, user.salt)) authorizedBy = 'current-password';
+  else if (googleIdToken) {
+    const auth = firebaseService.getAuth();
+    if (!auth) {
+      const err = new Error('Google verification is not available on this server');
+      err.status = 500;
+      throw err;
+    }
+    let decoded;
+    try {
+      decoded = await auth.verifyIdToken(googleIdToken);
+    } catch (e) {
+      const err = new Error('Google verification failed: ' + e.message);
+      err.status = 401;
+      throw err;
+    }
+    if ((decoded.email || '').trim().toLowerCase() !== String(user.email).toLowerCase()) {
+      const err = new Error('The Google account does not match this user');
+      err.status = 403;
+      throw err;
+    }
+    authorizedBy = 'google';
+  }
+  if (!authorizedBy) {
+    const err = new Error(currentPassword ? 'Current password is incorrect' : 'Current password is required');
+    err.status = 401;
+    throw err;
+  }
+
+  const salt = generateSalt();
+  db.transaction(() => {
+    db.execute(`UPDATE users SET password_hash = ?, salt = ?, updated_at = datetime('now') WHERE id = ?`, [hashPassword(newPassword, salt), salt, user.id]);
+    logAction({
+      actor: user.name,
+      action: user.password_hash ? 'PASSWORD_CHANGED' : 'PASSWORD_SET',
+      entityType: 'user',
+      entityId: user.id,
+      newValues: { authorizedBy },
+      ip,
+    });
+  });
+  return { ok: true, hasPassword: true };
 }
 
 function authenticateUser(email, password, ip = '127.0.0.1') {
@@ -389,7 +459,9 @@ function getSessionUser(token) {
   return validateSession(token);
 }
 
-function ensureUserForEmployee({ email, name, role = 'employee', entity = 'MGH Dominicana SRL', employeeId, password = 'Password123!', avatar = null }) {
+// Creates the login account for a new employee/contractor. Without an explicit password a random one-time password
+// is generated and returned ONCE as `initialPassword` (never a shared default).
+function ensureUserForEmployee({ email, name, role = 'employee', entity = 'MGH Dominicana SRL', employeeId, password = null, avatar = null }) {
   if (!email || !email.trim()) return null;
   const normalizedEmail = email.trim().toLowerCase();
   const existing = db.getOne(`SELECT * FROM users WHERE LOWER(email) = ?`, [normalizedEmail]);
@@ -409,8 +481,10 @@ function ensureUserForEmployee({ email, name, role = 'employee', entity = 'MGH D
     return db.getOne(`SELECT * FROM users WHERE id = ?`, [existing.id]);
   }
 
+  const generated = !password;
+  const plain = password || generateTempPassword();
   const salt = generateSalt();
-  const hash = hashPassword(password, salt);
+  const hash = hashPassword(plain, salt);
   const id = 'usr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
 
   db.execute(
@@ -419,7 +493,8 @@ function ensureUserForEmployee({ email, name, role = 'employee', entity = 'MGH D
     [id, normalizedEmail, hash, salt, name, role, entity, employeeId || null, avatar || null]
   );
 
-  return db.getOne(`SELECT * FROM users WHERE id = ?`, [id]);
+  const created = db.getOne(`SELECT * FROM users WHERE id = ?`, [id]);
+  return generated ? { ...created, initialPassword: plain } : created;
 }
 
 module.exports = {
@@ -428,6 +503,8 @@ module.exports = {
   verifyPassword,
   login,
   loginWithGoogle,
+  changePassword,
+  hasLocalPassword,
   validateSession,
   authenticateUser,
   getSessionUser,

@@ -69,7 +69,7 @@ const money=n=>(n<0?'-':'+')+'$'+Math.abs(n).toLocaleString('en-US',{minimumFrac
 
 const ISSUES={'ATLAS-412':'GraphQL API Optimization','ATLAS-420':'Hotfix: Redis Cluster Failover','ATLAS-415':'Auth Microservice Integration','CORE-108':'Database Sharding Pipeline','ATLAS-104':'Standup & Sprint Planning'};
 const CATS=['Jira Issue','Meeting','Training','Internal Admin','Client Support','Interview / Hiring','Other'];
-const CAT_PH={'Meeting':'e.g. Weekly payroll sync','Training':'e.g. AML compliance course','Internal Admin':'e.g. Expense reports','Client Support':'e.g. Kairoon onboarding call','Interview / Hiring':'e.g. Backend candidate interview','Other':'Short task title'};
+const CAT_PH={'Meeting':'e.g. Weekly payroll sync','Training':'e.g. AML compliance course','Internal Admin':'e.g. Expense reports','Client Support':'e.g. Arawaki merchant onboarding call','Interview / Hiring':'e.g. Backend candidate interview','Other':'Short task title'};
 const OLDNOTES={1:'Sprint planning • 1.0h',4:'Client call with Arawaki • 0.5h',8:'AML training • 0.5h'};
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function MYDAYS(){const o=[];for(let i=0;i<14;i++){const d=add(U(2025,3,15),i),wd=d.getUTCDay();const we=wd===0||wd===6;o.push({d,type:we?'Weekend':i===3?'Holiday':i===10?'PTO':'Regular',in:i===0?'08:30':'',lo:'',li:'',out:''})}return o}

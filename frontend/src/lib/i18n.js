@@ -814,7 +814,7 @@ Auto-lock: 24h post pay date|Cierre automático: 24 h después de la fecha de pa
 Open Audit Log|Abrir registro de auditoría
 Audit Hash Certification|Certificación hash de auditoría
 Payroll Settings|Configuración de nómina
-Applies to My Global Hub • Kairoon • Arawaki|Aplica a My Global Hub • Kairoon • Arawaki
+Applies to My Global Hub and all its projects|Aplica a My Global Hub y todos sus proyectos
 Payroll settings saved for My Global Hub, Kairoon, Arawaki|Configuración de nómina guardada para My Global Hub, Kairoon, Arawaki
 Bi-Weekly (default)|Quincenal (predeterminado)
 Standard work week|Semana laboral estándar
@@ -1084,7 +1084,7 @@ Short task title|Título corto
 e.g. Weekly payroll sync|ej. Reunión semanal de nómina
 e.g. AML compliance course|ej. Curso de cumplimiento AML
 e.g. Expense reports|ej. Reportes de gastos
-e.g. Kairoon onboarding call|ej. Llamada de incorporación Kairoon
+e.g. Arawaki merchant onboarding call|ej. Llamada de incorporación de comercio en Arawaki
 e.g. Backend candidate interview|ej. Entrevista a candidato backend
 Work description|Descripción del trabajo
 Description (required)|Descripción (obligatoria)

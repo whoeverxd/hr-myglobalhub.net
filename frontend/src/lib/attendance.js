@@ -19,7 +19,7 @@
   const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return ((h >>> 0) % 10000) / 10000; };
 
   const DEFAULT_RULES = { start: '08:30', shift: 8, grace: 10, maxLate: 30, minLunch: 30, maxHours: 12, autoLunch: true, flexible: false };
-  const ORGS = ['MGH Dominicana SRL', 'MGH USA Inc.', 'MGH UK Ltd.'];
+  const ORGS = ['MGH Dominicana SRL']; // single company; Arawaki / Wokokai / Treslog are projects
   // Holidays and leave come from the backend (App bootstrap → setHolidays / setLeave); no seeded calendar.
   const SEED_HOL = [];
   const LEAVE_TYPES = ['Vacation', 'Sick', 'Personal', 'Bereavement', 'Jury Duty', 'Maternity', 'Paternity', 'Unpaid'];
