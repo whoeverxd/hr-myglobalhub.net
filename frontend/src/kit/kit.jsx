@@ -4828,15 +4828,16 @@ function Dashboard({ f, setF, go }) {
 function Daily({ f, go, notify }) {
   const [st, setSt] = React.useState('All');
   const [punchDlg, setPunchDlg] = React.useState(false);
-  const [punchEmp, setPunchEmp] = React.useState(() => (A.roster[0] && A.roster[0].id) || '');
-  const [cin, setCin] = React.useState('08:30');
-  const [cout, setCout] = React.useState('17:30');
+  const [punchEmp, setPunchEmp] = React.useState('');
+  const [cin, setCin] = React.useState('');
+  const [cout, setCout] = React.useState('');
   const [mode, setMode] = React.useState('Office');
   const L = A.daily(f.d, match(f)).filter(x => st === 'All' || x.status === st);
   const all = A.daily(f.d, match(f));
 
   const savePunch = async () => {
     if (!punchEmp) { if (notify) notify('Selecciona un empleado'); return; }
+    if (!cin || !cout) { if (notify) notify('Indica la hora de entrada y la de salida'); return; }
     const a = A.tm(cin), b = A.tm(cout);
     if (a == null || b == null || b <= a) { if (notify) notify('La salida debe ser posterior a la entrada'); return; }
     // Hours from the entered times (minus the org's auto-lunch when the shift is over 6h)
@@ -4848,7 +4849,7 @@ function Daily({ f, go, notify }) {
       await window.api.recordPunch({ empId: punchEmp, date: f.d, clock_in: cin, clock_out: cout, mode, hours, overtime });
       A.punch({ emp: punchEmp, date: f.d, in: cin, out: cout, mode, hours, overtime });
       if (notify) notify(`Ponche guardado para ${punchEmp} (${cin} – ${cout} • ${hours}h)`);
-      setPunchDlg(false);
+      setPunchDlg(false); setPunchEmp(''); setCin(''); setCout('');
     } catch (err) {
       if (notify) notify('Error al guardar ponche: ' + err.message);
     }
@@ -4862,12 +4863,12 @@ function Daily({ f, go, notify }) {
     <div style={{ height: 14 }} />
     <Table cols={[['Employee'], ['Status'], ['Clock In'], ['Lunch'], ['Clock Out'], ['Hours', 'right'], ['Exception'], ['Supervisor']]} rows={L.map(x => [<Who id={x.emp} />, <Pill status={x.status} />, x.punches.in || '—', lunchTxt(x.punches) + (x.autoLunch ? ' (auto ' + A.rules.minLunch + 'm)' : ''), x.inProgress ? 'In progress' : x.punches.out || '—', x.hours ? x.hours.toFixed(1) + 'h' : '—',
       x.exceptions.length ? <a onClick={() => go('attExceptions')} style={{ cursor: 'pointer', font: '600 12px/16px var(--font-sans)' }}>{x.exceptions.map(e => e.label.split(' • ')[0]).join(', ')}</a> : (x.leave ? x.leave.type : x.holiday ? x.holiday.desc : '—'), x.sup])} />
-    <Dlg open={punchDlg} title={`Registrar Ponche • ${fmtD(f.d)}`} onClose={() => setPunchDlg(false)} actions={<><Button variant="outline" onClick={() => setPunchDlg(false)}>Cancelar</Button><Button icon="save" onClick={savePunch}>Guardar Ponche</Button></>}>
+    <Dlg open={punchDlg} title={`Registrar Ponche • ${fmtD(f.d)}`} onClose={() => setPunchDlg(false)} actions={<><Button variant="outline" onClick={() => setPunchDlg(false)}>Cancelar</Button><Button icon="save" disabled={!punchEmp || !cin || !cout} onClick={savePunch}>Guardar Ponche</Button></>}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <Select label="Empleado" value={punchEmp} onChange={x => setPunchEmp(v(x))} options={EMPLOYEES.map(e => ({ value: e.id, label: e.name + ' • ' + e.id }))} />
+        <Select label="Empleado *" value={punchEmp} onChange={x => setPunchEmp(v(x))} options={[{ value: '', label: 'Selecciona…' }, ...EMPLOYEES.map(e => ({ value: e.id, label: e.name + ' • ' + e.id }))]} />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <TextField label="Hora Entrada" type="time" value={cin} onChange={x => setCin(v(x))} />
-          <TextField label="Hora Salida" type="time" value={cout} onChange={x => setCout(v(x))} />
+          <TextField label="Hora Entrada *" type="time" value={cin} onChange={x => setCin(v(x))} />
+          <TextField label="Hora Salida *" type="time" value={cout} onChange={x => setCout(v(x))} />
         </div>
         <Select label="Modalidad" value={mode} onChange={x => setMode(v(x))} options={[{ value: 'Office', label: 'Office' }, { value: 'Remote', label: 'Remote' }, { value: 'Field', label: 'Field' }]} />
       </div>
@@ -4904,15 +4905,29 @@ function Exceptions({ f, notify }) {
   const L = all.filter(x => (type === 'All' || x.type === type) && (st === 'All' || (st === 'Open' ? !done(x.status) : done(x.status))));
   const types = [...new Set(all.map(x => x.type))];
   const TL = { missing_in: 'Missing Clock In', missing_out: 'Missing Clock Out', late: 'Late Arrival', early: 'Early Departure', overtime: 'Overtime', duplicate: 'Duplicate Entries', overlap: 'Overlapping Time', invalid: 'Invalid Shift' };
+  // Exceptions are computed in the browser from the punches (the server stores none yet), so review decisions
+  // live in this browser. A correction changes the punch itself: it is saved to the server first.
   const run = async (x, a, c, fx) => {
-    const r = A.exAction(x, a, c, fx);
-    try {
-      if (window.api && r.ok) {
-        await window.api.resolveException(x.id, { action: a, comment: c, corrections: fx });
+    if (a === 'correct') {
+      if (!A.canManage(x)) { notify('Only Supervisor, Manager, HR or Admin can correct'); return false; }
+      const p = (A.day(x.emp, x.date) || {}).punches || {};
+      const nx = { ...p };
+      Object.keys(fx || {}).forEach(k => { if (fx[k] !== undefined) nx[k] = fx[k]; });
+      if (!nx.in || !nx.out) { notify('Indica la entrada y la salida para guardar la corrección'); return false; }
+      const ta = A.tm(nx.in), tb = A.tm(nx.out);
+      if (ta == null || tb == null || tb <= ta) { notify('La salida debe ser posterior a la entrada'); return false; }
+      const lo = nx.lo ? A.tm(nx.lo) : null, li = nx.li ? A.tm(nx.li) : null;
+      const rr = A.rulesFor((A.roster.find(e => e.id === x.emp) || {}).entity);
+      const lunch = lo != null && li != null && li > lo ? li - lo : (rr.autoLunch && tb - ta > 360 ? rr.minLunch : 0);
+      const worked = Math.max(0, (tb - ta - lunch) / 60);
+      try {
+        await window.api.recordPunch({ empId: x.emp, date: x.date, clock_in: nx.in, clock_out: nx.out, lunch_out: nx.lo || null, lunch_in: nx.li || null, hours: +worked.toFixed(2), overtime: +Math.max(0, worked - rr.shift).toFixed(2) });
+      } catch (err) {
+        notify('No se pudo guardar la corrección • ' + err.message);
+        return false;
       }
-    } catch (err) {
-      console.warn('[Exceptions] API resolve fallback:', err.message);
     }
+    const r = A.exAction(x, a, c, fx);
     notify(r.ok ? x.label.split(' • ')[0] + ' • ' + (a === 'comment' ? 'comment added' : a === 'correct' ? 'corrected' : a === 'review' ? 'in review' : a + 'd') : r.msg);
     return r.ok;
   };
@@ -4929,13 +4944,14 @@ function Exceptions({ f, notify }) {
       rows={L.map(x => [<Who id={x.emp} />, fmtD(x.date), x.label, <Badge size="sm" tone={x.sev === 'high' ? 'danger' : x.sev === 'medium' ? 'warning' : 'neutral'}>{x.sev}</Badge>, <Badge size="sm" dot tone={done(x.status) ? 'success' : x.status === 'In Review' ? 'info' : 'warning'}>{x.status}</Badge>, String(x.comments.length),
         <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}><Button size="sm" variant="secondary" icon="visibility" onClick={() => { setDlg({ id: x.id, x }); setTxt(''); setFix({}); if (x.status === 'Open') A.exAction(x, 'review'); }}>Review</Button>{!done(x.status) && A.canManage(x) && <Button size="sm" variant="ghost" icon="check" onClick={() => run(x, 'approve')}>Approve</Button>}</div>])} />
     <Dlg open={!!cur} title={cur ? cur.label : ''} onClose={() => setDlg(null)} actions={cur && <>
-      <Button variant="outline" icon="chat" onClick={() => { if (run(cur, 'comment', txt)) setTxt(''); }}>Comment</Button>
-      {A.canManage(cur) && !done(cur.status) && <Button variant="outline" icon="check" onClick={() => { if (run(cur, 'approve', txt)) setDlg(null); }}>Approve as is</Button>}
-      {A.canManage(cur) && !done(cur.status) && <Button icon="edit" onClick={() => { if (run(cur, 'correct', txt, fix)) setDlg(null); }}>Save correction</Button>}
-      {A.canManage(cur) && !['Closed'].includes(cur.status) && <Button variant="ghost" icon="task_alt" onClick={() => { if (run(cur, 'close', txt)) setDlg(null); }}>Close</Button>}
+      <Button variant="outline" icon="chat" onClick={() => run(cur, 'comment', txt).then(ok => { if (ok) setTxt(''); })}>Comment</Button>
+      {A.canManage(cur) && !done(cur.status) && <Button variant="outline" icon="check" onClick={() => run(cur, 'approve', txt).then(ok => { if (ok) setDlg(null); })}>Approve as is</Button>}
+      {A.canManage(cur) && !done(cur.status) && <Button icon="edit" onClick={() => run(cur, 'correct', txt, fix).then(ok => { if (ok) setDlg(null); })}>Save correction</Button>}
+      {A.canManage(cur) && !['Closed'].includes(cur.status) && <Button variant="ghost" icon="task_alt" onClick={() => run(cur, 'close', txt).then(ok => { if (ok) setDlg(null); })}>Close</Button>}
       {A.canManage(cur) && done(cur.status) && <Button variant="ghost" icon="undo" onClick={() => run(cur, 'reopen', txt)}>Reopen</Button>}</>}>
       {cur && <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}><Who id={cur.emp} /><span className="mgh-body">{fmtD(cur.date)} • <b>{cur.status}</b></span></div>
+        <span className="mgh-body" style={{ color: 'var(--mgh-ink-3)' }}>Las correcciones de ponches se guardan en el servidor. Los comentarios y estados de revisión de la excepción se guardan solo en este navegador.</span>
         {!A.canManage(cur) && <span className="mgh-body" style={{ color: 'var(--mgh-ink-3)' }}>Viewing as {window.MGH_WF ? window.MGH_WF.role : ''}: you can comment; approval and corrections need Supervisor, Manager, HR or Admin.</span>}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>{[['in', 'Clock in'], ['lo', 'Lunch out'], ['li', 'Lunch in'], ['out', 'Clock out']].map(([kk, l]) => <label key={kk} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}><span style={{ font: '700 10px/12px var(--font-sans)', textTransform: 'uppercase', letterSpacing: '0.44px', color: 'var(--mgh-ink-2)' }}>{l}</span><input type="time" disabled={!A.canManage(cur) || done(cur.status)} value={fix[kk] !== undefined ? fix[kk] : day.punches[kk] || ''} onChange={e => setFix(p => ({ ...p, [kk]: e.target.value }))} style={{ height: 36, border: 'none', borderRadius: 8, boxShadow: 'inset 0 0 0 1px var(--mgh-surface-3)', padding: '0 8px', font: '600 13px var(--font-sans)' }} /></label>)}</div>
         <textarea value={txt} onChange={e => setTxt(e.target.value)} rows={3} placeholder="Comment (visible to the employee and approvers)" style={{ border: 'none', outline: 'none', borderRadius: 8, padding: 10, background: 'var(--mgh-surface-1)', font: '400 13px/18px var(--font-sans)', resize: 'vertical' }} />
@@ -4946,7 +4962,7 @@ function Exceptions({ f, notify }) {
 }
 function Leave({ notify }) {
   useLeaveSync();
-  const [form, setForm] = React.useState(() => ({ emp: (MGH_RBAC.visible(EMPLOYEES, 'leave.request')[0] || {}).id || '', type: 'Vacation', from: A.TODAY, to: A.TODAY, reason: '' }));
+  const [form, setForm] = React.useState(() => ({ emp: '', type: 'Vacation', from: A.TODAY, to: A.TODAY, reason: '' }));
   const [rej, setRej] = React.useState(null); const [why, setWhy] = React.useState(''); const [chip, setChip] = React.useState('All');
   const L = A.leave().filter(l => chip === 'All' || (chip === 'Pending' ? /Pending/.test(l.status) : l.status === chip));
   const selfOnly = MGH_RBAC.scopeOf('leave.request') === 'self', meId = (MGH_RBAC.me() || {}).emp, canReq = MGH_RBAC.can('leave.request');
@@ -4954,7 +4970,7 @@ function Leave({ notify }) {
   // Backend first (field names match leave.controller: empId/fromDate/toDate); the local engine only mirrors
   // what the server accepted, so a failed save is reported instead of silently living in this browser.
   const submit = async () => {
-    if (!emp) { notify('Your account is not linked to an employee record'); return; }
+    if (!emp) { notify(selfOnly ? 'Your account is not linked to an employee record' : 'Selecciona un empleado'); return; }
     const e = EMPLOYEES.find(x => x.id === emp);
     const name = e ? e.name : emp;
     if (!form.from || !form.to || form.to < form.from) { notify('End date must be on or after start date'); return; }
@@ -4988,7 +5004,7 @@ function Leave({ notify }) {
   return <>
     <Card icon="route" title="Leave workflow" subtitle="Employee → Supervisor → HR → Approved → Calendar → Payroll">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,160px),1fr))', gap: 10, alignItems: 'end' }}>
-        {!canReq ? null : selfOnly ? <KeyValue label="Employee" value={MGH_RBAC.me().person + ' • ' + meId} /> : <Select label="Employee" value={form.emp} onChange={x => setForm(p => ({ ...p, emp: v(x) }))} options={MGH_RBAC.visible(EMPLOYEES, 'leave.request').map(e => ({ value: e.id, label: e.name + ' • ' + e.id }))} />}
+        {!canReq ? null : selfOnly ? <KeyValue label="Employee" value={MGH_RBAC.me().person + ' • ' + meId} /> : <Select label="Employee" value={form.emp} onChange={x => setForm(p => ({ ...p, emp: v(x) }))} options={[{ value: '', label: 'Selecciona…' }, ...MGH_RBAC.visible(EMPLOYEES, 'leave.request').map(e => ({ value: e.id, label: e.name + ' • ' + e.id }))]} />}
         {canReq && <Select label="Type" value={form.type} onChange={x => setForm(p => ({ ...p, type: v(x) }))} options={A.LEAVE_TYPES} />}
         {canReq && <TextField label="From" type="date" value={form.from} onChange={x => setForm(p => ({ ...p, from: v(x) }))} />}
         {canReq && <TextField label="To" type="date" value={form.to} onChange={x => setForm(p => ({ ...p, to: v(x) }))} />}
@@ -5030,35 +5046,35 @@ function Holidays({ notify }) {
       <TextField label="Description" value={n.desc} onChange={x => setN(p => ({ ...p, desc: v(x) }))} placeholder="e.g. Company anniversary" />
       <TextField label="Country" value={n.country} onChange={x => setN(p => ({ ...p, country: v(x) }))} />
       <TextField label="Region" value={n.region} onChange={x => setN(p => ({ ...p, region: v(x) }))} />
+      <Toggle checked={n.paid} onChange={x => setN(p => ({ ...p, paid: !!x }))} label="Paid" />
+      <Toggle checked={n.working} onChange={x => setN(p => ({ ...p, working: !!x }))} label="Working holiday" />
       <Button icon="add" onClick={async () => {
-        const r = A.addHoliday({ ...n, org });
+        if (!n.date || !n.desc.trim()) { notify('Date and description are required'); return; }
+        if (H.some(h => h.date === n.date)) { notify('A holiday already exists on that date'); return; }
         try {
-          if (window.api && r.ok) {
-            await window.api.createHoliday({
-              id: r.h ? r.h.id : undefined,
-              orgId: org,
-              date: n.date,
-              description: n.desc,
-              country: n.country,
-              region: n.region,
-              paid: n.paid,
-              working: n.working
-            });
-          }
+          await window.api.createHoliday({ orgId: org, date: n.date, description: n.desc.trim(), country: n.country, region: n.region, paid: n.paid, working: n.working });
         } catch (err) {
-          console.warn('[Holidays] API create fallback:', err.message);
+          notify('No se pudo guardar el feriado • ' + err.message);
+          return;
         }
-        notify(r.ok ? 'Holiday added • ' + n.desc : r.msg);
-        if (r.ok) setN(p => ({ ...p, date: '', desc: '' }));
+        // The server list is the source of truth (ids included, so it can be deleted later)
+        try { const list = await window.api.holidays(); A.setHolidays(Array.isArray(list) ? list : []); }
+        catch (_) { notify('Feriado guardado • recarga la página para verlo'); }
+        notify('Holiday added • ' + n.desc.trim());
+        setN(p => ({ ...p, date: '', desc: '' }));
       }}>Add Holiday</Button>
     </div>
     <div style={{ height: 14 }} />
-    <Table cols={[['Date'], ['Description'], ['Country'], ['Region'], ['Organization'], ['Paid', 'center'], ['Working holiday', 'center'], ['', 'right']]} empty="No holidays configured."
-      rows={H.map(h => [fmt(h), h.desc, h.country, h.region, h.org, <Toggle checked={h.paid} onChange={() => A.updateHoliday(h.id, { paid: !h.paid })} />, <Toggle checked={h.working} onChange={() => A.updateHoliday(h.id, { working: !h.working })} />, <IconButton icon="delete" title="Remove" onClick={async () => {
-        A.removeHoliday(h.id);
+    <div className="mgh-body" style={{ color: 'var(--mgh-ink-3)', marginTop: 10 }}>Paid / working are set when the holiday is created; to change them, delete it and add it again (the server has no edit for holidays yet).</div>
+    <Table cols={[['Date'], ['Description'], ['Country'], ['Region'], ['Paid', 'center'], ['Working holiday', 'center'], ['', 'right']]} empty="No holidays configured."
+      rows={H.map(h => [fmt(h), h.desc, h.country || '—', h.region || '—', h.paid ? 'Yes' : 'No', h.working ? 'Yes' : 'No', <IconButton icon="delete" title="Remove" onClick={async () => {
         try {
-          if (window.api) await window.api.deleteHoliday(h.id);
-        } catch (_) {}
+          await window.api.deleteHoliday(h.id);
+        } catch (err) {
+          notify('No se pudo eliminar el feriado • ' + err.message);
+          return;
+        }
+        A.removeHoliday(h.id);
         notify('Holiday removed • ' + h.desc);
       }} />])} />
   </Card>;
@@ -5080,7 +5096,7 @@ function AttReports({ f, notify }) {
   if (rep === 'ot') { cols = [['Employee'], ['Days with OT', 'num'], ['OT hours (daily > ' + A.rules.shift + 'h)', 'num'], ['Hours worked', 'num']]; rows = P.map(p => { const o = p.ex.filter(x => x.type === 'overtime'); return [p.e.name, String(o.length), n1(o.reduce((s, x) => s + parseFloat(x.label.split('• ')[1]), 0)), n1(p.hrs)]; }).filter(r => r[1] !== '0'); }
   if (rep === 'missing') { cols = [['Employee'], ['Date'], ['Missing'], ['Status']]; rows = P.flatMap(p => p.ex.filter(x => /missing/.test(x.type)).map(x => [p.e.name, x.date, x.label, x.status])); }
   if (rep === 'dept') { const G = {}; P.forEach(p => { (G[p.e.dept] = G[p.e.dept] || []).push(p); }); cols = [['Department'], ['Employees', 'num'], ['Attendance %', 'num'], ['Late', 'num'], ['No record', 'num']]; rows = Object.entries(G).map(([d, l]) => [d, String(l.length), n1(l.reduce((s, p) => s + p.pres, 0) / Math.max(1, l.reduce((s, p) => s + p.sched, 0)) * 100) + '%', String(l.reduce((s, p) => s + p.c('Late'), 0)), String(l.reduce((s, p) => s + p.c('No Record'), 0))]); }
-  const sub = (rep === 'daily' ? fmtD(f.d) : rng) + ' • ' + (f.org === 'All' ? 'All organizations' : f.org);
+  const sub = (rep === 'daily' ? fmtD(f.d) : rng) + ' • My Global Hub (Dominicana SRL)';
   const ex = kind => notify(window.__mghExport ? window.__mghExport(kind, REPS[rep], sub, { cols, rows, total }) : 'Export unavailable');
   return <Card padding={20}>
     <FilterChips value={rep} onChange={setRep} options={Object.entries(REPS).map(([k2, l]) => ({ value: k2, label: l }))} />
