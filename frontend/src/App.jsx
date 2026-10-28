@@ -3,8 +3,8 @@ import { DS } from './design-system';
 import { KitScreen } from './kit/kit.jsx';
 import MyTimeView from './kit/MyTimeView.jsx';
 import { api } from './lib/api';
-import { getCurrentPeriod, getQuincenaForDate, getPeriodsForYear } from './lib/periodService';
-import { DAY, MON, U, add, f, fy, ANCHOR, TODAY, LOCKED, STATUSES, SHORT, TONE, KIT, NAV, STAGES, STAGE_INFO, RULES, RTONE, ADJ, ATONE, PAYCALC, fmtC, money, ISSUES, CATS, CAT_PH, OLDNOTES, DOW, MYDAYS, OLDDAYS, tm, hm, h1 } from './lib/payroll';
+import { getCurrentPeriod, getQuincenaForDate, getPeriodsForYear, localDateStr } from './lib/periodService';
+import { DAY, MON, U, add, f, fy, LOCKED, STATUSES, SHORT, TONE, KIT, NAV, STAGE_INFO, RULES, RTONE, ADJ, ATONE, PAYCALC, fmtC, money, CATS, CAT_PH, DOW, tm, hm, h1 } from './lib/payroll';
 
 /**
  * My Global Hub Timekeeping — main app shell.
@@ -15,10 +15,10 @@ export default class App extends React.Component {
   state={
     route: (typeof window !== 'undefined' && window.MGH_RBAC ? window.MGH_RBAC.homeRoute() : 'periods'),
     empId:null,toast:'',dialog:null,ov:{},periodFilter:'all',pq:'',offset:6,autoGen:true,adjFilter:'all',adj:[],stage:1,ruleOn:[1,1,1,1,1],notifOn:[1,1,1,1,1,1],
-    myPeriodKey:'09',myWeek:'1',myDays:[],wl:{cat:'Jira Issue',issue:'',title:'',hours:'',desc:'',date:(window.MGH_ATT&&window.MGH_ATT.TODAY)||new Date().toISOString().slice(0,10),project:'',type:'Regular',file:''},wlEdit:null,myTab:null,
+    myPeriodKey:'09',myWeek:'1',myDays:[],wl:{cat:'Jira Issue',issue:'',title:'',hours:'',desc:'',date:(window.MGH_ATT&&window.MGH_ATT.TODAY)||localDateStr(),project:'',type:'Regular',file:''},wlEdit:null,myTab:null,
     worklogs:[],
-    ne:{first:'',last:'',email:'',phone:'',nid:'',dob:'',entity:'MGH Dominicana SRL',dept:'Engineering',title:'',mgr:'',etype:'Full-time',start:new Date().toISOString().slice(0,10),loc:'',freq:'Bi-Weekly',rate:'',cur:'USD',ot:true,tax:'DGII ISR + TSS (Dominican Republic)',bank:'Banco BHD León',acct:'',route:'',alloc:'100',bank2:'',jira:'',projects:'',flow:'Employee → Supervisor → PM → HR → Finance',pmethod:'Bank Deposit',cbEmail:'',cbId:'',cbNetwork:'Base',cbAsset:'USDC',cbWallet:'',cbAlloc:'20',cbW8:false,cbKyc:false,cbCountry:'Colombia',cStart:new Date().toISOString().slice(0,10),cEnd:'',cTax:'W-8BEN (non-US individual)',cInvoice:true,plang:'Español',wuName:'',wuDelivery:'Cash Pickup',wuCountry:'Mexico',wuCity:'',wuCur:'Local currency',wuIdType:'National ID',wuIdNum:'',wuBankName:'',wuAcct:'',wuPhone:''},
-    pf:{transfer:'bhd',ref:'',date:'2025-04-20'},pfFile:null,drag:false,proofs:(()=>{try{return JSON.parse(localStorage.getItem('mgh-proofs')||'[]')}catch(e){return []}})(),
+    ne:{first:'',last:'',email:'',phone:'',nid:'',dob:'',entity:'MGH Dominicana SRL',dept:'Engineering',title:'',mgr:'',etype:'Full-time',start:localDateStr(),loc:'',freq:'Semi-Monthly',rate:'',cur:'USD',ot:true,tax:'DGII ISR + TSS (Dominican Republic)',bank:'',acct:'',route:'',alloc:'100',bank2:'',jira:'',projects:'',pmethod:'Bank Deposit',cbEmail:'',cbId:'',cbNetwork:'Base',cbAsset:'USDC',cbWallet:'',cbAlloc:'20',cbW8:false,cbKyc:false,cbCountry:'',cStart:localDateStr(),cEnd:'',cTax:'',cInvoice:true,plang:'Español',wuName:'',wuDelivery:'Cash Pickup',wuCountry:'',wuCity:'',wuCur:'Local currency',wuIdType:'National ID',wuIdNum:'',wuBankName:'',wuAcct:'',wuPhone:''},
+    pf:{transfer:'',ref:'',date:localDateStr()},pfFile:null,stubPay:null,drag:false,proofs:(()=>{try{return JSON.parse(localStorage.getItem('mgh-proofs')||'[]')}catch(e){return []}})(),
     orgMenu: false,
     langMenu: false,
     notifOpen: false,
@@ -40,7 +40,7 @@ export default class App extends React.Component {
       amt: '',
       tax: 'DGII Taxable ISR',
       taxTone: 'info',
-      target: 'Banco BHD León',
+      target: '',
       status: 'Pending Approval'
     },
     apiOnline: null,
@@ -80,7 +80,8 @@ export default class App extends React.Component {
     window.addEventListener('mgh-att-leave', this._attLeave);
     this._attPunch = ev => {
       const d = ev.detail;
-      if (!d || d.emp !== 'MGH-1042') return;
+      const myEmp = this.state.currentUser && (this.state.currentUser.employeeId || this.state.currentUser.employee_id);
+      if (!d || !myEmp || d.emp !== myEmp) return;
       this.setState(s => ({
         myDays: s.myDays.map(e => e.d.toISOString().slice(0, 10) === d.date ? { ...e, in: d.punches.in ?? e.in, lo: d.punches.lo ?? e.lo, li: d.punches.li ?? e.li, out: d.punches.out ?? e.out } : e)
       }));
@@ -133,7 +134,7 @@ export default class App extends React.Component {
       this.setState({ currentUser: null, authChecking: false });
     }
   }
-  // Load persisted data from the SQLite backend. If the API is down the app keeps working on the built-in demo data.
+  // Load persisted data from the backend. If the API is down the screens show empty states (there is no demo data).
   async loadFromApi(){
     if (this.mustChangePassword()) return; // the server refuses data until the temporary password is replaced
     try{
@@ -195,7 +196,7 @@ export default class App extends React.Component {
             status: e.status || 'Active',
             avatar: avatar || null,
             bank: e.bank || '',
-            tax: e.tax || (e.type === 'Contractor / Exempt' ? 'Exempt — not subject to tax deductions' : /USA/.test(e.entity) ? 'W-4 (US Federal)' : /UK/.test(e.entity) ? 'PAYE (HMRC)' : 'DGII (ISR + TSS)'),
+            tax: e.tax || (e.type === 'Contractor / Exempt' ? 'Exempt — not subject to tax deductions' : 'DGII (ISR + TSS)'),
             joined: e.start || e.start_date || '',
             // Stored fields shown on the profile (acct / nid are masked by the backend)
             email: e.email || '', nid: e.nid || '', acct: e.acct || '', freq: e.freq || '', pmethod: e.pmethod || '',
@@ -244,8 +245,13 @@ export default class App extends React.Component {
       });
     }
     catch(e){
-      this.setState({apiOnline:false});
-      console.warn('[api] Backend not reachable - using local demo data.',e.message);
+      // No fallback data: clear what was loaded so no screen shows stale or sample records
+      window.EMPLOYEES = [];
+      if (window.__MGH_DATA) { window.__MGH_DATA.EMPLOYEES = window.EMPLOYEES; window.__MGH_DATA.ALL_EMP = []; }
+      this.setState({apiOnline:false,adj:[],worklogs:[],proofs:[],periodsDb:[],sheetsDb:[],runsDb:[]});
+      window.dispatchEvent(new Event('mgh-wf'));
+      console.warn('[api] Backend not reachable - showing empty states.',e.message);
+      this.flash('No se pudo conectar con el servidor • '+(e.message||'error'));
     }
   }
 
@@ -807,7 +813,6 @@ export default class App extends React.Component {
       otCustom:c.ot.rule==='custom',otDaily:String(c.ot.daily),otWeekly:String(c.ot.weekly),otLabel:WF.otLabel(),
       setOtDaily:v=>{const n=parseFloat(typeof v==='string'?v:v.target.value);if(n>0&&n<=24)WF.setOT({daily:n})},setOtWeekly:v=>{const n=parseFloat(typeof v==='string'?v:v.target.value);if(n>0&&n<=80)WF.setOT({weekly:n})}};
   }
-  setDay(i,k,v){this.setState(s=>{const d=[...s.myDays];d[i]={...d[i],[k]:v};return {myDays:d}});const WF=window.MGH_WF;if(WF&&this.state.myPeriodKey==='09')WF.logEdit('MGH-1042','PP-2025-09','Day '+(i+1)+' '+({in:'clock in',lo:'lunch out',li:'lunch in',out:'clock out',type:'day type',note:'note'}[k]||k))}
   setNE(k,v){this.setState(s=>({ne:{...s.ne,[k]:v}}))}
   go=(r,id)=>{
     const MT={myentry:'entry',mysheets:'sheets',myhistory:'history'},alias=r;
@@ -835,7 +840,7 @@ export default class App extends React.Component {
     const s = row ? utc(row.start) : new Date(Date.UTC(year, m, startDay));
     const e = row ? utc(row.end) : new Date(Date.UTC(year, m, endDay));
     const pay = row && row.payDate ? utc(row.payDate) : add(e, 5);
-    const todayStr = (window.MGH_ATT && window.MGH_ATT.TODAY) || new Date().toISOString().slice(0, 10);
+    const todayStr = (window.MGH_ATT && window.MGH_ATT.TODAY) || localDateStr();
     const sStr = s.toISOString().slice(0, 10);
     // Never "Closed" by the calendar: a period stays Open until its payroll is paid and someone locks it
     let st = row ? row.status : todayStr >= sStr ? 'Open' : 'Draft';
@@ -884,38 +889,41 @@ export default class App extends React.Component {
     const emOk=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(n.cbEmail);
     const wOk=n.cbNetwork==='Solana'?/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(n.cbWallet):/^0x[a-fA-F0-9]{40}$/.test(n.cbWallet);
     const cbOk=!useCb||(emOk&&wOk&&n.cbKyc&&n.cbW8&&(n.pmethod==='Coinbase Only'||(cbA>0&&cbA<100)));
-    const personal=!!(n.first&&n.last&&emailOk&&n.nid),employ=!!(n.title&&n.start),pay=Number(n.rate)>0,bank=(!useBank||!!(n.acct&&n.route&&allocOk))&&cbOk,jira=!!n.jira;
+    const personal=!!(n.first&&n.last&&emailOk&&n.nid),employ=!!(n.title&&n.start),pay=Number(n.rate)>0,bank=(!useBank||!!(n.bank&&n.acct&&n.route&&allocOk))&&cbOk,jira=!!n.jira;
     const pc=PAYCALC(n.rate,n.freq,n.tax,n.cur);const fullName=(n.first||n.last)?(n.first+' '+n.last).trim():'New Employee';
-    const sd=n.start?new Date(n.start+'T00:00:00Z'):null;let firstP='—';if(sd&&!isNaN(sd)){const k=Math.floor((sd-ANCHOR)/(14*DAY))+1;const st=add(ANCHOR,14*(k-1));firstP='PP-2025-'+String(k).padStart(2,'0')+' ('+f(st)+' – '+f(add(st,13))+')'}
+    const sd=/^\d{4}-\d{2}-\d{2}$/.test(n.start||'')?new Date(n.start+'T00:00:00'):null;let firstP='—';if(sd&&!isNaN(sd)){const q=getQuincenaForDate(sd);firstP=q.code+' ('+q.rangeShort+')'}
+    // Approval route comes from the live workflow configuration (Approval Workflows), not a typed list
+    const WFa=window.MGH_WF,flowText=['Empleado',...(WFa?WFa.steps().map(x=>x.label):[]),'Pagado'].join(' → ');
+    const SEL={value:'',label:'Seleccione…'},sup=n.mgr||'—';
     const st=b=>b?'done':'pending';const cur=[personal,employ,pay,bank,jira].indexOf(false);
-    const missing=[];if(!personal)missing.push('personal info');if(!employ)missing.push('job title & start date');if(!pay)missing.push('hourly rate');if(useBank&&!(n.acct&&n.route&&allocOk))missing.push('bank details');if(!cbOk)missing.push('Coinbase payout details');
+    const missing=[];if(!personal)missing.push('personal info');if(!employ)missing.push('job title & start date');if(!pay)missing.push('hourly rate');if(useBank&&!(n.bank&&n.acct&&n.route&&allocOk))missing.push('bank details');if(!cbOk)missing.push('Coinbase payout details');
     return {
       isAddEmp:this.state.route==='addEmployee',addCrumbs:['Workforce','Employee Directory','Add Employee'],
-      addActions:this.btns([['ghost','close','Cancel',()=>this.go('employees')],['primary','person_add','Create Employee',()=>{const make=async pending=>{try{const r=await api.createEmployee({...n,fullName,pending});const newId=r&&r.id;if(!newId)throw new Error('the server did not return an employee ID');const facts=[['Employee ID',newId],['Job title',n.title||'—'],['Department',n.dept],['Entity',n.entity],['Supervisor',n.mgr],['Type',n.etype],['Start date',n.start||'—'],['First period',firstP],['Rate',n.rate?'$'+Number(n.rate).toFixed(2)+' / hr '+n.cur:'—'],['Payment method',n.pmethod],['Tax profile',n.tax],['Est. gross / period',pay?fmtC(pc.gross,n.cur):'—'],['Est. deductions',pay?(pc.exempt?'Exempt • '+fmtC(0,n.cur):fmtC(pc.ded,n.cur)):'—'],['Est. net / period',pay?fmtC(pc.net,n.cur):'—'],['Approval route',n.flow]];this.setState({dialog:null,created:{id:newId,initialPassword:(r&&r.initialPassword)||'',account:(r&&r.account)||null,by:(this.state.currentUser&&this.state.currentUser.name)||'',name:fullName,title:(n.title||'Job title pending')+' • '+n.dept,email:n.email,pending,facts,useCb,useBank,jira:!!n.jira,when:new Date().toLocaleString('en-US',{month:'short',day:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}});this.go('empCreated');this.flash(fullName+' created as '+newId+' • saved to database');await this.loadFromApi();}catch(err){this.setState({dialog:null});this.flash('Creation blocked: '+err.message);}};
+      addActions:this.btns([['ghost','close','Cancel',()=>this.go('employees')],['primary','person_add','Create Employee',()=>{const make=async pending=>{try{const r=await api.createEmployee({...n,flow:flowText,fullName,pending});const newId=r&&r.id;if(!newId)throw new Error('the server did not return an employee ID');const facts=[['Employee ID',newId],['Job title',n.title||'—'],['Department',n.dept],['Entity',n.entity],['Supervisor',sup],['Type',n.etype],['Start date',n.start||'—'],['First period',firstP],['Rate',n.rate?'$'+Number(n.rate).toFixed(2)+' / hr '+n.cur:'—'],['Payment method',n.pmethod],['Tax profile',n.tax],['Est. gross / period',pay?fmtC(pc.gross,n.cur):'—'],['Est. deductions',pay?(pc.exempt?'Exempt • '+fmtC(0,n.cur):fmtC(pc.ded,n.cur)):'—'],['Est. net / period',pay?fmtC(pc.net,n.cur):'—'],['Approval route',flowText]];this.setState({dialog:null,created:{id:newId,initialPassword:(r&&r.initialPassword)||'',account:(r&&r.account)||null,by:(this.state.currentUser&&this.state.currentUser.name)||'',name:fullName,title:(n.title||'Job title pending')+' • '+n.dept,email:n.email,pending,facts,useCb,useBank,jira:!!n.jira,when:new Date().toLocaleString('en-US',{month:'short',day:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}});this.go('empCreated');this.flash(fullName+' created as '+newId+' • saved to database');await this.loadFromApi();}catch(err){this.setState({dialog:null});this.flash('Creation blocked: '+err.message);}};
           if(missing.length){this.setState({dialog:{title:'Create with missing details?',body:'Still missing: '+missing.join(', ')+'. The record will be created as Pending Onboarding and excluded from payroll until these are completed.',confirm:'Create as Pending',variant:'primary',icon:'person_add',run:()=>make(missing)}});return}make([])}]]),
       addSteps:['Personal','Employment','Payroll','Banking','Jira & Approvals'].map((l,i)=>({label:l,state:i===cur?'current':st([personal,employ,pay,bank,jira][i])})),
       addSections:[
-        {icon:'person',title:'Personal Information',sub:'Legal identity used on pay stubs and statutory filings',fields:[T('first','First name',{ph:'Ana'}),T('last','Last name',{ph:'Martínez'}),T('email','Work email',{ph:'name@myglobalhub.com',err:n.email&&!emailOk?'Enter a valid email':''}),T('password','Initial access password (optional)',{ph:'Leave empty to generate a secure one',hint:'If empty, a random password is generated and shown once after saving'}),T('phone','Phone',{ph:'+1 (809) 555-0142'}),T('nid','Cédula / SSN / NI number',{ph:'001-0000000-0',mono:true}),T('dob','Date of birth',{type:'date'})]},
-        {icon:'work',title:'Employment',sub:'Entity, reporting line and contract',fields:[L('entity','Operating entity',['MGH Dominicana SRL']),L('dept','Department',['Engineering','Product','Infrastructure','Quality','Analytics','Finance','Security','HR & People']),T('title','Job title',{ph:'Backend Engineer'}),L('mgr','Supervisor',['',...(window.EMPLOYEES||[]).map(e=>e.name).filter(Boolean)]),L('etype','Employment type',['Full-time','Part-time','Contractor / Exempt']),T('start','Start date',{type:'date',hint:'First period: '+firstP}),T('loc','Work location',{ph:'Santo Domingo, DR'})]},
-        {icon:'payments',title:'Payroll & Compensation',sub:'Bi-weekly by default • 80h standard period',fields:[L('freq','Pay frequency',['Bi-Weekly','Weekly','Semi-Monthly','Monthly']),T('rate','Hourly rate',{ph:'50.00',prefix:'$',suffix:'/ hr'}),L('cur','Pay currency',['USD','DOP','GBP']),L('tax','Tax profile',['DGII ISR + TSS (Dominican Republic)','US Federal W-4 + State','UK PAYE + NI','Exempt (no tax deductions)']),G('ot','Overtime eligible','1.5× after 44h / week')]},
-        ...(n.etype==='Contractor / Exempt'?[{icon:'handshake',title:'Contract Details',sub:'Contractors appear on the Contractors page and stay out of payroll tax reports',fields:[T('cStart','Contract start',{type:'date'}),T('cEnd','Contract end',{type:'date'}),L('cTax','Tax form',['W-8BEN (non-US individual)','W-8BEN-E (non-US entity)','W-9 (US person)','Local invoice + RNC (DR)']),G('cInvoice','Invoice required per period','Contractor uploads an invoice before payout')]}]:[]),
+        {icon:'person',title:'Personal Information',sub:'Legal identity used on pay stubs and statutory filings',fields:[T('first','First name',{ph:'Ana'}),T('last','Last name',{ph:'Martínez'}),T('email','Work email',{ph:'nombre@myglobalhub.net',err:n.email&&!emailOk?'Enter a valid email':''}),T('password','Initial access password (optional)',{ph:'Leave empty to generate a secure one',hint:'If empty, a random password is generated and shown once after saving'}),T('phone','Phone',{ph:'+1 (809) 555-0142'}),T('nid','Cédula / SSN / NI number',{ph:'001-0000000-0',mono:true}),T('dob','Date of birth',{type:'date'})]},
+        {icon:'work',title:'Employment',sub:'Entity, reporting line and contract',fields:[L('entity','Operating entity',['MGH Dominicana SRL']),L('dept','Department',['Engineering','Product','Infrastructure','Quality','Analytics','Finance','Security','HR & People']),T('title','Job title',{ph:'Backend Engineer'}),L('mgr','Supervisor',[{value:'',label:'—'},...(window.EMPLOYEES||[]).map(e=>e.name).filter(Boolean)]),L('etype','Employment type',['Full-time','Part-time','Contractor / Exempt']),T('start','Start date',{type:'date',hint:'First period: '+firstP}),T('loc','Work location',{ph:'Santo Domingo, DR'})]},
+        {icon:'payments',title:'Payroll & Compensation',sub:'Quincenal • 24 períodos al año (1–15 y 16–fin de mes)',fields:[L('freq','Pay frequency',[{value:'Semi-Monthly',label:'Quincenal (1–15 / 16–fin de mes)'}]),T('rate','Hourly rate',{ph:'0.00',prefix:'$',suffix:'/ hr'}),L('cur','Pay currency',['USD','DOP']),L('tax','Tax profile',['DGII ISR + TSS (Dominican Republic)','Exempt (no tax deductions)']),G('ot','Overtime eligible','1.5× after 44h / week')]},
+        ...(n.etype==='Contractor / Exempt'?[{icon:'handshake',title:'Contract Details',sub:'Contractors appear on the Contractors page and stay out of payroll tax reports',fields:[T('cStart','Contract start',{type:'date'}),T('cEnd','Contract end',{type:'date'}),L('cTax','Tax form',[SEL,'W-8BEN (non-US individual)','W-8BEN-E (non-US entity)','Local invoice + RNC (DR)']),G('cInvoice','Invoice required per period','Contractor uploads an invoice before payout')]}]:[]),
         {icon:'payments',title:'Payment Method',sub:'International employees can be paid in USDC through Coinbase Business',fields:[Object.assign(L('pmethod','How is this employee paid?',['Bank Deposit','Coinbase Only','Split: Bank + Coinbase']),{set:v=>{const m=typeof v==='string'?v:v.target.value;this.setState(s=>({ne:{...s.ne,pmethod:m,...(m==='Split: Bank + Coinbase'?{cbAlloc:'20',alloc:'80',bank2:''}:m==='Bank Deposit'?{alloc:'100'}:{})}}))}})]},
-        ...(useBank?[{icon:'account_balance',title:'Bank Accounts',sub:'Split deposits across banks • bank share '+bankTarget+'% of net pay',fields:[L('bank','Primary bank',['Banco BHD León','Banco Popular','Banreservas','Chase Bank USA','Wells Fargo','Barclays']),T('acct','Account number / IBAN',{ph:'DO28 BHDL 0000 0000 0000 0000',mono:true}),T('route','Routing / SWIFT',{ph:'BHDLDOSD',mono:true}),T('alloc','Primary allocation',{suffix:'%',err:allocOk||(useCb&&!(cbA>0&&cbA<100))?'':(n.bank2?'Primary must be under '+bankTarget+'% when a secondary bank is set':'Must be '+bankTarget+'% of net pay')}),T('bank2','Secondary bank (optional)',{ph:'Chase Bank USA',hint:n.bank2?'Receives '+Math.max(0,bankTarget-alloc)+'%':''})]}]:[]),
+        ...(useBank?[{icon:'account_balance',title:'Bank Accounts',sub:'Split deposits across banks • bank share '+bankTarget+'% of net pay',fields:[L('bank','Primary bank',[SEL,'Banco BHD León','Banco Popular','Banreservas']),T('acct','Account number / IBAN',{ph:'DO28 BHDL 0000 0000 0000 0000',mono:true}),T('route','Routing / SWIFT',{ph:'BHDLDOSD',mono:true}),T('alloc','Primary allocation',{suffix:'%',err:allocOk||(useCb&&!(cbA>0&&cbA<100))?'':(n.bank2?'Primary must be under '+bankTarget+'% when a secondary bank is set':'Must be '+bankTarget+'% of net pay')}),T('bank2','Secondary bank (optional)',{ph:'Banco Popular',hint:n.bank2?'Receives '+Math.max(0,bankTarget-alloc)+'%':''})]}]:[]),
         ...(useCb?[{icon:'currency_bitcoin',title:'Coinbase Payout (International)',sub:'Paid through Coinbase Business on pay date • USD net pay sent 1:1 as USDC',fields:[
           T('cbEmail','Coinbase account email',{ph:'name@email.com',err:n.cbEmail&&!emOk?'Enter a valid email':''}),
           T('cbId','Coinbase user / account ID (optional)',{ph:'cb_8f2a…',mono:true}),
-          L('cbCountry','Country of residence',['Colombia','Mexico','Brazil','Argentina','Philippines','India','Nigeria','Spain','Portugal','Other']),
+          L('cbCountry','Country of residence',[SEL,'Colombia','Mexico','Brazil','Argentina','Philippines','India','Nigeria','Spain','Portugal','Other']),
           L('cbAsset','Payout asset',['USDC','BTC','ETH']),
           L('cbNetwork','Network',['Base','Ethereum','Polygon','Solana']),
           T('cbWallet','Wallet address',{ph:n.cbNetwork==='Solana'?'Base58 address (32–44 chars)':'0x… (40 hex characters)',mono:true,err:n.cbWallet&&!wOk?'Not a valid '+n.cbNetwork+' address':'',hint:'Must belong to the Coinbase account above'}),
           ...(n.pmethod==='Coinbase Only'?[]:[T('cbAlloc','Coinbase share of net pay',{suffix:'%',err:cbA>0&&cbA<100?'':'Use 1–99% for a split'})]),
           G('cbKyc','Coinbase identity verified (KYC)','Required before the first payout'),
           G('cbW8','W-8BEN / tax form on file','Non-US contractors • no US withholding')]}]:[]),
-        {icon:'sync_alt',title:'Jira & Approvals',sub:'Worklog binding and approval routing',fields:[L('project','Assigned Project',['MSHP — Project Planning','Atlas Core Platform','Perf Infrastructure','Global Hub v3','Insights Lake','Core Billing Services','Internal Ops']),T('jira','Atlassian account email',{ph:'name@globalhub.atlassian.net'}),T('projects','Projects',{ph:(this.state.projectNames||[]).join(', ')||'No projects yet',mono:true,hint:'Comma-separated. The employee becomes a member of these projects and can see their tasks. Available: '+((this.state.projectNames||[]).join(', ')||'none — create them in Projects first')}),L('flow','Approval route',['Employee → Supervisor → PM → HR → Finance','Employee → Supervisor → HR → Finance'])]}],
+        {icon:'sync_alt',title:'Jira & Approvals',sub:'Worklog binding and approval routing',fields:[T('jira','Atlassian account email',{ph:'nombre@myglobalhub.net'}),T('projects','Projects',{ph:(this.state.projectNames||[]).join(', ')||'No projects yet',mono:true,hint:'Comma-separated. The employee becomes a member of these projects and can see their tasks. Available: '+((this.state.projectNames||[]).join(', ')||'none — create them in Projects first')}),Object.assign(L('flow','Approval route',[flowText]),{value:flowText,set:()=>{}})]}],
       newEmp:{fullName,titleLine:(n.title||'Job title')+' • '+n.dept,
-        facts:[['Employee ID','Assigned on save'],['Entity',n.entity],['Supervisor',n.mgr],['Type',n.etype],['Rate',n.rate?'$'+Number(n.rate).toFixed(2)+' / hr '+n.cur:'—'],['First period',firstP.split(' ')[0]],['Payout split',[useBank?(n.bank2?n.bank+' '+alloc+'% • '+n.bank2+' '+(bankTarget-alloc)+'%':n.bank+' '+bankTarget+'%'):'',useCb?'Coinbase '+n.cbAsset+' ('+n.cbNetwork+') '+cbA+'%':''].filter(Boolean).join(' • ')],...(useCb&&n.cbWallet?[['Wallet',n.cbWallet.slice(0,6)+'…'+n.cbWallet.slice(-4)]]:[])].map(x=>({k:x[0],v:x[1]})),
-        payEst:{show:pay,exempt:pc.exempt,hoursLabel:n.freq+' • '+pc.hours+'h',gross:fmtC(pc.gross,n.cur),net:fmtC(pc.net,n.cur),lines:pc.lines.map(l=>({k:l[0],v:l[1]==='Exempt'?'Exempt':'−'+fmtC(l[2],n.cur)})),note:pc.exempt?'Tax-exempt profile • no statutory withholding applied':'Estimate based on '+n.tax},
-        checks:[[personal,'Personal & identity complete'],[employ,'Employment details complete'],[pay,'Hourly rate set'],...(useBank?[[allocOk&&!!n.acct,'Bank allocation totals '+bankTarget+'%']]:[]),...(useCb?[[wOk,'Coinbase wallet address valid'],[n.cbKyc&&n.cbW8,'KYC verified & tax form on file']]:[]),[(useBank?(n.bank2?bankTarget:alloc):0)+cbA===100&&(!useBank||!useCb||(cbA>0&&cbA<100)),'Payout allocations total 100%'],[jira,'Jira account bound (optional)']].map(c=>({t:c[1],icon:c[0]?'check_circle':'radio_button_unchecked',color:c[0]?'var(--mgh-success)':'var(--mgh-ink-4)'}))}};
+        facts:[['Employee ID','Assigned on save'],['Entity',n.entity],['Supervisor',sup],['Type',n.etype],['Rate',n.rate?'$'+Number(n.rate).toFixed(2)+' / hr '+n.cur:'—'],['First period',firstP.split(' ')[0]],['Payout split',[useBank?(n.bank2?(n.bank||'Banco sin seleccionar')+' '+alloc+'% • '+n.bank2+' '+(bankTarget-alloc)+'%':(n.bank||'Banco sin seleccionar')+' '+bankTarget+'%'):'',useCb?'Coinbase '+n.cbAsset+' ('+n.cbNetwork+') '+cbA+'%':''].filter(Boolean).join(' • ')],...(useCb&&n.cbWallet?[['Wallet',n.cbWallet.slice(0,6)+'…'+n.cbWallet.slice(-4)]]:[])].map(x=>({k:x[0],v:x[1]})),
+        payEst:{show:pay,exempt:pc.exempt,hoursLabel:'Quincenal • '+pc.hours+'h (semana de 44h)',gross:fmtC(pc.gross,n.cur),net:fmtC(pc.net,n.cur),lines:pc.lines.map(l=>({k:l[0],v:l[1]==='Exempt'?'Exempt':'−'+fmtC(l[2],n.cur)})),note:pc.exempt?'Tax-exempt profile • no statutory withholding applied':'Estimate based on '+n.tax+(n.cur==='DOP'?'':' • ISR only estimated for DOP rates')},
+        checks:[[personal,'Personal & identity complete'],[employ,'Employment details complete'],[pay,'Hourly rate set'],...(useBank?[[allocOk&&!!n.bank&&!!n.acct,'Bank allocation totals '+bankTarget+'%']]:[]),...(useCb?[[wOk,'Coinbase wallet address valid'],[n.cbKyc&&n.cbW8,'KYC verified & tax form on file']]:[]),[(useBank?(n.bank2?bankTarget:alloc):0)+cbA===100&&(!useBank||!useCb||(cbA>0&&cbA<100)),'Payout allocations total 100%'],[jira,'Jira account bound (optional)']].map(c=>({t:c[1],icon:c[0]?'check_circle':'radio_button_unchecked',color:c[0]?'var(--mgh-success)':'var(--mgh-ink-4)'}))}};
   }
   createdVals(){
     const c=this.state.created;if(!c)return {isCreated:false};
@@ -932,7 +940,7 @@ export default class App extends React.Component {
     return {isCreated:true,created:c,createdPending:pend,createdPendingText:'Complete '+c.pending.join(', ')+' to include this employee in payroll.',
       createdBadge:this.el('Badge',{tone:pend?'warning':'success',dot:true},pend?'Pending Onboarding':'Active • Ready for Payroll'),
       createdCrumbs:['Workforce','Employee Directory',c.id],
-      createdActions:this.btns([['secondary','person_add','Add Another Employee',()=>this.go('addEmployee')],['secondary','badge','View Directory',()=>this.go('employees')],['primary','account_circle','Open Profile',()=>this.go('profile',(this.state.created&&this.state.created.id)||'MGH-1163')]]),
+      createdActions:this.btns([['secondary','person_add','Add Another Employee',()=>this.go('addEmployee')],['secondary','badge','View Directory',()=>this.go('employees')],['primary','account_circle','Open Profile',()=>this.go('profile',c.id)]]),
       createdFixBtn:this.el('Button',{size:'sm',variant:'secondary',icon:'edit',onClick:()=>this.go('addEmployee')},'Complete Details'),
       createdFacts:c.facts.map(x=>({k:x[0],v:x[1]})),createdSteps:steps,
       createdDone:steps.filter(x=>x.tone==='success').length+' of '+steps.length+' complete'};
@@ -1019,8 +1027,8 @@ export default class App extends React.Component {
     const lockedCount=real.filter(p=>LOCKED.includes(p.status)).length;
     const daysTo=Math.max(0, Math.round((cur.pay-new Date())/DAY));
     const WFc=window.MGH_WF,wfSteps=WFc?WFc.steps():[];
-    const STAGES_ARR=['employee',...wfSteps.map(x=>x.key),'paid'].map(k=>{const x=STAGE_INFO[k]||STAGE_INFO.manager,stp=wfSteps.find(y=>y.key===k);const r=stp?stp.role:k==='employee'?'Employee':'Payroll';return {...x,kv:[['Role',r],['Person',WFc?WFc.person(r):r]],owner:r+' • '+(WFc?WFc.person(r):r)}});
-    const stg=STAGES_ARR[Math.min(s.stage,STAGES_ARR.length-1)]||STAGES[0];
+    const STAGES_ARR=['employee',...wfSteps.map(x=>x.key),'paid'].map(k=>{const x=STAGE_INFO[k]||STAGE_INFO.pm,stp=wfSteps.find(y=>y.key===k);const r=stp?stp.role:k==='employee'?'Employee':'Payroll';return {...x,kv:[['Role',r],['Person',WFc?WFc.person(r):r]],owner:r+' • '+(WFc?WFc.person(r):r)}});
+    const stg=STAGES_ARR[Math.min(s.stage,STAGES_ARR.length-1)]||STAGES_ARR[0];
     const stages=STAGES_ARR.map((x,i)=>{const on=i===s.stage,dark=x.final;return {no:'Stage '+String(i+1).padStart(2,'0')+(x.final?' Final':''),title:x.title,icon:x.icon,desc:x.desc,kv:x.kv.map(a=>({k:a[0],v:a[1]})),tag:x.tag,pick:()=>this.setState({stage:i}),no:'Step '+String(i+1).padStart(2,'0')+(x.final?' • Final':''),
       bg:dark?'var(--mgh-navy)':on?'var(--mgh-primary-50)':'var(--mgh-surface-1)',fg:dark?'#FAF8FF':'var(--mgh-ink)',shadow:on?'inset 0 0 0 2px var(--mgh-primary), var(--shadow-md)':'none',
       chipBg:dark?'var(--mgh-success-300)':'var(--mgh-navy)',chipFg:dark?'var(--mgh-navy)':'#fff',iconColor:dark?'var(--mgh-success-300)':'var(--mgh-primary)',boxBg:dark?'rgba(255,255,255,.08)':'#fff',
@@ -1035,13 +1043,11 @@ export default class App extends React.Component {
         const R = window.MGH_RBAC;
         const userOrg = (cu && cu.entity) || (R ? R.org : 'My Global Hub Dominicana SRL');
         const o = (R && R.orgSettings) ? R.orgSettings(userOrg) : null;
-        const isDR = /dominicana/i.test(userOrg);
-        const isUS = /usa/i.test(userOrg);
-        const isUK = /uk/i.test(userOrg);
-        const countryName = isDR ? 'República Dominicana' : isUS ? 'Estados Unidos' : isUK ? 'Reino Unido' : (o && o.country ? o.country : 'República Dominicana');
-        const currency = (o && o.currency) || (isDR ? 'DOP' : 'USD');
+        // Single company: My Global Hub (Dominicana SRL)
+        const countryName = 'República Dominicana';
+        const currency = (o && o.currency) || 'DOP';
         const tz = (o && o.timezone) || 'America/Santo_Domingo';
-        const rawRole = (cu && cu.role) || (R ? R.role : 'Admin');
+        const rawRole = (cu && cu.role) || (R && R.role) || '';
         const rolesList = (cu && cu.roles && Array.isArray(cu.roles))
           ? cu.roles
           : String(rawRole).split(',').map(r => r.trim()).filter(Boolean);
@@ -1064,7 +1070,7 @@ export default class App extends React.Component {
           label: 'Región de Operación',
           name: userOrg,
           sub: `${countryName} • ${currency} • ${tz}`,
-          tag: formattedRoles || 'ADMINISTRADOR'
+          tag: formattedRoles || '—'
         };
       })(),
       nav:this.navFor(),
@@ -1077,7 +1083,7 @@ export default class App extends React.Component {
         const m = window.MGH_RBAC ? window.MGH_RBAC.me() : null;
         const cu = this.state.currentUser;
         if (cu) {
-          const rawRole = cu.role || 'Admin';
+          const rawRole = cu.role || '';
           const rolesList = (cu.roles && Array.isArray(cu.roles))
             ? cu.roles
             : String(rawRole).split(',').map(r => r.trim()).filter(Boolean);
@@ -1095,16 +1101,15 @@ export default class App extends React.Component {
             'contractor': 'Contratista'
           };
           const formattedRoles = rolesList.map(r => roleDisplayMap[r.toLowerCase()] || r.toUpperCase()).join(' • ');
-          const isDR = /dominicana/i.test(cu.entity || '');
-          const regionShort = isDR ? 'República Dominicana' : (cu.entity || 'República Dominicana');
+          const regionShort = 'República Dominicana';
 
           return {
             name: cu.name,
-            role: `${formattedRoles} • ${regionShort}`,
+            role: `${formattedRoles || '—'} • ${regionShort}`,
             avatar: cu.avatar || (m ? m.avatar : null) || null
           };
         }
-        return m ? { name: m.person, role: m.role + ' • ' + (m.org || 'MGH'), avatar: m.avatar } : { name: '—', role: '' };
+        return m ? { name: m.person, role: (m.role || '—') + ' • ' + (m.org || 'MGH Dominicana SRL'), avatar: m.avatar } : { name: '—', role: '' };
       })(),
       meName:window.MGH_RBAC?window.MGH_RBAC.me().person:'',
       meAvatar:window.MGH_RBAC?(window.MGH_RBAC.me().avatar||''):'',
@@ -1267,7 +1272,7 @@ export default class App extends React.Component {
           {label:'Employees covered',value:String(n),icon:'groups',tone:'success',footer:'Active roster in this organization'},
           {label:'Overtime rule',value:W&&W.otLabel?W.otLabel():'—',icon:'more_time',tone:'warning',footer:'Applied when splitting regular / OT hours'}];
       })(),
-      stages,stageDetail:[{k:'Owner',v:stg.owner},{k:'Deadline / SLA',v:stg.sla},{k:'Rule',v:stg.rule},{k:'Notification',v:stg.notify}],
+      stages,stageDetail:[{k:'Owner',v:stg.owner},{k:'Rule',v:stg.rule},{k:'Notification',v:stg.notify}],
       rules:RULES.map((r,i)=>({...r,iconBg:RTONE[r.tone][0],iconColor:RTONE[r.tone][1],on:!!s.ruleOn[i],toggle:()=>this.setState(st=>{const a=[...st.ruleOn];a[i]=a[i]?0:1;return {ruleOn:a}})})),
       statusMap:STATUSES.map((n,i)=>({name:n,tone:TONE(n),edit:['Payroll admin (dates)','Employee','Employee','Supervisor (return)','PM (return)','HR (return)','Frozen','Frozen','Locked','Locked','Adjustments only','Permanent'][i]})),
       ...this.myVals(),...this.addVals(),...this.createdVals(),...this.proofVals(),
@@ -1731,7 +1736,7 @@ export default class App extends React.Component {
           {v.isAddEmp ? (
             <>
               <div style={{ padding: "28px", display: "flex", flexDirection: "column", gap: "20px", maxWidth: "1600px" }}>
-                <DS.PageHeader breadcrumbs={v.addCrumbs} title="Add Employee" description="Create the employee record, payroll profile, bank allocations and Jira binding. The employee joins the next open bi-weekly period automatically." actions={v.addActions} />
+                <DS.PageHeader breadcrumbs={v.addCrumbs} title="Add Employee" description="Create the employee record, payroll profile, bank allocations and project memberships. The employee joins the quincena of their start date." actions={v.addActions} />
                 <DS.Card>
                   <DS.Stepper steps={v.addSteps} />
                 </DS.Card>

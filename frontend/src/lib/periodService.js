@@ -16,6 +16,15 @@ export const MONTHS_SHORT_ES = [
 ];
 
 /**
+ * YYYY-MM-DD of a date in the browser's LOCAL time zone (toISOString() would give the UTC day,
+ * which is already "tomorrow" in Santo Domingo after 20:00).
+ */
+export function localDateStr(d = new Date()) {
+  const x = new Date(d);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+}
+
+/**
  * Returns the exact quincenal pay period for any date.
  * If day <= 15: 1 al 15 del mes.
  * If day > 15: 16 al fin de mes (e.g. 16 al 31 de octubre).
@@ -62,18 +71,20 @@ export function getQuincenaForDate(dateInput = new Date()) {
 
   // Dynamic phase / status relative to today
   const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = localDateStr(today);
   const isCurrent = todayStr >= startDate && todayStr <= endDate;
 
-  let status = 'Open';
-  let phase = 'Fase de Registro y Aprobación';
+  // Calendar-only status: Open once started, Draft before. The stored period row (backend) is the real
+  // status; past periods are never moved to an approval status by the calendar.
+  let status;
+  let phase;
 
   if (isCurrent) {
     status = 'Open';
     phase = 'Periodo Actual • En Curso';
   } else if (todayStr > endDate) {
-    status = 'Awaiting Supervisor Approval';
-    phase = 'Fase de Aprobación';
+    status = 'Open';
+    phase = 'Periodo Anterior';
   } else {
     status = 'Draft';
     phase = 'Periodo Futuro • Programado';
