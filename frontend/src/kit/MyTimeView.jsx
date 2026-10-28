@@ -825,6 +825,12 @@ function MyTimeEntry({ user, empId, notify, go }) {
                                         {act.description}
                                       </span>
                                     )}
+                                    {act.loggedBy && (
+                                      <span style={{ font: '600 11px/15px var(--font-sans)', color: 'var(--mgh-accent, #0094CC)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>groups</span>
+                                        Registrada por {act.loggedByName || act.loggedBy}
+                                      </span>
+                                    )}
                                     {act.reviewStatus && (
                                       <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', font: '500 11px/15px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>
                                         <Badge size="sm" tone={act.reviewStatus === 'approved' ? 'success' : act.reviewStatus === 'partial' ? 'warning' : 'danger'}>
