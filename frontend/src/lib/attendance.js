@@ -6,7 +6,10 @@
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   const WF = () => window.MGH_WF;
-  const TODAY = '2025-04-15', NOW_MIN = 9 * 60 + 15;
+  // Real local date/time (was frozen at 2025-04-15 09:15 for the prototype)
+  const _now = new Date();
+  const TODAY = _now.getFullYear() + '-' + String(_now.getMonth() + 1).padStart(2, '0') + '-' + String(_now.getDate()).padStart(2, '0');
+  const nowMin = () => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); };
   const tm = s => { if (!s || !/^\d{1,2}:\d{2}$/.test(s)) return null; const [h, m] = s.split(':').map(Number); return h * 60 + m; };
   const hm = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(Math.round(m % 60)).padStart(2, '0');
   const iso = d => d.toISOString().slice(0, 10);
@@ -17,19 +20,8 @@
 
   const DEFAULT_RULES = { start: '08:30', shift: 8, grace: 10, maxLate: 30, minLunch: 30, maxHours: 12, autoLunch: true, flexible: false };
   const ORGS = ['MGH Dominicana SRL', 'MGH USA Inc.', 'MGH UK Ltd.'];
-  const SEED_HOL = [
-    ['MGH Dominicana SRL', 'Dominican Republic', 'National', '2025-01-01', "New Year's Day", true, false], ['MGH Dominicana SRL', 'Dominican Republic', 'National', '2025-01-06', 'Epiphany', true, false],
-    ['MGH Dominicana SRL', 'Dominican Republic', 'National', '2025-01-21', 'Our Lady of Altagracia', true, false], ['MGH Dominicana SRL', 'Dominican Republic', 'National', '2025-01-27', 'Duarte Day (observed)', true, false],
-    ['MGH Dominicana SRL', 'Dominican Republic', 'National', '2025-02-27', 'Independence Day', true, false], ['MGH Dominicana SRL', 'Dominican Republic', 'National', '2025-04-18', 'Good Friday', true, false],
-    ['MGH Dominicana SRL', 'Dominican Republic', 'National', '2025-05-05', 'Labor Day (observed)', true, false], ['MGH Dominicana SRL', 'Dominican Republic', 'National', '2025-06-19', 'Corpus Christi', true, false],
-    ['MGH Dominicana SRL', 'Dominican Republic', 'National', '2025-08-16', 'Restoration Day', true, false], ['MGH Dominicana SRL', 'Dominican Republic', 'National', '2025-09-24', 'Our Lady of Mercedes', true, false],
-    ['MGH Dominicana SRL', 'Dominican Republic', 'National', '2025-11-10', 'Constitution Day (observed)', true, false], ['MGH Dominicana SRL', 'Dominican Republic', 'National', '2025-12-25', 'Christmas Day', true, false],
-    ['MGH USA Inc.', 'United States', 'Federal', '2025-01-01', "New Year's Day", true, false], ['MGH USA Inc.', 'United States', 'Federal', '2025-05-26', 'Memorial Day', true, false],
-    ['MGH USA Inc.', 'United States', 'Federal', '2025-07-04', 'Independence Day', true, false], ['MGH USA Inc.', 'United States', 'Federal', '2025-09-01', 'Labor Day', true, false],
-    ['MGH USA Inc.', 'United States', 'Federal', '2025-11-27', 'Thanksgiving', true, false], ['MGH USA Inc.', 'United States', 'Federal', '2025-12-25', 'Christmas Day', true, false],
-    ['MGH UK Ltd.', 'United Kingdom', 'England', '2025-04-18', 'Good Friday', true, false], ['MGH UK Ltd.', 'United Kingdom', 'England', '2025-04-21', 'Easter Monday', true, false],
-    ['MGH UK Ltd.', 'United Kingdom', 'England', '2025-05-05', 'Early May bank holiday', true, false], ['MGH UK Ltd.', 'United Kingdom', 'England', '2025-12-25', 'Christmas Day', true, false],
-  ].map((h, i) => ({ id: 'H' + (i + 1), org: h[0], country: h[1], region: h[2], date: h[3], desc: h[4], paid: h[5], working: h[6] }));
+  // Holidays and leave come from the backend (App bootstrap → setHolidays / setLeave); no seeded calendar.
+  const SEED_HOL = [];
   const LEAVE_TYPES = ['Vacation', 'Sick', 'Personal', 'Bereavement', 'Jury Duty', 'Maternity', 'Paternity', 'Unpaid'];
   const SEED_LEAVE = [];
 
@@ -51,16 +43,19 @@
     return { in: '', lo: '', li: '', out: '', mode: 'office' };
   }
   const holidayOn = (e, d) => hol.find(h => h.date === d && h.org === (e.entity || ORGS[0]));
+  // First day the employee can have attendance (start date as YYYY-MM-DD); unknown → no lower bound
+  const startOf = e => { const s = String(e.start || e.joined || ''); return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : null; };
   const leaveOn = (emp, d) => leave.find(l => l.emp === emp && l.status === 'Approved' && d >= l.from && d <= l.to);
 
   function day(e, d) {
     const rules = rulesFor(e.entity);
-    const wk = dow(d), weekend = wk === 0 || wk === 6, future = d > TODAY, today = d === TODAY;
+    const st0 = startOf(e), notStarted = !!(st0 && d < st0);
+    const wk = dow(d), weekend = wk === 0 || wk === 6 || notStarted, future = d > TODAY, today = d === TODAY;
     const h = holidayOn(e, d), lv = leaveOn(e.id, d), key = e.id + '|' + d;
     const base = weekend || future ? { in: '', lo: '', li: '', out: '', mode: 'office' } : genPunch(e, d);
     const p = { ...base, ...(ovr[key] || {}) };
     const a = tm(p.in), b = tm(p.out), lo = tm(p.lo), li = tm(p.li);
-    const end = b != null ? b : today && a != null ? NOW_MIN : null;
+    const end = b != null ? b : today && a != null ? nowMin() : null;
     let lunch = lo != null && li != null && li > lo ? li - lo : 0, autoLunch = false;
     const gross = a != null && end != null ? Math.max(0, end - a) : 0;
     if (!lunch && rules.autoLunch && gross > 6 * 60 && b != null) { lunch = rules.minLunch; autoLunch = true; }
@@ -82,11 +77,13 @@
     const exceptions = ex.map(([type, label, sev]) => { const id = key + '|' + type, st = exState[id] || {}; return { id, emp: e.id, name: e.name, dept: e.dept, sup: e.mgr, date: d, type, label, sev, status: st.status || 'Open', comments: st.comments || [], history: st.history || [] }; });
     const openMissing = exceptions.some(x => (x.type === 'missing_in' || x.type === 'missing_out' || x.type === 'overlap' || x.type === 'duplicate') && !['Approved', 'Corrected', 'Closed'].includes(x.status));
     let status;
-    if (weekend) status = 'Weekend';
+    if (notStarted) status = 'Not Started';
+    else if (weekend) status = 'Weekend';
     else if (future) status = lv ? (lv.type === 'Sick' ? 'Sick' : 'Vacation') : h && !h.working ? 'Holiday' : 'Scheduled';
     else if (lv) status = lv.type === 'Sick' ? 'Sick' : 'Vacation';
     else if (h && !h.working) status = 'Holiday';
-    else if (a == null && b == null) status = 'Absent';
+    // No punch is "no data", not an absence: time may be logged by activities (#actDaily) instead of the clock
+    else if (a == null && b == null) status = 'No Record';
     else if (openMissing) status = 'Pending Review';
     else if (p.mode === 'remote') status = 'Remote';
     else if (p.mode === 'training') status = 'Training';
@@ -101,13 +98,17 @@
     Present: ['rgba(113,219,166,.25)', '#006C47'], Late: ['#FFF1D6', '#8A5A00'], Absent: ['#FFDAD6', '#BA1A1A'], Holiday: ['#E2E4EA', '#43474D'],
     Vacation: ['#DCEBFF', '#1F5FAD'], Sick: ['#D8F1F8', '#00739F'], Remote: ['#EFE5FF', '#5B2EA6'], Training: ['#E3F4EE', '#2C6E5A'],
     'Business Trip': ['#E5E8FF', '#334296'], 'Pending Review': ['#FFE4D1', '#A3460A'], Weekend: ['transparent', '#A0A3AA'], Scheduled: ['transparent', '#A0A3AA'],
+    'No Record': ['#F1F3F8', '#74777F'], 'Not Started': ['transparent', '#C4C6CF'],
   };
   const LEAVE_TONE = { 'Pending Supervisor': 'warning', 'Pending HR': 'warning', Approved: 'success', Rejected: 'danger', Cancelled: 'neutral' };
 
   const API = {
     TODAY, ORGS, LEAVE_TYPES, STATUS_COLOR, LEAVE_TONE,
-    STATUSES: ['Present', 'Late', 'Absent', 'Holiday', 'Vacation', 'Sick', 'Remote', 'Training', 'Business Trip', 'Pending Review'],
+    STATUSES: ['Present', 'Late', 'No Record', 'Holiday', 'Vacation', 'Sick', 'Remote', 'Training', 'Business Trip', 'Pending Review'],
     setRoster(list) { roster = list; if (!load(LS.alerted, false)) { save(LS.alerted, true); API.alertToday(); } },
+    // Backend data (from /bootstrap) replaces whatever the browser had cached
+    setHolidays(list) { if (Array.isArray(list)) { hol = list; save(LS.hol, hol); fire(); } },
+    setLeave(list) { if (Array.isArray(list)) { leave = list; save(LS.leave, leave); fire(); } },
     get roster() { return roster; },
     get rules() { return { ...rules }; },
     rulesFor, hasOverride(org) { return !!rulesMap[org]; },
@@ -119,13 +120,14 @@
     daily(d, filter) { return roster.filter(e => !filter || filter(e)).map(e => day(e, d)); },
     month(y, m) { const first = y + '-' + String(m).padStart(2, '0') + '-01'; const days = []; for (let d = first; d.slice(5, 7) === String(m).padStart(2, '0'); d = addD(d, 1)) days.push(d); return days; },
     summary(d, filter) {
-      const L = API.daily(d, filter).filter(x => !x.weekend); const c = s => L.filter(x => x.status === s).length;
+      const L = API.daily(d, filter).filter(x => !x.weekend && !x.future); const c = s => L.filter(x => x.status === s).length;
       const exAll = L.flatMap(x => x.exceptions);
       const scheduled = L.filter(x => !['Holiday', 'Vacation', 'Sick'].includes(x.status)).length;
       const present = L.filter(x => ['Present', 'Late', 'Remote', 'Training', 'Business Trip', 'Pending Review'].includes(x.status)).length;
-      return { total: L.length, present, absent: c('Absent'), late: c('Late') + exAll.filter(x => x.type === 'late' && L.find(y => y.emp === x.emp).status !== 'Late').length, early: exAll.filter(x => x.type === 'early').length,
+      return { total: L.length, present, absent: c('Absent'), noRecord: c('No Record'), late: c('Late') + exAll.filter(x => x.type === 'late' && L.find(y => y.emp === x.emp).status !== 'Late').length, early: exAll.filter(x => x.type === 'early').length,
         missingOut: exAll.filter(x => x.type === 'missing_out').length, missingIn: exAll.filter(x => x.type === 'missing_in').length, onLeave: c('Vacation') + c('Sick'), remote: c('Remote'), field: c('Training') + c('Business Trip'),
-        pct: scheduled ? Math.round(present / scheduled * 1000) / 10 : 100, holiday: c('Holiday') };
+        // null = nothing recorded that day, so attendance % can't be measured (was a default of 100%)
+        pct: scheduled && scheduled > c('No Record') ? Math.round(present / scheduled * 1000) / 10 : null, holiday: c('Holiday') };
     },
     exceptions(from, to) { const out = []; API.range(from, to).forEach(d => roster.forEach(e => out.push(...day(e, d).exceptions))); return out; },
     canManage(x) { return can('attendance.exceptions.manage', x && x.emp); },

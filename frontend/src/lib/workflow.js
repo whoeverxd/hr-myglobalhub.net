@@ -8,26 +8,26 @@
 
   const ROLES = {
     Employee: { person: 'Empleado', id: '' },
-    Supervisor: { person: 'Joshua Hernandez', id: 'MGH-1042' },
-    Manager: { person: 'Joshua Hernandez', id: 'MGH-1042' },
-    PM: { person: 'Joshua Hernandez', id: 'MGH-1042' },
-    Owner: { person: 'Edwin Montalvo', id: 'MGH-1001' },
-    'Org Admin': { person: 'Edwin Montalvo', id: 'MGH-1001' },
-    'Platform Admin': { person: 'Edwin Montalvo', id: 'MGH-1001' },
-    Payroll: { person: 'Edwin Montalvo', id: 'MGH-1001' },
-    Admin: { person: 'Edwin Montalvo', id: 'MGH-1001' },
+    Supervisor: { person: 'PM / Supervisor', id: '' },
+    Manager: { person: 'PM / Supervisor', id: '' },
+    PM: { person: 'PM / Supervisor', id: '' },
+    Owner: { person: 'Owner / Admin', id: '' },
+    'Org Admin': { person: 'Owner / Admin', id: '' },
+    'Platform Admin': { person: 'Owner / Admin', id: '' },
+    Payroll: { person: 'Owner / Admin', id: '' },
+    Admin: { person: 'Owner / Admin', id: '' },
   };
   const CATALOG = {
-    pm: { key: 'pm', label: 'Supervisión PM (Joshua)', role: 'Manager', review: 'Supervisión PM' },
-    owner: { key: 'owner', label: 'Aprobación Dueño & Pago (Edwin)', role: 'Platform Admin', review: 'Aprobación Dueño' },
-    supervisor: { key: 'supervisor', label: 'Supervisión PM (Joshua)', role: 'Manager', review: 'Supervisión PM' },
-    manager: { key: 'manager', label: 'Aprobación Dueño & Pago (Edwin)', role: 'Platform Admin', review: 'Aprobación Dueño' },
-    payroll: { key: 'payroll', label: 'Aprobación Dueño & Pago (Edwin)', role: 'Platform Admin', review: 'Aprobación Dueño' },
+    pm: { key: 'pm', label: 'Supervisión PM', role: 'Manager', review: 'Supervisión PM' },
+    owner: { key: 'owner', label: 'Aprobación Dueño & Pago', role: 'Platform Admin', review: 'Aprobación Dueño' },
+    supervisor: { key: 'supervisor', label: 'Supervisión PM', role: 'Manager', review: 'Supervisión PM' },
+    manager: { key: 'manager', label: 'Aprobación Dueño & Pago', role: 'Platform Admin', review: 'Aprobación Dueño' },
+    payroll: { key: 'payroll', label: 'Aprobación Dueño & Pago', role: 'Platform Admin', review: 'Aprobación Dueño' },
   };
   const DEFAULT_CFG = {
     steps: [
-      { key: 'pm', label: 'Supervisión PM (Joshua)', role: 'Manager', enabled: true },
-      { key: 'owner', label: 'Aprobación Dueño & Pago (Edwin)', role: 'Platform Admin', enabled: true },
+      { key: 'pm', label: 'Supervisión PM', role: 'Manager', enabled: true },
+      { key: 'owner', label: 'Aprobación Dueño & Pago', role: 'Platform Admin', enabled: true },
     ],
     ot: { rule: 'weekly', weekly: 44, daily: 8 },
   };
@@ -49,6 +49,7 @@
       cfgMap[k] = JSON.parse(JSON.stringify(DEFAULT_CFG));
     }
     if (!cfgMap[k].ot) cfgMap[k].ot = { ...DEFAULT_CFG.ot };
+    cfgMap[k].steps.forEach(s => { if (s.label) s.label = s.label.replace(/\s*\((Joshua|Edwin)\)/, ''); });
     return cfgMap[k];
   };
   let sheets = load(LS.ts, {});
@@ -66,18 +67,9 @@
   const routeOf = rec => (rec && rec.route && rec.route.length ? rec.route : steps());
   function reviewOf(step) { return (CATALOG[step.key] || {}).review || step.label + ' Review'; }
 
-  function seedHistory(rec, upto) {
-    if (upto < 0) return [];
-    const t0 = new Date('2025-04-14T17:30:00');
-    const h = [{ at: t0.toISOString(), actor: rec.name, role: 'Employee', from: 'Draft', to: 'Submitted', comment: 'Jornada sometida para supervisión del PM (Joshua Hernandez)' }];
-    const st = steps();
-    if (upto > 0) {
-      h.push({ at: new Date(t0.getTime() + 3600e3).toISOString(), actor: 'Joshua Hernandez', role: 'PM / Supervisor', from: 'Supervisión PM', to: 'Aprobación Dueño', comment: 'Revisión técnica de actividades y jornada validada' });
-    }
-    if (upto > 1) {
-      h.push({ at: new Date(t0.getTime() + 7200e3).toISOString(), actor: 'Edwin Montalvo', role: 'Dueño / Manager', from: 'Aprobación Dueño', to: 'Approved', comment: 'Aprobación ejecutiva institucional y autorización de nómina' });
-    }
-    return h;
+  // A record created from a backend status starts with no invented history; real events are appended as they happen
+  function seedHistory() {
+    return [];
   }
 
   const API = {
@@ -181,7 +173,7 @@
       const rec = sheets[key(emp, period)]; if (!rec) return { ok: false, msg: 'No timesheet' };
       if (!API.editable(rec)) return { ok: false, msg: 'Already submitted' };
       if (!RB() || !RB().can('timesheets.submit', emp)) return { ok: false, msg: 'Only the employee can submit' };
-      API.transition(rec, 'Submitted', 'Jornada sometida para supervisión del PM (Joshua Hernandez)');
+      API.transition(rec, 'Submitted', 'Jornada sometida para supervisión del PM');
       const st = steps(); rec.route = st.map(s => ({ ...s })); rec.stepIdx = 0;
       if (st[0]) API.transition(rec, reviewOf(st[0]), '', { actor: 'System', role: 'System' }); else API.transition(rec, 'Approved', '', { actor: 'System', role: 'System' });
       API.notify(['Employee'], 'Timesheet submitted.', rec); if (st[0]) API.notify([st[0].role], 'Timesheet awaiting your review.', rec);
@@ -209,7 +201,7 @@
     },
     markPaid(rec) {
       if (!API.canPay(rec)) return { ok: false, msg: API.whyNot(rec) };
-      API.transition(rec, 'Paid', 'Dispersión bancaria ejecutada por Dueño (Edwin Montalvo)'); API.notify(['Employee', 'Payroll'], 'Payment completed.', rec); persist(); fire(); return { ok: true, rec };
+      API.transition(rec, 'Paid', 'Marcado como pagado'); API.notify(['Employee', 'Payroll'], 'Payment completed.', rec); persist(); fire(); return { ok: true, rec };
     },
     /* Timeline for display: Draft, Submitted, each enabled step, Approved, Paid */
     timeline(rec) {

@@ -17,7 +17,8 @@ export default function MyTimeView({ user, empId, notify, go }) {
   // Active employee ID & role
   const rbac = typeof window !== 'undefined' ? window.MGH_RBAC : null;
   const isSelf = rbac && (rbac.role === 'Employee' || rbac.role === 'Contractor');
-  const myEmpId = (user && (user.employee_id || user.employeeId)) || (rbac && rbac.me() ? rbac.me().emp : null) || 'MGH-1042';
+  // No fallback to another employee: an unlinked account must not read or write someone else's activities
+  const myEmpId = (user && (user.employee_id || user.employeeId)) || (rbac && rbac.me() ? rbac.me().emp : null) || null;
   const activeEmpId = isSelf ? myEmpId : (empId || myEmpId);
   const employeeName = (user && user.name) || (rbac && rbac.me() ? rbac.me().person : 'User');
   const employeeRole = (user && user.role) ? String(user.role).toUpperCase() : (rbac && rbac.role ? rbac.role.toUpperCase() : 'EMPLOYEE');
@@ -57,6 +58,7 @@ export default function MyTimeView({ user, empId, notify, go }) {
 
   // Load activities for the period from SQLite backend API
   const loadPeriodActivities = useCallback(async () => {
+    if (!activeEmpId) { setActivities([]); return; }
     setLoading(true);
     try {
       if (window.api && window.api.activities) {
@@ -187,8 +189,12 @@ export default function MyTimeView({ user, empId, notify, go }) {
   // Save new task
   const handleSaveTask = async (e) => {
     if (e) e.preventDefault();
-    const finalKey = jiraKey === 'CUSTOM' ? (customTicket.trim() || 'GENERAL') : (jiraKey || customTicket.trim() || 'MSH-215');
+    const finalKey = jiraKey === 'CUSTOM' ? (customTicket.trim() || 'GENERAL') : (jiraKey || customTicket.trim() || 'GENERAL');
     const parsedHours = parseFloat(hours);
+    if (!activeEmpId) {
+      if (notify) notify('Tu usuario no tiene un empleado asociado; no se puede registrar la tarea');
+      return;
+    }
 
     if (isNaN(parsedHours) || parsedHours <= 0) {
       if (notify) notify('Ingrese una cantidad válida de horas (> 0)');
@@ -284,7 +290,7 @@ export default function MyTimeView({ user, empId, notify, go }) {
             </div>
 
             <p style={{ font: '400 13px/18px var(--font-sans)', color: 'var(--mgh-ink-2)', margin: 0 }}>
-              Visualización y registro de tareas correspondientes a la quincena. Conectado en tiempo real a SQLite.
+              Visualización y registro de tareas correspondientes a la quincena.
             </p>
           </div>
 
@@ -838,7 +844,7 @@ export default function MyTimeView({ user, empId, notify, go }) {
           </span>
 
           <span style={{ font: '700 11px/14px var(--font-mono)', color: 'var(--mgh-ink-3)' }}>
-            Base de datos: SQLite • daily_activities • multi-tenancy MGH Dominicana
+            Registro por actividades • daily_activities
           </span>
         </div>
       </Card>

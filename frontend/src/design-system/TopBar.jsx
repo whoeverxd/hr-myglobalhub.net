@@ -198,14 +198,14 @@ export default function TopBar({
   const rbacOrg = (typeof window !== 'undefined' && window.MGH_RBAC && window.MGH_RBAC.orgSettings) ? window.MGH_RBAC.orgSettings() : null;
 
   const resolvedName = userName || (currentUser && currentUser.name) || (rbacMe && rbacMe.person) || 'Usuario';
-  const resolvedEmail = userEmail || (currentUser && currentUser.email) || (rbacMe && rbacMe.email) || 'admin@myglobalhub.net';
+  const resolvedEmail = userEmail || (currentUser && currentUser.email) || (rbacMe && rbacMe.email) || '';
   const resolvedRole = userRole || (currentUser && currentUser.role ? currentUser.role.toUpperCase() : '') || (rbacMe && rbacMe.title) || (typeof window !== 'undefined' && window.MGH_RBAC ? window.MGH_RBAC.role : 'Colaborador');
   const resolvedEntity = userEntity || (currentUser && currentUser.entity) || (rbacOrg && rbacOrg.short) || 'MGH Dominicana SRL';
   let resolvedAvatar = avatar || (currentUser && currentUser.avatar) || (rbacMe && rbacMe.avatar) || null;
   if (resolvedAvatar && typeof resolvedAvatar === 'string' && (resolvedAvatar.includes('assets/avatars/person-') || resolvedAvatar.includes('carlos-mendez'))) {
     resolvedAvatar = null;
   }
-  const resolvedEmpId = empId || (currentUser && currentUser.id) || (rbacMe && rbacMe.emp) || 'MGH-1042';
+  const resolvedEmpId = empId || (rbacMe && rbacMe.emp) || (currentUser && (currentUser.employeeId || currentUser.employee_id)) || null;
 
   const handleNav = (targetRoute, param) => {
     setMenuOpen(false);

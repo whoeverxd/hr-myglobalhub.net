@@ -673,9 +673,17 @@ router.post('/leave', authenticate, (req, res, next) => {
 router.patch(
   '/leave/:id/review',
   authenticate,
-  requireRole('supervisor', 'pm', 'hr', 'finance', 'admin'),
   (req, res, next) => {
     try {
+      // Reviewers approve/reject; an employee may only cancel their own request
+      const reviewer = req.user && ['supervisor', 'pm', 'hr', 'finance', 'admin'].includes(req.user.role);
+      if (!reviewer) {
+        const own = db.getOne('SELECT employee_id FROM leave_requests WHERE id = ?', [req.params.id]);
+        const myEmpId = req.user && (req.user.employeeId || req.user.id);
+        if (!(req.body && req.body.action === 'cancel' && own && own.employee_id === myEmpId)) {
+          return res.status(403).json({ error: 'Forbidden: only reviewers can approve or reject; employees can cancel their own requests' });
+        }
+      }
       const updated = leaveController.reviewLeaveRequest(
         req.params.id,
         req.body || {},

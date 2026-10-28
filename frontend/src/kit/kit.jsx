@@ -54,8 +54,8 @@ const NAV = [
 // Dynamic period days breakdown derived directly from #attDaily punches & backend reconciliation
 function buildDays(emp, period, reconcil) {
   if (!emp) return [];
-  const startStr = (period && (period.start || period.startDate)) || '2025-04-01';
-  const endStr = (period && (period.end || period.endDate)) || '2025-04-14';
+  const startStr = (period && (period.start || period.startDate)) || getCurrentPeriod().startDate;
+  const endStr = (period && (period.end || period.endDate)) || getCurrentPeriod().endDate;
 
   if (reconcil && reconcil.reconciliation && Array.isArray(reconcil.reconciliation.days) && reconcil.reconciliation.days.length > 0) {
     return reconcil.reconciliation.days.map((d, i) => {
@@ -195,6 +195,7 @@ const matchTxt = e => hasMatch(e) ? e.match + '%' : '—';
 function WFPill({ status, size }) { const c = WF ? WF.statusColor(status) : ['#EAEDFF', '#43474D']; return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: size === 'sm' ? '2px 8px' : '3px 10px', borderRadius: 9999, font: (size === 'sm' ? '700 11px/16px' : '700 12px/16px') + ' var(--font-sans)', background: c[0], color: c[1], whiteSpace: 'nowrap' }}>{status}</span>; }
 function useWF() { const [, f] = React.useState(0); React.useEffect(() => { const h = () => f(x => x + 1); window.addEventListener('mgh-wf', h); return () => window.removeEventListener('mgh-wf', h); }, []); }
 const fmtAt = iso => { const t = new Date(iso); return isNaN(t) ? iso : t.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); };
+window.__mghPrevPeriods = (cur, n) => { const out = []; let c = cur; for (let i = 0; i < n; i++) { const d = new Date(c.startDate + 'T12:00:00'); d.setDate(d.getDate() - 1); c = getQuincenaForDate(d); out.push({ code: c.code, label: c.code + ' (' + c.rangeShort + ', ' + c.year + ')', phase: 'Histórico', start: c.startDate, end: c.endDate, startDate: c.startDate, endDate: c.endDate, daysRemaining: 0 }); } return out; };
 window.__MGH_DATA = { ALL_EMP, EMPLOYEES, DEDUCT, STATUS_TONE, NAV, buildDays, fmt$, fmtH, useTable, AVATARS: A, WF, WFPill, useWF, recOf, liveStatus, fmtAt, PERIOD, hasMatch, lowMatch, matchTxt };
 Object.assign(window, window.__MGH_DATA);
 
@@ -281,8 +282,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
   const activeQuincena = typeof getCurrentPeriod === 'function' ? getCurrentPeriod() : { code: 'PP-2026-20', label: '15 al 31 de Octubre 2026', rangeShort: '15 Oct – 31 Oct', startDate: '2026-10-15', endDate: '2026-10-31', phase: 'Periodo Actual • En Curso', daysRemaining: 8 };
   const availablePeriods = React.useMemo(() => [
     { code: activeQuincena.code, label: `${activeQuincena.code} (${activeQuincena.rangeShort || activeQuincena.range || '15 Oct – 31 Oct, 2026'})`, phase: activeQuincena.phase || 'Periodo Actual • En Curso', start: activeQuincena.startDate, end: activeQuincena.endDate, startDate: activeQuincena.startDate, endDate: activeQuincena.endDate, daysRemaining: activeQuincena.daysRemaining },
-    { code: 'PP-2025-09', label: 'PP-2025-09 (15 Abr – 28 Abr, 2025)', phase: 'Histórico', start: '2025-04-15', end: '2025-04-28', startDate: '2025-04-15', endDate: '2025-04-28', daysRemaining: 0 },
-    { code: 'PP-2025-08', label: 'PP-2025-08 (01 Abr – 14 Abr, 2025)', phase: 'Histórico', start: '2025-04-01', end: '2025-04-14', startDate: '2025-04-01', endDate: '2025-04-14', daysRemaining: 0 },
+    ...window.__mghPrevPeriods(activeQuincena, 2),
   ], [activeQuincena.code]);
   const [periodCode, setPeriodCode] = React.useState(activeQuincena.code);
   const curPeriod = availablePeriods.find(p => p.code === periodCode) || activeQuincena;
@@ -374,9 +374,11 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
       const pto = ts ? Number(ts.pto) : 0.0;
       const total = ts ? Number(ts.total) : (reg + ot + pto);
       const status = ts ? ts.status : (emp.status || 'Draft');
-      const rate = Number(emp.rate) || 50;
+      const rate = Number(emp.rate) || 0;
       const gross = +(reg * rate + ot * rate * 1.5 + pto * rate).toFixed(2);
-      const match = ts && total > 0 && empActivities.length > 0 && emp.id === empId ? (reconcil?.reconciliation?.matchPercentage || 100) : 100;
+      // Only the backend reconciliation (activities vs punches) gives a match %; otherwise it is not measured
+      const mp = reconcil && reconcil.reconciliation && reconcil.reconciliation.matchPercentage;
+      const match = ts && total > 0 && empActivities.length > 0 && emp.id === empId && typeof mp === 'number' ? mp : null;
 
       return {
         ...emp,
@@ -398,7 +400,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
 
   const [cur, setCur] = React.useState(() => {
     if (empId && list.some(x => x.id === empId)) return empId;
-    return list[0] ? list[0].id : 'MGH-1042';
+    return list[0] ? list[0].id : null;
   });
 
   const e = list.find(x => x.id === cur) || list[0];
@@ -455,14 +457,14 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
       if (window.api) {
         await window.api.ensureTimesheet(e.id, periodCode, e.name);
         await window.api.approveTimesheet(`TS-${periodCode}-${e.id}`, {
-          comment: rec.stepIdx === 1 ? `Aprobación ejecutiva final y autorización de nómina por Dueño (Edwin Montalvo)` : `Supervisión técnica y validación de horas de jornada por PM (Joshua Hernandez)`,
+          comment: rec.stepIdx === 1 ? 'Aprobación ejecutiva final y autorización de nómina' + (((MGH_RBAC.me() || {}).person || '') ? ' • ' + ((MGH_RBAC.me() || {}).person || '') : '') : 'Supervisión técnica y validación de horas de jornada' + (((MGH_RBAC.me() || {}).person || '') ? ' • ' + ((MGH_RBAC.me() || {}).person || '') : ''),
           role: WF.role
         });
       }
     } catch (err) {
       console.warn('[ApprovalWorkspace] API sync fallback:', err.message);
     }
-    notify(`${e.name} aprobado • ${r.next ? 'Enviado a autorización del Dueño (Edwin Montalvo)' : 'Listo para pago y dispersión bancaria'}`);
+    notify(`${e.name} aprobado • ${r.next ? 'Enviado a aprobación del Dueño' : 'Listo para pago y dispersión bancaria'}`);
     setStatus(e.id, r.next ? 'Aprobación Dueño' : 'Approved');
     if (adv) next();
   };
@@ -482,7 +484,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
     for (const f of all) {
       if (f && f.name && !seen.has(f.name)) {
         seen.add(f.name);
-        const sizeStr = f.size || (f.name.endsWith('.pdf') ? '218 KB' : f.name.endsWith('.csv') ? '46 KB' : '1.2 MB');
+        const sizeStr = f.size || '—';
         const ic = f.name.endsWith('.pdf') ? 'picture_as_pdf' : f.name.endsWith('.csv') ? 'table_view' : 'description';
         unique.push([f.name, sizeStr, ic, f.url || '#']);
       }
@@ -494,7 +496,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
   const isUnderReview = s => ['Submitted', 'Supervisión PM', 'Aprobación Dueño', 'In Review', 'Under Review', 'Ready'].includes(s);
   const pendingCount = list.filter(x => isUnderReview(x.status)).length;
   const approvedCount = list.filter(x => x.status === 'Approved' || x.status === 'Paid').length;
-  const onTrackPct = list.length > 0 ? Math.round((approvedCount / list.length) * 100) : 100;
+  const onTrackPct = list.length > 0 ? Math.round((approvedCount / list.length) * 100) : 0;
 
   const totalHoursUnderReview = list.filter(x => isUnderReview(x.status)).reduce((s, x) => s + (Number(x.total) || 0), 0);
   const totalRegUnderReview = list.filter(x => isUnderReview(x.status)).reduce((s, x) => s + (Number(x.reg) || 0), 0);
@@ -520,14 +522,6 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
     }));
 
   const commentsList = [...extraComments, ...historyComments];
-  if (!commentsList.length) {
-    commentsList.push({
-      person: 'Sistema de Aprobación',
-      title: 'Registro de Auditoría • Sistema',
-      time: 'Automatizado',
-      body: '"Horas calculadas a partir de registros de jornada (#attDaily). Validación de tickets y horas extras disponible para revisión técnica."'
-    });
-  }
 
   const postComment = async () => {
     if (!comment.trim()) return;
@@ -568,7 +562,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
             <Icon name="cloud_sync" size={18} color="var(--mgh-accent)" />
             <div>
               <div className="mgh-label" style={{ color: 'var(--mgh-ink-2)' }}>Sincronización de Jornada</div>
-              <div style={{ font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-ink)' }}>Activo • Conectado al Backend</div>
+              <div style={{ font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-ink)' }}>Hojas de tiempo • {periodCode}</div>
             </div>
           </div>
           <Button variant="secondary" icon="schedule" onClick={() => window.__mghGo('attDaily')}>Registro de Jornada (#attDaily)</Button>
@@ -607,7 +601,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
         unit="Flagged"
         icon="warning"
         tone={discrepanciesCount > 0 ? 'danger' : 'success'}
-        footer={discrepanciesCount === 0 ? <span style={{ color: 'var(--mgh-success)' }}>100% ponches conciliados con tareas</span> : <span style={{ color: 'var(--mgh-danger)' }}>Requiere revisión de supervisor</span>}
+        footer={discrepanciesCount === 0 ? <span style={{ color: 'var(--mgh-ink-3)' }}>{list.some(hasMatch) ? 'Sin discrepancias detectadas' : 'Sin datos de conciliación'}</span> : <span style={{ color: 'var(--mgh-danger)' }}>Requiere revisión de supervisor</span>}
       />
     </Grid>
 
@@ -619,21 +613,18 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', background: '#fff', borderRadius: 8 }}>
           <Checkbox checked={sel.length === filtered.length && sel.length > 0} indeterminate={sel.length > 0 && sel.length < filtered.length} onChange={() => setSel(sel.length === filtered.length ? [] : filtered.map(x => x.id))} label={`Select All (${filtered.length})`} />
           {MGH_RBAC.can('timesheets.approve') && <Button size="sm" variant="ghost" icon="done_all" disabled={!sel.length} onClick={async () => {
-            let ok = 0;
+            // Count an approval only when the backend accepted it; the local workflow mirrors it afterwards
+            let ok = 0; const failed = [];
             for (const id of sel) {
-              const res = WF.approve(recOf(id), 'Bulk approval');
-              if (res.ok) {
+              const empObj = list.find(x => x.id === id);
+              try {
+                await window.api.ensureTimesheet(id, periodCode, empObj ? empObj.name : id);
+                await window.api.approveTimesheet(`TS-${periodCode}-${id}`, { comment: 'Bulk approval', role: WF.role });
+                WF.approve(recOf(id), 'Bulk approval');
                 ok++;
-                try {
-                  if (window.api) {
-                    const empObj = list.find(x => x.id === id);
-                    await window.api.ensureTimesheet(id, periodCode, empObj ? empObj.name : id);
-                    await window.api.approveTimesheet(`TS-${periodCode}-${id}`, { comment: 'Bulk approval', role: WF.role });
-                  }
-                } catch (_) {}
-              }
+              } catch (err) { failed.push(id + ': ' + err.message); }
             }
-            notify(`${ok} de ${sel.length} aprobados correctamente.`);
+            notify(failed.length ? `${ok} de ${sel.length} aprobados • ${failed.length} fallaron (${failed[0]})` : `${ok} de ${sel.length} aprobados correctamente.`);
             setSel([]);
           }}>Bulk Approve</Button>}
         </div>
@@ -666,15 +657,15 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
         </div>
 
         <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <Card padding={20} title={<span className="mgh-overline">Protocolo de Doble Verificación Quincenal • 1. Supervisión PM (Joshua) → 2. Aprobación Dueño & Pago (Edwin)</span>}>
+          <Card padding={20} title={<span className="mgh-overline">Protocolo de Doble Verificación Quincenal • 1. Supervisión PM → 2. Aprobación Dueño & Pago</span>}>
             <Stepper steps={steps} />
             <div style={{ display: 'flex', gap: 12, marginTop: 14, padding: '10px 14px', borderRadius: 8, background: 'var(--mgh-surface-1)', alignItems: 'center', flexWrap: 'wrap' }}>
               <Badge tone={rec.stepIdx >= 1 || rec.status === 'Approved' ? 'success' : 'warning'} icon={rec.stepIdx >= 1 || rec.status === 'Approved' ? 'verified' : 'pending'}>
-                Paso 1: Supervisión PM (Joshua) ({rec.stepIdx >= 1 || rec.status === 'Approved' ? 'Aprobado • Horas Validadas' : 'Awaiting PM Review'})
+                Paso 1: Supervisión PM ({rec.stepIdx >= 1 || rec.status === 'Approved' ? 'Aprobado • Horas Validadas' : 'Awaiting PM Review'})
               </Badge>
               <Icon name="arrow_forward" size={16} color="var(--mgh-ink-3)" />
               <Badge tone={rec.status === 'Approved' ? 'success' : (rec.stepIdx === 1 ? 'warning' : 'neutral')} icon={rec.status === 'Approved' ? 'paid' : 'schedule'}>
-                Paso 2: Aprobación Dueño & Pago (Edwin) ({rec.status === 'Approved' ? 'Aprobado • Listo para Dispersión' : (rec.stepIdx === 1 ? 'Awaiting Owner Approval' : 'Pendiente de Paso 1')})
+                Paso 2: Aprobación Dueño & Pago ({rec.status === 'Approved' ? 'Aprobado • Listo para Dispersión' : (rec.stepIdx === 1 ? 'Awaiting Owner Approval' : 'Pendiente de Paso 1')})
               </Badge>
               {reconcil && reconcil.reconciliation && (
                 <span style={{ marginLeft: 'auto', font: '600 12px var(--font-sans)', color: reconcil.reconciliation.isCompliant ? 'var(--mgh-success)' : 'var(--mgh-warning)' }}>
@@ -688,7 +679,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
             <MetricTile tone="white" label="Regular (Ponches)" value={fmtH(e.reg)} />
             <MetricTile tone={e.ot ? 'warning' : 'white'} label="Overtime (Ponches)" value={fmtH(e.ot)} />
             <MetricTile tone="white" label="PTO / Leave" value={fmtH(e.pto)} />
-            <MetricTile tone="white" label="Feriados" value="0.0h" />
+            <MetricTile tone="white" label="Feriados" value={fmtH((() => { const A = window.MGH_ATT; if (!A || !e || !curPeriod.startDate) return 0; return A.range(curPeriod.startDate, curPeriod.endDate).filter(d => A.dow(d) % 6 && A.holidays(e.entity).some(h => h.date === d && !h.working)).length * A.rulesFor(e.entity).shift; })())} />
             <MetricTile tone="success" label="Horas Tareas" value={fmtH(jiraTotal)} />
             <MetricTile tone="white" label="Tiempo no facturable" value={fmtH(Math.max(0, clockTotal - jiraTotal))} />
             <MetricTile tone="white" label="Total Quincena" value={fmtH(e.total)} />
@@ -753,7 +744,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
                 </div>
               </Card>
 
-              <Card padding={20} icon="attach_file" title="Archivos y Entregables" actions={<IconButton icon="upload" tone="tinted" title="Upload" onClick={() => notify('Adjuntar evidencia o justificante')} />}>
+              <Card padding={20} icon="attach_file" title="Archivos y Entregables" subtitle="Evidencias adjuntas en el registro por actividades">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {!files.length ? (
                     <div style={{ padding: 14, font: '500 13px var(--font-sans)', color: 'var(--mgh-ink-3)', textAlign: 'center' }}>No hay archivos adjuntos en esta quincena.</div>
@@ -765,7 +756,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
                           <div style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n}</div>
                           <div style={{ font: '400 11px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>{s}</div>
                         </div>
-                        <IconButton icon="download" size={28} title="Descargar" onClick={() => notify(`Descargando ${n}`)} />
+                        <IconButton icon="download" size={28} title="Descargar" disabled={!url} onClick={() => url ? window.open(url, '_blank', 'noopener') : notify('Archivo no disponible')} />
                       </div>
                     ))
                   )}
@@ -798,13 +789,12 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
           <WFPill status={rec.status} />
           {why && <span style={{ font: '500 12px/16px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>{why}</span>}
           <span style={{ flex: 1 }} />
-          <Button variant="outline" size="sm" icon="save" onClick={() => notify('Borrador guardado')}>Guardar Borrador</Button>
-          <Button variant="outline" size="sm" icon="picture_as_pdf" onClick={() => notify('PDF exportado')}>Exportar PDF</Button>
-          {!can && !canPay ? null : canPay ? <Button size="lg" icon="paid" onClick={() => { const r = WF.markPaid(rec); notify(r.ok ? 'Desembolso bancario emitido por Dueño (Edwin Montalvo) • ' + e.name + ' marcado Pagado' : r.msg); }}>Ejecutar Dispersión Bancaria & Marcar Pagado</Button> : <>
+          <Button variant="outline" size="sm" icon="picture_as_pdf" onClick={() => window.print()}>Imprimir / PDF</Button>
+          {!can && !canPay ? null : canPay ? <Button size="lg" icon="paid" onClick={() => { const r = WF.markPaid(rec); notify(r.ok ? e.name + ' marcado como Pagado • la dispersión bancaria se ejecuta desde Payroll Processing' : r.msg); }}>Marcar Pagado</Button> : <>
           <Button variant="outline" icon="block" onClick={() => { setMode('reject'); setRet(true); }}>Rechazar</Button>
           <Button variant="danger" icon="undo" onClick={() => { setMode('return'); setRet(true); }}>Devolver para Correcciones</Button>
           <Button variant="outline" icon="check" disabled={!sign || !can} onClick={() => approve(false)}>Solo Aprobar</Button>
-          <Button size="lg" icon="task_alt" iconRight="arrow_forward" disabled={!sign || !can} onClick={() => approve(true)}>{rec.stepIdx === 0 ? 'Aprobar Actividades y Pasar a Dueño (Edwin)' : 'Aprobación Final de Dueño (Edwin) & Autorizar Nómina'}</Button></>}
+          <Button size="lg" icon="task_alt" iconRight="arrow_forward" disabled={!sign || !can} onClick={() => approve(true)}>{rec.stepIdx === 0 ? 'Aprobar Actividades y Pasar a Dueño' : 'Aprobación Final de Dueño & Autorizar Nómina'}</Button></>}
         </div>
       </div>
     </div>
@@ -836,8 +826,7 @@ function TeamApprovalQueue({ go, notify }) {
   const activeQuincena = typeof getCurrentPeriod === 'function' ? getCurrentPeriod() : { code: 'PP-2026-20', label: '15 al 31 de Octubre 2026', rangeShort: '15 Oct – 31 Oct', startDate: '2026-10-15', endDate: '2026-10-31', phase: 'Periodo Actual • En Curso', daysRemaining: 8 };
   const availablePeriods = React.useMemo(() => [
     { code: activeQuincena.code, label: `${activeQuincena.code} (${activeQuincena.rangeShort || activeQuincena.range || '15 Oct – 31 Oct, 2026'})`, phase: activeQuincena.phase || 'Periodo Actual • En Curso', start: activeQuincena.startDate, end: activeQuincena.endDate, startDate: activeQuincena.startDate, endDate: activeQuincena.endDate, daysRemaining: activeQuincena.daysRemaining },
-    { code: 'PP-2025-09', label: 'PP-2025-09 (15 Abr – 28 Abr, 2025)', phase: 'Histórico', start: '2025-04-15', end: '2025-04-28', startDate: '2025-04-15', endDate: '2025-04-28', daysRemaining: 0 },
-    { code: 'PP-2025-08', label: 'PP-2025-08 (01 Abr – 14 Abr, 2025)', phase: 'Histórico', start: '2025-04-01', end: '2025-04-14', startDate: '2025-04-01', endDate: '2025-04-14', daysRemaining: 0 },
+    ...window.__mghPrevPeriods(activeQuincena, 2),
   ], [activeQuincena.code]);
 
   const [periodCode, setPeriodCode] = React.useState(activeQuincena.code);
@@ -919,14 +908,21 @@ function TeamApprovalQueue({ go, notify }) {
   const filteredBase = rows.filter(r => (chip === 'all' || (chip === 'pending' && isPend(r.status)) || (chip === 'flag' && r.flagged) || (chip === 'done' && (r.status === 'Approved' || r.status === 'Paid'))) && (dept === 'All departments' || r.dept === dept) && (ent === 'All entities' || r.entity === ent));
   const t = useTable(filteredBase, { search: ['name', 'id', 'project', 'role'], pageSize: 8, initialSort: { key: 'name', dir: 'asc' } });
 
-  const bulk = s => {
+  const bulk = async s => {
     if (s !== 'Approved') { notify('Returning requires a reason • open each timesheet to return it'); return; }
-    let ok = 0;
-    t.sel.forEach(id => {
+    // Backend first; only count what the server approved
+    let ok = 0; const failed = [];
+    for (const id of t.sel) {
       const r = rows.find(x => x.id === id);
-      if (r && WF && WF.approve(r.rec, 'Bulk approval').ok) ok++;
-    });
-    notify(`${ok} de ${t.sel.length} aprobados correctamente.`);
+      if (!r) continue;
+      try {
+        await window.api.ensureTimesheet(id, periodCode, r.name);
+        await window.api.approveTimesheet(`TS-${periodCode}-${id}`, { comment: 'Bulk approval', role: WF ? WF.role : undefined });
+        if (WF && r.rec) WF.approve(r.rec, 'Bulk approval');
+        ok++;
+      } catch (err) { failed.push(id + ': ' + err.message); }
+    }
+    notify(failed.length ? `${ok} de ${t.sel.length} aprobados • ${failed.length} fallaron (${failed[0]})` : `${ok} de ${t.sel.length} aprobados correctamente.`);
     t.setSel([]);
   };
 
@@ -953,7 +949,6 @@ function TeamApprovalQueue({ go, notify }) {
       }
       actions={
         <>
-          <Button variant="secondary" icon="filter_list" onClick={() => window.__mghNotify('Filtros avanzados')}>Saved Views</Button>
           <Button icon="assignment_turned_in" onClick={() => go('approvals')}>Open Workspace</Button>
         </>
       }
@@ -965,7 +960,7 @@ function TeamApprovalQueue({ go, notify }) {
       <StatCard label="SLA: due in" value={daysRem} icon="timer" tone="accent" style={{ minHeight: 0 }} footer={<span>Cierre: {curPeriod.endDate || curPeriod.end}</span>} />
     </Grid>
     <Card padding={20}>
-      <TableToolbar search={t.q} onSearch={t.setQ} placeholder="Buscar empleado, ID, proyecto…" filters={<><Select size="sm" icon="apartment" value={dept} onChange={setDept} options={['All departments', ...new Set(EMPLOYEES.map(e => e.dept))]} /><Select size="sm" icon="domain" value={ent} onChange={setEnt} options={['All entities', ...new Set(EMPLOYEES.map(e => e.entity))]} /></>} actions={<Button size="sm" variant="secondary" icon="download" onClick={() => window.__mghNotify('Export CSV queued')}>Export CSV</Button>}
+      <TableToolbar search={t.q} onSearch={t.setQ} placeholder="Buscar empleado, ID, proyecto…" filters={<><Select size="sm" icon="apartment" value={dept} onChange={setDept} options={['All departments', ...new Set(EMPLOYEES.map(e => e.dept))]} /><Select size="sm" icon="domain" value={ent} onChange={setEnt} options={['All entities', ...new Set(EMPLOYEES.map(e => e.entity))]} /></>} actions={<Button size="sm" variant="secondary" icon="download" disabled={!t.all.length} onClick={() => window.__mghNotify(window.__mghExport('csv', 'Team Approval Queue', periodCode, { cols: [['ID'], ['Employee'], ['Project'], ['Hours'], ['Est. gross'], ['Status']], rows: t.all.map(r => [r.id, r.name, r.project || '', (r.total || 0).toFixed(1), (r.gross || 0).toFixed(2), liveStatus(r)]) }))}>Export CSV</Button>}
         chips={<FilterChips value={chip} onChange={setChip} options={[{ value: 'all', label: 'All', count: rows.length }, { value: 'pending', label: 'In review', count: rows.filter(r => isPend(r.status)).length, tone: 'warning' }, { value: 'flag', label: 'Flagged', count: rows.filter(r => r.flagged).length, tone: 'danger' }, { value: 'done', label: 'Approved', count: approvedCount }]} />} />
       <DataTable style={{ marginTop: 14 }} maxHeight={520} selectable selected={t.sel} onSelectedChange={t.setSel} sort={t.sort} onSort={t.setSort} rows={t.rows} onRowClick={r => go('approvals', r.id)}
         bulkBar={<><Button size="sm" variant="primary" icon="done_all" onClick={() => bulk('Approved')}>Approve</Button><Button size="sm" variant="danger" icon="undo" onClick={() => bulk('Returned')}>Return</Button></>}
@@ -984,26 +979,35 @@ function TeamApprovalQueue({ go, notify }) {
   </Page>;
 }
 
-function BiWeeklyTimesheets(props) { return EMPLOYEES.length ? <BiWeeklyTimesheetsInner {...props} /> : window.__mghEmpty('Bi-Weekly Timesheet', ['Workforce', 'Timesheets']); }
-function BiWeeklyTimesheetsInner({ notify }) {
+// Team view of the period's timesheets as stored in the backend (GET /timesheets?periodId=). Employees log their own
+// time in My Time Entry; approvals happen in the Approval Workspace / Queue.
+function BiWeeklyTimesheets({ notify, go }) {
   const curPeriod = getCurrentPeriod();
-  const me = EMPLOYEES[0]; const [days, setDays] = React.useState(() => buildDays(me));
-  const [submitted, setSubmitted] = React.useState(false);
-  const total = days.reduce((s, d) => s + d.hrs, 0), ot = days.reduce((s, d) => s + d.ot, 0);
-  const edit = (id, v) => setDays(ds => ds.map(d => d.id === id ? { ...d, hrs: Math.max(0, +v || 0), ot: Math.max(0, (+v || 0) - 8) } : d));
+  const periods = React.useMemo(() => [{ code: curPeriod.code, label: curPeriod.code + ' (' + curPeriod.rangeShort + ', ' + curPeriod.year + ')' }, ...window.__mghPrevPeriods(curPeriod, 5)], [curPeriod.code]);
+  const [periodCode, setPeriodCode] = React.useState(curPeriod.code);
+  const [list, setList] = React.useState(null);
+  React.useEffect(() => {
+    let cancel = false; setList(null);
+    window.api.timesheets({ periodId: periodCode })
+      .then(r => { if (!cancel) setList((Array.isArray(r) ? r : []).filter(x => MGH_RBAC.can('timesheets.view', x.emp))); })
+      .catch(err => { if (!cancel) { setList([]); notify('Could not load timesheets • ' + err.message); } });
+    return () => { cancel = true; };
+  }, [periodCode]);
+  const rows = list || [];
+  const sum = k => rows.reduce((s, x) => s + (Number(x[k]) || 0), 0);
+  const withHours = rows.filter(x => Number(x.total) > 0).length;
   return <Page>
-    <PageHeader breadcrumbs={['Workforce', 'Timesheets', curPeriod.code]} title="Bi-Weekly Timesheet" status={<Badge tone={submitted ? 'success' : 'warning'} dot>{submitted ? 'Submitted • Awaiting Supervisor' : `Draft • Due ${curPeriod.endDay} ${curPeriod.monthShort}, 17:00`}</Badge>}
-      actions={<>{MGH_RBAC.can('timesheets.submit', me.id) && <><Button variant="secondary" icon="sync" onClick={() => notify('Pulled 14 worklogs from Jira Cloud')}>Import Jira Worklogs</Button><Button icon="send" disabled={submitted} onClick={() => { setSubmitted(true); notify('Timesheet submitted for approval'); }}>Submit for Approval</Button></>}</>} />
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 14, borderRadius: 12, background: 'var(--mgh-surface-1)' }}><Avatar src={me.avatar} name={me.name} size={44} /><div style={{ flex: 1 }}><div className="mgh-lg">{me.name}</div><div className="mgh-body">{me.role} • {me.project}</div></div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 110px)', gap: 8 }}><MetricTile tone="white" label="Total" value={fmtH(total)} /><MetricTile tone="white" label="Regular" value={fmtH(total - ot)} /><MetricTile tone={ot ? 'warning' : 'white'} label="Overtime" value={fmtH(ot)} /><MetricTile tone="success" label="Target" value="80.0h" /></div></div>
-    {[1, 2].map(w => <Card key={w} padding={20} title={`Week ${w}`} subtitle={w === 1 ? 'Mon Mar 31 – Sun Apr 06' : 'Mon Apr 07 – Sun Apr 13'} icon="date_range" actions={<Badge tone="primary">{fmtH(days.filter(d => d.week === w).reduce((s, d) => s + d.hrs, 0))}</Badge>}>
-      <DataTable density="compact" rows={days.filter(d => d.week === w)} columns={[
-        { key: 'date', label: 'Day', strong: true, weight: 600, render: d => <span style={{ color: d.weekend ? 'var(--mgh-ink-4)' : undefined }}>{d.date}</span> },
-        { key: 'inn', label: 'In', mono: true }, { key: 'out', label: 'Out', mono: true },
-        { key: 'key', label: 'Jira Issue', render: d => d.key ? <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><Badge mono size="sm" tone="primary">{d.key}</Badge>{d.task}</div> : <span style={{ color: 'var(--mgh-ink-4)' }}>—</span> },
-        { key: 'type', label: 'Type', render: d => d.weekend ? <Badge size="sm">Weekend</Badge> : d.ot ? <Badge size="sm" tone="warning">Overtime</Badge> : <Badge size="sm" tone="success">Regular</Badge> },
-        { key: 'hrs', label: 'Hours', align: 'right', render: d => <input disabled={submitted || !MGH_RBAC.can('timesheets.edit', me.id)} value={d.hrs} onChange={x => edit(d.id, x.target.value)} style={{ width: 64, height: 30, textAlign: 'right', border: 'none', borderRadius: 6, padding: '0 8px', background: submitted || !MGH_RBAC.can('timesheets.edit', me.id) ? 'transparent' : 'var(--mgh-surface-1)', font: '700 13px var(--font-sans)', color: 'var(--mgh-ink)' }} /> }]} />
-    </Card>)}
+    <PageHeader breadcrumbs={['Workforce', 'Timesheets', periodCode]} title="Bi-Weekly Timesheets" description={list ? rows.length + ' timesheet' + (rows.length === 1 ? '' : 's') + ' • ' + withHours + ' with hours' : 'Loading…'}
+      actions={<><Select size="sm" icon="date_range" value={periodCode} onChange={x => setPeriodCode(typeof x === 'string' ? x : x.target.value)} options={periods.map(p => ({ value: p.code, label: p.label }))} /><Button variant="secondary" icon="download" disabled={!rows.length} onClick={() => notify(window.__mghExport('csv', 'Timesheets', periodCode, { cols: [['ID'], ['Employee'], ['Regular'], ['Overtime'], ['PTO'], ['Total'], ['Status']], rows: rows.map(x => [x.emp, x.name, x.reg, x.ot, x.pto, x.total, x.status]) }))}>Export CSV</Button></>} />
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 8 }}><MetricTile tone="white" label="Regular" value={fmtH(sum('reg'))} /><MetricTile tone="white" label="Overtime" value={fmtH(sum('ot'))} /><MetricTile tone="white" label="PTO" value={fmtH(sum('pto'))} /><MetricTile tone="success" label="Total" value={fmtH(sum('total'))} /></div>
+    <Card padding={20}>
+      {list && !rows.length ? <div className="mgh-body" style={{ padding: '32px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>No timesheets for {periodCode}.</div> :
+      <DataTable density="compact" rows={rows} onRowClick={r => go && go('approvals', r.emp)} columns={[
+        { key: 'name', label: 'Employee', render: r => <EmployeeCell e={EMPLOYEES.find(e => e.id === r.emp) || { id: r.emp, name: r.name }} sub={r.emp} /> },
+        { key: 'reg', label: 'Regular', align: 'right', render: r => fmtH(r.reg) }, { key: 'ot', label: 'Overtime', align: 'right', render: r => fmtH(r.ot) },
+        { key: 'pto', label: 'PTO', align: 'right', render: r => fmtH(r.pto) }, { key: 'total', label: 'Total', align: 'right', strong: true, render: r => fmtH(r.total) },
+        { key: 'status', label: 'Status', render: r => <WFPill size="sm" status={r.status} /> }]} />}
+    </Card>
   </Page>;
 }
 
@@ -1081,21 +1085,23 @@ function Dashboard({ go }) {
 
 function Employees({ go }) {
   const [chip, setChip] = React.useState('all'); const [dept, setDept] = React.useState('All departments'); const [type, setType] = React.useState('All types');
-  const base = EMPLOYEES.filter(e => MGH_RBAC.can('employees.view', e) && (chip === 'all' || e.entity.includes(chip)) && (dept === 'All departments' || e.dept === dept) && (type === 'All types' || e.type === type));
+  const base = EMPLOYEES.filter(e => MGH_RBAC.can('employees.view', e) && (chip === 'all' || e.entity === chip) && (dept === 'All departments' || e.dept === dept) && (type === 'All types' || e.type === type));
   const t = useTable(base, { search: ['name', 'id', 'role', 'dept', 'loc'], pageSize: 10, initialSort: { key: 'name', dir: 'asc' } });
+  const ENTS = [...new Set(EMPLOYEES.map(e => e.entity))].sort();
+  const exportRows = list => window.__mghNotify(window.__mghExport('csv', 'Employees', '', { cols: [['ID'], ['Name'], ['Email'], ['Role'], ['Department'], ['Entity'], ['Location'], ['Type'], ['Rate']], rows: list.map(r => [r.id, r.name, r.email || '', r.role, r.dept, r.entity, r.loc, r.type, r.rate]) }));
   return <Page>
-    <PageHeader breadcrumbs={['Workforce', 'Employee Directory']} title="Employees" description="86 people across 3 operating entities. Independent contractors are managed separately." actions={<>{MGH_RBAC.can('contractors.view') && <Button variant="secondary" icon="handshake" onClick={() => go('contractors')}>View Contractors</Button>}{MGH_RBAC.can('employees.create') && <><Button variant="secondary" icon="upload" onClick={() => window.__mghNotify('Import CSV opened')}>Import CSV</Button><Button icon="person_add" onClick={() => go('addEmployee')}>Add Employee</Button></>}</>} />
+    <PageHeader breadcrumbs={['Workforce', 'Employee Directory']} title="Employees" description={EMPLOYEES.length + ' employee' + (EMPLOYEES.length === 1 ? '' : 's') + ' across ' + ENTS.length + ' operating entit' + (ENTS.length === 1 ? 'y' : 'ies') + '. Independent contractors are managed separately.'} actions={<>{MGH_RBAC.can('contractors.view') && <Button variant="secondary" icon="handshake" onClick={() => go('contractors')}>View Contractors</Button>}{MGH_RBAC.can('employees.create') && <><Button icon="person_add" onClick={() => go('addEmployee')}>Add Employee</Button></>}</>} />
     <Card padding={20}>
       <TableToolbar search={t.q} onSearch={t.setQ} placeholder="Search name, ID, role, location…"
         filters={<><Select size="sm" icon="apartment" value={dept} onChange={setDept} options={['All departments', ...new Set(EMPLOYEES.map(e => e.dept))]} /><Select size="sm" icon="work" value={type} onChange={setType} options={['All types', ...new Set(EMPLOYEES.map(e => e.type))]} /></>}
-        actions={<><Button size="sm" variant="secondary" icon="view_column" onClick={() => window.__mghNotify('Columns opened')}>Columns</Button><Button size="sm" variant="secondary" icon="download" onClick={() => window.__mghNotify('Export queued')}>Export</Button></>}
-        chips={<FilterChips value={chip} onChange={setChip} options={[{ value: 'all', label: 'All entities', count: EMPLOYEES.length }, { value: 'Dominicana', label: 'Dominicana SRL', count: EMPLOYEES.filter(e => e.entity.includes('Dominicana')).length }, { value: 'USA', label: 'USA Inc.', count: EMPLOYEES.filter(e => e.entity.includes('USA')).length }, { value: 'UK', label: 'UK Ltd.', count: EMPLOYEES.filter(e => e.entity.includes('UK')).length }]} />} />
+        actions={<Button size="sm" variant="secondary" icon="download" disabled={!t.all.length} onClick={() => exportRows(t.all)}>Export</Button>}
+        chips={<FilterChips value={chip} onChange={setChip} options={[{ value: 'all', label: 'All entities', count: EMPLOYEES.length }, ...ENTS.map(n => ({ value: n, label: n, count: EMPLOYEES.filter(e => e.entity === n).length }))]} />} />
       <DataTable style={{ marginTop: 14 }} maxHeight={560} selectable selected={t.sel} onSelectedChange={t.setSel} sort={t.sort} onSort={t.setSort} rows={t.rows} onRowClick={r => go('profile', r.id)}
-        bulkBar={<><Button size="sm" variant="secondary" icon="mail" onClick={() => window.__mghNotify('Message opened')}>Message</Button><Button size="sm" variant="secondary" icon="download" onClick={() => window.__mghNotify('Export queued')}>Export</Button></>}
+        bulkBar={<Button size="sm" variant="secondary" icon="download" onClick={() => exportRows(t.all.filter(r => t.sel.includes(r.id)))}>Export selected</Button>}
         columns={[
           { key: 'name', label: 'Employee', sortable: true, render: r => <EmployeeCell e={r} /> },
           { key: 'id', label: 'ID', sortable: true, render: r => <Badge mono size="sm">{r.id}</Badge> },
-          { key: 'project', label: 'Proyecto', sortable: true, render: r => <Badge size="sm" tone="primary" mono>{r.project || 'MSHP — Project Planning'}</Badge> },
+          { key: 'project', label: 'Proyecto', sortable: true, render: r => <Badge size="sm" tone="primary" mono>{r.project || '—'}</Badge> },
           { key: 'dept', label: 'Department', sortable: true }, { key: 'entity', label: 'Entity', sortable: true }, { key: 'loc', label: 'Location', sortable: true },
           { key: 'type', label: 'Type', sortable: true, render: r => <Badge size="sm" tone={r.type === 'Exempt' ? 'primary' : 'neutral'}>{r.type}</Badge> },
           { key: 'rate', label: 'Rate', align: 'right', sortable: true, strong: true, render: r => fmt$(r.rate) + '/hr' },
@@ -1114,47 +1120,26 @@ function EmployeeProfileInner({ empId, go, notify }) {
   const targetId = isSelf ? (myEmpId || empId) : (empId || (EMPLOYEES[0] && EMPLOYEES[0].id));
   const e = EMPLOYEES.find(x => x.id === targetId) || (window.__MGH_DATA && window.__MGH_DATA.ALL_EMP && window.__MGH_DATA.ALL_EMP.find(x => x.id === targetId)) || EMPLOYEES[0] || {};
   const [tab, setTab] = React.useState('overview');
-  const [sync, setSync] = React.useState(true);
   const [editOpen, setEditOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const canEdit = MGH_RBAC.can('employees.edit', e);
   const selfEdit = !canEdit && MGH_RBAC.can('profile.edit', e);
-  const [form, setForm] = React.useState({
-    name: e.name || '',
-    phone: e.phone || '',
-    role: e.role || '',
-    dept: e.dept || 'Engineering',
-    type: e.type || 'Full-time',
-    entity: e.entity || 'MGH Dominicana SRL',
-    loc: e.loc || 'Santo Domingo, DR',
-    mgr: e.mgr || '',
-    project: e.project || '',
-    rate: e.rate || 45,
-    bank: e.bank || 'Banco BHD León',
-    nid: e.nid || '001-1829472-3'
-  });
+  // Form starts from the stored values only (no sample cédula / bank / rate)
+  const initialForm = () => ({ name: e.name || '', phone: e.phone || '', role: e.role || '', dept: e.dept || '', type: e.type || 'Full-time', entity: e.entity || '', loc: e.loc || '', mgr: e.mgr || '', project: e.project || '', rate: e.rate || '', bank: e.bank || '', nid: e.nid || '' });
+  const [form, setForm] = React.useState(initialForm);
 
   React.useEffect(() => {
-    setForm({
-      name: e.name || '',
-      phone: e.phone || '',
-      role: e.role || '',
-      dept: e.dept || 'Engineering',
-      type: e.type || 'Full-time',
-      entity: e.entity || 'MGH Dominicana SRL',
-      loc: e.loc || 'Santo Domingo, DR',
-      mgr: e.mgr || '',
-      project: e.project || '',
-      rate: e.rate || 45,
-      bank: e.bank || 'Banco BHD León',
-      nid: e.nid || '001-1829472-3'
-    });
+    setForm(initialForm());
   }, [e.id]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const payload = selfEdit ? { name: form.name, phone: form.phone, loc: form.loc } : form;
+      // Send only fields that changed, so untouched values (e.g. the masked cédula) are never rewritten
+      const init = initialForm();
+      const changed = Object.fromEntries(Object.entries(form).filter(([k, val]) => String(val) !== String(init[k])));
+      const payload = selfEdit ? Object.fromEntries(Object.entries(changed).filter(([k]) => ['name', 'phone', 'loc'].includes(k))) : changed;
+      if (!Object.keys(payload).length) { notify('No changes to save'); setEditOpen(false); return; }
       if (window.api && window.api.updateEmployee) {
         await window.api.updateEmployee(e.id, payload);
       }
@@ -1165,11 +1150,11 @@ function EmployeeProfileInner({ empId, go, notify }) {
         window.dispatchEvent(new Event('mgh-wf'));
         return;
       }
-      Object.assign(e, form, { rate: Number(form.rate) || e.rate });
+      Object.assign(e, payload, payload.rate != null ? { rate: Number(payload.rate) || e.rate } : {});
       e.total = e.reg + e.ot + e.pto;
       e.gross = +(e.reg * e.rate + e.ot * e.rate * 1.5 + e.pto * e.rate).toFixed(2);
       const allMatch = (window.ALL_EMP || []).find(x => x.id === e.id);
-      if (allMatch) Object.assign(allMatch, form, { rate: Number(form.rate) || e.rate });
+      if (allMatch) Object.assign(allMatch, payload, payload.rate != null ? { rate: Number(payload.rate) || e.rate } : {});
       notify(`Employee ${e.name} updated successfully`);
       setEditOpen(false);
       window.dispatchEvent(new Event('mgh-wf'));
@@ -1186,56 +1171,66 @@ function EmployeeProfileInner({ empId, go, notify }) {
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
         <div style={{ width: 120, height: 120, borderRadius: 12, background: e.avatar ? `url(${e.avatar}) center/cover` : 'var(--mgh-primary-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '700 40px var(--font-sans)', color: 'var(--mgh-primary)', flexShrink: 0 }}>{!e.avatar && e.name.split(' ').map(s => s[0]).join('')}</div>
         <div style={{ flex: 1, minWidth: 280 }}>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}><span className="mgh-title">{e.name}</span><Badge tone="success">Active / On-Roll</Badge></div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}><span className="mgh-title">{e.name}</span><Badge tone={e.status === 'Active' ? 'success' : 'neutral'}>{e.status || '—'}</Badge></div>
           <Badge mono size="sm" style={{ marginTop: 4 }}>{e.id}</Badge>
           <div className="mgh-lg" style={{ fontWeight: 500, marginTop: 6 }}>{e.role}</div>
           <div style={{ font: '400 14px/20px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>{e.dept} • {e.project}</div>
           <div style={{ display: 'flex', gap: 14, marginTop: 8, flexWrap: 'wrap', font: '500 13px var(--font-sans)', color: 'var(--mgh-ink-2)' }}><span style={{ display: 'flex', gap: 4 }}><Icon name="domain" size={16} />{e.entity}</span><span style={{ display: 'flex', gap: 4 }}><Icon name="work" size={16} />{e.type}</span><span style={{ display: 'flex', gap: 4 }}><Icon name="calendar_today" size={16} />Joined {e.joined}</span></div>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{canEdit && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit Employee</Button>}{selfEdit && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit My Profile</Button>}{MGH_RBAC.can('payslips.view', e) && <Button variant="secondary" icon="receipt_long" onClick={() => go('paystub', e.id)}>Generate Pay Statement</Button>}{MGH_RBAC.can('employees.edit', e) && <Button variant="dark" icon="sync_lock" onClick={() => notify('Jira API token reset')}>Reset Jira API Token</Button>}</div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{canEdit && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit Employee</Button>}{selfEdit && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit My Profile</Button>}{MGH_RBAC.can('payslips.view', e) && <Button variant="secondary" icon="receipt_long" onClick={() => go('paystub', e.id)}>Generate Pay Statement</Button>}</div>
       </div>
       <Tabs style={{ marginTop: 20 }} value={tab} onChange={setTab} tabs={[{ value: 'overview', label: 'Overview & Profile' }, { value: 'bank', label: 'Multi-Bank Allocations', dot: true }, { value: 'comp', label: 'Compensation & Tax' }, { value: 'jira', label: 'Jira Integration', tag: 'LIVE' }, { value: 'pto', label: 'Time Off & PTO' }, { value: 'docs', label: 'Documents' }]} />
     </Card>
     {tab === 'overview' && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,420px),1fr))', gap: 20 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <Card icon="badge" title="Employment details">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}><KeyValue label="Preferred language" value="Español" /><KeyValue label="Manager" value={e.mgr} /><KeyValue label="Work location" value={e.loc} /><KeyValue label="Pay frequency" value="Bi-weekly" /><KeyValue label="Tax profile" value={e.tax.split(' — ')[0]} aside={<Badge tone={/^Exempt/.test(e.tax) ? 'success' : 'info'} size="sm">{/^Exempt/.test(e.tax) ? 'No withholdings' : 'Withholding'}</Badge>} /><KeyValue label="Primary bank" value={e.bank} /><KeyValue label="RNC / Cédula Personal" value={e.nid || '001-1829472-3'} mono aside={<Badge tone="success" size="sm">Active</Badge>} /><KeyValue label="TSS Registry" value="ARS Primera, AFP Crecer" aside={<Icon name="verified_user" size={18} color="var(--mgh-success)" />} /></div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}><KeyValue label="Email" value={e.email || '—'} /><KeyValue label="Manager" value={e.mgr || '—'} /><KeyValue label="Work location" value={e.loc || '—'} /><KeyValue label="Pay frequency" value={e.freq || '—'} /><KeyValue label="Tax profile" value={e.tax.split(' — ')[0]} aside={<Badge tone={/^Exempt/.test(e.tax) ? 'success' : 'info'} size="sm">{/^Exempt/.test(e.tax) ? 'No withholdings' : 'Withholding'}</Badge>} /><KeyValue label="Primary bank" value={e.bank || '—'} /><KeyValue label="RNC / Cédula Personal" value={e.nid || '—'} mono /><KeyValue label="Payment method" value={e.pmethod || '—'} /></div>
         </Card>
         <Card icon="payments" title="Compensation & Overtime Rules" actions={canEdit && <Button size="sm" variant="ghost" onClick={() => setEditOpen(true)}>Edit Tariff</Button>}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}><MetricTile label="Base hourly" value={fmt$(e.rate)} sub="USD / hr" align="center" /><MetricTile tone="success" label="Overtime 1.5×" value={fmt$(e.rate * 1.5)} sub="> 44h regular" align="center" /><MetricTile tone="warning" label="Sunday / Holiday" value={fmt$(e.rate * 2)} sub="Double rate" align="center" /></div>
-          <ProgressBar style={{ marginTop: 14 }} value={96.4} tone="success" label="Billable efficiency — target ≥ 95%" valueLabel="96.4% Compliant" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}><MetricTile label="Base hourly" value={fmt$(e.rate)} sub="USD / hr" align="center" /><MetricTile tone="success" label="Overtime 1.5×" value={fmt$(e.rate * 1.5)} sub={WF ? WF.otLabel() : ''} align="center" /></div>
         </Card>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <Card icon="hub" title="Jira Cloud Account Binding" actions={<Badge tone="success" dot>Connected</Badge>}>
-          <KeyValue label="Atlassian Cloud ID" value={e.name.toLowerCase().replace(' ', '.') + '@globalhub.atlassian.net'} aside={<IconButton icon="content_copy" size={28} title="Copy" />} />
-          <div className="mgh-overline" style={{ margin: '14px 0 8px' }}>Bound worklog projects</div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}><Badge dot tone="primary">ATLAS (Core Platform)</Badge><Badge dot tone="info">PERF (Infrastructure)</Badge><Button size="sm" variant="ghost" icon="add" onClick={() => window.__mghNotify('Bind Project opened')}>Bind Project</Button></div>
-          <Toggle style={{ marginTop: 14, padding: 12, borderRadius: 8, background: 'var(--mgh-surface-1)' }} checked={sync} onChange={setSync} label="Real-Time Worklog Auto-Sync" description="Sync interval: Every 5m • Webhook Active" />
-        </Card>
-        <Card icon="history" title="System audit log" actions={<Badge tone="success">Live Feed</Badge>}>
-          <ActivityFeed items={[{ icon: 'done_all', tone: 'success', title: 'Bank route verification confirmed', meta: 'Today 09:14 • Compliance Engine' }, { icon: 'sync', tone: 'accent', title: '8.5h logged under ATLAS-3482', meta: 'Yesterday 06:30 • Jira Webhook' }, { icon: 'edit', tone: 'neutral', title: 'Tariff updated: OT threshold 44h', meta: 'Mar 28 • Ana Gómez' }]} />
+        <Card icon="hub" title="Jira account" actions={<Badge tone={e.jira ? 'info' : 'neutral'} dot>{e.jira ? 'Bound' : 'Not bound'}</Badge>}>
+          <KeyValue label="Atlassian account" value={e.jira || '—'} />
+          <KeyValue label="Assigned project" value={e.project || '—'} />
         </Card>
       </div>
     </div>}
-    {tab === 'bank' && <Card icon="account_balance" title="Multi-Bank Allocations" subtitle="Net pay split • must total 100%">
-      <ProgressBar height={16} segments={e.id === 'MGH-1042' ? [{ value: 80, color: 'var(--mgh-primary)', label: 'Banco BHD León' }, { value: 20, color: 'var(--mgh-accent)', label: 'Chase Bank USA' }] : [{ value: 100, color: 'var(--mgh-primary)', label: e.bank }]} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 8, marginTop: 14 }}>{(e.id === 'MGH-1042' ? [['Banco BHD León • ACH', '80%', '•••• 8491'], ['Chase Bank USA • FedWire', '20%', '•••• 3320']] : [[(e.bank || '—') + ' • ACH', '100%', '•••• ' + String(e.id).slice(-4)]]).map(([b, p, a]) => <KeyValue key={b} label={b} value={p + ' • ' + a} mono />)}</div>
-    </Card>}
+    {tab === 'bank' && (() => {
+      // Split from the stored allocation (bank % + Coinbase %); account numbers are the masked values from the backend
+      const segs = [];
+      if (e.alloc > 0) segs.push({ value: e.alloc, color: 'var(--mgh-primary)', label: (e.bank || 'Bank') + ' ' + e.alloc + '%', acct: e.acct || '—' });
+      if (e.cryptoAlloc > 0) segs.push({ value: e.cryptoAlloc, color: 'var(--mgh-accent)', label: 'Coinbase ' + (e.cryptoAsset || '') + ' ' + e.cryptoAlloc + '%', acct: e.cryptoWallet ? e.cryptoWallet.slice(0, 6) + '…' + e.cryptoWallet.slice(-4) : '—' });
+      return <Card icon="account_balance" title="Multi-Bank Allocations" subtitle="Net pay split • must total 100%">
+        {segs.length ? <>
+          <ProgressBar height={16} segments={segs} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 8, marginTop: 14 }}>{segs.map(s => <KeyValue key={s.label} label={s.label} value={s.acct} mono />)}</div>
+        </> : <div className="mgh-body" style={{ color: 'var(--mgh-ink-3)' }}>No payout allocation saved.</div>}
+      </Card>;
+    })()}
     {tab === 'comp' && (() => { const c = DEDUCT(e); return <Card icon="payments" title="Compensation & Tax" subtitle={e.tax}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 8 }}><KeyValue label="Base hourly" value={fmt$(e.rate)} /><KeyValue label="Overtime rule" value={WF ? WF.otLabel() : 'Weekly > 44h'} /><KeyValue label="Overtime rate" value={'1.5× • ' + fmt$(e.rate * 1.5)} /><KeyValue label="Gross / period" value={fmt$(e.gross || 0)} />{c.lines.map(([l, v]) => <KeyValue key={l} label={l} value={fmt$(v)} />)}<KeyValue label="Net / period" value={fmt$(c.net || 0)} /></div>
     </Card>; })()}
-    {tab === 'jira' && <Card icon="hub" title="Jira Integration" actions={<Badge tone="success" dot>Connected</Badge>}>
-      <KeyValue label="Atlassian Cloud ID" value={e.name.toLowerCase().replace(' ', '.') + '@globalhub.atlassian.net'} />
-      <KeyValue label="Bound project" value={e.project} />
+    {tab === 'jira' && <Card icon="hub" title="Jira Integration" actions={<Badge tone={e.jira ? 'info' : 'neutral'} dot>{e.jira ? 'Bound' : 'Not bound'}</Badge>}>
+      <KeyValue label="Atlassian account" value={e.jira || '—'} />
+      <KeyValue label="Assigned project" value={e.project || '—'} />
       <KeyValue label="Jira match this period" value={matchTxt(e)} />
-      <Toggle style={{ marginTop: 14 }} checked={sync} onChange={setSync} label="Real-Time Worklog Auto-Sync" description="Sync interval: Every 5m • Webhook Active" />
     </Card>}
-    {tab === 'pto' && <Card icon="beach_access" title="Time Off & PTO" subtitle="Balances as of Apr 15, 2025">
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 8 }}><KeyValue label="Vacation available" value="14.5 days" /><KeyValue label="Used this year" value={(e.pto / 8).toFixed(1) + ' days'} /><KeyValue label="Sick leave" value="5.0 days" /><KeyValue label="Holidays (DR 2025)" value="12 days" /></div>
-    </Card>}
+    {tab === 'pto' && (() => {
+      // Days taken = approved leave this year (weekdays); holidays = the org's calendar loaded from the backend
+      const A = window.MGH_ATT, yr = A ? A.TODAY.slice(0, 4) : String(new Date().getFullYear());
+      const mine = A ? A.leave().filter(l => l.emp === e.id && l.status === 'Approved' && String(l.from).startsWith(yr)) : [];
+      const days = l => A.range(l.from, l.to).filter(d => A.dow(d) % 6).length;
+      const used = t => mine.filter(l => t(l.type)).reduce((s, l) => s + days(l), 0);
+      const hol = A ? A.holidays(e.entity).filter(h => String(h.date).startsWith(yr)).length : 0;
+      const pend = A ? A.leave().filter(l => l.emp === e.id && /Pending/.test(l.status)).length : 0;
+      return <Card icon="beach_access" title="Time Off & PTO" subtitle={'Approved leave in ' + yr}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 8 }}><KeyValue label="Vacation taken" value={used(t => t === 'Vacation') + ' days'} /><KeyValue label="Sick leave taken" value={used(t => t === 'Sick') + ' days'} /><KeyValue label="Other leave taken" value={used(t => t !== 'Vacation' && t !== 'Sick') + ' days'} /><KeyValue label="Pending requests" value={String(pend)} /><KeyValue label={'Holidays (' + yr + ')'} value={hol + ' days'} /></div>
+      </Card>;
+    })()}
     {tab === 'docs' && <Card icon="folder" title="Documents">
-      <div style={{ display: 'flex', flexDirection: 'column' }}>{[['Employment contract', 'Signed • ' + (e.joined || '—')], ['National ID / Cédula', 'Verified'], [/^Exempt/.test(e.tax) ? 'Exempt status declaration' : 'TSS registration', 'On file'], ['Bank account verification', 'Verified']].map(([d, st]) => <div key={d} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '10px 0', borderTop: '1px solid var(--mgh-surface-2)' }}><span className="mgh-body" style={{ fontWeight: 600, color: 'var(--mgh-ink)' }}>{d}</span><Badge size="sm" tone="success" dot>{st}</Badge></div>)}</div>
+      <div className="mgh-body" style={{ color: 'var(--mgh-ink-3)' }}>No documents uploaded for this employee.</div>
     </Card>}
     <Card icon="schedule" title={`Timesheet • ${getCurrentPeriod().code}`} actions={<Button size="sm" variant="ghost" iconRight="arrow_forward" onClick={() => go('approvals', e.id)}>Open timesheet</Button>}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}><WFPill status={liveStatus(e)} /><span className="mgh-body">{fmtH(e.reg)} regular • {fmtH(e.ot)} overtime • {fmtH(e.pto)} PTO</span></div>
@@ -1843,7 +1838,7 @@ function Projects({ go, notify, currentUser }) {
   const [projectForm, setProjectForm] = React.useState({
     name: '',
     key: '',
-    lead: (currentUser && (currentUser.name || currentUser.userName)) || 'Joshua Hernandez',
+    lead: (currentUser && (currentUser.name || currentUser.userName)) || '',
     budget: '50000',
     bill: '100',
     st: 'On track'
@@ -1877,7 +1872,7 @@ function Projects({ go, notify, currentUser }) {
     project: 'MSHP — Project Planning',
     rate: '50.00',
     entity: 'MGH Dominicana SRL',
-    mgr: (currentUser && (currentUser.name || currentUser.userName)) || 'Joshua Hernandez'
+    mgr: (currentUser && (currentUser.name || currentUser.userName)) || ''
   });
 
   // Modal para Multi-Asignación de Proyectos a Trabajadores
@@ -2014,7 +2009,7 @@ function Projects({ go, notify, currentUser }) {
         etype: workerForm.type,
         projects: workerForm.project,
         rate: Number(workerForm.rate) || 50,
-        mgr: workerForm.mgr || 'Joshua Hernandez'
+        mgr: workerForm.mgr || ''
       };
 
       const res = await fn(payload);
@@ -2045,7 +2040,7 @@ function Projects({ go, notify, currentUser }) {
         project: 'MSHP — Project Planning',
         rate: '50.00',
         entity: 'MGH Dominicana SRL',
-        mgr: (currentUser && (currentUser.name || currentUser.userName)) || 'Joshua Hernandez'
+        mgr: (currentUser && (currentUser.name || currentUser.userName)) || ''
       });
       fetchEmployees();
     } catch (err) {
@@ -2075,7 +2070,7 @@ function Projects({ go, notify, currentUser }) {
       const res = await fn({
         name: projectForm.name.trim(),
         key: projectForm.key ? projectForm.key.trim().toUpperCase() : undefined,
-        lead: projectForm.lead || 'Joshua Hernandez',
+        lead: projectForm.lead || '',
         budget: Number(projectForm.budget) || 50000,
         bill: Number(projectForm.bill) || 100,
         st: projectForm.st || 'On track'
@@ -2085,7 +2080,7 @@ function Projects({ go, notify, currentUser }) {
       setProjectForm({
         name: '',
         key: '',
-        lead: (currentUser && (currentUser.name || currentUser.userName)) || 'Joshua Hernandez',
+        lead: (currentUser && (currentUser.name || currentUser.userName)) || '',
         budget: '50000',
         bill: '100',
         st: 'On track'
@@ -2104,7 +2099,7 @@ function Projects({ go, notify, currentUser }) {
     setEditProjectForm({
       key: proj.key || proj.id,
       name: proj.name || '',
-      lead: proj.lead || 'Joshua Hernandez',
+      lead: proj.lead || '',
       budget: String(proj.budget || 50000),
       bill: String(proj.bill != null ? proj.bill : 100),
       st: proj.st || 'On track'
@@ -2541,7 +2536,7 @@ function Projects({ go, notify, currentUser }) {
                 <Button size="sm" variant="secondary" icon="cloud_sync" onClick={() => { setLinkError(null); setLinkedResult(null); setLinkModalOpen(true); }}>
                   Vincular Jira
                 </Button>
-                <Button size="sm" variant="secondary" icon="download" onClick={() => window.__mghNotify('Export queued')}>
+                <Button size="sm" variant="secondary" icon="download" disabled={!projectsList.length} onClick={() => window.__mghNotify(window.__mghExport('csv', 'Projects', '', { cols: [['Key'], ['Name'], ['Lead'], ['People'], ['Budget'], ['Spent'], ['Hours'], ['Status']], rows: projectsList.map(p => [p.key || p.id, p.name, p.lead || '', p.people || 0, p.budget || 0, p.spent || 0, p.hrs || 0, p.st || '']) }))}>
                   Exportar
                 </Button>
               </div>
@@ -2839,7 +2834,7 @@ function Projects({ go, notify, currentUser }) {
               {
                 key: 'mgr',
                 label: 'Supervisor / PM',
-                render: r => <span style={{ fontSize: 12, color: 'var(--mgh-ink-2)' }}>{r.mgr || 'Joshua Hernandez'}</span>
+                render: r => <span style={{ fontSize: 12, color: 'var(--mgh-ink-2)' }}>{r.mgr || '—'}</span>
               },
               {
                 key: 'rate',
@@ -3508,7 +3503,7 @@ function Projects({ go, notify, currentUser }) {
                 type="text"
                 value={projectForm.lead}
                 onChange={e => setProjectForm(p => ({ ...p, lead: e.target.value }))}
-                placeholder="Joshua Hernandez"
+                placeholder="Nombre del responsable"
                 style={{ height: 38, padding: '0 10px', borderRadius: 8, border: '1px solid var(--mgh-surface-3, #CBD5E1)', fontSize: 13 }}
               />
             </div>
@@ -3857,7 +3852,8 @@ function Projects({ go, notify, currentUser }) {
   </Page>;
 }
 
-const CLIENT_OF = { 'Atlas Core': 'Kairoon', 'Global Hub v3': 'My Global Hub', 'Perf Infra': 'Arawaki', 'Insights Lake': 'Kairoon', 'Internal Ops': 'Internal' };
+// Project → client mapping has no backend source yet; empty so reports show '—' instead of invented clients
+const CLIENT_OF = {};
 window.__MGH_CLIENT_OF = CLIENT_OF;
 const REPORTS = [
   { id: 'hours', label: 'Employee Hours', icon: 'schedule' }, { id: 'weekly', label: 'Weekly Hours', icon: 'date_range' }, { id: 'payroll', label: 'Biweekly Payroll', icon: 'payments' },
@@ -3865,24 +3861,24 @@ const REPORTS = [
   { id: 'labor', label: 'Labor Cost', icon: 'account_tree' }, { id: 'pto', label: 'PTO', icon: 'beach_access' }, { id: 'contractors', label: 'Contractor Payments', icon: 'currency_exchange' },
   { id: 'org', label: 'Organization Summary', icon: 'hub' }];
 const n1 = v => (Math.round(v * 10) / 10).toFixed(1), m2 = v => fmt$(v || 0);
-function weekSplit(e) {
-  const d = buildDays(e); const w = [1, 2].map(k => d.filter(x => x.week === k).map(x => x.hrs || 0));
+function weekSplit(e, per) {
+  const d = buildDays(e, per); const w = [1, 2].map(k => d.filter(x => x.week === k).map(x => x.hrs || 0));
   const ot = w.map(h => WF ? WF.splitOT(h).reduce((s, x) => s + x, 0) : 0);
   return { w1: w[0].reduce((s, x) => s + x, 0), w2: w[1].reduce((s, x) => s + x, 0), ot: ot[0] + ot[1], days: d.filter(x => !x.weekend && (x.hrs || 0) > 0).length };
 }
-function buildReport(id, E) {
+function buildReport(id, E, per) {
   const grp = (key, f) => Object.values(E.reduce((m, e) => { const k = f(e); (m[k] = m[k] || { k, list: [] }).list.push(e); return m; }, {}));
   const sum = (l, f) => l.reduce((s, e) => s + f(e), 0);
   const ded = e => DEDUCT(e).total || 0;
   if (id === 'hours') return { cols: [['ID', 'mono'], ['Employee'], ['Department'], ['Project'], ['Regular', 'num'], ['Overtime', 'num'], ['PTO', 'num'], ['Total', 'num'], ['Status']], rows: E.map(e => [e.id, e.name, e.dept, e.project, n1(e.reg), n1(e.ot), n1(e.pto), n1(e.total), liveStatus(e)]), total: ['', 'Total', '', '', n1(sum(E, e => e.reg)), n1(sum(E, e => e.ot)), n1(sum(E, e => e.pto)), n1(sum(E, e => e.total)), ''] };
-  if (id === 'weekly') { const W = E.map(e => ({ e, ...weekSplit(e) })); return { cols: [['ID', 'mono'], ['Employee'], ['Week 1', 'num'], ['Week 2', 'num'], ['Period total', 'num'], ['Overtime (rule)', 'num']], rows: W.map(x => [x.e.id, x.e.name, n1(x.w1), n1(x.w2), n1(x.w1 + x.w2), n1(x.ot)]), total: ['', 'Total', n1(sum(W, x => x.w1)), n1(sum(W, x => x.w2)), n1(sum(W, x => x.w1 + x.w2)), n1(sum(W, x => x.ot))], note: 'Overtime recalculated with the organization rule: ' + (WF ? WF.otLabel() : 'Weekly > 44h') };
+  if (id === 'weekly') { const W = E.map(e => ({ e, ...weekSplit(e, per) })); return { cols: [['ID', 'mono'], ['Employee'], ['Week 1', 'num'], ['Week 2', 'num'], ['Period total', 'num'], ['Overtime (rule)', 'num']], rows: W.map(x => [x.e.id, x.e.name, n1(x.w1), n1(x.w2), n1(x.w1 + x.w2), n1(x.ot)]), total: ['', 'Total', n1(sum(W, x => x.w1)), n1(sum(W, x => x.w2)), n1(sum(W, x => x.w1 + x.w2)), n1(sum(W, x => x.ot))], note: 'Overtime recalculated with the organization rule: ' + (WF ? WF.otLabel() : 'Weekly > 44h') };
   }
   if (id === 'payroll') return { cols: [['ID', 'mono'], ['Employee'], ['Regular', 'num'], ['Overtime', 'num'], ['Rate', 'num'], ['Gross', 'num'], ['Deductions', 'num'], ['Net', 'num'], ['Status']], rows: E.map(e => [e.id, e.name, n1(e.reg), n1(e.ot), m2(e.rate), m2(e.gross), m2(ded(e)), m2(e.gross - ded(e)), liveStatus(e)]), total: ['', 'Total', n1(sum(E, e => e.reg)), n1(sum(E, e => e.ot)), '', m2(sum(E, e => e.gross)), m2(sum(E, ded)), m2(sum(E, e => e.gross - ded(e))), ''] };
   if (id === 'ot') { const O = E.filter(e => e.ot > 0); const all = sum(E, e => e.total) || 1; return { cols: [['ID', 'mono'], ['Employee'], ['Department'], ['OT hours', 'num'], ['OT cost (1.5×)', 'num'], ['% of hours', 'num']], rows: O.map(e => [e.id, e.name, e.dept, n1(e.ot), m2(e.ot * e.rate * 1.5), n1(e.ot / (e.total || 1) * 100) + '%']), total: ['', 'Total', '', n1(sum(O, e => e.ot)), m2(sum(O, e => e.ot * e.rate * 1.5)), n1(sum(O, e => e.ot) / all * 100) + '%'] }; }
-  if (id === 'attendance') { const A2 = E.map(e => { const w = weekSplit(e), pto = e.pto / 8, sched = 10 - pto; return [e.id, e.name, e.dept, String(w.days), String(Math.max(0, Math.round(sched - w.days))), n1(pto), n1(sched ? Math.min(100, w.days / sched * 100) : 100) + '%']; }); return { cols: [['ID', 'mono'], ['Employee'], ['Department'], ['Days worked', 'num'], ['Absences', 'num'], ['PTO days', 'num'], ['Attendance', 'num']], rows: A2, total: null }; }
+  if (id === 'attendance') { const today = window.MGH_ATT ? window.MGH_ATT.TODAY : '9999-12-31'; const A2 = E.map(e => { const d = buildDays(e, per).filter(x => !x.weekend && x.dateStr <= today); const worked = d.filter(x => x.hrs > 0).length, pto = e.pto / 8, sched = Math.max(0, d.length - pto); return [e.id, e.name, e.dept, String(worked), String(Math.max(0, Math.round(sched - worked))), n1(pto), sched ? n1(Math.min(100, worked / sched * 100)) + '%' : '—']; }); return { cols: [['ID', 'mono'], ['Employee'], ['Department'], ['Days with punches', 'num'], ['Days without record', 'num'], ['PTO days', 'num'], ['Attendance', 'num']], rows: A2, total: null }; }
   if (id === 'summary') { const G = grp('entity', e => e.entity); return { cols: [['Organization'], ['Employees', 'num'], ['Hours', 'num'], ['Gross', 'num'], ['Deductions', 'num'], ['Net', 'num']], rows: G.map(g => [g.k, String(g.list.length), n1(sum(g.list, e => e.total)), m2(sum(g.list, e => e.gross)), m2(sum(g.list, ded)), m2(sum(g.list, e => e.gross - ded(e)))]), total: ['Total', String(E.length), n1(sum(E, e => e.total)), m2(sum(E, e => e.gross)), m2(sum(E, ded)), m2(sum(E, e => e.gross - ded(e)))] }; }
   if (id === 'labor') { const G = grp('project', e => e.project); return { cols: [['Project'], ['Client'], ['People', 'num'], ['Hours', 'num'], ['Labor cost', 'num'], ['Jira match', 'num']], rows: G.map(g => [g.k, CLIENT_OF[g.k] || '—', String(g.list.length), n1(sum(g.list, e => e.total)), m2(sum(g.list, e => e.gross)), (g.list.some(hasMatch) ? n1(sum(g.list.filter(hasMatch), e => e.match) / g.list.filter(hasMatch).length) + '%' : '—')]), total: ['Total', '', String(E.length), n1(sum(E, e => e.total)), m2(sum(E, e => e.gross)), ''] }; }
-  if (id === 'pto') return { cols: [['ID', 'mono'], ['Employee'], ['Department'], ['PTO used (h)', 'num'], ['Balance (days)', 'num'], ['Holidays (DR 2025)', 'num']], rows: E.map(e => [e.id, e.name, e.dept, n1(e.pto), n1(14.5 - e.pto / 8), '12']), total: ['', 'Total', '', n1(sum(E, e => e.pto)), '', ''] };
+  if (id === 'pto') { const yr = String(new Date().getFullYear()), holN = e => window.MGH_ATT ? window.MGH_ATT.holidays(e.entity).filter(h => String(h.date).startsWith(yr)).length : 0; return { cols: [['ID', 'mono'], ['Employee'], ['Department'], ['PTO used (h)', 'num'], ['Holidays (' + yr + ')', 'num']], rows: E.map(e => [e.id, e.name, e.dept, n1(e.pto), String(holN(e))]), total: ['', 'Total', '', n1(sum(E, e => e.pto)), ''] }; }
   if (id === 'contractors') { const C = window.__MGH_CTR; const P = C ? C.INIT_PAYMENTS : []; return { cols: [['Payment', 'mono'], ['Contractor'], ['Country'], ['Rail'], ['Amount', 'num'], ['Status']], rows: P.map(p => [p.id, p.c.name, p.c.country, p.c.method === 'Western Union' ? 'Western Union' : 'Coinbase', m2(p.amount), p.status]), total: ['', 'Total', '', '', m2(P.reduce((s, p) => s + p.amount, 0)), ''], note: 'Contractors are reported separately from employee payroll; organization, department and supervisor filters do not apply.' }; }
   if (id === 'org') { const G = grp('entity', e => e.entity); return { cols: [['Organization'], ['Employees', 'num'], ['Hours', 'num'], ['Overtime', 'num'], ['Labor cost', 'num'], ['Pending timesheets', 'num']], rows: G.map(g => [g.k, String(g.list.length), n1(sum(g.list, e => e.total)), n1(sum(g.list, e => e.ot)), m2(sum(g.list, e => e.gross)), String(g.list.filter(e => /Review|Submitted/.test(liveStatus(e))).length)]), total: ['Total', String(E.length), n1(sum(E, e => e.total)), n1(sum(E, e => e.ot)), m2(sum(E, e => e.gross)), String(E.filter(e => /Review|Submitted/.test(liveStatus(e))).length)] }; }
   return { cols: [], rows: [] };
@@ -3890,7 +3886,7 @@ function buildReport(id, E) {
 function exportReport(kind, title, sub, rep) {
   const tx = s => window.MGH_I18N ? window.MGH_I18N.tx(s) : s;
   const head = rep.cols.map(c => tx(c[0])), rows = rep.total ? [...rep.rows, rep.total] : rep.rows;
-  const name = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-pp-2025-08';
+  const name = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + ((sub || '').match(/PP-\d{4}-\d{2}/) || [new Date().toISOString().slice(0, 10)])[0].toLowerCase();
   const dl = (blob, ext) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name + '.' + ext; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); };
   const esc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
   if (kind === 'csv') { const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; dl(new Blob(['\ufeff' + [head, ...rows].map(r => r.map(q).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' }), 'csv'); return 'CSV downloaded'; }
@@ -3904,12 +3900,24 @@ function Reports({ notify }) {
   useWF();
   const [rep, setRep] = React.useState('hours');
   const ALL = 'All';
-  const [f, setF] = React.useState({ org: ALL, dept: ALL, project: ALL, client: ALL, sup: ALL, emp: ALL, period: 'PP-2025-08', status: ALL });
+  const curP = getCurrentPeriod();
+  const PERIODS = React.useMemo(() => [curP.code, ...window.__mghPrevPeriods(curP, 5).map(p => p.code)], [curP.code]);
+  const [f, setF] = React.useState({ org: ALL, dept: ALL, project: ALL, client: ALL, sup: ALL, emp: ALL, period: curP.code, status: ALL });
   const set = k => v => setF(x => ({ ...x, [k]: typeof v === 'string' ? v : v.target.value }));
   const opts = (l) => [ALL, ...[...new Set(l)].sort()];
-  const E0 = EMPLOYEES.filter(e => (!e.created || e.total > 0) && MGH_RBAC.can('reports.view', e));
-  const E = f.period !== 'PP-2025-08' ? [] : E0.filter(e => (f.org === ALL || e.entity === f.org) && (f.dept === ALL || e.dept === f.dept) && (f.project === ALL || e.project === f.project) && (f.client === ALL || CLIENT_OF[e.project] === f.client) && (f.sup === ALL || e.mgr === f.sup) && (f.emp === ALL || e.id + ' • ' + e.name === f.emp) && (f.status === ALL || liveStatus(e) === f.status));
-  const R = buildReport(rep, E), meta = REPORTS.find(r => r.id === rep);
+  // Past periods: hours come from that period's stored timesheets (current period is already on EMPLOYEES)
+  const [past, setPast] = React.useState(null);
+  React.useEffect(() => {
+    if (f.period === curP.code) { setPast(null); return; }
+    let cancel = false; setPast({});
+    window.api.timesheets({ periodId: f.period }).then(list => { if (cancel) return; const m = {}; (Array.isArray(list) ? list : []).forEach(t => { m[t.emp] = t; }); setPast(m); }).catch(() => { if (!cancel) setPast({}); });
+    return () => { cancel = true; };
+  }, [f.period]);
+  const withPeriod = e => { if (!past) return e; const t = past[e.id] || {}; const reg = Number(t.reg) || 0, ot = Number(t.ot) || 0, pto = Number(t.pto) || 0; return { ...e, reg, ot, pto, total: reg + ot + pto, gross: +(reg * e.rate + ot * e.rate * 1.5 + pto * e.rate).toFixed(2) }; };
+  const E0 = EMPLOYEES.filter(e => MGH_RBAC.can('reports.view', e)).map(withPeriod);
+  const E = E0.filter(e => (f.org === ALL || e.entity === f.org) && (f.dept === ALL || e.dept === f.dept) && (f.project === ALL || e.project === f.project) && (f.client === ALL || CLIENT_OF[e.project] === f.client) && (f.sup === ALL || e.mgr === f.sup) && (f.emp === ALL || e.id + ' • ' + e.name === f.emp) && (f.status === ALL || liveStatus(e) === f.status));
+  const perObj = f.period === curP.code ? curP : (window.__mghPrevPeriods(curP, 5).find(p => p.code === f.period) || curP);
+  const R = buildReport(rep, E, perObj), meta = REPORTS.find(r => r.id === rep);
   const active = Object.entries(f).filter(([k, v]) => v !== ALL && k !== 'period').length;
   const sub = f.period + ' • ' + (active ? active + ' filter(s)' : 'All organizations') + ' • USD';
   const hist = WF ? WF.all().flatMap(r => { const s = r.history.find(h => h.to === 'Submitted'), a2 = r.history.find(h => h.to === 'Approved'); return s && a2 ? [(new Date(a2.at) - new Date(s.at)) / 864e5] : []; }) : [];
@@ -3933,7 +3941,7 @@ function Reports({ notify }) {
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
         {fsel('org', 'organizations', E0.map(e => e.entity), 'domain')}{fsel('dept', 'departments', E0.map(e => e.dept), 'apartment')}{fsel('project', 'projects', E0.map(e => e.project), 'folder_open')}
         {fsel('client', 'clients', E0.map(e => CLIENT_OF[e.project] || '—'), 'handshake')}{fsel('sup', 'supervisors', E0.map(e => e.mgr), 'supervisor_account')}{fsel('emp', 'employees', E0.map(e => e.id + ' • ' + e.name), 'person')}
-        <Select size="sm" icon="calendar_month" value={f.period} onChange={set('period')} options={['PP-2025-08', 'PP-2025-07', 'PP-2025-06']} />
+        <Select size="sm" icon="calendar_month" value={f.period} onChange={set('period')} options={PERIODS} />
         {fsel('status', 'statuses', E0.map(liveStatus), 'flag')}
         {active > 0 && <Button size="sm" variant="ghost" icon="filter_alt_off" onClick={() => setF(x => ({ ...x, org: ALL, dept: ALL, project: ALL, client: ALL, sup: ALL, emp: ALL, status: ALL }))}>Clear filters</Button>}
       </div>
@@ -3947,7 +3955,7 @@ function Reports({ notify }) {
         </div>
       </div>
       {R.note && <div className="mgh-body" style={{ marginBottom: 10, padding: '8px 12px', borderRadius: 8, background: 'var(--mgh-surface-1)' }}>{R.note}</div>}
-      {!R.rows.length ? <div className="mgh-body" style={{ padding: 28, textAlign: 'center', color: 'var(--mgh-ink-3)' }}>{f.period !== 'PP-2025-08' ? 'No data for ' + f.period + ' in this prototype. Only PP-2025-08 has closed timesheets.' : 'No records match these filters.'}</div> :
+      {!R.rows.length ? <div className="mgh-body" style={{ padding: 28, textAlign: 'center', color: 'var(--mgh-ink-3)' }}>{E0.length ? 'No records match these filters.' : 'No employees in your scope yet.'}</div> :
       <div className="mgh-scroll" style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
           <thead><tr>{R.cols.map(c => <th key={c[0]} style={{ textAlign: c[1] === 'num' ? 'right' : 'left', padding: '10px 12px', background: 'var(--mgh-surface-1)', font: '700 11px/14px var(--font-sans)', letterSpacing: '0.55px', textTransform: 'uppercase', color: 'var(--mgh-ink-2)', whiteSpace: 'nowrap' }}>{c[0]}</th>)}</tr></thead>
@@ -3996,12 +4004,12 @@ function CompanySettings({ notify }) {
 
   const initialProfile = {
     legalName: 'My Global Hub Dominicana SRL',
-    rnc: '1-31-88421-7',
+    rnc: '133-474018',
     hq: 'Punta Cana, La Altagracia, DR',
     currency: 'USD',
-    frequency: 'Bi-weekly (26 / yr)',
-    periodStart: 'Monday',
-    deadline: 'Day 14, 17:00',
+    frequency: 'Quincenal (24 / yr)',
+    periodStart: '1st and 15th of the month',
+    deadline: 'Last day of the quincena, 23:59',
     offset: '5',
     ot: true,
     esig: true,
@@ -4016,7 +4024,8 @@ function CompanySettings({ notify }) {
   const [form, setForm] = React.useState(() => {
     try {
       const saved = localStorage.getItem('mgh-company-settings');
-      return saved ? JSON.parse(saved) : initialProfile;
+      const v = saved ? JSON.parse(saved) : initialProfile;
+      return v.rnc === '1-31-88421-7' ? { ...v, rnc: initialProfile.rnc } : v;
     } catch {
       return initialProfile;
     }
@@ -4029,7 +4038,7 @@ function CompanySettings({ notify }) {
     setSaving(true);
     try {
       localStorage.setItem('mgh-company-settings', JSON.stringify(form));
-      notify('Company settings saved successfully');
+      notify('Company settings saved in this browser (not yet stored on the server)');
     } catch {
       notify('Error saving settings');
     } finally {
@@ -4310,8 +4319,12 @@ function Contractors({ go, notify }) {
   };
 
   const handleSaveAdd = async () => {
-    if (!addForm.name.trim() || !addForm.role.trim()) {
-      notify('Please enter contractor name and role');
+    if (!addForm.name.trim() || !addForm.role.trim() || !addForm.email.trim()) {
+      notify('Please enter contractor name, role and email');
+      return;
+    }
+    if (!(Number(addForm.rate) > 0)) {
+      notify('Please enter a rate greater than 0');
       return;
     }
     try {
@@ -4320,10 +4333,10 @@ function Contractors({ go, notify }) {
         name: addForm.name.trim(),
         role: addForm.role.trim(),
         country: addForm.country,
-        email: addForm.email.trim() || `${addForm.name.toLowerCase().replace(/\s+/g, '.')}@myglobalhub.net`,
-        phone: addForm.phone.trim() || '+1 809 555 0100',
+        email: addForm.email.trim(),
+        phone: addForm.phone.trim(),
         basis: addForm.basis,
-        rate: Number(addForm.rate) || 50,
+        rate: Number(addForm.rate),
         cur: 'USD',
         method: addForm.method,
         network: addForm.network,
@@ -4332,26 +4345,15 @@ function Contractors({ go, notify }) {
         walletFull: addForm.wallet,
         delivery: addForm.delivery,
         receiver: addForm.receiver || addForm.name,
-        city: addForm.city || 'Santo Domingo',
+        city: addForm.city || '',
         payCur: addForm.payCur || (addForm.method === 'Western Union' ? 'DOP' : 'USD'),
         password: addForm.password || 'Password123!',
         st: 'Active',
         entity: 'MGH Dominicana SRL'
       };
 
-      let created = null;
-      try {
-        created = await client.createContractor(payload);
-      } catch (e) {
-        console.warn('[API error creating contractor, fallback to local]', e);
-      }
-
-      const nextItem = created || {
-        id: 'CTR-' + (list.reduce((m, x) => Math.max(m, parseInt(String(x.id).replace(/\D/g, ''), 10) || 0), 1000) + 1),
-        ...payload,
-        start: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-        end: ''
-      };
+      // No local fallback: if the API fails, the catch below reports it instead of faking a saved record
+      const nextItem = await client.createContractor(payload);
 
       const updated = [nextItem, ...list.filter(x => x.id !== nextItem.id)];
       setList(updated);
@@ -4392,12 +4394,7 @@ function Contractors({ go, notify }) {
         st: editForm.st
       };
 
-      let updatedRecord = null;
-      try {
-        updatedRecord = await client.updateContractor(editForm.id, patch);
-      } catch (e) {
-        console.warn('[API error updating contractor, fallback to local]', e);
-      }
+      const updatedRecord = await client.updateContractor(editForm.id, patch);
 
       const updated = list.map(x => x.id === editForm.id ? (updatedRecord || { ...x, ...editForm, ...patch }) : x);
       setList(updated);
@@ -4505,7 +4502,7 @@ function Contractors({ go, notify }) {
         <TextField label="Contractor Full Name" value={editForm.name || ''} onChange={x => setEditForm(f => ({ ...f, name: typeof x === 'string' ? x : x.target.value }))} />
         <TextField label="Role / Scope" value={editForm.role || ''} onChange={x => setEditForm(f => ({ ...f, role: typeof x === 'string' ? x : x.target.value }))} />
         <Select label="Status" value={editForm.st || 'Active'} onChange={x => setEditForm(f => ({ ...f, st: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Active', 'Ended']} />
-        <Select label="Country of Residence" value={editForm.country || 'Venezuela'} onChange={x => setEditForm(f => ({ ...f, country: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Venezuela', 'Colombia', 'Argentina', 'Peru', 'Mexico', 'Honduras', 'Dominican Republic', 'United States']} />
+        <Select label="Country of Residence" value={editForm.country || ''} onChange={x => setEditForm(f => ({ ...f, country: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Venezuela', 'Colombia', 'Argentina', 'Peru', 'Mexico', 'Honduras', 'Dominican Republic', 'United States']} />
         <TextField label="Email Address" value={editForm.email || ''} onChange={x => setEditForm(f => ({ ...f, email: typeof x === 'string' ? x : x.target.value }))} />
         <TextField label="Phone Number" value={editForm.phone || ''} onChange={x => setEditForm(f => ({ ...f, phone: typeof x === 'string' ? x : x.target.value }))} />
         <Select label="Compensation Basis" value={editForm.basis || 'Hourly'} onChange={x => setEditForm(f => ({ ...f, basis: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Hourly', 'Fixed Monthly']} />
@@ -4564,22 +4561,26 @@ function ContractorPaymentsInner({ notify }) {
   const c = p.c || {};
   const wu = isWU(c);
 
+  // Optimistic update, rolled back (with an error toast that replaces the success one) if the backend rejects it
   const upd = async (id, patch) => {
+    const before = pays.find(x => x.id === id);
     setPays(ps => ps.map(x => x.id === id ? { ...x, ...patch } : x));
     try {
       const client = window.api || api;
       await client.updateContractorPayment(id, patch);
     } catch (e) {
-      console.warn('[payment sync error]', e);
+      setPays(ps => ps.map(x => x.id === id ? before : x));
+      notify('Payment ' + id + ' was NOT saved • ' + e.message);
     }
   };
+  const todayLabel = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const stepIdx = { Calculated: 3, 'Pending Approval': 4, Approved: 5, Sent: 6, Paid: 8 }[p.status];
   const steps = flowOf(c).map((l, i) => ({ label: l, state: i < stepIdx ? 'done' : i === stepIdx ? 'current' : 'todo' }));
   const action = {
     Calculated: { label: 'Create Payment', icon: 'add_card', run: () => { upd(p.id, { status: 'Pending Approval' }); notify('Payment created • awaiting approval'); } },
     'Pending Approval': { label: 'Approve Payment', icon: 'task_alt', run: () => { upd(p.id, { status: 'Approved' }); notify('Payment approved • ' + fmtUSD(p.amount)); } },
-    Approved: wu ? { label: 'Send via Western Union', icon: 'send_money', run: () => { upd(p.id, { status: 'Sent', date: 'Apr 19, 2025' }); setTxDraft({ cb: '', hash: '', mtcn: '' }); notify('Sent ' + fmtUSD(p.amount) + ' via Western Union • ' + c.delivery + ' in ' + c.country); } }
-      : { label: 'Send via Coinbase', icon: 'send_money', run: () => { upd(p.id, { status: 'Sent', date: 'Apr 19, 2025' }); setTxDraft({ cb: '', hash: '', mtcn: '' }); notify('Sent ' + fmtUSD(p.amount) + ' ' + c.asset + ' on ' + c.network); } },
+    Approved: wu ? { label: 'Send via Western Union', icon: 'send_money', run: () => { upd(p.id, { status: 'Sent', date: todayLabel }); setTxDraft({ cb: '', hash: '', mtcn: '' }); notify('Sent ' + fmtUSD(p.amount) + ' via Western Union • ' + c.delivery + ' in ' + c.country); } }
+      : { label: 'Send via Coinbase', icon: 'send_money', run: () => { upd(p.id, { status: 'Sent', date: todayLabel }); setTxDraft({ cb: '', hash: '', mtcn: '' }); notify('Sent ' + fmtUSD(p.amount) + ' ' + c.asset + ' on ' + c.network); } },
     Sent: wu ? { label: 'Record MTCN & Mark Paid', icon: 'verified', run: () => { const m = p.mtcn || txDraft.mtcn; if (!/^\d{3}-?\d{3}-?\d{4}$/.test(m.trim())) { notify('Enter the 10-digit MTCN'); return; } const d = m.replace(/\D/g, ''); upd(p.id, { status: 'Paid', mtcn: d.slice(0, 3) + '-' + d.slice(3, 6) + '-' + d.slice(6) }); notify('Western Union payment recorded as Paid in database'); } }
       : { label: 'Record Transaction & Mark Paid', icon: 'verified', run: () => { const cb = p.cbId || txDraft.cb, hash = p.hash || txDraft.hash; if (!cb || !hash) { notify('Enter the Coinbase transaction ID and hash'); return; } upd(p.id, { status: 'Paid', cbId: cb, hash }); notify('Payment recorded as Paid in database'); } },
   }[p.status];
@@ -4706,7 +4707,14 @@ window.__MGH_KIT = Object.assign(window.__MGH_KIT || {}, { contractors: Contract
 (function(){
 const { Button, IconButton, Badge, Avatar, Icon, Card, FilterChips, StatCard, Tabs, PageHeader, Select, TextField, Toggle, KeyValue, ProgressBar } = window.MyGlobalHubDesignSystem_2a603d;
 const A = window.MGH_ATT;
-let SHARED = { d: '2025-04-15', org: 'All', dept: 'All', sup: 'All' };
+let SHARED = { d: A.TODAY, org: 'All', dept: 'All', sup: 'All' };
+// Date ranges relative to today: current pay period (to date), previous one, last 7 days, this month
+const RANGES = (() => {
+  const cur = getCurrentPeriod(), prev = getQuincenaForDate(new Date(A.addD(cur.startDate, -1) + 'T12:00:00'));
+  const upTo = d => d > A.TODAY ? A.TODAY : d;
+  return { [cur.code]: [cur.startDate, upTo(cur.endDate)], [prev.code]: [prev.startDate, prev.endDate], 'Last 7 days': [A.addD(A.TODAY, -6), A.TODAY], 'This month': [A.TODAY.slice(0, 8) + '01', A.TODAY] };
+})();
+const RANGE_KEYS = Object.keys(RANGES);
 const SUBS = [['attendance', 'Dashboard', 'how_to_reg'], ['attDaily', 'Registro por horas', 'today'], ['actDaily', 'Registro por actividades', 'task_alt'], ['attCalendar', 'Calendar', 'calendar_month'], ['attExceptions', 'Exceptions', 'report'], ['attLeave', 'Leave Requests', 'beach_access'], ['attHolidays', 'Holidays', 'celebration'], ['attReports', 'Reports', 'summarize'], ['attRules', 'Rules', 'rule']];
 const LOC = () => window.MGH_I18N ? window.MGH_I18N.locale() : 'en-US';
 const fmtD = d => { const t = new Date(d + 'T00:00:00Z'); return t.toLocaleDateString(LOC(), { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }); };
@@ -4736,9 +4744,9 @@ const lunchTxt = p => p.lo && p.li ? p.lo + '–' + p.li : p.lo ? p.lo + '–…
 
 function Dashboard({ f, setF, go }) {
   const s = A.summary(f.d, match(f));
-  const k = [['Employees Present', s.present, 'how_to_reg', 'success'], ['Employees Absent', s.absent, 'person_off', 'danger'], ['Late Arrivals', s.late, 'schedule', 'warning'], ['Early Departures', s.early, 'logout', 'warning'], ['Missing Clock-Out', s.missingOut, 'timer_off', 'danger'], ['Missing Clock-In', s.missingIn, 'login', 'danger'], ['On Leave', s.onLeave, 'beach_access', 'accent'], ['Remote', s.remote, 'home_work', 'primary'], ['Field Work', s.field, 'directions_car', 'primary'], ['Attendance %', s.pct + '%', 'percent', s.pct >= 90 ? 'success' : 'warning']];
+  const k = [['Employees Present', s.present, 'how_to_reg', 'success'], ['No Record', s.noRecord, 'person_off', 'neutral'], ['Late Arrivals', s.late, 'schedule', 'warning'], ['Early Departures', s.early, 'logout', 'warning'], ['Missing Clock-Out', s.missingOut, 'timer_off', 'danger'], ['Missing Clock-In', s.missingIn, 'login', 'danger'], ['On Leave', s.onLeave, 'beach_access', 'accent'], ['Remote', s.remote, 'home_work', 'primary'], ['Field Work', s.field, 'directions_car', 'primary'], ['Attendance %', s.pct == null ? '—' : s.pct + '%', 'percent', s.pct == null ? 'neutral' : s.pct >= 90 ? 'success' : 'warning']];
   const days = []; for (let d = f.d, i = 0; days.length < 10 && i < 30; i++, d = A.addD(d, -1)) if (A.dow(d) % 6) days.unshift(d);
-  const trend = days.map(d => ({ d, p: A.summary(d, match(f)).pct }));
+  const trend = days.map(d => ({ d, p: A.summary(d, match(f)).pct || 0 }));
   const ex = A.daily(f.d, match(f)).flatMap(x => x.exceptions).filter(x => !['Approved', 'Corrected', 'Closed'].includes(x.status));
   const pend = A.leave().filter(l => /Pending/.test(l.status));
   return <>
@@ -4759,7 +4767,7 @@ function Dashboard({ f, setF, go }) {
 function Daily({ f, go, notify }) {
   const [st, setSt] = React.useState('All');
   const [punchDlg, setPunchDlg] = React.useState(false);
-  const [punchEmp, setPunchEmp] = React.useState('MGH-1042');
+  const [punchEmp, setPunchEmp] = React.useState(() => (A.roster[0] && A.roster[0].id) || '');
   const [cin, setCin] = React.useState('08:30');
   const [cout, setCout] = React.useState('17:30');
   const [mode, setMode] = React.useState('Office');
@@ -4767,20 +4775,18 @@ function Daily({ f, go, notify }) {
   const all = A.daily(f.d, match(f));
 
   const savePunch = async () => {
+    if (!punchEmp) { if (notify) notify('Selecciona un empleado'); return; }
+    const a = A.tm(cin), b = A.tm(cout);
+    if (a == null || b == null || b <= a) { if (notify) notify('La salida debe ser posterior a la entrada'); return; }
+    // Hours from the entered times (minus the org's auto-lunch when the shift is over 6h)
+    const r = A.rulesFor((A.roster.find(e => e.id === punchEmp) || {}).entity);
+    const worked = Math.max(0, (b - a - (r.autoLunch && b - a > 360 ? r.minLunch : 0)) / 60);
+    const hours = +worked.toFixed(2), overtime = +Math.max(0, worked - r.shift).toFixed(2);
     try {
-      A.punch({ emp: punchEmp, date: f.d, in: cin, out: cout, mode });
-      if (window.api) {
-        await window.api.recordPunch({
-          empId: punchEmp,
-          date: f.d,
-          clock_in: cin,
-          clock_out: cout,
-          mode,
-          hours: 8.0,
-          overtime: 0
-        });
-      }
-      if (notify) notify(`Ponche guardado para ${punchEmp} (${cin} – ${cout})`);
+      // Save to the backend first; only reflect it locally once the server accepted it
+      await window.api.recordPunch({ empId: punchEmp, date: f.d, clock_in: cin, clock_out: cout, mode, hours, overtime });
+      A.punch({ emp: punchEmp, date: f.d, in: cin, out: cout, mode, hours, overtime });
+      if (notify) notify(`Ponche guardado para ${punchEmp} (${cin} – ${cout} • ${hours}h)`);
       setPunchDlg(false);
     } catch (err) {
       if (notify) notify('Error al guardar ponche: ' + err.message);
@@ -4808,9 +4814,9 @@ function Daily({ f, go, notify }) {
   </Card>;
 }
 function Calendar({ f, setF, go }) {
-  const [view, setView] = React.useState('month'); const [ym, setYm] = React.useState([2025, 4]);
+  const [view, setView] = React.useState('month'); const [ym, setYm] = React.useState(() => [Number(A.TODAY.slice(0, 4)), Number(A.TODAY.slice(5, 7))]);
   const E = EMPLOYEES.filter(match(f));
-  const legend = ['Present', 'Late', 'Absent', 'Vacation', 'Sick', 'Remote', 'Training', 'Business Trip', 'Holiday', 'Pending Review'];
+  const legend = ['Present', 'Late', 'No Record', 'Vacation', 'Sick', 'Remote', 'Training', 'Business Trip', 'Holiday', 'Pending Review'];
   const days = view === 'month' ? A.month(ym[0], ym[1]) : (() => { const d0 = A.addD(f.d, -((A.dow(f.d) + 6) % 7)); return A.range(d0, A.addD(d0, 6)); })();
   const nav = n => { if (view === 'month') setYm(([y, m]) => { const t = m + n; return t < 1 ? [y - 1, 12] : t > 12 ? [y + 1, 1] : [y, t]; }); else setF(p => ({ ...p, d: A.addD(p.d, 7 * n) > A.TODAY ? A.TODAY : A.addD(p.d, 7 * n) })); };
   const title = view === 'month' ? new Date(Date.UTC(ym[0], ym[1] - 1, 1)).toLocaleDateString(LOC(), { month: 'long', year: 'numeric', timeZone: 'UTC' }) : 'Week of ' + fmtD(days[0]);
@@ -4829,9 +4835,9 @@ function Calendar({ f, setF, go }) {
   </Card>;
 }
 function Exceptions({ f, notify }) {
-  const [rng, setRng] = React.useState('PP-2025-08'); const [type, setType] = React.useState('All'); const [st, setSt] = React.useState('Open');
+  const [rng, setRng] = React.useState(RANGE_KEYS[0]); const [type, setType] = React.useState('All'); const [st, setSt] = React.useState('Open');
   const [dlg, setDlg] = React.useState(null); const [txt, setTxt] = React.useState(''); const [fix, setFix] = React.useState({});
-  const R = { 'PP-2025-08': ['2025-04-01', '2025-04-14'], 'PP-2025-09': ['2025-04-15', A.TODAY], 'Last 7 days': [A.addD(A.TODAY, -6), A.TODAY] }[rng];
+  const R = RANGES[rng];
   const all = A.exceptions(R[0], R[1]).filter(x => match(f)(EMPLOYEES.find(e => e.id === x.emp) || {}));
   const done = s => ['Approved', 'Corrected', 'Closed'].includes(s);
   const L = all.filter(x => (type === 'All' || x.type === type) && (st === 'All' || (st === 'Open' ? !done(x.status) : done(x.status))));
@@ -4853,7 +4859,7 @@ function Exceptions({ f, notify }) {
   const day = cur && A.day(cur.emp, cur.date);
   return <Card padding={20}>
     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-      <Select size="sm" icon="date_range" value={rng} onChange={x => setRng(v(x))} options={['PP-2025-08', 'PP-2025-09', 'Last 7 days']} />
+      <Select size="sm" icon="date_range" value={rng} onChange={x => setRng(v(x))} options={RANGE_KEYS} />
       <Select size="sm" icon="category" value={type} onChange={x => setType(v(x))} options={[{ value: 'All', label: 'All types' }, ...types.map(t => ({ value: t, label: TL[t] }))]} />
       <FilterChips value={st} onChange={setSt} options={[{ value: 'Open', label: 'Open', count: all.filter(x => !done(x.status)).length }, { value: 'Done', label: 'Resolved', count: all.filter(x => done(x.status)).length }, { value: 'All', label: 'All', count: all.length }]} />
     </div>
@@ -4878,47 +4884,43 @@ function Exceptions({ f, notify }) {
   </Card>;
 }
 function Leave({ notify }) {
-  const [form, setForm] = React.useState({ emp: 'MGH-1042', type: 'Vacation', from: '2025-04-21', to: '2025-04-21', reason: '' });
+  const [form, setForm] = React.useState(() => ({ emp: (MGH_RBAC.visible(EMPLOYEES, 'leave.request')[0] || {}).id || '', type: 'Vacation', from: A.TODAY, to: A.TODAY, reason: '' }));
   const [rej, setRej] = React.useState(null); const [why, setWhy] = React.useState(''); const [chip, setChip] = React.useState('All');
   const L = A.leave().filter(l => chip === 'All' || (chip === 'Pending' ? /Pending/.test(l.status) : l.status === chip));
   const selfOnly = MGH_RBAC.scopeOf('leave.request') === 'self', meId = (MGH_RBAC.me() || {}).emp, canReq = MGH_RBAC.can('leave.request');
   const emp = selfOnly ? meId : form.emp;
+  // Backend first (field names match leave.controller: empId/fromDate/toDate); the local engine only mirrors
+  // what the server accepted, so a failed save is reported instead of silently living in this browser.
   const submit = async () => {
+    if (!emp) { notify('Your account is not linked to an employee record'); return; }
     const e = EMPLOYEES.find(x => x.id === emp);
-    const r = A.requestLeave({ ...form, emp, name: e ? e.name : emp });
+    const name = e ? e.name : emp;
+    if (!form.from || !form.to || form.to < form.from) { notify('End date must be on or after start date'); return; }
+    let saved;
     try {
-      if (window.api && r.ok) {
-        await window.api.createLeaveRequest({
-          id: r.l ? r.l.id : undefined,
-          employeeId: emp,
-          employeeName: e ? e.name : emp,
-          type: form.type,
-          from: form.from,
-          to: form.to,
-          reason: form.reason
-        });
-      }
+      saved = await window.api.createLeaveRequest({ empId: emp, name, type: form.type, fromDate: form.from, toDate: form.to, reason: form.reason });
     } catch (err) {
-      console.warn('[Leave] API create fallback:', err.message);
+      notify('Could not submit leave request • ' + err.message);
+      return;
     }
-    notify(r.ok ? 'Leave request ' + r.l.id + ' sent to Supervisor' : r.msg);
-    if (r.ok) setForm(p => ({ ...p, reason: '' }));
+    const r = A.requestLeave({ ...form, emp, name });
+    notify(r.ok ? 'Leave request ' + (saved && saved.id ? saved.id : '') + ' sent to Supervisor' : r.msg);
+    if (window.api.leaveRequests) window.api.leaveRequests().then(list => A.setLeave(list)).catch(() => {});
+    setForm(p => ({ ...p, reason: '' }));
   };
 
   const act = async (l, a, c) => {
-    const r = A.leaveAct(l, a, c);
+    if (a === 'reject' && !(c || '').trim()) { notify('A reason is required'); return false; }
     try {
-      if (window.api && r.ok) {
-        await window.api.reviewLeaveRequest(l.id, {
-          action: a,
-          comment: c || ''
-        });
-      }
+      await window.api.reviewLeaveRequest(l.id, { action: a === 'cancel' ? 'cancel' : a === 'reject' ? 'reject' : 'approve', comment: c || '' });
     } catch (err) {
-      console.warn('[Leave] API review fallback:', err.message);
+      notify('Could not update ' + l.id + ' • ' + err.message);
+      return false;
     }
-    notify(r.ok ? l.id + ' • ' + r.to : r.msg);
-    return r.ok;
+    const r = A.leaveAct(l, a, c);
+    if (window.api.leaveRequests) window.api.leaveRequests().then(list => A.setLeave(list)).catch(() => {});
+    notify(r.ok ? l.id + ' • ' + r.to : l.id + ' updated');
+    return true;
   };
   const days = l => A.range(l.from, l.to).filter(d => A.dow(d) % 6).length;
   return <>
@@ -5000,28 +5002,28 @@ function Holidays({ notify }) {
   </Card>;
 }
 function AttReports({ f, notify }) {
-  const [rep, setRep] = React.useState('daily'); const [rng, setRng] = React.useState('PP-2025-08');
-  const R = { 'PP-2025-08': ['2025-04-01', '2025-04-14'], 'PP-2025-09': ['2025-04-15', A.TODAY], 'April 2025': ['2025-04-01', A.TODAY] }[rng];
+  const [rep, setRep] = React.useState('daily'); const [rng, setRng] = React.useState(RANGE_KEYS[0]);
+  const R = RANGES[rng];
   const E = EMPLOYEES.filter(match(f)), days = A.range(R[0], R[1]).filter(d => A.dow(d) % 6);
-  const per = e => { const L = days.map(d => A.day(e.id, d)); const c = s => L.filter(x => x.status === s).length; const sched = L.filter(x => !['Holiday', 'Vacation', 'Sick'].includes(x.status)).length; const pres = L.filter(x => ['Present', 'Late', 'Remote', 'Training', 'Business Trip', 'Pending Review'].includes(x.status)).length; return { L, c, sched, pres, pct: sched ? pres / sched * 100 : 100, hrs: L.reduce((s, x) => s + x.hours, 0), ex: L.flatMap(x => x.exceptions) }; };
+  const per = e => { const L = days.map(d => A.day(e.id, d)); const c = s => L.filter(x => x.status === s).length; const sched = L.filter(x => !['Holiday', 'Vacation', 'Sick', 'Not Started'].includes(x.status)).length; const pres = L.filter(x => ['Present', 'Late', 'Remote', 'Training', 'Business Trip', 'Pending Review'].includes(x.status)).length; return { L, c, sched, pres, pct: sched ? pres / sched * 100 : null, hrs: L.reduce((s, x) => s + x.hours, 0), ex: L.flatMap(x => x.exceptions) }; };
   const P = E.map(e => ({ e, ...per(e) }));
-  const REPS = { daily: 'Daily Attendance', monthly: 'Monthly Attendance', late: 'Late Employees', absence: 'Absence Summary', pct: 'Attendance %', ot: 'Overtime by Attendance', missing: 'Missing Punches', dept: 'Attendance by Department' };
+  const REPS = { daily: 'Daily Attendance', monthly: 'Monthly Attendance', late: 'Late Employees', absence: 'Days Without Record', pct: 'Attendance %', ot: 'Overtime by Attendance', missing: 'Missing Punches', dept: 'Attendance by Department' };
   const n1 = x => (Math.round(x * 10) / 10).toFixed(1);
   let cols = [], rows = [], total = null;
   if (rep === 'daily') { cols = [['Employee'], ['Status'], ['Clock In'], ['Lunch'], ['Clock Out'], ['Hours', 'num'], ['Exception'], ['Supervisor']]; rows = A.daily(f.d, match(f)).map(x => [x.name, x.status, x.punches.in || '—', lunchTxt(x.punches), x.punches.out || (x.inProgress ? 'In progress' : '—'), n1(x.hours), x.exceptions.map(y => y.label).join('; ') || '—', x.sup]); }
-  if (rep === 'monthly') { cols = [['Employee'], ['Present', 'num'], ['Late', 'num'], ['Absent', 'num'], ['Leave', 'num'], ['Remote', 'num'], ['Hours', 'num']]; rows = P.map(p => [p.e.name, String(p.pres), String(p.c('Late')), String(p.c('Absent')), String(p.c('Vacation') + p.c('Sick')), String(p.c('Remote')), n1(p.hrs)]); }
+  if (rep === 'monthly') { cols = [['Employee'], ['Present', 'num'], ['Late', 'num'], ['No record', 'num'], ['Leave', 'num'], ['Remote', 'num'], ['Hours', 'num']]; rows = P.map(p => [p.e.name, String(p.pres), String(p.c('Late')), String(p.c('No Record')), String(p.c('Vacation') + p.c('Sick')), String(p.c('Remote')), n1(p.hrs)]); }
   if (rep === 'late') { const lt = P.map(p => ({ p, l: p.ex.filter(x => x.type === 'late') })).filter(x => x.l.length); cols = [['Employee'], ['Department'], ['Late days', 'num'], ['Avg minutes late', 'num'], ['Worst', 'num']]; rows = lt.map(({ p, l }) => { const m = l.map(x => parseInt(x.label.split('• ')[1])); return [p.e.name, p.e.dept, String(l.length), n1(m.reduce((s, x) => s + x, 0) / m.length), Math.max(...m) + ' min']; }); }
-  if (rep === 'absence') { cols = [['Employee'], ['Unjustified absences', 'num'], ['Vacation', 'num'], ['Sick', 'num'], ['Holidays', 'num']]; rows = P.map(p => [p.e.name, String(p.c('Absent')), String(p.c('Vacation')), String(p.c('Sick')), String(p.c('Holiday'))]); }
-  if (rep === 'pct') { cols = [['Employee'], ['Scheduled days', 'num'], ['Days present', 'num'], ['Attendance %', 'num']]; rows = P.map(p => [p.e.name, String(p.sched), String(p.pres), n1(p.pct) + '%']); total = ['Total', String(P.reduce((s, p) => s + p.sched, 0)), String(P.reduce((s, p) => s + p.pres, 0)), n1(P.reduce((s, p) => s + p.pres, 0) / Math.max(1, P.reduce((s, p) => s + p.sched, 0)) * 100) + '%']; }
+  if (rep === 'absence') { cols = [['Employee'], ['Days without record', 'num'], ['Vacation', 'num'], ['Sick', 'num'], ['Holidays', 'num']]; rows = P.map(p => [p.e.name, String(p.c('No Record')), String(p.c('Vacation')), String(p.c('Sick')), String(p.c('Holiday'))]); }
+  if (rep === 'pct') { cols = [['Employee'], ['Scheduled days', 'num'], ['Days present', 'num'], ['Attendance %', 'num']]; rows = P.map(p => [p.e.name, String(p.sched), String(p.pres), p.pct == null ? '—' : n1(p.pct) + '%']); total = ['Total', String(P.reduce((s, p) => s + p.sched, 0)), String(P.reduce((s, p) => s + p.pres, 0)), n1(P.reduce((s, p) => s + p.pres, 0) / Math.max(1, P.reduce((s, p) => s + p.sched, 0)) * 100) + '%']; }
   if (rep === 'ot') { cols = [['Employee'], ['Days with OT', 'num'], ['OT hours (daily > ' + A.rules.shift + 'h)', 'num'], ['Hours worked', 'num']]; rows = P.map(p => { const o = p.ex.filter(x => x.type === 'overtime'); return [p.e.name, String(o.length), n1(o.reduce((s, x) => s + parseFloat(x.label.split('• ')[1]), 0)), n1(p.hrs)]; }).filter(r => r[1] !== '0'); }
   if (rep === 'missing') { cols = [['Employee'], ['Date'], ['Missing'], ['Status']]; rows = P.flatMap(p => p.ex.filter(x => /missing/.test(x.type)).map(x => [p.e.name, x.date, x.label, x.status])); }
-  if (rep === 'dept') { const G = {}; P.forEach(p => { (G[p.e.dept] = G[p.e.dept] || []).push(p); }); cols = [['Department'], ['Employees', 'num'], ['Attendance %', 'num'], ['Late', 'num'], ['Absent', 'num']]; rows = Object.entries(G).map(([d, l]) => [d, String(l.length), n1(l.reduce((s, p) => s + p.pres, 0) / Math.max(1, l.reduce((s, p) => s + p.sched, 0)) * 100) + '%', String(l.reduce((s, p) => s + p.c('Late'), 0)), String(l.reduce((s, p) => s + p.c('Absent'), 0))]); }
+  if (rep === 'dept') { const G = {}; P.forEach(p => { (G[p.e.dept] = G[p.e.dept] || []).push(p); }); cols = [['Department'], ['Employees', 'num'], ['Attendance %', 'num'], ['Late', 'num'], ['No record', 'num']]; rows = Object.entries(G).map(([d, l]) => [d, String(l.length), n1(l.reduce((s, p) => s + p.pres, 0) / Math.max(1, l.reduce((s, p) => s + p.sched, 0)) * 100) + '%', String(l.reduce((s, p) => s + p.c('Late'), 0)), String(l.reduce((s, p) => s + p.c('No Record'), 0))]); }
   const sub = (rep === 'daily' ? fmtD(f.d) : rng) + ' • ' + (f.org === 'All' ? 'All organizations' : f.org);
   const ex = kind => notify(window.__mghExport ? window.__mghExport(kind, REPS[rep], sub, { cols, rows, total }) : 'Export unavailable');
   return <Card padding={20}>
     <FilterChips value={rep} onChange={setRep} options={Object.entries(REPS).map(([k2, l]) => ({ value: k2, label: l }))} />
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '14px 0 10px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="mgh-h3">{REPS[rep]}</span><Badge size="sm" tone="neutral">{rows.length} rows</Badge>{rep !== 'daily' && <Select size="sm" icon="date_range" value={rng} onChange={x => setRng(v(x))} options={['PP-2025-08', 'PP-2025-09', 'April 2025']} />}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="mgh-h3">{REPS[rep]}</span><Badge size="sm" tone="neutral">{rows.length} rows</Badge>{rep !== 'daily' && <Select size="sm" icon="date_range" value={rng} onChange={x => setRng(v(x))} options={RANGE_KEYS} />}</div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{[['pdf', 'PDF', 'picture_as_pdf'], ['xls', 'Excel', 'table_view'], ['csv', 'CSV', 'csv'], ['print', 'Print', 'print']].map(([k2, l, ic]) => <Button key={k2} size="sm" variant={k2 === 'print' ? 'dark' : 'secondary'} icon={ic} style={MGH_RBAC.can('reports.export') ? undefined : { display: 'none' }} disabled={!rows.length} onClick={() => ex(k2)}>{l}</Button>)}</div>
     </div>
     <Table cols={cols.map(c => [c[0], c[1] === 'num' ? 'right' : 'left'])} rows={(total ? [...rows, total] : rows).map(r => r.map((x, j) => cols[j][0] === 'Status' && A.STATUS_COLOR[x] ? <Pill status={x} /> : x))} />
@@ -5107,10 +5109,18 @@ function Operations({ go, notify }) {
   useATT();
   const R = MGH_RBAC, W = window.MGH_WF, [tick, setTick] = React.useState(Date.now());
   React.useEffect(() => { const t = setInterval(() => setTick(Date.now()), 15000); return () => clearInterval(t); }, []);
+  // Live checks against the backend (null = still checking, false = failed)
+  const [hApi, setHApi] = React.useState(null), [hJira, setHJira] = React.useState(null);
+  React.useEffect(() => {
+    let cancel = false;
+    window.api.health().then(r => { if (!cancel) setHApi(r || false); }).catch(() => { if (!cancel) setHApi(false); });
+    window.api.jiraStatus().then(r => { if (!cancel) setHJira(r || false); }).catch(() => { if (!cancel) setHJira(false); });
+    return () => { cancel = true; };
+  }, []);
   const E = EMPLOYEES.filter(e => R.canAny(['timesheets.view', 'timesheets.approve', 'payroll.generate'], e));
   const recs = W ? W.all().filter(r => E.some(e => e.id === r.emp)) : [];
   const inReview = recs.filter(r => /Review|Submitted/.test(r.status)), toPay = recs.filter(r => r.status === 'Approved'), returned = recs.filter(r => r.status === 'Returned');
-  const age = r => { const h = r.history.slice(-1)[0]; return h ? (new Date('2025-04-15T09:15:00Z') - new Date(h.at)) / 36e5 : 0; };
+  const age = r => { const h = r.history.slice(-1)[0]; return h ? (Date.now() - new Date(h.at)) / 36e5 : 0; };
   const stale = inReview.filter(r => age(r) > 48);
   const y = A.addD(A.TODAY, -1), ex = A.exceptions(y, A.TODAY).filter(x => E.some(e => e.id === x.emp) && !['Approved', 'Corrected', 'Closed'].includes(x.status));
   const missOut = ex.filter(x => x.type === 'missing_out'), today = A.summary(A.TODAY, e => E.some(x => x.id === e.id));
@@ -5118,7 +5128,7 @@ function Operations({ go, notify }) {
   const kp = [
     ['Timesheets in review', inReview.length, 'pending_actions', 'warning', 'queue'], ['Ready for payroll', toPay.length, 'payments', 'primary', 'approvals'],
     ['Attendance exceptions', ex.length, 'report', ex.length ? 'danger' : 'success', 'attExceptions'], ['Missing clock-out', missOut.length, 'timer_off', missOut.length ? 'danger' : 'success', 'attExceptions'],
-    ['Blocked approvals', stale.length + returned.length, 'block', stale.length + returned.length ? 'danger' : 'success', 'queue'], ['Attendance today', today.pct + '%', 'how_to_reg', today.pct >= 90 ? 'success' : 'warning', 'attendance']];
+    ['Blocked approvals', stale.length + returned.length, 'block', stale.length + returned.length ? 'danger' : 'success', 'queue'], ['Attendance today', today.pct == null ? '—' : today.pct + '%', 'how_to_reg', today.pct == null ? 'neutral' : today.pct >= 90 ? 'success' : 'warning', 'attendance']];
   const alerts = [
     ...stale.map(r => ['high', 'Timesheet waiting > 48h at ' + r.status, r.name + ' • ' + r.period, () => go('approvals', r.emp)]),
     ...returned.map(r => ['medium', 'Returned for corrections', r.name + ' • ' + r.period + ' • ' + ((r.history.slice(-1)[0] || {}).comment || ''), () => go('approvals', r.emp)]),
@@ -5129,17 +5139,15 @@ function Operations({ go, notify }) {
   ].filter(a => R.canRoute(a[3] ? 'queue' : 'queue') || true);
   const sevTone = { high: 'danger', medium: 'warning', low: 'neutral' };
   const health = [
-    ['Jira Cloud', 'Connected • 14 worklogs syncing', 'success', 'jira'],
-    ['Coinbase', 'Base Mainnet • Direct USDC payout rail', 'success', 'contractorPayments'],
-    ['Back-end', 'Connected • SQLite / Cloud Firestore', 'success', null],
-    ['Notifications', 'Active • Webhooks & In-App delivery', 'success', null],
-    ['Exports', 'PDF / Excel / CSV / Print available', 'success', 'reports'],
+    ['Jira Cloud', hJira == null ? 'Checking…' : hJira && hJira.connection && hJira.connection.ok ? 'Connected' : 'Not connected' + (hJira && hJira.connection && hJira.connection.message ? ' • ' + hJira.connection.message : ''), hJira == null ? 'ink-4' : hJira && hJira.connection && hJira.connection.ok ? 'success' : 'danger', 'jira'],
+    ['Back-end', hApi == null ? 'Checking…' : hApi && hApi.status === 'ok' ? 'Connected • ' + (hApi.dialect || 'database') : 'Unreachable', hApi == null ? 'ink-4' : hApi && hApi.status === 'ok' ? 'success' : 'danger', null],
+    ['Exports', 'PDF / Excel / CSV / Print (generated in the browser)', 'success', 'reports'],
     ['Workflow', (W ? ['Employee', ...W.steps().map(s => s.label), 'Paid'].join(' → ') : '—'), 'success', 'workflows']];
   const quick = [['fact_check', 'Approve Pending', 'queue'], ['play_circle', 'Run Payroll', 'processing'], ['person_add', 'Create Employee', 'addEmployee'], ['report', 'Attendance Exceptions', 'attExceptions'], ['download', 'Export Reports', 'reports'], ['beach_access', 'Leave Requests', 'attLeave']].filter(q => R.canRoute(q[2]));
   const feed = (W ? W.audit() : []).slice(0, 14);
   const ago = iso => { const m = Math.max(0, Math.round((tick - new Date(iso)) / 60000)); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : Math.round(m / 60) + ' h ago'; };
   return <Page>
-    <PageHeader breadcrumbs={['Overview', 'Operations Center']} title="Operations Center" description={<span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}><span>Daily operation in one place</span><span>•</span><span data-i18n-skip="">{R.org}</span><span>•</span><span>{E.length + ' people in your scope'}</span><span>•</span><span>Every figure links to its source record.</span></span>} status={<Badge tone="success" dot>Live • refreshes on every change</Badge>} />
+    <PageHeader breadcrumbs={['Overview', 'Operations Center']} title="Operations Center" description={<span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}><span>Daily operation in one place</span><span>•</span><span data-i18n-skip="">{R.org}</span><span>•</span><span>{E.length + ' people in your scope'}</span><span>•</span><span>Every figure links to its source record.</span></span>} />
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,180px),1fr))', gap: 14 }}>{kp.map(([l, v, ic, t, r]) => <div key={l} role="button" title={'Open ' + l} onClick={() => R.canRoute(r) ? go(r) : notify('No access to ' + l)} style={{ cursor: 'pointer', borderRadius: 12 }}><StatCard label={l} value={String(v)} icon={ic} tone={t} style={{ minHeight: 0 }} /></div>)}</div>
     {quick.length > 0 && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{quick.map(([ic, l, r]) => <Button key={l} variant="secondary" icon={ic} onClick={() => go(r)}>{l}</Button>)}</div>}
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,440px),1fr))', gap: 20, alignItems: 'start' }}>

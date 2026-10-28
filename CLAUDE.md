@@ -21,7 +21,10 @@ Compose with DS components (Sidebar, TopBar, PageHeader, Card, StatCard, Badge, 
 Toggle, FilterChips, Stepper, ActivityFeed…).
 
 ## Data conventions
-- Pay periods: bi-weekly, `PP-{YYYY}-{NN}`, PP-2025-01 starts Dec 24 2024; app "today" = Tue Apr 15 2025.
+- Pay periods: `PP-{YYYY}-{NN}` quincenas (`frontend/src/lib/periodService.js`, `backend/src/payroll.js`): 1–15 and
+  15–end of month (day 15 currently belongs to both — pending business decision). The app uses
+  the real current date (attendance engine `MGH_ATT.TODAY` included); no frozen demo date.
+- No sample data: screens show backend data or an empty state. A day without punches is "No Record", not "Absent".
 - 12 statuses: Draft → Open → Awaiting Employee/Supervisor/PM/HR/Finance → Processing → Approved → Paid →
   Closed → Archived. Locked periods are immutable; corrections only via Payroll Adjustments.
 - Companies: My Global Hub (Dominicana SRL, RNC 133-474018, Punta Cana), Kairoon, Arawaki.
