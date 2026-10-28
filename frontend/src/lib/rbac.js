@@ -183,9 +183,7 @@
         return idLower === target ||
                shortLower === target ||
                target.includes(shortLower) ||
-               (target.includes('dominicana') && idLower.includes('dominicana')) ||
-               (target.includes('usa') && idLower.includes('usa')) ||
-               (target.includes('uk') && idLower.includes('uk'));
+               (target.includes('dominicana') && idLower.includes('dominicana'));
       });
       return match || ORGS[0];
     },

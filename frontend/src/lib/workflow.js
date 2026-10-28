@@ -62,7 +62,10 @@
   const steps = () => cfgGet().steps.filter(s => s.enabled);
   const key = (emp, period) => emp + '|' + period;
   const nowIso = () => new Date().toISOString();
+  // Who actually acted (history): the signed-in user's name
   const actorFor = r => (RB() && RB().ROLE_IDS.includes(r) && RB().person(r)) || (ROLES[r] || {}).person || r;
+  // Who is EXPECTED to act at a step: the role label ("PM / Supervisor", "Owner / Admin"), never the viewer's name
+  const roleLabel = r => (ROLES[r] || {}).person || r || '—';
 
   const routeOf = rec => (rec && rec.route && rec.route.length ? rec.route : steps());
   function reviewOf(step) { return (CATALOG[step.key] || {}).review || step.label + ' Review'; }
@@ -76,7 +79,7 @@
     ROLES, CATALOG, STATUS_TONE, STATUS_COLOR,
     get config() { return JSON.parse(JSON.stringify(cfgGet())); },
     get role() { return curRole(); },
-    person(r) { return actorFor(r || curRole()); },
+    person(r) { return r ? roleLabel(r) : actorFor(curRole()); },
     setRole(r) { if (RB()) RB().setRole(r); fire(); },
     steps,
     statusColor(st) { return STATUS_COLOR[STATUS_TONE[st] || 'neutral']; },
@@ -159,7 +162,7 @@
       if (['Paid', 'Rejected', 'Cancelled'].includes(rec.status)) return 'Read-only • ' + rec.status;
       if (rec.status === 'Approved') return RB() && RB().can('payroll.generate', rec.emp) ? '' : 'Only Payroll can generate the pay stub';
       if (API.editable(rec)) return 'Waiting for the employee to submit';
-      const p = API.pendingStep(rec); return p ? 'Waiting for ' + p.label + ' (' + actorFor(p.role) + ')' : '';
+      const p = API.pendingStep(rec); return p ? 'Waiting for ' + p.label + ' (' + roleLabel(p.role) + ')' : '';
     },
     transition(rec, to, comment, opts) {
       const from = rec.status, by = (opts && opts.actor) || actorFor(curRole()), r = (opts && opts.role) || curRole();
@@ -224,7 +227,7 @@
           done: d,
           current: rec && rec.stepIdx === i && !API.editable(rec) && !['Rejected', 'Returned'].includes(rec.status),
           meta: ev ? ev.at : '',
-          who: ev ? ev.actor : actorFor(s.role)
+          who: ev ? ev.actor : roleLabel(s.role)
         });
       });
       const ap = rec && ['Approved', 'Paid'].includes(rec.status), pd = rec && rec.status === 'Paid';

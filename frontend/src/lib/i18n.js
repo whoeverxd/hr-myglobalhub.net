@@ -1784,7 +1784,7 @@ Remote, EU|Remoto, UE
     addTranslation(src, es) { if (!es) return; custom[src] = es; REV = null; missing.delete(src); save(); apply(); fire(); },
     importJSON(obj) { if (!obj || typeof obj !== 'object') return false; const flat = obj.es && typeof obj.es === 'object' ? obj.es : obj; Object.keys(flat).forEach(k => { if (typeof flat[k] === 'string') { custom[k] = flat[k]; missing.delete(k); } }); save(); apply(); fire(); return true; },
     catalog(code) { const out = {}; Object.keys(dict).forEach(k => out[k] = code === 'en' ? k : dict[k]); Object.keys(tmpl).forEach(k => out[k] = code === 'en' ? k : tmpl[k]); Object.keys(custom).forEach(k => out[k] = code === 'en' ? k : custom[k]); return out; },
-    formats() { const loc = this.locale(), d = new Date(Date.UTC(2025, 3, 19, 14, 30));
+    formats() { const loc = this.locale(), d = new Date();
       return { date: new Intl.DateTimeFormat(loc, { dateStyle: 'long', timeZone: 'UTC' }).format(d), time: new Intl.DateTimeFormat(loc, { timeStyle: 'short', timeZone: 'UTC' }).format(d),
         currency: new Intl.NumberFormat(loc, { style: 'currency', currency: 'USD' }).format(3042.39) + ' • ' + new Intl.NumberFormat(loc, { style: 'currency', currency: 'DOP' }).format(179865.5),
         number: new Intl.NumberFormat(loc).format(1284.75) }; },
