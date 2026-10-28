@@ -436,12 +436,10 @@ router.delete(
 );
 
 router.get('/contractor-payments', authenticate, contractorsController.getContractorPaymentsList);
-router.post(
-  '/contractor-payments',
-  authenticate,
-  requireRole('pm', 'finance', 'admin'),
-  contractorsController.createContractorPaymentHandler
-);
+// One payroll for everyone: contractors are paid from their approved timesheets in #processing, never twice
+router.post('/contractor-payments', authenticate, (req, res) => {
+  res.status(410).json({ error: 'Los pagos van por la nómina (#processing): los contratistas cobran desde sus hojas aprobadas.' });
+});
 router.patch(
   '/contractor-payments/:id',
   authenticate,

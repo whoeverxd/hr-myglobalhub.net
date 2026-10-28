@@ -64,7 +64,7 @@ test('Contractors DB: Create new contractor with user login provisioning and aud
   // Verify user was automatically provisioned in users table
   const userRow = db.getOne(`SELECT * FROM users WHERE LOWER(email) = ?`, ['devops.contractor@myglobalhub.net']);
   assert.ok(userRow, 'System login user must be created for contractor');
-  assert.equal(userRow.role, 'contractor', 'User role must be contractor');
+  assert.equal(userRow.role, 'employee', 'New login defaults to employee: the contractor type is not a role');
   assert.equal(userRow.employee_id, newCtr.employeeId, 'User must link to contractor employee_id');
 
   // Verify audit log entry

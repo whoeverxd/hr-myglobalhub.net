@@ -85,26 +85,26 @@ function syncContractorEmployees() {
             ctrId,
             emp.name,
             emp.role || 'Contractor',
-            (emp.loc && emp.loc.includes('DR')) ? 'Dominican Republic' : (emp.loc || 'Dominican Republic'),
-            emp.email,
-            emp.phone || '+1 809 555 0192',
-            emp.start_date || 'Feb 10, 2024',
+            emp.loc || '',
+            emp.email || '',
+            emp.phone || '',
+            emp.start_date || '',
             'Hourly',
-            Number(emp.rate) || 50,
+            Number(emp.rate) || 0,
             emp.cur || 'USD',
-            'Coinbase',
-            emp.crypto_wallet ? (emp.crypto_wallet.slice(0, 6) + '…' + emp.crypto_wallet.slice(-4)) : '0x3aB8…9F12',
-            emp.crypto_wallet || '0x3aB858B5d06456EaFeEfa24e86895315B91a9F12',
+            emp.crypto_wallet ? 'Coinbase' : (emp.bank ? 'Bank' : ''),
+            emp.crypto_wallet ? (emp.crypto_wallet.slice(0, 6) + '…' + emp.crypto_wallet.slice(-4)) : '',
+            emp.crypto_wallet || '',
             emp.crypto_asset || 'USDC',
             emp.crypto_network || 'Base',
-            'Direct Crypto',
+            '',
             emp.name,
-            (emp.loc && emp.loc.split(',')[0]) || 'Santiago',
-            emp.bank || 'Banco BHD León',
-            emp.acct || '2039485761',
+            (emp.loc && emp.loc.split(',')[0]) || '',
+            emp.bank || '',
+            emp.acct || '',
             'USD',
             1.0,
-            0.01,
+            0,
             'Active',
             emp.entity || 'MGH Dominicana SRL',
             emp.id,
@@ -112,12 +112,13 @@ function syncContractorEmployees() {
         );
       }
 
-      // Ensure contractor has a login account in users
+      // Ensure the person has a login; the Contractor type is a profile field, never a role (existing roles are kept)
       if (emp.email) {
         ensureUserForEmployee({
           email: emp.email,
           name: emp.name,
-          role: 'contractor',
+          role: 'employee',
+          keepExistingRole: true,
           entity: emp.entity || 'MGH Dominicana SRL',
           employeeId: emp.id,
           // Random, not shown: these people sign in with Google or get a password from HR
@@ -180,36 +181,39 @@ function createContractor(data, user = 'System', ip = '127.0.0.1') {
 
   const name = data.name.trim();
   const role = data.role.trim();
-  const country = data.country || 'Dominican Republic';
-  const email = (data.email && data.email.trim()) || `${name.toLowerCase().replace(/\s+/g, '.')}@myglobalhub.net`;
-  const phone = (data.phone && data.phone.trim()) || '+1 555-0100';
-  const start = data.start || data.startDate || new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+  // Missing data stays empty: never invent an email, phone, date or payout details
+  const country = data.country || '';
+  const email = (data.email && data.email.trim()) || '';
+  const phone = (data.phone && data.phone.trim()) || '';
+  const start = data.start || data.startDate || '';
   const end = data.end || data.endDate || '';
   const basis = data.basis || 'Hourly';
   const rate = Number(data.rate) || 0;
   const cur = data.cur || 'USD';
-  const method = data.method || 'Coinbase';
+  const method = data.method || '';
   const walletFull = data.walletFull || data.wallet || '';
   const wallet = (walletFull.length > 12 && !walletFull.includes('@'))
     ? `${walletFull.slice(0, 6)}…${walletFull.slice(-4)}`
     : walletFull;
   const asset = data.asset || 'USDC';
   const network = data.network || 'Base';
-  const delivery = data.delivery || 'Cash Pickup';
+  const delivery = data.delivery || '';
   const receiver = data.receiver || name;
-  const city = data.city || 'Santo Domingo';
+  const city = data.city || '';
   const bank = data.bank || '';
   const acct = data.acct || '';
   const payCur = data.payCur || (method === 'Western Union' ? 'DOP' : 'USD');
   const fx = Number(data.fx) || 1.0;
-  const wuFee = Number(data.wuFee) || (method === 'Western Union' ? 4.99 : 0.01);
+  const wuFee = Number(data.wuFee) || (method === 'Western Union' ? 4.99 : 0);
   const status = data.st || data.status || 'Active';
   const entity = data.entity || 'MGH Dominicana SRL';
 
   // 1. Link or create employee record in employees table
   let employeeId = data.employeeId || data.employee_id;
   if (!employeeId) {
-    const existingEmp = db.getOne(`SELECT id FROM employees WHERE LOWER(email) = ? OR LOWER(name) = ?`, [email.toLowerCase(), name.toLowerCase()]);
+    const existingEmp = email
+      ? db.getOne(`SELECT id FROM employees WHERE LOWER(email) = ? OR LOWER(name) = ?`, [email.toLowerCase(), name.toLowerCase()])
+      : db.getOne(`SELECT id FROM employees WHERE LOWER(name) = ?`, [name.toLowerCase()]);
     if (existingEmp) {
       employeeId = existingEmp.id;
     } else {
@@ -227,8 +231,8 @@ function createContractor(data, user = 'System', ip = '127.0.0.1') {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           employeeId, name, name.split(' ')[0], name.split(' ').slice(1).join(' '),
-          role, 'Engineering', 'Contractor', entity, city + ', ' + country, 'Joshua Hernandez',
-          'MSHP — Project Planning', rate, 'Active', bank, acct, null, cur, email, phone, start
+          role, '', 'Contractor', entity, [city, country].filter(Boolean).join(', '), null,
+          null, rate, 'Active', bank, acct, null, cur, email || null, phone, start
         ]
       );
     }
@@ -236,18 +240,19 @@ function createContractor(data, user = 'System', ip = '127.0.0.1') {
 
   const id = data.id && /^CTR-\d+$/i.test(data.id) ? data.id : `CTR-${employeeId.replace(/\D/g, '')}`;
 
-  // 2. Ensure system login user exists for contractor with role 'contractor'
+  // 2. Login only when there is a real email; new logins are 'employee', an existing login keeps its role
   let account = null, accountError = null;
   try {
-    account = ensureUserForEmployee({
+    account = email ? ensureUserForEmployee({
       email,
       name,
-      role: 'contractor',
+      role: 'employee',
+      keepExistingRole: true,
       entity,
       employeeId,
       password: data.password || null,
       avatar: null
-    });
+    }) : null;
   } catch (e) {
     console.warn('[contractor creation: user provisioning error]', e);
     accountError = e.message;
@@ -262,7 +267,7 @@ function createContractor(data, user = 'System', ip = '127.0.0.1') {
         pay_cur, fx, wu_fee, status, entity, employee_id
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        id, name, role, country, email, phone, start, end, basis, rate, cur,
+        id, name, role, country, email || null, phone, start, end, basis, rate, cur,
         method, wallet, walletFull, asset, network, delivery, receiver, city, bank, acct,
         payCur, fx, wuFee, status, entity, employeeId
       ]

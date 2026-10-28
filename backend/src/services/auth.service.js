@@ -580,7 +580,7 @@ function getSessionUser(token) {
 // an administrator, so the user must replace it at first sign-in (must_change_password).
 // `accountStatus`: 'created' | 'linked' (the email already had an account, e.g. from Google sign-in, now linked to
 // this employee) | 'conflict' (the email's account belongs to another employee: left untouched).
-function ensureUserForEmployee({ email, name, role = 'employee', entity = 'MGH Dominicana SRL', employeeId, password = null, avatar = null }) {
+function ensureUserForEmployee({ email, name, role = 'employee', entity = 'MGH Dominicana SRL', employeeId, password = null, avatar = null, keepExistingRole = false }) {
   if (!email || !email.trim()) return null;
   const normalizedEmail = email.trim().toLowerCase();
   const existing = db.getOne(`SELECT * FROM users WHERE LOWER(email) = ?`, [normalizedEmail]);
@@ -589,7 +589,8 @@ function ensureUserForEmployee({ email, name, role = 'employee', entity = 'MGH D
     return { ...existing, accountStatus: 'conflict' };
   }
   if (existing) {
-    if (existing.role === 'admin') role = null; // linking an administrator's account never changes its role
+    // Linking an administrator's account never changes its role; nor does linking when the caller asks to keep it
+    if (existing.role === 'admin' || keepExistingRole) role = null;
     db.execute(
       `UPDATE users SET
          employee_id = COALESCE(?, employee_id),
