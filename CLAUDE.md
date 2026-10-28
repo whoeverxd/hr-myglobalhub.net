@@ -40,6 +40,11 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   (+ approved paid leave, paid holidays; OT by org rule) and frozen on submit; 0 worked+leave hours can't be submitted;
   only sheets under review can be approved/returned/adjusted; nobody but admin approves their own sheet; activities are
   written only by their owner (admin may correct) and locked once the sheet leaves Draft/Returned.
+- Meeting attendees: a pm/supervisor/admin logging a `Reunión` activity may send `attendees: [empId]` to
+  `POST /activities`; `createMeeting` (`activities.controller.js`) creates the organizer's activity plus one copy per
+  active attendee (same hours, shared `meeting_id`, `logged_by` = organizer) in one transaction. Attendees whose
+  quincena sheet isn't Draft/Returned are skipped and returned in `meeting.skipped`. Copies are independent of the
+  organizer's row; the attendee may delete theirs while editable. This is the only exception to "owner writes".
 - Review → pay flow: employee logs activities (optionally on project tasks) → submits (hours frozen) → PM step
   (`#approvals`): per-activity review `POST /timesheets/:id/activities/:aid/review` (all / partial with mandatory reason /
   none), comments `POST /timesheets/:id/comments` (stored in sheet history), approve recomputes hours from the decisions
