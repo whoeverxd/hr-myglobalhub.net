@@ -1,5 +1,6 @@
 const db = require('../db');
 const { logAction } = require('./audit.controller');
+const { periodIdForDate, EDITABLE } = require('./timesheets.controller');
 
 /**
  * Controller for Daily Activities & Deliverable-based timekeeping
@@ -27,6 +28,16 @@ function listActivities({ empId, date, dateFrom, dateTo } = {}) {
   }
 
   sql += ` ORDER BY date DESC, created_at DESC`;
+
+  const nameCache = new Map();
+  const nameOf = (empId) => {
+    if (!empId) return null;
+    if (!nameCache.has(empId)) {
+      const e = db.getOne('SELECT name FROM employees WHERE id = ?', [empId]);
+      nameCache.set(empId, e ? e.name : empId);
+    }
+    return nameCache.get(empId);
+  };
 
   return db.query(sql, params).map((a) => {
     let files = [];
@@ -56,11 +67,14 @@ function listActivities({ empId, date, dateFrom, dateTo } = {}) {
       reviewComment: a.review_comment || '',
       reviewedBy: a.reviewed_by || null,
       reviewedAt: a.reviewed_at || null,
+      meetingId: a.meeting_id || null,
+      loggedBy: a.logged_by || null,
+      loggedByName: nameOf(a.logged_by),
     };
   });
 }
 
-function createActivity(data, user = 'System', ip = '127.0.0.1') {
+function buildActivity(data) {
   const empId = data.employeeId || data.empId;
   const date = data.date;
   const hours = parseFloat(data.hours);
@@ -77,55 +91,101 @@ function createActivity(data, user = 'System', ip = '127.0.0.1') {
     throw err;
   }
 
-  const id = data.id || `ACT-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  const jiraKey = data.jiraKey || data.jira_key || 'GENERAL';
-  const jiraSummary = data.jiraSummary || data.jira_summary || data.description?.slice(0, 50) || 'General work';
-  const workType = data.workType || data.work_type || 'Desarrollo';
-  const description = data.description || '';
-  const evidencesJson = JSON.stringify(data.files || data.evidences || []);
-  const linksJson = JSON.stringify(data.links || []);
-
-  db.transaction(() => {
-    db.execute(
-      `INSERT INTO daily_activities (id, employee_id, date, jira_key, jira_summary, hours, work_type, description, evidences_json, links_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, empId, date, jiraKey, jiraSummary, hours, workType, description, evidencesJson, linksJson]
-    );
-
-    // Auto-acumular horas trabajadas en la tarea ágil nativa si coincide la clave
-    try {
-      db.execute(
-        `UPDATE project_tasks
-         SET logged_hours = COALESCE(logged_hours, 0) + ?,
-             updated_at = (datetime('now'))
-         WHERE UPPER(task_key) = ?`,
-        [hours, jiraKey.toUpperCase()]
-      );
-    } catch (_) {}
-
-    logAction({
-      actor: user,
-      action: 'CREATE_ACTIVITY',
-      entityType: 'activity',
-      entityId: id,
-      newValues: { empId, date, jiraKey, hours, workType },
-      ip,
-    });
-  });
-
   return {
-    id,
+    id: data.id || `ACT-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     empId,
     date,
-    jiraKey,
-    jiraSummary,
+    jiraKey: data.jiraKey || data.jira_key || 'GENERAL',
+    jiraSummary: data.jiraSummary || data.jira_summary || data.description?.slice(0, 50) || 'General work',
     hours,
-    workType,
-    description,
-    files: data.files || [],
+    workType: data.workType || data.work_type || 'Desarrollo',
+    description: data.description || '',
+    files: data.files || data.evidences || [],
     links: data.links || [],
-    createdAt: new Date().toISOString(),
+    meetingId: data.meetingId || null,
+    loggedBy: data.loggedBy || null,
   };
+}
+
+// Inserts one activity; callers wrap it in db.transaction
+function insertActivity(a, user, ip) {
+  db.execute(
+    `INSERT INTO daily_activities (id, employee_id, date, jira_key, jira_summary, hours, work_type, description, evidences_json, links_json, meeting_id, logged_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [a.id, a.empId, a.date, a.jiraKey, a.jiraSummary, a.hours, a.workType, a.description, JSON.stringify(a.files), JSON.stringify(a.links), a.meetingId, a.loggedBy]
+  );
+
+  // Auto-acumular horas trabajadas en la tarea ágil nativa si coincide la clave
+  try {
+    db.execute(
+      `UPDATE project_tasks
+       SET logged_hours = COALESCE(logged_hours, 0) + ?,
+           updated_at = (datetime('now'))
+       WHERE UPPER(task_key) = ?`,
+      [a.hours, a.jiraKey.toUpperCase()]
+    );
+  } catch (_) {}
+
+  logAction({
+    actor: user,
+    action: 'CREATE_ACTIVITY',
+    entityType: 'activity',
+    entityId: a.id,
+    newValues: { empId: a.empId, date: a.date, jiraKey: a.jiraKey, hours: a.hours, workType: a.workType, meetingId: a.meetingId, loggedBy: a.loggedBy },
+    ip,
+  });
+}
+
+function toResponse(a) {
+  const { files, links, ...rest } = a;
+  return { ...rest, files, links, createdAt: new Date().toISOString() };
+}
+
+function createActivity(data, user = 'System', ip = '127.0.0.1') {
+  const a = buildActivity(data);
+  db.transaction(() => insertActivity(a, user, ip));
+  return toResponse(a);
+}
+
+/**
+ * A meeting logged by a PM/supervisor/admin for several attendees: the organizer's activity plus one copy per
+ * attendee, all sharing meeting_id. Attendees whose quincena sheet is no longer editable are skipped (never touched).
+ * Role and work-type checks happen in the route; the organizer's own sheet check too.
+ */
+function createMeeting(data, attendeeIds, user = 'System', ip = '127.0.0.1') {
+  const organizer = buildActivity(data);
+  const ids = [...new Set((attendeeIds || []).map(String))].filter((id) => id && id !== organizer.empId);
+
+  const attendees = ids.map((id) => ({ id, emp: db.getOne('SELECT id, name, status FROM employees WHERE id = ?', [id]) }));
+  const invalid = attendees.filter((x) => !x.emp || x.emp.status === 'Terminated').map((x) => x.id);
+  if (invalid.length) {
+    const err = new Error(`Unknown or inactive attendees: ${invalid.join(', ')}`);
+    err.status = 400;
+    throw err;
+  }
+
+  const meetingId = `MTG-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  organizer.meetingId = meetingId;
+  const periodId = periodIdForDate(organizer.date);
+  const created = [];
+  const skipped = [];
+  const copies = [];
+  for (const { id, emp } of attendees) {
+    const ts = db.getOne('SELECT status FROM timesheets WHERE employee_id = ? AND period_id = ?', [id, periodId]);
+    if (ts && !EDITABLE.includes(ts.status)) {
+      skipped.push({ employeeId: id, name: emp.name, periodId, status: ts.status });
+      continue;
+    }
+    copies.push(buildActivity({ ...data, id: undefined, employeeId: id, empId: id, meetingId, loggedBy: organizer.empId }));
+    created.push(id);
+  }
+
+  db.transaction(() => {
+    insertActivity(organizer, user, ip);
+    for (const c of copies) insertActivity(c, user, ip);
+  });
+
+  return { ...toResponse(organizer), meeting: { id: meetingId, created, skipped } };
 }
 
 function deleteActivity(id, user = 'System', ip = '127.0.0.1') {
@@ -182,4 +242,5 @@ module.exports = {
   createActivity,
   deleteActivity,
   getActivitySummary,
+  createMeeting,
 };

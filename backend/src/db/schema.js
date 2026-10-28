@@ -592,6 +592,9 @@ function initSchema() {
   try { exec(`ALTER TABLE daily_activities ADD COLUMN review_comment TEXT;`); } catch (_) {}
   try { exec(`ALTER TABLE daily_activities ADD COLUMN reviewed_by TEXT;`); } catch (_) {}
   try { exec(`ALTER TABLE daily_activities ADD COLUMN reviewed_at TEXT;`); } catch (_) {}
+  // Meeting logged by a PM/supervisor for several attendees: shared id + who logged it (null = the owner)
+  try { exec(`ALTER TABLE daily_activities ADD COLUMN meeting_id TEXT;`); } catch (_) {}
+  try { exec(`ALTER TABLE daily_activities ADD COLUMN logged_by TEXT;`); } catch (_) {}
   try { exec(`ALTER TABLE payroll_runs ADD COLUMN paid_by TEXT;`); } catch (_) {}
   // 1 = the password was set by an administrator; the user must replace it on next sign-in
   try { exec(`ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0;`); } catch (_) {}

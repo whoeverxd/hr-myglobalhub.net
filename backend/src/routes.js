@@ -975,6 +975,8 @@ router.get('/activities', authenticate, (req, res, next) => {
 
 // Activities belong to their employee: only they log/change them (admin may correct), and only while the
 // quincena's timesheet is still Draft/Returned. After submission corrections go through "return" by the reviewer.
+const MEETING_ORGANIZER_ROLES = ['pm', 'supervisor', 'admin'];
+
 function activityWriteError(user, empId, date) {
   const myEmpId = user && (user.employeeId || user.id);
   if (user && user.role !== 'admin' && empId && empId !== myEmpId) {
@@ -1004,6 +1006,17 @@ router.post('/activities', authenticate, (req, res, next) => {
     }
     const blocked = activityWriteError(req.user, body.employeeId || body.empId, body.date);
     if (blocked) return res.status(blocked.status).json({ error: blocked.error });
+    const attendees = Array.isArray(body.attendees) ? body.attendees.filter(Boolean) : [];
+    if (attendees.length) {
+      // Only PM / supervisor / admin log a meeting for other people, and only meetings
+      if (!req.user || !MEETING_ORGANIZER_ROLES.includes(req.user.role)) {
+        return res.status(403).json({ error: 'Only a PM, supervisor or admin can add meeting attendees' });
+      }
+      if ((body.workType || body.work_type) !== 'Reunión') {
+        return res.status(400).json({ error: 'Attendees can only be added to a meeting (workType Reunión)' });
+      }
+      return res.status(201).json(activitiesController.createMeeting(body, attendees, getUserName(req), getClientIp(req)));
+    }
     const activity = activitiesController.createActivity(
       body,
       getUserName(req),
