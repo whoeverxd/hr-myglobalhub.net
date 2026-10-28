@@ -30,8 +30,8 @@ function ensureEmployeeForUser(user) {
       email: user.email,
       entity: user.entity || 'MGH Dominicana SRL',
       type: user.role === 'contractor' ? 'Contractor' : 'Full-time',
-      role: 'Contributor',
-      mgr: 'Unassigned',
+      role: '',
+      mgr: null,
       project: '',
       avatar: user.avatar || null,
       systemRole: user.role,
@@ -68,6 +68,13 @@ async function verifyFirebasePassword(email, password) {
   }
 }
 
+// A login created on the fly (Firebase password / Google sign-in) is always a plain employee. Neither the
+// e-mail address nor a job title ("CEO", "Lead", "Manager"...) grants a role; an admin assigns it on the
+// profile card. Existing accounts keep the role they have.
+function roleForNewLogin() {
+  return 'employee';
+}
+
 async function login({ email, password, ip = '127.0.0.1' }) {
   if (!email || !password) {
     const err = new Error('Email and password are required');
@@ -93,7 +100,7 @@ async function login({ email, password, ip = '127.0.0.1' }) {
       const hash = hashPassword(password, salt);
 
       if (!user) {
-        let role = 'employee';
+        const role = roleForNewLogin();
         let entity = 'MGH Dominicana SRL';
         let employeeId = null;
         let name = normalizedEmail.split('@')[0];
@@ -102,12 +109,6 @@ async function login({ email, password, ip = '127.0.0.1' }) {
           employeeId = emp.id;
           name = emp.name || name;
           entity = emp.entity || entity;
-          const lowerRole = (emp.role || '').toLowerCase();
-          if (lowerRole.includes('ceo') || lowerRole.includes('admin')) role = 'admin';
-          else if (lowerRole.includes('lead') || lowerRole.includes('manager') || lowerRole.includes('pm')) role = 'pm';
-          else if (emp.type === 'Contractor') role = 'contractor';
-        } else if (normalizedEmail.includes('admin')) {
-          role = 'admin';
         }
 
         const userId = 'usr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
@@ -120,12 +121,8 @@ async function login({ email, password, ip = '127.0.0.1' }) {
       } else {
         // Sync password hash and link employee if unlinked
         const empIdUpdate = (!user.employee_id && emp) ? emp.id : user.employee_id;
-        let roleUpdate = user.role;
-        if ((!user.role || user.role === 'employee') && emp) {
-          const lowerRole = (emp.role || '').toLowerCase();
-          if (lowerRole.includes('pm') || lowerRole.includes('manager')) roleUpdate = 'pm';
-          else if (lowerRole.includes('admin')) roleUpdate = 'admin';
-        }
+        // An existing account keeps its role: a job title never changes it
+        const roleUpdate = user.role || roleForNewLogin();
         db.execute(
           `UPDATE users SET password_hash = ?, salt = ?, employee_id = ?, role = ? WHERE id = ?`,
           [hash, salt, empIdUpdate, roleUpdate, user.id]
@@ -217,23 +214,13 @@ async function loginWithGoogle({ idToken, ip = '127.0.0.1' }) {
     // Check if email matches a registered employee in employees table
     const emp = db.getOne(`SELECT * FROM employees WHERE LOWER(email) = ?`, [email]);
 
-    let role = 'employee';
+    const role = roleForNewLogin();
     let entity = 'MGH Dominicana SRL';
     let employeeId = null;
 
     if (emp) {
       employeeId = emp.id;
       entity = emp.entity || entity;
-      const lowerRole = (emp.role || '').toLowerCase();
-      if (lowerRole.includes('ceo') || lowerRole.includes('dueño') || lowerRole.includes('admin')) {
-        role = 'admin';
-      } else if (lowerRole.includes('lead') || lowerRole.includes('manager') || lowerRole.includes('pm')) {
-        role = 'pm';
-      } else if (emp.type === 'Contractor') {
-        role = 'contractor';
-      }
-    } else {
-      role = 'employee';
     }
 
     // Google-only account: no local password until the user sets one (POST /auth/password)
@@ -650,6 +637,7 @@ module.exports = {
   sanitizeUser,
   ensureUserForEmployee,
   mustChangePassword,
+  roleForNewLogin,
 };
 
 
