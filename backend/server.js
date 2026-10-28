@@ -4,7 +4,7 @@ const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const { requestLogger } = require('./src/middleware/logger.middleware');
-const { initDatabase, getDialect } = require('./src/db');
+const { initDatabase, getDialect, flushPendingWrites } = require('./src/db');
 const routes = require('./src/routes');
 
 const app = express();
@@ -40,9 +40,27 @@ async function startServer() {
     if (initDatabase) {
       await initDatabase();
     }
-    app.listen(PORT, '0.0.0.0', () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`MGH Timekeeping API running on http://127.0.0.1:${PORT} [DB: ${getDialect()}]`);
     });
+
+    // Firestore writes are fire-and-forget: setDocSync answers the request as soon as
+    // the in-memory cache is updated and leaves the remote write in flight. Without
+    // draining them, a deploy or `systemctl restart` kills writes the user was already
+    // told had been saved.
+    let closing = false;
+    for (const signal of ['SIGTERM', 'SIGINT']) {
+      process.on(signal, () => {
+        if (closing) return;
+        closing = true;
+        console.log(`[server] ${signal} received, draining pending writes...`);
+        server.close(() => {
+          flushPendingWrites()
+            .catch((err) => console.error('[server] flush error', err))
+            .finally(() => process.exit(0));
+        });
+      });
+    }
   } catch (err) {
     console.error('[server startup error]', err);
     process.exit(1);
