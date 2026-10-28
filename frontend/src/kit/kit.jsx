@@ -1483,11 +1483,14 @@ function PayrollDashboard({ go }) {
     return () => { cancel = true; };
   }, []);
   const byPeriod = {}; runs.forEach(r => { byPeriod[r.period_id] = (byPeriod[r.period_id] || 0) + (Number(r.total_gross) || 0); });
-  const hist = Object.keys(byPeriod).sort().slice(-6).map(p => ({ label: 'PP-' + p.slice(-2), a: +(byPeriod[p] / 1000).toFixed(1) }));
-  const byEntity = {}; E.forEach(e => { byEntity[e.entity] = (byEntity[e.entity] || 0) + (e.gross || 0); });
-  const entityRows = Object.entries(byEntity).sort((a, b) => b[1] - a[1]);
-  const nextP = getQuincenaForDate(new Date(curPeriod.year, curPeriod.month, curPeriod.isFirstHalf ? 20 : 5));
-  const nextP2 = getQuincenaForDate(new Date(curPeriod.year, curPeriod.month + (curPeriod.isFirstHalf ? 0 : 1), curPeriod.isFirstHalf ? 5 : 20));
+  const hist = Object.keys(byPeriod).sort().slice(-6).map(p => ({ label: p, a: +(byPeriod[p] / 1000).toFixed(1) }));
+  // Estimated gross by department (one company; projects/departments, not legal entities)
+  const byDept = {}; E.forEach(e => { const k = e.dept || '—'; byDept[k] = (byDept[k] || 0) + (e.gross || 0); });
+  const deptRows = Object.entries(byDept).sort((a, b) => b[1] - a[1]);
+  // Next quincenas: step one day past the end of the previous one (no month arithmetic)
+  const after = p => { const d = new Date(p.endDate + 'T12:00:00'); d.setDate(d.getDate() + 1); return getQuincenaForDate(d); };
+  const nextP = after(curPeriod);
+  const nextP2 = after(nextP);
   const upcomingRows = [curPeriod, nextP, nextP2].map(p => ({ id: p.code, range: p.rangeShort, pay: p.payDate }));
   const empty = txt => <div className="mgh-body" style={{ padding: '40px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>{txt}</div>;
   return <Page>
@@ -1500,8 +1503,8 @@ function PayrollDashboard({ go }) {
     </Grid>
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(300px,1fr)', gap: 20 }}>
       <Card icon="stacked_bar_chart" title="Gross by period" subtitle="Saved payroll runs • thousands USD">{hist.length ? <BarChart data={hist} height={200} format={v => '$' + v + 'k'} /> : empty('No payroll runs yet.')}</Card>
-      <Card icon="domain" title="By operating entity">
-        {gross > 0 ? <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{entityRows.map(([n, v]) => <div key={n}><div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}><span style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{n}</span><b style={{ font: '700 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{fmt$(v)}</b></div><ProgressBar value={v / gross * 100} /></div>)}</div> : empty('No hours logged this period.')}
+      <Card icon="donut_small" title="By department" subtitle="Current period estimate">
+        {gross > 0 ? <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{deptRows.map(([n, v]) => <div key={n}><div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}><span style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{n}</span><b style={{ font: '700 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{fmt$(v)}</b></div><ProgressBar value={v / gross * 100} /></div>)}</div> : empty('No hours logged this period.')}
       </Card>
     </div>
     <Card icon="event_repeat" title="Upcoming pay periods" bodyStyle={{ paddingTop: 14 }}>
@@ -1550,14 +1553,14 @@ function PayrollProcessing({ notify }) {
   const [disbursedModal, setDisbursedModal] = React.useState(false);
   const [disbursing, setDisbursing] = React.useState(false);
   const names = ['Pre-checks', 'Import Hours', 'Review Exceptions', 'Calculate', 'Approve & Lock', 'Disburse'];
-  const steps = names.map((l, i) => ({ label: l, state: i < step ? 'done' : i === step ? 'current' : 'pending', icon: ['rule', 'download', 'report', 'calculate', 'lock', 'send_money'][i], status: i < step ? 'Complete' : i === step ? 'Current Step' : 'Pending' }));
+  const steps = names.map((l, i) => ({ label: l, state: i < step ? 'done' : i === step ? 'current' : 'pending', icon: ['rule', 'download', 'report', 'calculate', 'lock', 'send_money'][i], status: i < step ? 'Visto' : i === step ? 'Paso actual' : 'Pendiente' }));
   // Open attendance exceptions from the backend (no invented issues)
   const [rawEx, setRawEx] = React.useState([]);
   const loadEx = React.useCallback(() => {
     if (window.api && window.api.exceptions) window.api.exceptions({ resolved: false }).then(r => setRawEx(Array.isArray(r) ? r : [])).catch(() => setRawEx([]));
   }, []);
   React.useEffect(loadEx, [loadEx]);
-  const ex = rawEx.map(x => ({ id: x.id, emp: EMPLOYEES.find(e => e.id === x.emp) || { id: x.emp, name: x.emp }, issue: x.type + (x.date ? ' • ' + x.date : ''), sev: x.severity || 'Medium', act: x.suggestedAction || '' }));
+  const ex = rawEx.map(x => ({ id: x.id, emp: EMPLOYEES.find(e => e.id === x.emp) || { id: x.emp, name: x.emp }, issue: x.type + (x.date ? ' • ' + x.date : ''), sev: x.severity || '—', act: x.suggestedAction || '' }));
   const totals = EMPLOYEES.reduce((t, e) => ({ hrs: t.hrs + (e.total || 0), gross: t.gross + (e.gross || 0), ded: t.ded + (e.gross ? DEDUCT(e).total : 0) }), { hrs: 0, gross: 0, ded: 0 });
   const resolveSelected = async () => {
     const ids = sel.slice();
@@ -1615,8 +1618,14 @@ function PayrollProcessing({ notify }) {
       </div>
     </Card>
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 8 }}>
-      <MetricTile tone="white" label="Employees" value={String(EMPLOYEES.length)} /><MetricTile tone="white" label="Hours" value={fmtH(totals.hrs)} /><MetricTile tone="white" label="Est. gross" value={fmt$(totals.gross)} /><MetricTile tone="white" label="Est. deductions" value={fmt$(totals.ded)} /><MetricTile tone="success" label="Est. net" value={fmt$(totals.gross - totals.ded)} /><MetricTile tone="danger" label="Exceptions" value={String(ex.length)} />
+      {run ? <>
+        <MetricTile tone="white" label="Empleados en la corrida" value={String(Number(run.total_employees) || 0)} /><MetricTile tone="white" label="Horas" value={run.total_hours != null ? fmtH(Number(run.total_hours)) : '—'} /><MetricTile tone="white" label="Bruto" value={fmt$(Number(run.total_gross) || 0)} /><MetricTile tone="white" label="Deducciones" value={run.total_deductions != null ? fmt$(Number(run.total_deductions)) : fmt$((Number(run.total_gross) || 0) - (Number(run.total_net) || 0))} /><MetricTile tone="success" label="Neto" value={fmt$(Number(run.total_net) || 0)} />
+      </> : periodCode === getCurrentPeriod().code ? <>
+        <MetricTile tone="white" label="Empleados (estimación)" value={String(EMPLOYEES.length)} /><MetricTile tone="white" label="Horas (estimación)" value={fmtH(totals.hrs)} /><MetricTile tone="white" label="Bruto estimado" value={fmt$(totals.gross)} /><MetricTile tone="white" label="Deducciones estimadas" value={fmt$(totals.ded)} /><MetricTile tone="success" label="Neto estimado" value={fmt$(totals.gross - totals.ded)} />
+      </> : <MetricTile tone="white" label={'Totales de ' + periodCode} value="—" sub="Sin corrida calculada" />}
+      <MetricTile tone="danger" label="Excepciones abiertas" value={String(ex.length)} />
     </div>
+    <div style={{ font: '500 12px var(--font-sans)', color: 'var(--mgh-ink-3)', marginTop: -12 }}>{run ? 'Totales de la corrida guardada de ' + periodCode + '.' : periodCode === getCurrentPeriod().code ? 'Estimación del período actual a partir de las hojas de tiempo; la corrida calcula los montos definitivos.' : 'Esta quincena aún no tiene corrida calculada.'}</div>
 
     {step === 5 ? (
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(300px,1fr)', gap: 20 }}>
@@ -1628,7 +1637,7 @@ function PayrollProcessing({ notify }) {
                 
                 
                 <div style={{ marginTop: 12 }}>
-                  <Button size="sm" variant="secondary" icon="download" onClick={() => window.open(`/api/payroll/export/bhd?periodId=${curPeriod.code}&download=true`, '_blank')}>Download BHD File</Button>
+                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => window.open(`/api/payroll/export/bhd?periodId=${curPeriod.code}&download=true`, '_blank')}>Download BHD File</Button>
                 </div>
               </div>
               <div style={{ padding: 16, borderRadius: 10, border: '1px solid var(--mgh-surface-2)', background: 'var(--mgh-surface-1)' }}>
@@ -1636,7 +1645,7 @@ function PayrollProcessing({ notify }) {
                 
                 
                 <div style={{ marginTop: 12 }}>
-                  <Button size="sm" variant="secondary" icon="download" onClick={() => window.open(`/api/payroll/export/nacha?periodId=${curPeriod.code}&download=true`, '_blank')}>Download NACHA (.ach)</Button>
+                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => window.open(`/api/payroll/export/nacha?periodId=${curPeriod.code}&download=true`, '_blank')}>Download NACHA (.ach)</Button>
                 </div>
               </div>
               <div style={{ padding: 16, borderRadius: 10, border: '1px solid var(--mgh-surface-2)', background: 'var(--mgh-surface-1)' }}>
@@ -1644,14 +1653,14 @@ function PayrollProcessing({ notify }) {
                 
                 
                 <div style={{ marginTop: 12 }}>
-                  <Button size="sm" variant="secondary" icon="download" onClick={() => window.open(`/api/payroll/export/usdc?periodId=${curPeriod.code}&download=true`, '_blank')}>Download USDC Batch</Button>
+                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => window.open(`/api/payroll/export/usdc?periodId=${curPeriod.code}&download=true`, '_blank')}>Download USDC Batch</Button>
                 </div>
               </div>
             </div>
             <div style={{ padding: 14, borderRadius: 8, background: 'var(--mgh-success-50)', border: '1px solid var(--mgh-success-200)', display: 'flex', gap: 12, alignItems: 'center' }}>
               <Icon name="verified" size={24} color="var(--mgh-success)" />
               <div style={{ font: '500 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>
-                Click <b>Release Funds</b> above to approve the saved payroll run for this period. Dispersal files are generated from the approved run.
+                {runLocked ? 'La corrida está aprobada: descarga los archivos de pago.' : <>Pulsa <b>Release Funds</b> para aprobar la corrida guardada de esta quincena. Los archivos de pago se habilitan solo desde la corrida aprobada.</>}
               </div>
             </div>
           </div>
@@ -1664,10 +1673,10 @@ function PayrollProcessing({ notify }) {
       </div>
     ) : (
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(300px,1fr)', gap: 20 }}>
-        <Card icon="report" title="Exceptions to resolve" subtitle="Payroll cannot lock while high-severity items are open." bodyStyle={{ paddingTop: 14 }}>
+        <Card icon="report" title="Exceptions to resolve" subtitle="Revisa y resuelve las excepciones abiertas antes de aprobar la corrida (el sistema no lo bloquea automáticamente)." bodyStyle={{ paddingTop: 14 }}>
           <DataTable selectable selected={sel} onSelectedChange={setSel} bulkBar={<Button size="sm" icon="done" onClick={resolveSelected}>Mark resolved</Button>} rows={ex} columns={[
             { key: 'emp', label: 'Employee', render: r => <EmployeeCell e={r.emp} sub={r.emp.id} /> }, { key: 'issue', label: 'Issue', wrap: true },
-            { key: 'sev', label: 'Severity', render: r => <Badge size="sm" tone={r.sev === 'High' ? 'danger' : 'warning'}>{r.sev}</Badge> }, { key: 'act', label: 'Suggested action', wrap: true }]} />
+            { key: 'sev', label: 'Severity', render: r => <Badge size="sm" tone={r.sev === 'High' ? 'danger' : r.sev === '—' ? 'neutral' : 'warning'}>{r.sev}</Badge> }, { key: 'act', label: 'Suggested action', wrap: true }]} />
         </Card>
         <Card icon="checklist" title="Pre-run checklist">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{['Exchange rates confirmed', 'TSS & ISR tables up to date', 'Jira worklogs synced', 'Bank cut-off times confirmed', 'Dual control approver assigned'].map((t) => <Checkbox key={t} label={t} />)}</div>
@@ -1734,9 +1743,9 @@ function PayStubPreview({ notify, empId }) {
 
   const row = (l, a, b, c, bold) => <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 90px 110px', gap: 8, padding: '8px 0', borderBottom: '1px solid var(--mgh-surface-2)', font: `${bold ? 700 : 500} 13px var(--font-sans)`, color: bold ? 'var(--mgh-ink)' : 'var(--mgh-ink-2)' }}><span>{l}</span><span style={{ textAlign: 'right' }}>{a}</span><span style={{ textAlign: 'right' }}>{b}</span><span style={{ textAlign: 'right', color: 'var(--mgh-ink)' }}>{c}</span></div>;
   const dateStr = d => d ? new Date(d + 'T00:00:00Z').toLocaleDateString(LOC(), { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) : '—';
-  const adjAdd = s.adjustments.reduce((sum, a) => sum + (a.amount > 0 ? a.amount : 0), 0);
+  const adjAdd = (s.adjustments || []).reduce((sum, a) => sum + (a.amount > 0 ? a.amount : 0), 0);
   const ytd = stubs.filter(x => x.year === s.year && x.periodNumber <= s.periodNumber);
-  const ytdGross = ytd.reduce((sum, x) => sum + x.grossPay, 0), ytdDed = ytd.reduce((sum, x) => sum + x.totalDeductions, 0);
+  const ytdGross = ytd.reduce((sum, x) => sum + (Number(x.grossPay) || 0), 0), ytdDed = ytd.reduce((sum, x) => sum + (Number(x.totalDeductions) || 0), 0);
   const issued = ['Approved', 'Paid', 'Closed', 'Archived'].includes(s.status);
   const COLORS = ['var(--mgh-primary)', 'var(--mgh-navy)', 'var(--mgh-accent)'];
 
@@ -1756,18 +1765,18 @@ function PayStubPreview({ notify, empId }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}><img src="assets/logo-mgh.png" alt="My Global Hub" style={{ height: 52 }} /><div style={{ textAlign: 'right' }}><div className="mgh-overline">Earnings statement</div><div className="mgh-h3">{s.periodId}</div><div className="mgh-body">Pay date {dateStr(s.payDate)}</div></div></div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, padding: 14, borderRadius: 8, background: 'var(--mgh-surface-page)' }}>
               <div><div className="mgh-overline">Employee</div><div className="mgh-lg">{s.employeeName}</div><div className="mgh-body">{s.employeeId}{s.employeeRole ? ' • ' + s.employeeRole : ''}</div></div>
-              <div><div className="mgh-overline">Employer</div><div className="mgh-lg">{s.entity}</div>{/dominicana/i.test(s.entity) && <div className="mgh-body">RNC 133-474018 • Punta Cana</div>}</div>
+              <div><div className="mgh-overline">Employer</div><div className="mgh-lg">{s.entity || 'My Global Hub (Dominicana SRL)'}</div>{(!s.entity || /dominicana|my global hub|mgh/i.test(s.entity)) && <div className="mgh-body">RNC 133-474018 • Punta Cana</div>}</div>
             </div>
-            <div><div className="mgh-overline" style={{ marginBottom: 4 }}>Earnings</div>{row('Description', 'Hours', 'Rate', 'Amount', true)}{row('Regular', s.regHours.toFixed(1), fmt$(s.rate), fmt$(s.regHours * s.rate))}{s.otHours > 0 && row('Overtime 1.5×', s.otHours.toFixed(1), fmt$(s.rate * 1.5), fmt$(s.otHours * s.rate * 1.5))}{s.ptoHours > 0 && row('PTO', s.ptoHours.toFixed(1), fmt$(s.rate), fmt$(s.ptoHours * s.rate))}{adjAdd > 0 && row('Adjustments', '', '', fmt$(adjAdd))}{row('Gross pay', '', '', fmt$(s.grossPay), true)}</div>
-            <div><div className="mgh-overline" style={{ marginBottom: 4 }}>Deductions</div>{s.deductions.length ? s.deductions.map(d => row(d.label, '', '', '−' + fmt$(d.amount))) : row('Tax deductions', '', '', 'Exempt')}{row('Total deductions', '', '', '−' + fmt$(s.totalDeductions), true)}</div>
-            {s.payoutDistribution.length > 0 && <div><div className="mgh-overline" style={{ marginBottom: 8 }}>Direct deposit allocation</div><ProgressBar height={16} segments={s.payoutDistribution.map((p, i) => ({ value: p.percentage, color: COLORS[i % COLORS.length], label: `${p.target} ${p.percentage}%` }))} /></div>}
+            <div><div className="mgh-overline" style={{ marginBottom: 4 }}>Earnings</div>{row('Description', 'Hours', 'Rate', 'Amount', true)}{row('Regular', (Number(s.regHours) || 0).toFixed(1), fmt$(s.rate), fmt$((Number(s.regHours) || 0) * (Number(s.rate) || 0)))}{s.otHours > 0 && row('Overtime 1.5×', Number(s.otHours).toFixed(1), fmt$(s.rate * 1.5), fmt$(s.otHours * s.rate * 1.5))}{s.ptoHours > 0 && row('PTO', Number(s.ptoHours).toFixed(1), fmt$(s.rate), fmt$(s.ptoHours * s.rate))}{adjAdd > 0 && row('Adjustments', '', '', fmt$(adjAdd))}{row('Gross pay', '', '', fmt$(s.grossPay), true)}</div>
+            <div><div className="mgh-overline" style={{ marginBottom: 4 }}>Deductions</div>{(s.deductions || []).length ? s.deductions.map(d => row(d.label, '', '', '−' + fmt$(d.amount))) : row('Sin deducciones', '', '', '—')}{row('Total deductions', '', '', '−' + fmt$(s.totalDeductions), true)}</div>
+            {(s.payoutDistribution || []).length > 0 && <div><div className="mgh-overline" style={{ marginBottom: 8 }}>Direct deposit allocation</div><ProgressBar height={16} segments={s.payoutDistribution.map((p, i) => ({ value: p.percentage, color: COLORS[i % COLORS.length], label: `${p.target} ${p.percentage}%` }))} /></div>}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderRadius: 8, background: 'var(--mgh-navy)', color: '#fff' }}><span className="mgh-overline" style={{ color: 'var(--mgh-nav-text)' }}>Net pay</span><span style={{ font: '800 28px var(--font-sans)', letterSpacing: '-0.56px' }}>{fmt$(s.netPay)}</span></div>
             <div style={{ font: '400 11px/16px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>Document ID PS-{s.periodId}-{s.employeeId} • Payroll run {s.runId}</div>
           </div>
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <Card title="Summary" padding={20}><div style={{ display: 'grid', gap: 8 }}><KeyValue label="Gross" value={fmt$(s.grossPay)} /><KeyValue label="Deductions" value={s.deductions.length ? '−' + fmt$(s.totalDeductions) : 'Exempt'} /><KeyValue label="Net" value={fmt$(s.netPay)} aside={<Badge tone={issued ? 'success' : 'warning'}>{s.status}</Badge>} /></div></Card>
+        <Card title="Summary" padding={20}><div style={{ display: 'grid', gap: 8 }}><KeyValue label="Gross" value={fmt$(s.grossPay)} /><KeyValue label="Deductions" value={(s.deductions || []).length ? '−' + fmt$(s.totalDeductions) : 'Sin deducciones'} /><KeyValue label="Net" value={fmt$(s.netPay)} aside={<Badge tone={issued ? 'success' : 'warning'}>{s.status}</Badge>} /></div></Card>
         <Card title="Year to date" padding={20}><div style={{ display: 'grid', gap: 8 }}><KeyValue label="YTD gross" value={fmt$(ytdGross)} /><KeyValue label="YTD withholding" value={fmt$(ytdDed)} /></div></Card>
       </div>
     </div>
@@ -1803,8 +1812,8 @@ function Banking({ notify }) {
   const t = useTable(accounts, { search: ['bank', 'country', 'type'], pageSize: 10 });
 
   const exportCsv = () => {
-    const headers = ['Institution', 'Code', 'Country', 'Rail', 'Account', 'Routing', 'Currency', 'Status', 'Volume'];
-    const rows = accounts.map(a => [a.bank, a.code, a.country, a.type, a.acct, a.routing, a.cur, a.st, a.vol]);
+    const headers = ['Institution', 'Code', 'Country', 'Rail', 'Account', 'Routing', 'Currency', 'Status'];
+    const rows = accounts.map(a => [a.bank, a.code, a.country, a.type, a.acct, a.routing, a.cur, a.st].map(x => x == null ? '' : x));
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.map(x => `"${String(x).replace(/"/g, '""')}"`).join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
@@ -1831,7 +1840,6 @@ function Banking({ notify }) {
       routing: form.routing.toUpperCase(),
       cur: form.cur,
       st: 'Pending verification',
-      vol: 0,
     };
     const next = [...accounts, newAccount];
     setAccounts(next);
@@ -1842,10 +1850,9 @@ function Banking({ notify }) {
   };
 
   return <Page>
-    <PageHeader breadcrumbs={['Payroll & Finance', 'Banking & Allocations']} title="Central Banking & Treasury" description="Funding accounts, payout rails and multi-bank splits for every operating entity." actions={<><Button variant="secondary" icon="history" onClick={() => window.__mghGo('audit')}>Audit History</Button><Button icon="add_circle" onClick={() => setAddOpen(true)}>Add Bank Account</Button></>} />
+    <PageHeader breadcrumbs={['Payroll & Finance', 'Banking & Allocations']} title="Central Banking & Treasury" description="Cuentas de fondeo y rieles de pago de My Global Hub (Dominicana SRL). Estas cuentas se guardan solo en este navegador." actions={<><Button variant="secondary" icon="history" onClick={() => window.__mghGo('audit')}>Audit History</Button><Button icon="add_circle" onClick={() => setAddOpen(true)}>Add Bank Account</Button></>} />
     <Grid min={220}>
-      <StatCard label="Accounts" value={String(accounts.length)} icon="account_balance" style={{ minHeight: 0 }} />
-      <StatCard label="Verified rails" value={`${accounts.filter(a => a.st === 'Verified').length} / ${accounts.length}`} icon="verified_user" tone="success" style={{ minHeight: 0 }} />
+      <StatCard label="Accounts" value={String(accounts.length)} icon="account_balance" style={{ minHeight: 0 }} footer="Solo en este navegador" />
       <StatCard label="Pending verification" value={String(accounts.filter(a => a.st !== 'Verified').length)} icon="lock_clock" tone="warning" style={{ minHeight: 0 }} />
     </Grid>
     <Card padding={20} icon="account_balance" title="Disbursement accounts">
@@ -1853,12 +1860,9 @@ function Banking({ notify }) {
       <DataTable style={{ marginTop: 14 }} sort={t.sort} onSort={t.setSort} rows={t.rows} columns={[
         { key: 'bank', label: 'Institution', sortable: true, render: r => <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ width: 36, height: 36, borderRadius: 8, background: r.id === 2 ? 'var(--mgh-navy)' : 'var(--mgh-primary-50)', color: r.id === 2 ? '#fff' : 'var(--mgh-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '800 11px var(--font-sans)' }}>{r.code}</span><div><div style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{r.bank}</div><div style={{ font: '400 11px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>{r.country}</div></div></div> },
         { key: 'type', label: 'Rail', sortable: true, render: r => <Badge size="sm" tone="primary" uppercase>{r.type}</Badge> }, { key: 'acct', label: 'Account', mono: true }, { key: 'routing', label: 'BIC / Routing', mono: true }, { key: 'cur', label: 'Currency' },
-        { key: 'st', label: 'Status', render: r => <Badge size="sm" dot tone={r.st === 'Verified' ? 'success' : 'warning'}>{r.st}</Badge> }, { key: 'vol', label: 'Cycle volume', align: 'right', sortable: true, strong: true, render: r => fmt$(r.vol) }]} />
+        { key: 'st', label: 'Status', render: r => <Badge size="sm" dot tone={r.st === 'Verified' ? 'success' : 'warning'}>{r.st || '—'}</Badge> }]} emptyText="No hay cuentas de fondeo registradas en este navegador." />
     </Card>
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-      <Card icon="call_split" title="Payout splits" subtitle="Configured per employee in their profile (bank / Coinbase allocation must total 100%)" />
-      <Card icon="gavel" title="Compliance & 3-Day Verification Policy" tone="muted"><p className="mgh-body" style={{ margin: 0 }}>Bank account modifications require hardware-token 2FA and countersignature from HR Finance leadership. Allocation updates are subject to an auditable 72-hour cooling period to prevent payroll diversion fraud.</p></Card>
-    </div>
+    <Card icon="call_split" title="Payout splits" subtitle="Configured per employee in their profile (bank / Coinbase allocation must total 100%)" />
 
     <Modal open={addOpen} title="Add Disbursement Bank Account" onClose={() => setAddOpen(false)} width={520}
       actions={<>
@@ -1870,10 +1874,10 @@ function Banking({ notify }) {
         <TextField label="Bank Institution" value={form.bank} onChange={x => setForm(f => ({ ...f, bank: typeof x === 'string' ? x : x.target.value }))} placeholder="e.g. Banco Popular" />
         <TextField label="Bank Code" value={form.code} onChange={x => setForm(f => ({ ...f, code: typeof x === 'string' ? x : x.target.value }))} placeholder="e.g. BPD" />
         <TextField label="Country" value={form.country} onChange={x => setForm(f => ({ ...f, country: typeof x === 'string' ? x : x.target.value }))} placeholder="e.g. Dominican Republic" />
-        <Select label="Payout Rail" value={form.type} onChange={x => setForm(f => ({ ...f, type: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Primary ACH', 'Offshore FedWire', 'BACS', 'SEPA']} />
+        <Select label="Payout Rail" value={form.type} onChange={x => setForm(f => ({ ...f, type: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Primary ACH', 'ACH (US)']} />
         <TextField label="Account Number / Masked" value={form.acct} mono onChange={x => setForm(f => ({ ...f, acct: typeof x === 'string' ? x : x.target.value }))} placeholder="•••• 1234" />
         <TextField label="BIC / Routing Number" value={form.routing} mono onChange={x => setForm(f => ({ ...f, routing: typeof x === 'string' ? x : x.target.value }))} placeholder="e.g. BPDODO22" />
-        <Select label="Currency" value={form.cur} onChange={x => setForm(f => ({ ...f, cur: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['DOP / USD', 'USD', 'EUR', 'GBP']} />
+        <Select label="Currency" value={form.cur} onChange={x => setForm(f => ({ ...f, cur: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['DOP / USD', 'DOP', 'USD']} />
       </div>
     </Modal>
   </Page>;
