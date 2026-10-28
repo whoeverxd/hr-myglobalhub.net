@@ -251,18 +251,9 @@ const firebaseService = {
         throw new Error('No se pudo inicializar la instancia de Cloud Firestore.');
       }
 
-      // Ping Firestore by reading/writing a connection probe document
+      // Read-only ping: one document read, never a write (the project is on the free Spark quota)
       const probeRef = db.collection('_system_health').doc('connection_probe');
       const now = new Date().toISOString();
-
-      await probeRef.set(
-        {
-          status: 'online',
-          lastChecked: now,
-          service: 'mgh-payroll-api',
-        },
-        { merge: true }
-      );
 
       const doc = await probeRef.get();
 
@@ -272,7 +263,7 @@ const firebaseService = {
         projectId: credentials.serviceAccount.project_id || credentials.serviceAccount.projectId,
         source: credentials.type === 'file' ? path.basename(credentials.path) : 'env_vars',
         serverTimestamp: now,
-        data: doc.data(),
+        data: doc.exists ? doc.data() : null,
       };
     } catch (err) {
       const projId = credentials.serviceAccount.project_id || credentials.serviceAccount.projectId;

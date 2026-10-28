@@ -48,7 +48,7 @@ function requestLogger(req, res, next) {
       statusCode: res.statusCode,
       durationMs,
       ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1',
-      user: req.user?.name || req.headers['x-user'] || 'Anonymous',
+      user: req.user?.name || 'Anonymous',
       role: req.user?.role || 'Guest',
     };
 

@@ -30,7 +30,8 @@ const db = require('./db');
 const router = express.Router();
 
 const getClientIp = (req) => req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-const getUserName = (req) => (req.user && req.user.name) || req.headers['x-user'] || 'Elena Rostova';
+const { getUserName } = require('./utils/actor');
+const { devResetAllowed } = require('./utils/runtime');
 const isPrivileged = (user) => user && (user.role === 'admin' || user.role === 'pm');
 
 /* ---------- Health ---------- */
@@ -51,7 +52,7 @@ router.get('/health', (req, res) => {
 });
 
 /* ---------- Firebase Status ---------- */
-router.get('/firebase/status', async (req, res) => {
+router.get('/firebase/status', authenticate, requireRole('admin'), async (req, res) => {
   const status = await firebaseService.testConnection();
   res.json(status);
 });
@@ -1174,8 +1175,9 @@ router.delete('/projects/:key/members/:userId', authenticate, requireRole('pm', 
 
 /* ---------- Dev helper ---------- */
 router.post('/dev/reset', authenticate, requireRole('admin'), (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
-    return res.status(404).json({ error: 'Not available in production' });
+  // Wipes and re-seeds the database: never on Firestore/Postgres, and only in tests or with ALLOW_DEV_RESET=true
+  if (!devResetAllowed(db.getDialect())) {
+    return res.status(404).json({ error: 'Not found' });
   }
   db.reset();
   res.json({ ok: true, message: 'Database reset and re-seeded' });

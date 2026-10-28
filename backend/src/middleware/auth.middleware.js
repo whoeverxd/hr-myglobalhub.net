@@ -1,5 +1,6 @@
 const { validateSession } = require('../services/auth.service');
 const db = require('../db');
+const { devAuthAllowed } = require('../utils/runtime');
 
 const PASSWORD_CHANGE_ALLOWED = ['/auth/me', '/auth/password', '/auth/logout'];
 
@@ -26,8 +27,9 @@ function authenticate(req, res, next) {
     return next();
   }
 
-  // Development fallback: if no token is sent, check for dev header or fallback to Elena (PM)
-  if (process.env.STRICT_AUTH !== 'true') {
+  // Development fallback (no token): ONLY in a test process or with ALLOW_DEV_AUTH=true. Secure by default --
+  // in production a request without a token is always 401, and x-user-email / x-user headers are ignored.
+  if (devAuthAllowed()) {
     const devUserEmail = req.headers['x-user-email'];
     const devUserName = req.headers['x-user'];
 
