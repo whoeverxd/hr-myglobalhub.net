@@ -1190,6 +1190,14 @@ function MyTimeEntry({ user, empId, notify, go }) {
                     placeholder="Buscar empleado por nombre..."
                     value={attendeeQuery}
                     onChange={(e) => setAttendeeQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      // Enter picks the first match instead of submitting the whole form
+                      if (e.key !== 'Enter') return;
+                      e.preventDefault();
+                      const q = attendeeQuery.trim().toLowerCase();
+                      const first = q && staff.find(x => x.id !== activeEmpId && !attendees.some(a => a.id === x.id) && `${x.name} ${x.id}`.toLowerCase().includes(q));
+                      if (first) { setAttendees([...attendees, { id: first.id, name: first.name }]); setAttendeeQuery(''); }
+                    }}
                     style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--mgh-surface-2)', fontSize: '13px', color: 'var(--mgh-ink)' }}
                   />
                   {attendeeQuery.trim() && (
