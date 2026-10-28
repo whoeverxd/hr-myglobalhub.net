@@ -363,7 +363,7 @@ export default class App extends React.Component {
       this.flash(`Calculating payroll register for ${periodId} with backend tax engine…`);
       const run = await api.calculatePayroll({ periodId, saveAsRun: true });
       this.setState({ payrollRunModal: run });
-      this.flash(`Run calculated: $${run.totalNet.toLocaleString()} net across ${run.totalEmployees} employees`);
+      this.flash(`Run calculated: ${Number(run.totalNet || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${run.currency || ''} net across ${run.totalEmployees ?? 0} employees`);
       await this.loadFromApi();
     } catch(e) {
       this.flash('Calculation blocked: ' + e.message);
@@ -831,7 +831,7 @@ export default class App extends React.Component {
         up:()=>WF.moveStep(i,-1),down:()=>WF.moveStep(i,1),remove:()=>{if(WF.removeStep(i))this.flash(x.label+' removed');else this.flash('At least one approver is required')}})),
       wfFlowText:['Employee',...WF.steps().map(x=>x.label),'Paid'].join(' → '),
       wfAddOpts:Object.keys(WF.CATALOG).filter(k=>!c.steps.some(x=>x.key===k)).map(k=>({label:'Add '+WF.CATALOG[k].label,run:()=>{WF.addStep(k);this.flash(WF.CATALOG[k].label+' step added before Payroll')}})),
-      wfReset:()=>{WF.resetConfig();this.flash('Workflow reset • Employee → Supervisor → Manager → Payroll → Paid')},
+      wfReset:()=>{WF.resetConfig();this.flash('Workflow reset • '+['Empleado',...WF.steps().map(x=>x.label),'Pagado'].join(' → '))},
       otRule:c.ot.rule,otOpts:[{value:'weekly',label:'Weekly (44h)'},{value:'daily',label:'Daily (8h)'},{value:'both',label:'Daily + Weekly'},{value:'custom',label:'Custom'}],
       setOtRule:v=>{const r=typeof v==='string'?v:v.target.value;WF.setOT(r==='weekly'?{rule:r,weekly:44}:r==='daily'?{rule:r,daily:8}:r==='both'?{rule:r,daily:8,weekly:44}:{rule:r});this.flash('Overtime rule • '+WF.otLabel())},
       otCustom:c.ot.rule==='custom',otDaily:String(c.ot.daily),otWeekly:String(c.ot.weekly),otLabel:WF.otLabel(),
@@ -1054,7 +1054,7 @@ export default class App extends React.Component {
     const denied=!R.canRoute(route)||(route==='profile'&&emp&&R.scopeOf('employees.view')!=='self'&&!R.can('employees.view',emp));
     if(denied)Object.keys(o).forEach(k=>{if(/^is[A-Z]/.test(k))o[k]=false});
     const perms=R.routePerms(route);
-    if(!R.can('timesheets.self')){o.myStatusBadge=null;o.myActions=null;o.myDesc='Timesheets waiting at your approval step in '+R.org+'. Open one to review hours, worklogs and punches.'}else o.myDesc='Clock in and out, record breaks, log project work and review your bi-weekly timesheet before submission.';
+    if(!R.can('timesheets.self')){o.myStatusBadge=null;o.myActions=null;o.myDesc='Timesheets waiting at your approval step in '+R.org+'. Open one to review hours, worklogs and punches.'}else o.myDesc='Register your daily activities and review your quincena timesheet before submission.';
     o.isDenied=denied;o.deniedTitle='403 • Access Denied';
     o.deniedText=(R.me().person+' • '+(R.role||'—')+' • '+R.org)+(perms?' — requires '+(perms.length?perms.join(' or '):'—'):' — unknown route #'+route);
     o.deniedHome=()=>this.go(R.homeRoute());o.deniedSwitch=()=>this.handleLogout();
@@ -1084,8 +1084,8 @@ export default class App extends React.Component {
       const sh=sheetsBy[p.id],run=runBy[p.id];
       let act;
       if(p.status==='Draft')act=['secondary','play_arrow','Open',()=>this.setStatus(p.id,'Open',p.id+' opened for time entry • employees notified')];
-      else if(p.status==='Closed'||p.status==='Archived')act=['ghost','lock_open','Reopen',()=>this.setState({dialog:{title:'Reopen '+p.id+'?',body:'Reopening a locked period requires dual approval from the Payroll Administrator and Finance VP. Original records stay immutable — any change posts as an adjustment in the next open period.',confirm:'Request Reopen',variant:'primary',icon:'key',run:()=>{this.setState({dialog:null});this.flash('Reopening locked periods is not available yet • post corrections as Payroll Adjustments')}}})];
-      else if(p.status==='Paid'||p.status==='Approved')act=['dark','lock','Lock',()=>this.setStatus(p.id,'Closed',p.id+' locked • SHA-256 seal written')];
+      else if(p.status==='Closed'||p.status==='Archived')act=['ghost','lock_open','Reopen',()=>this.setState({dialog:{title:'Reopen '+p.id+'?',body:'Un período cerrado no se puede reabrir desde la aplicación. Los registros originales no cambian: cualquier corrección se registra como Ajuste de Nómina en el siguiente período abierto.',confirm:'Request Reopen',variant:'primary',icon:'key',run:()=>{this.setState({dialog:null});this.flash('Reopening locked periods is not available yet • post corrections as Payroll Adjustments')}}})];
+      else if(p.status==='Paid'||p.status==='Approved')act=['dark','lock','Lock',()=>this.setStatus(p.id,'Closed',p.id+' cerrado')];
       else if(p.n<activePeriodNum)act=['secondary','payments','Process Payroll',()=>this.go('processing')];
       else act=[isCur?'primary':'secondary','visibility','Review Cycle',()=>this.go('approvals')];
       return {id:p.id,start:fy(p.s),end:fy(p.e),cutoff:f(p.e)+', 23:59',sheets:sh?sh.submitted+' enviadas • '+sh.approved+' aprobadas':'Sin hojas',run:run?(RUN_LABEL[run.status]||run.status):'Sin corrida',runTone:run?(run.status==='Paid'?'success':run.status==='Approved'?'primary':'warning'):'neutral',pay:fy(p.pay),status:p.status,statusShort:SHORT[p.status]||p.status,tone:TONE(p.status),locked,
@@ -1421,7 +1421,7 @@ export default class App extends React.Component {
                   Corporate Identity & Access Guard
                 </h1>
                 <p style={{ font: "400 14px/22px var(--font-sans)", color: "rgba(255, 255, 255, 0.72)", margin: "0" }}>
-                  Institutional authentication required. Access to multi-jurisdiction payroll calculations, timesheet approvals, and statutory ledgers is restricted by role.
+                  Institutional authentication required. Access to payroll, timesheet approvals and employee records is restricted by role.
                 </p>
               </div>
 
@@ -1435,7 +1435,7 @@ export default class App extends React.Component {
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px", borderRadius: "10px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
                   <span className="material-symbols-outlined" style={{ color: "#38BDF8", fontSize: "20px" }}>lock</span>
                   <div style={{ font: "500 12px/17px var(--font-sans)", color: "rgba(255, 255, 255, 0.88)" }}>
-                    <strong style={{ color: "#fff" }}>Cryptographic Audit Trail:</strong> Every login and payroll action is sealed in SQLite with append-only SHA-256 hashes.
+                    <strong style={{ color: "#fff" }}>Audit Trail:</strong> Logins and payroll actions are recorded in the audit log.
                   </div>
                 </div>
               </div>
@@ -2082,7 +2082,7 @@ export default class App extends React.Component {
           {v.isPeriods ? (
             <>
               <div style={{ padding: "28px", display: "flex", flexDirection: "column", gap: "20px", maxWidth: "1600px" }}>
-                <DS.PageHeader breadcrumbs={v.periodsCrumbs} title={"Pay Periods & Processing Schedule"} description="Manage annual bi-weekly payroll cycles, multi-tier approval deadlines, retroactive adjustment queues and period locking protocols." actions={v.periodsActions} />
+                <DS.PageHeader breadcrumbs={v.periodsCrumbs} title={"Pay Periods & Processing Schedule"} description="Quincenas de nómina (1–15 y 16–fin de mes, 24 al año): apertura, hojas de tiempo, corrida de nómina, pago y cierre del período." actions={v.periodsActions} />
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "14px" }}>
                   {(v.periodKpis || []).map((k, _i0) => (
                     <Fragment key={_i0}>
@@ -2512,7 +2512,7 @@ export default class App extends React.Component {
           {v.isWf ? (
             <>
               <div style={{ padding: "28px", display: "flex", flexDirection: "column", gap: "20px", maxWidth: "1600px" }}>
-                <DS.PageHeader breadcrumbs={v.wfCrumbs} title={"Approval Workflows & Policy Governance"} description="Configure sequential multi-tier timesheet and payroll approval pipelines, monetary sign-off thresholds, automated Jira variance rules and statutory lock protocols." actions={v.wfActions} />
+                <DS.PageHeader breadcrumbs={v.wfCrumbs} title={"Approval Workflows & Policy Governance"} description="Pasos de aprobación de las hojas quincenales (Supervisión PM y Aprobación Dueño), regla de horas extra y estados del período." actions={v.wfActions} />
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "14px" }}>
                   {(v.wfKpis || []).map((k, _i0) => (
                     <Fragment key={_i0}>
@@ -2529,7 +2529,7 @@ export default class App extends React.Component {
                         </DS.Badge>
                       </div>
                       <span style={{ font: "700 22px/28px var(--font-sans)", letterSpacing: "-0.44px", color: "var(--mgh-ink)" }}>
-                        Bi-Weekly Timesheet & Statutory Payroll Approval Sequence
+                        Secuencia de aprobación quincenal de hojas y nómina
                       </span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", borderRadius: "8px", background: "var(--mgh-surface-1)", font: "500 13px/18px var(--font-sans)", color: "var(--mgh-ink-2)" }}>
@@ -2721,7 +2721,7 @@ export default class App extends React.Component {
                     </DS.Badge>
                   </div>
                   <span style={{ font: "400 13px/18px var(--font-sans)", color: "var(--mgh-ink-2)", marginTop: "4px", display: "block" }}>
-                    Engine: Version {this.state.payrollRunModal.rulesVersion || '2025.1'} • Calculated with DGII (DR), TSS, US W-4 and UK PAYE statutory rules
+                    {'Engine: Version ' + (this.state.payrollRunModal.rulesVersion || '—') + ' • DGII (ISR) and TSS rules • ' + (this.state.payrollRunModal.currency || '—')}
                   </span>
                 </div>
                 <button onClick={() => this.setState({ payrollRunModal: null })} style={{ background: "transparent", border: "0", cursor: "pointer", padding: "4px" }}>
@@ -2733,23 +2733,27 @@ export default class App extends React.Component {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "12px" }}>
                 <div style={{ padding: "14px", borderRadius: "12px", background: "var(--mgh-surface-1)", display: "flex", flexDirection: "column", gap: "4px" }}>
                   <span style={{ font: "700 11px/14px var(--font-sans)", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--mgh-ink-3)" }}>Workforce</span>
-                  <span style={{ font: "800 22px/28px var(--font-sans)", color: "var(--mgh-ink)" }}>{this.state.payrollRunModal.totalEmployees} Employees</span>
-                  <span style={{ font: "400 12px/16px var(--font-sans)", color: "var(--mgh-ink-2)" }}>{this.state.payrollRunModal.totalHours} Total Hours</span>
+                  <span style={{ font: "800 22px/28px var(--font-sans)", color: "var(--mgh-ink)" }}>{this.state.payrollRunModal.totalEmployees ?? 0} Employees</span>
+                  <span style={{ font: "400 12px/16px var(--font-sans)", color: "var(--mgh-ink-2)" }}>{Number(this.state.payrollRunModal.totalHours ?? 0).toFixed(2)} Total Hours</span>
                 </div>
                 <div style={{ padding: "14px", borderRadius: "12px", background: "var(--mgh-surface-1)", display: "flex", flexDirection: "column", gap: "4px" }}>
                   <span style={{ font: "700 11px/14px var(--font-sans)", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--mgh-ink-3)" }}>Gross Payroll</span>
-                  <span style={{ font: "800 22px/28px var(--font-sans)", color: "var(--mgh-ink)" }}>${Number(this.state.payrollRunModal.totalGross || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  <span style={{ font: "800 22px/28px var(--font-sans)", color: "var(--mgh-ink)" }}>{Number(this.state.payrollRunModal.totalGross || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {this.state.payrollRunModal.currency || ''}</span>
                   <span style={{ font: "400 12px/16px var(--font-sans)", color: "var(--mgh-success)" }}>Base + OT + Adjustments</span>
                 </div>
                 <div style={{ padding: "14px", borderRadius: "12px", background: "var(--mgh-warning-bg)", display: "flex", flexDirection: "column", gap: "4px" }}>
                   <span style={{ font: "700 11px/14px var(--font-sans)", textTransform: "uppercase", letterSpacing: "0.5px", color: "#8A5A00" }}>Statutory Deductions</span>
-                  <span style={{ font: "800 22px/28px var(--font-sans)", color: "#8A5A00" }}>-${Number(this.state.payrollRunModal.totalDeductions || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                  <span style={{ font: "400 12px/16px var(--font-sans)", color: "#8A5A00" }}>TSS, DGII, FICA & PAYE</span>
+                  <span style={{ font: "800 22px/28px var(--font-sans)", color: "#8A5A00" }}>-{Number(this.state.payrollRunModal.totalDeductions || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {this.state.payrollRunModal.currency || ''}</span>
+                  <span style={{ font: "400 12px/16px var(--font-sans)", color: "#8A5A00" }}>TSS (AFP, SFS) & DGII (ISR)</span>
                 </div>
                 <div style={{ padding: "14px", borderRadius: "12px", background: "var(--mgh-success-bg)", display: "flex", flexDirection: "column", gap: "4px" }}>
                   <span style={{ font: "700 11px/14px var(--font-sans)", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--mgh-success)" }}>Net Disbursement</span>
-                  <span style={{ font: "800 22px/28px var(--font-sans)", color: "var(--mgh-success)" }}>${Number(this.state.payrollRunModal.totalNet || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                  <span style={{ font: "400 12px/16px var(--font-sans)", color: "var(--mgh-success)" }}>100% Balanced</span>
+                  <span style={{ font: "800 22px/28px var(--font-sans)", color: "var(--mgh-success)" }}>{Number(this.state.payrollRunModal.totalNet || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {this.state.payrollRunModal.currency || ''}</span>
+                  {(() => {
+                    const r = this.state.payrollRunModal, diff = (Number(r.totalGross) || 0) - (Number(r.totalDeductions) || 0) - (Number(r.totalNet) || 0);
+                    const ok = Math.abs(diff) < 0.01;
+                    return <span style={{ font: "400 12px/16px var(--font-sans)", color: ok ? "var(--mgh-success)" : "var(--mgh-danger)" }}>{ok ? 'Bruto − deducciones = neto' : 'Descuadre de ' + diff.toFixed(2)}</span>;
+                  })()}
                 </div>
               </div>
 
@@ -2771,24 +2775,24 @@ export default class App extends React.Component {
                       <tr key={idx} style={{ borderBottom: "1px solid var(--mgh-surface-2)" }}>
                         <td style={{ padding: "10px 14px" }}>
                           <div style={{ display: "flex", flexDirection: "column" }}>
-                            <span style={{ fontWeight: "600", color: "var(--mgh-ink)" }}>{item.employee_name || item.name}</span>
+                            <span style={{ fontWeight: "600", color: "var(--mgh-ink)" }}>{item.employee_name || item.name || '—'}</span>
                             <span style={{ fontSize: "11px", color: "var(--mgh-ink-3)" }}>{item.employee_role || item.role}</span>
                           </div>
                         </td>
                         <td style={{ padding: "10px 14px", textAlign: "right", fontFamily: "var(--font-mono)" }}>
-                          {(item.hours ? item.hours.total : (Number(item.reg_hours || 0) + Number(item.ot_hours || 0))).toFixed(1)}h
+                          {Number(item.hours ? (item.hours.total ?? 0) : (Number(item.reg_hours || 0) + Number(item.ot_hours || 0))).toFixed(1)}h
                         </td>
                         <td style={{ padding: "10px 14px", textAlign: "right", fontFamily: "var(--font-mono)", fontWeight: "600" }}>
-                          ${Number(item.gross_pay || (item.earnings && item.earnings.grossPay) || 0).toFixed(2)}
+                          {Number(item.gross_pay ?? (item.earnings && item.earnings.grossPay) ?? 0).toFixed(2)}
                         </td>
                         <td style={{ padding: "10px 14px", textAlign: "right", fontFamily: "var(--font-mono)", color: "var(--mgh-danger)" }}>
-                          -${Number(item.total_deductions || (item.deductions && item.deductions.total) || 0).toFixed(2)}
+                          -{Number(item.total_deductions ?? (item.deductions && item.deductions.total) ?? 0).toFixed(2)}
                         </td>
                         <td style={{ padding: "10px 14px", textAlign: "right", fontFamily: "var(--font-mono)", fontWeight: "700", color: "var(--mgh-success)" }}>
-                          ${Number(item.net_pay || item.netPay || 0).toFixed(2)}
+                          {Number(item.net_pay ?? item.netPay ?? 0).toFixed(2)}
                         </td>
                         <td style={{ padding: "10px 14px", fontSize: "11px", color: "var(--mgh-ink-2)" }}>
-                          {item.payoutDistribution && item.payoutDistribution[0] ? `${item.payoutDistribution[0].rail} (${item.payoutDistribution[0].percentage}%)` : 'Bank'}
+                          {Array.isArray(item.payoutDistribution) && item.payoutDistribution[0] ? (item.payoutDistribution[0].rail || '—') + (item.payoutDistribution[0].percentage != null ? ' (' + item.payoutDistribution[0].percentage + '%)' : '') : '—'}
                         </td>
                       </tr>
                     ))}
@@ -2801,7 +2805,7 @@ export default class App extends React.Component {
                 <span style={{ font: "400 12px/16px var(--font-sans)", color: "var(--mgh-ink-3)" }}>
                   {this.state.payrollRunModal.status === 'Approved'
                     ? 'This cycle is approved and locked. Records are permanent.'
-                    : 'Requires Finance VP or Administrator sign-off to finalize and lock.'}
+                    : 'Requiere aprobación de Finanzas o Admin para finalizar y bloquear.'}
                 </span>
                 <div style={{ display: "flex", gap: "10px" }}>
                   <DS.Button variant="secondary" onClick={() => this.setState({ payrollRunModal: null })}>
