@@ -108,6 +108,18 @@ function MyTimeEntry({ user, empId, notify, go }) {
     return () => { cancel = true; };
   }, [activeEmpId, quincena.code]);
   const viewingOther = !!(activeEmpId && myEmpId && activeEmpId !== myEmpId);
+  // Meeting attendees (PM / supervisor / admin logging a meeting for the people who attended)
+  const canAddAttendees = ['PM', 'SUPERVISOR', 'ADMIN'].includes(employeeRole);
+  const [attendees, setAttendees] = useState([]);
+  const [attendeeQuery, setAttendeeQuery] = useState('');
+  const [staff, setStaff] = useState([]);
+  useEffect(() => {
+    if (!canAddAttendees || !modalOpen || staff.length || !window.api || !window.api.employees) return;
+    window.api.employees()
+      .then(list => setStaff((Array.isArray(list) ? list : []).filter(e => e.status !== 'Terminated')))
+      .catch(() => {});
+  }, [canAddAttendees, modalOpen, staff.length]);
+  const showAttendees = canAddAttendees && workType === 'Reunión' && !viewingOther;
   const readOnly = !activeEmpId || viewingOther || (sheetStatus != null && !EDITABLE.includes(sheetStatus));
   const lockReason = !activeEmpId ? 'Tu usuario no está vinculado a un empleado.'
     : viewingOther ? 'Estás viendo el registro de otra persona (solo lectura).'
@@ -227,6 +239,8 @@ function MyTimeEntry({ user, empId, notify, go }) {
     setHours('2.5');
     setDescription('');
     setLinkUrl('');
+    setAttendees([]);
+    setAttendeeQuery('');
     setModalOpen(true);
   };
 
@@ -256,11 +270,22 @@ function MyTimeEntry({ user, empId, notify, go }) {
         workType,
         description: description.trim() || 'Actividad registrada en jornada quincenal',
         links: linkUrl.trim() ? [{ label: 'Enlace de trabajo', url: linkUrl.trim() }] : [],
+        ...(showAttendees && attendees.length ? { attendees: attendees.map(a => a.id) } : {}),
       };
 
       if (window.api && window.api.createActivity) {
-        await window.api.createActivity(payload);
-        if (notify) notify(`Tarea guardada en base de datos para el ${taskDate}`);
+        const saved = await window.api.createActivity(payload);
+        if (notify) {
+          const m = saved && saved.meeting;
+          if (m) {
+            const skippedText = m.skipped.length
+              ? ` No se agregó a ${m.skipped.map(s => `${s.name} (hoja ${s.periodId} ${statusLabel(s.status)})`).join(', ')}.`
+              : '';
+            notify(`Reunión registrada para ti y ${m.created.length} asistente${m.created.length === 1 ? '' : 's'}.${skippedText}`);
+          } else {
+            notify(`Tarea guardada en base de datos para el ${taskDate}`);
+          }
+        }
       }
 
       setModalOpen(false);
@@ -1135,6 +1160,50 @@ function MyTimeEntry({ user, empId, notify, go }) {
                   ))}
                 </div>
               </div>
+
+              {showAttendees && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ font: '600 12px/16px var(--font-sans)', color: 'var(--mgh-ink)' }}>
+                    Asistentes • La reunión se registrará también en sus hojas
+                  </label>
+                  {attendees.length > 0 && (
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {attendees.map(a => (
+                        <span key={a.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 6px 3px 10px', borderRadius: '999px', background: 'var(--mgh-surface-1, #EEF1FA)', color: 'var(--mgh-ink)', fontSize: '12px', fontWeight: 600 }}>
+                          {a.name}
+                          <button type="button" aria-label={`Quitar a ${a.name}`} onClick={() => setAttendees(attendees.filter(x => x.id !== a.id))}
+                            style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, display: 'inline-flex', color: 'var(--mgh-ink-3)' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <input
+                    type="text"
+                    placeholder="Buscar empleado por nombre..."
+                    value={attendeeQuery}
+                    onChange={(e) => setAttendeeQuery(e.target.value)}
+                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--mgh-surface-2)', fontSize: '13px', color: 'var(--mgh-ink)' }}
+                  />
+                  {attendeeQuery.trim() && (
+                    <div style={{ border: '1px solid var(--mgh-surface-2)', borderRadius: '8px', maxHeight: '160px', overflowY: 'auto', background: '#fff' }}>
+                      {staff
+                        .filter(e => e.id !== activeEmpId && !attendees.some(a => a.id === e.id))
+                        .filter(e => `${e.name} ${e.id}`.toLowerCase().includes(attendeeQuery.trim().toLowerCase()))
+                        .slice(0, 8)
+                        .map(e => (
+                          <button key={e.id} type="button"
+                            onClick={() => { setAttendees([...attendees, { id: e.id, name: e.name }]); setAttendeeQuery(''); }}
+                            style={{ display: 'flex', width: '100%', justifyContent: 'space-between', padding: '8px 12px', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '13px', color: 'var(--mgh-ink)', textAlign: 'left' }}>
+                            <span>{e.name}</span>
+                            <span style={{ color: 'var(--mgh-ink-3)', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>{e.id}</span>
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Resumen / Título */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
