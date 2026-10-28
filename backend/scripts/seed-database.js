@@ -18,8 +18,22 @@ const fs = require('fs');
 const backendEnvPath = path.join(__dirname, '..', '.env');
 if (fs.existsSync(backendEnvPath)) require('dotenv').config({ path: backendEnvPath });
 
+// The seeder writes local fixture data (known test passwords, sample rows). It is refused on anything but
+// local SQLite -- decided from the environment BEFORE any database module is loaded.
+const requestedClient = String(process.env.DATABASE_CLIENT || 'firestore').toLowerCase();
+const isTest = Boolean(process.env.NODE_TEST_CONTEXT) || process.env.NODE_ENV === 'test';
+if (!isTest && requestedClient !== 'sqlite') {
+  console.error(`Refusing to seed: DATABASE_CLIENT='${requestedClient}'. The seeder only runs against local SQLite (DATABASE_CLIENT=sqlite).`);
+  process.exit(1);
+}
+
 const db = require('../src/db');
 const { seedDatabaseIfEmpty } = require('../src/db/seeder');
+
+if (db.getDialect() !== 'sqlite') {
+  console.error(`Refusing to seed: active dialect is '${db.getDialect()}', not sqlite.`);
+  process.exit(1);
+}
 
 console.log('\n=============================================================');
 console.log('   MGH Payroll — Sembrador de Datos Demo / Testing');

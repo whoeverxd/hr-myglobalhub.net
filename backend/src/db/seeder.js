@@ -1,4 +1,8 @@
-const { query, getOne, execute, transaction } = require('./connection');
+const { query, getOne, execute, transaction, getDialect } = require('./connection');
+const { seedingAllowed } = require('../utils/runtime');
+
+// IMPORTANT: everything below is LOCAL TEST/DEV FIXTURE DATA for SQLite (the test suite logs in with these
+// accounts and relies on these rows). It must never reach Firestore/Postgres -- see seedDatabaseIfEmpty().
 const { buildPeriods } = require('../payroll');
 
 const INITIAL_EMPLOYEES = [
@@ -420,7 +424,11 @@ const INITIAL_TIMESHEETS = [
   { id: 'TS-2025-08-MGH-1044', emp: 'MGH-1044', name: 'Luis Rodriguez', period: 'PP-2025-08', status: 'Draft', step: 0, reg: 0, ot: 0, pto: 0, hol: 0, tot: 0 },
 ];
 
-function seedDatabaseIfEmpty() {
+function seedDatabaseIfEmpty({ dialect = getDialect() } = {}) {
+  if (!seedingAllowed(dialect)) {
+    console.log(`[db] Seeder skipped: dialect '${dialect}' is not local SQLite (fixture data never touches real databases).`);
+    return false;
+  }
   const periodCount = getOne('SELECT COUNT(*) as count FROM pay_periods').count;
   if (periodCount === 0) {
     transaction(() => {
@@ -505,17 +513,18 @@ function seedDatabaseIfEmpty() {
   transaction(() => {
     for (const u of INITIAL_USERS) {
       const existing = getOne('SELECT id FROM users WHERE LOWER(email) = ?', [u.email.toLowerCase()]);
-      const salt = generateSalt();
-      const hash = hashPassword(u.password, salt);
+      // An existing account NEVER gets its password reset: only the fixture profile fields are re-synced.
       if (existing) {
         execute(
           `UPDATE users SET
-             password_hash = ?, salt = ?, name = ?, role = ?, entity = ?,
+             name = ?, role = ?, entity = ?,
              employee_id = ?, avatar = COALESCE(?, avatar), updated_at = datetime('now')
            WHERE id = ?`,
-          [hash, salt, u.name, u.role, u.entity, u.employee_id || null, u.avatar || null, existing.id]
+          [u.name, u.role, u.entity, u.employee_id || null, u.avatar || null, existing.id]
         );
       } else {
+        const salt = generateSalt();
+        const hash = hashPassword(u.password, salt);
         execute(
           `INSERT INTO users (id, email, password_hash, salt, name, role, entity, employee_id, avatar, is_active)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
@@ -524,7 +533,7 @@ function seedDatabaseIfEmpty() {
       }
     }
   });
-  console.log('[db] Seeded/synchronized corporate users.');
+  console.log('[db] Seeded/synchronized corporate users (existing passwords untouched).');
 
   // Ensure organization configs exist (Multi-HQ: DR, US, UK)
   const orgCount = getOne('SELECT COUNT(*) as count FROM organization_configs').count;
@@ -740,6 +749,7 @@ function seedDatabaseIfEmpty() {
       }
     }
   });
+  return true;
 }
 
 module.exports = { seedDatabaseIfEmpty };
