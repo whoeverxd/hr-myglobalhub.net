@@ -76,6 +76,13 @@ function reset() {
   }
 }
 
+function hydrationStatus() {
+  if (getAdapter().hydrationStatus) {
+    return getAdapter().hydrationStatus();
+  }
+  return { source: getDialect(), collections: null, docs: null, error: null, at: null, pendingWrites: 0 };
+}
+
 function flushPendingWrites() {
   if (getAdapter().flushPendingWrites) {
     return getAdapter().flushPendingWrites();
@@ -95,6 +102,7 @@ module.exports = {
   transaction,
   reset,
   flushPendingWrites,
+  hydrationStatus,
   getAdapter,
   adapterFor,
   getDialect,

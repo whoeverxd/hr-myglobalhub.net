@@ -208,12 +208,24 @@ test('Attendance: Record punch, list punches, and resolve exception', () => {
   assert.ok(punches.length >= 1);
   assert.equal(punches[0].clock_in, '08:25');
 
-  // Retrieve exceptions seeded in the database
+  // This test used to read whatever attendance_exceptions the seeder happened to
+  // leave behind and then resolve exceptions[0]. Nothing in the repo or the runner
+  // guarantees that row exists, so the suite went red on a clean database, and the
+  // assertion was order-dependent on top of that. A test arranges its own
+  // precondition: there is no API to raise an exception, so insert one.
+  const exId = `EXC-TEST-${punchDate.replace(/-/g, '')}`;
+  db.execute('DELETE FROM attendance_exceptions WHERE id = ?', [exId]);
+  db.execute(
+    `INSERT INTO attendance_exceptions (id, employee_id, date, type, severity, status, suggested_action)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [exId, 'MGH-1042', punchDate, 'unauthorized_overtime', 'medium', 'open', 'Confirm with supervisor']
+  );
+
   const exceptions = attendanceController.listExceptions();
   assert.ok(Array.isArray(exceptions));
-  assert.ok(exceptions.length > 0);
+  const targetEx = exceptions.find((e) => e.id === exId);
+  assert.ok(targetEx, 'the exception created by this test must be listed');
 
-  const targetEx = exceptions[0];
   const resolved = attendanceController.resolveException(
     targetEx.id,
     { status: 'resolved', notes: 'Overtime authorized retroactively by supervisor' },

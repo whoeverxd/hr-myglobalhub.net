@@ -10,6 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const firebaseService = require('../../services/firebase.service');
 
+const HYDRATION_TIMEOUT_MS = Number(process.env.FIRESTORE_HYDRATION_TIMEOUT_MS || 2500);
 const CACHE_FILE = path.join(__dirname, '..', '..', '..', 'data', 'firestore_cache.json');
 
 // Table to Firestore collection mapping
@@ -186,11 +187,16 @@ function parseSql(sql) {
     const match = cleanSql.match(/insert(?:\s+or\s+replace)?\s+into\s+([a-zA-Z0-9_]+)\s*\((.+?)\)\s*values\s*\((.+?)\)/i);
     if (match) {
       const [, table, cols, vals] = match;
+      // SQLite's ON CONFLICT(cols) DO UPDATE/NOTHING was dropped on the floor here.
+      // That silently turned every upsert into a plain insert on Firestore.
+      const conflictMatch = cleanSql.match(/on\s+conflict\s*\(([^)]+)\)\s*do\s+(update|nothing)/i);
       return {
         type: 'INSERT',
         table: table.trim(),
         columns: cols.split(',').map((c) => c.trim()),
         valuesClause: vals.trim(),
+        conflictColumns: conflictMatch ? conflictMatch[1].split(',').map((c) => c.trim()) : null,
+        conflictAction: conflictMatch ? conflictMatch[2].toLowerCase() : null,
       };
     }
   }
@@ -232,6 +238,10 @@ class FirestoreAdapter {
     this.initialized = false;
     this.initPromise = null;
     this.activeWrites = new Set();
+    // Where the data currently being served came from. A boot that failed to reach
+    // Cloud Firestore still serves the local snapshot, which may be days old; that
+    // has to be visible instead of indistinguishable from a healthy boot.
+    this.hydration = { source: 'local-snapshot', collections: 0, docs: 0, error: null, at: null };
     this._loadLocalSnapshot();
   }
 
@@ -294,37 +304,81 @@ class FirestoreAdapter {
           return;
         }
 
-        const listPromise = firestore.listCollections();
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Firestore sync timed out')), 2500)
-        );
-        const collections = await Promise.race([listPromise, timeoutPromise]);
+        // The deadline has to cover the document reads too, not just listCollections():
+        // a fast listing followed by a hanging col.get() used to hang here forever.
+        let timer = null;
+        const deadline = new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error('Firestore sync timed out')), HYDRATION_TIMEOUT_MS);
+        });
 
-        await Promise.all(
-          collections.map(async (col) => {
-            const colName = col.id;
-            if (colName.startsWith('_system')) return;
+        let fetchedCollections = 0;
+        let fetchedDocs = 0;
 
-            let colMap = this.cache.get(colName);
-            if (!colMap) {
-              colMap = new Map();
-              this.cache.set(colName, colMap);
-            }
+        try {
+          await Promise.race([
+            (async () => {
+              const collections = await firestore.listCollections();
+              await Promise.all(
+                collections.map(async (col) => {
+                  const colName = col.id;
+                  if (colName.startsWith('_system')) return;
 
-            const snapshot = await col.get();
-            snapshot.forEach((doc) => {
-              colMap.set(doc.id, { id: doc.id, ...doc.data() });
-            });
-          })
-        );
+                  let colMap = this.cache.get(colName);
+                  if (!colMap) {
+                    colMap = new Map();
+                    this.cache.set(colName, colMap);
+                  }
+
+                  const snapshot = await col.get();
+                  snapshot.forEach((doc) => {
+                    colMap.set(doc.id, { id: doc.id, ...doc.data() });
+                  });
+                  fetchedCollections += 1;
+                  fetchedDocs += snapshot.size;
+                })
+              );
+            })(),
+            deadline,
+          ]);
+        } finally {
+          if (timer) clearTimeout(timer);
+        }
+
         this.initialized = true;
         this.hydratedFromRemote = true; // live data (false = running on the local snapshot only)
         this._persistLocalSnapshot();
-        console.log(`[FirestoreAdapter] Hydrated ${this.cache.size} collections from Cloud Firestore.`);
+        this.hydration = {
+          source: 'cloud-firestore',
+          collections: fetchedCollections,
+          docs: fetchedDocs,
+          error: null,
+          at: new Date().toISOString(),
+        };
+        // Report what Cloud Firestore actually returned. The old message printed
+        // this.cache.size, which also counts collections loaded from the local
+        // snapshot file, so it read "Hydrated 31 collections from Cloud Firestore"
+        // even when Firestore had returned nothing.
+        console.log(
+          `[FirestoreAdapter] Hydrated ${fetchedCollections} collections / ${fetchedDocs} docs from Cloud Firestore.`
+        );
       } catch (err) {
-        // Fall back gracefully to local snapshot cache
+        // Serving the local snapshot is the graceful fallback, but it is NOT a
+        // successful boot: swallowing this silently made a stale-data boot look
+        // identical to a healthy one.
         this.hydrationError = err.message;
         this.initialized = true;
+        this.hydration = {
+          source: 'local-snapshot',
+          collections: this.cache.size,
+          docs: Array.from(this.cache.values()).reduce((n, m) => n + m.size, 0),
+          error: err.message,
+          at: new Date().toISOString(),
+        };
+        console.error(
+          `[FirestoreAdapter] HYDRATION FAILED (${err.message}). Serving the local snapshot ` +
+            `cache instead: ${this.hydration.collections} collections / ${this.hydration.docs} docs, ` +
+            `which may be stale. Writes still go to Cloud Firestore.`
+        );
       }
     })();
 
@@ -677,7 +731,38 @@ class FirestoreAdapter {
           const n = parseInt(k, 10);
           if (!isNaN(n) && n > maxId) maxId = n;
         }
-        data.id = maxId + 1;
+        // Two inserts landing in the same tick both resolved to maxId + 1, and the
+        // second overwrote the first through the merge write: an audit entry simply
+        // disappeared. Walk forward until the id is actually free.
+        let next = maxId + 1;
+        while (colMap.has(String(next))) next += 1;
+        data.id = next;
+      }
+
+      // Honor the conflict key: locate the existing document instead of writing a new
+      // one. Without this, a table with no `id` column (jira_issues_cache is keyed on
+      // `key`) fell through to a random doc id, so re-syncing the same Jira issue
+      // created a second document where SQLite would have updated the first.
+      if (!data.id && parsed.conflictColumns && parsed.conflictColumns.length) {
+        const colMap = this._getCollectionMap(colName);
+        const sameKey = (doc) =>
+          parsed.conflictColumns.every(
+            (c) => doc[c] !== undefined && data[c] !== undefined && String(doc[c]) === String(data[c])
+          );
+
+        for (const [existingId, doc] of colMap) {
+          if (sameKey(doc)) {
+            if (parsed.conflictAction === 'nothing') {
+              return { changes: 0, lastInsertRowid: existingId, id: existingId };
+            }
+            data.id = existingId;
+            break;
+          }
+        }
+
+        if (!data.id) {
+          data.id = `${parsed.table}_${parsed.conflictColumns.map((c) => String(data[c])).join('_')}`;
+        }
       }
 
       const docId = data.id || `doc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -820,6 +905,10 @@ class FirestoreAdapter {
       this._persistLocalSnapshot();
       throw err;
     }
+  }
+
+  hydrationStatus() {
+    return { ...this.hydration, pendingWrites: this.activeWrites.size };
   }
 
   async flushPendingWrites() {

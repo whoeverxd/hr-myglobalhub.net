@@ -13,7 +13,36 @@ let firebaseAuth = null;
 /**
  * Resolves Firebase service account credentials from file or environment variables
  */
+// The project identity must not be decided by whichever file happens to sit in
+// config/. The auto-discovery below accepts any JSON that carries credentials, so a
+// key belonging to another project (mysocialhub-c9926) silently became this app's
+// identity: Admin SDK, Firestore and getPublicConfig() all followed it. This gate
+// rejects any credential that is not from the project this app belongs to.
+const EXPECTED_PROJECT = (process.env.FIREBASE_PROJECT_ID || 'hr-myglobalhub-net').trim();
+
+function credentialProject(creds) {
+  const sa = creds && creds.serviceAccount;
+  if (!sa) return null;
+  return sa.project_id || sa.projectId || null;
+}
+
 function resolveCredentials() {
+  const creds = discoverCredentials();
+  if (!creds) return null;
+
+  const found = credentialProject(creds);
+  if (found && found !== EXPECTED_PROJECT) {
+    console.error(
+      `[Firebase] CREDENTIAL REJECTED: ${creds.path || creds.type} belongs to project ` +
+        `"${found}" but this app is "${EXPECTED_PROJECT}". Remove that file from config/ ` +
+        `or set FIREBASE_PROJECT_ID to the project you really mean to use.`
+    );
+    return null;
+  }
+  return creds;
+}
+
+function discoverCredentials() {
   // 1. Explicit file path from env
   if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
     const customPath = path.isAbsolute(process.env.FIREBASE_SERVICE_ACCOUNT_PATH)
