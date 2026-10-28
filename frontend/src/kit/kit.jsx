@@ -4668,7 +4668,7 @@ function Contractors({ go, notify }) {
       breadcrumbs={['Contractors', tab === 'contractors' ? 'Directory' : 'Contracts']}
       title="Contractors"
       status={<Badge tone={dbConnected ? 'success' : 'warning'} dot>{dbConnected ? 'Database Connected • Real Time' : 'Local Fallback'}</Badge>}
-      description="Independent contractors paid against invoices and approved timesheets — no employee payroll, withholdings or TSS."
+      description="Payout profile of contractor-type employees. They log time like everyone else and are paid in the same payroll (#processing) from their approved timesheets — no withholdings or TSS."
       actions={<>
         <Button variant="secondary" icon="refresh" onClick={() => fetchContractors(true)}>Refresh</Button>
         <Button icon="person_add" onClick={handleOpenAdd}>Add Contractor</Button>
