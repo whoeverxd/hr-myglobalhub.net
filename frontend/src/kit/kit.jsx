@@ -15,16 +15,13 @@ const A = 'assets/avatars/';
 // UI locale for dates (shared by every screen in this file)
 const LOC = () => window.MGH_I18N ? window.MGH_I18N.locale() : 'en-US';
 const EMPLOYEES = [];
-EMPLOYEES.forEach(e => { e.total = e.reg + e.ot + e.pto; e.gross = +(e.reg * e.rate + e.ot * e.rate * 1.5 + e.pto * e.rate).toFixed(2);
-  e.tax = e.tax || (e.type === 'Exempt' ? 'Exempt — not subject to tax deductions' : /USA/.test(e.entity) ? 'W-4 (US Federal)' : /UK/.test(e.entity) ? 'PAYE (HMRC)' : 'DGII (ISR + TSS)'); });
-// Payroll deduction engine — reads each employee's tax profile; Exempt short-circuits all withholdings
+// Payroll deduction engine — reads each employee's tax profile; Exempt short-circuits all withholdings.
+// One company (My Global Hub, Dominicana SRL): DGII (ISR + TSS) is the only tax regime; 24 quincenas per year.
 const DEDUCT = e => {
-  const g = e.gross, N = 26, br = (a, b) => { let x = 0, p = 0; for (const [cap, r] of b) { if (a <= p) break; x += (Math.min(a, cap) - p) * r; p = cap; } return x; };
-  if (/^Exempt/.test(e.tax)) return { exempt: true, lines: [], total: 0, net: g };
+  const g = Number(e.gross) || 0, N = 24, br = (a, b) => { let x = 0, p = 0; for (const [cap, r] of b) { if (a <= p) break; x += (Math.min(a, cap) - p) * r; p = cap; } return x; };
+  if (/^Exempt/.test(e.tax || '')) return { exempt: true, lines: [], total: 0, net: g };
   let lines = [];
-  if (/DGII/.test(e.tax)) { const afp = g * 0.0287, sfs = g * 0.0304, fx = 60.5, ad = (g - afp - sfs) * N * fx; lines = [['ISR withholding', br(ad, [[416220, 0], [624329, .15], [867123, .20], [Infinity, .25]]) / N / fx], ['TSS — SFS (3.04%)', sfs], ['TSS — AFP (2.87%)', afp]]; }
-  else if (/W-4/.test(e.tax)) { const A = g * N; lines = [['Federal income tax', Math.max(0, br(A - 14600, [[11600, .10], [47150, .12], [100525, .22], [191950, .24], [Infinity, .32]]) / N)], ['Social Security (6.2%)', g * 0.062], ['Medicare (1.45%)', g * 0.0145]]; }
-  else if (/PAYE/.test(e.tax)) { const t = Math.max(0, g * N - 12570); lines = [['PAYE income tax', br(t, [[37700, .20], [112570, .40], [Infinity, .45]]) / N], ['National Insurance', br(t, [[37700, .08], [Infinity, .02]]) / N]]; }
+  if (/DGII/.test(e.tax || '')) { const afp = g * 0.0287, sfs = g * 0.0304, fx = 60.5, ad = (g - afp - sfs) * N * fx; lines = [['ISR withholding', br(ad, [[416220, 0], [624329, .15], [867123, .20], [Infinity, .25]]) / N / fx], ['TSS — SFS (3.04%)', sfs], ['TSS — AFP (2.87%)', afp]]; }
   lines = lines.map(([l, v]) => [l, +v.toFixed(2)]);
   const total = lines.reduce((s, d) => s + d[1], 0);
   return { exempt: false, lines, total, net: g - total };
@@ -131,7 +128,12 @@ function buildDays(emp, period, reconcil) {
   }
   return out;
 }
-const fmt$ = n => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt$ = n => {
+  if (n == null || n === '' || typeof n === 'boolean') return '—';
+  const num = typeof n === 'number' ? n : Number(n);
+  if (!Number.isFinite(num)) return '—';
+  return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
 const fmtH = n => {
   if (n == null || typeof n === 'boolean') return '0.0h';
   const num = typeof n === 'number' ? n : Number(n);
@@ -150,44 +152,29 @@ function useTable(rows, { search = [], pageSize = 8, initialSort } = {}) {
   return { q, setQ, sort, setSort, page, setPage, sel, setSel, total: filtered.length, rows: filtered.slice((page - 1) * pageSize, page * pageSize), all: filtered, pageSize };
 }
 
-try { JSON.parse(localStorage.getItem('mgh-new-employees') || '[]').forEach(n => { if (!EMPLOYEES.some(e => e.id === n.id)) EMPLOYEES.push(n); }); } catch (e) {}
+// Employees come only from the backend; drop the old browser-side cache of "new employees".
+try { localStorage.removeItem('mgh-new-employees'); } catch (_) {}
 const WF = window.MGH_WF;
-const curPeriodInit = typeof getCurrentPeriod === 'function' ? getCurrentPeriod() : { code: 'PP-2026-20' };
+const curPeriodInit = getCurrentPeriod();
 if (WF) EMPLOYEES.forEach(e => WF.ensure(e.id, e.name, curPeriodInit.code, 'Draft'));
 // Tenant scoping: EMPLOYEES is the active organization's repository view; ALL_EMP is the store.
 const ALL_EMP = EMPLOYEES.slice();
 function scopeTenant() {
-  const R = window.MGH_RBAC; if (!R) return; let extra = [];
-  try { extra = JSON.parse(localStorage.getItem('mgh-new-employees') || '[]'); } catch (e) {}
-  extra.forEach(n => { if (!ALL_EMP.some(e => e.id === n.id)) ALL_EMP.push(EMPLOYEES.find(e => e.id === n.id) || n); });
+  const R = window.MGH_RBAC; if (!R) return;
   EMPLOYEES.forEach(e => { if (!ALL_EMP.includes(e) && !ALL_EMP.some(x => x.id === e.id)) ALL_EMP.push(e); });
   const isSelf = R.scopeOf('employees.view') === 'self';
   EMPLOYEES.splice(0, EMPLOYEES.length, ...ALL_EMP.filter(e => e.entity === R.org && (!isSelf || R.can('employees.view', e))));
 }
 scopeTenant();
 if (window.MGH_ATT) window.MGH_ATT.setRoster(EMPLOYEES);
-// Approved leave (Attendance) feeds payroll: paid leave → PTO hours, unpaid leave → fewer regular hours.
-ALL_EMP.forEach(e => { e.baseReg = e.reg; e.basePto = e.pto; });
-function applyLeaveToPayroll() {
-  const A = window.MGH_ATT; if (!A) return;
-  ALL_EMP.forEach(e => {
-    let paid = 0, unpaid = 0; const ids = [];
-    A.leave().filter(l => l.emp === e.id && l.status === 'Approved' && !(l.to < '2025-04-01' || l.from > '2025-04-14')).forEach(l => {
-      const h = A.range(l.from < '2025-04-01' ? '2025-04-01' : l.from, l.to > '2025-04-14' ? '2025-04-14' : l.to).filter(d => A.dow(d) % 6).length * 8;
-      if (l.type === 'Unpaid') unpaid += h; else paid += h; ids.push(l.id); });
-    e.leavePaid = paid; e.leaveUnpaid = unpaid; e.leaveIds = ids;
-    e.pto = Math.max(e.basePto, paid);
-    e.reg = Math.max(0, e.baseReg - Math.max(0, paid - e.basePto) - unpaid);
-    e.total = e.reg + e.ot + e.pto; e.gross = +(e.reg * e.rate + e.ot * e.rate * 1.5 + e.pto * e.rate).toFixed(2);
-  });
-}
-applyLeaveToPayroll();
-window.addEventListener('mgh-att', () => { applyLeaveToPayroll(); window.dispatchEvent(new Event('mgh-wf')); });
-window.addEventListener('mgh-rbac', () => { scopeTenant(); if (window.MGH_ATT) window.MGH_ATT.setRoster(EMPLOYEES); applyLeaveToPayroll(); });
-const PERIOD = typeof getCurrentPeriod === 'function' ? getCurrentPeriod().code : 'PP-2026-20';
+// Approved paid leave is counted by the backend when it computes each timesheet's hours
+// (timesheets.controller); the UI never adds leave hours on top, so nothing is double counted.
+window.addEventListener('mgh-att', () => { window.dispatchEvent(new Event('mgh-wf')); });
+window.addEventListener('mgh-rbac', () => { scopeTenant(); if (window.MGH_ATT) window.MGH_ATT.setRoster(EMPLOYEES); });
+const PERIOD = getCurrentPeriod().code;
 const recOf = id => {
   if (!WF) return null;
-  const curP = typeof getCurrentPeriod === 'function' ? getCurrentPeriod().code : 'PP-2026-20';
+  const curP = getCurrentPeriod().code;
   return WF.get(id, curP) || WF.ensure(id, (EMPLOYEES.find(x => x.id === id) || {}).name || id, curP, 'Draft');
 };
 const liveStatus = e => { const r = recOf(e.id); return r ? r.status : (e.status || 'Draft'); };
@@ -257,7 +244,7 @@ function EmployeeCell({ e, sub }) {
     <div style={{ minWidth: 0 }}><div style={{ font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-ink)' }}>{e.name}</div><div style={{ font: '400 11px/14px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>{sub || e.role}</div></div></div>;
 }
 
-const PERIOD = typeof getCurrentPeriod === 'function' ? getCurrentPeriod() : { code: 'PP-2026-20', range: '(15 Oct – 31 Oct, 2026)', phase: 'Supervisor Approval Phase' };
+const PERIOD = getCurrentPeriod();
 
 function QueueCard({ e, active, checked, onCheck, onClick }) {
   const tone = STATUS_TONE[e.status];
@@ -289,9 +276,9 @@ function ApprovalWorkspace(props) {
 }
 
 function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
-  const activeQuincena = typeof getCurrentPeriod === 'function' ? getCurrentPeriod() : { code: 'PP-2026-20', label: '15 al 31 de Octubre 2026', rangeShort: '15 Oct – 31 Oct', startDate: '2026-10-15', endDate: '2026-10-31', phase: 'Periodo Actual • En Curso', daysRemaining: 8 };
+  const activeQuincena = getCurrentPeriod();
   const availablePeriods = React.useMemo(() => [
-    { code: activeQuincena.code, label: `${activeQuincena.code} (${activeQuincena.rangeShort || activeQuincena.range || '15 Oct – 31 Oct, 2026'})`, phase: activeQuincena.phase || 'Periodo Actual • En Curso', start: activeQuincena.startDate, end: activeQuincena.endDate, startDate: activeQuincena.startDate, endDate: activeQuincena.endDate, daysRemaining: activeQuincena.daysRemaining },
+    { code: activeQuincena.code, label: `${activeQuincena.code} (${activeQuincena.rangeShort || activeQuincena.range || ''})`, phase: activeQuincena.phase || 'Periodo Actual • En Curso', start: activeQuincena.startDate, end: activeQuincena.endDate, startDate: activeQuincena.startDate, endDate: activeQuincena.endDate, daysRemaining: activeQuincena.daysRemaining },
     ...window.__mghPrevPeriods(activeQuincena, 2),
   ], [activeQuincena.code]);
   const [periodCode, setPeriodCode] = React.useState(activeQuincena.code);
@@ -462,7 +449,6 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
   };
 
   const approve = async adv => {
-    const isOwner = ['Org Admin', 'Platform Admin', 'Admin', 'admin'].includes(WF.role) || (window.MGH_RBAC && window.MGH_RBAC.user && window.MGH_RBAC.user.id === 'MGH-1001');
     // Local permission check first (no mutation), then the backend decides; the local engine mirrors only on success
     if (!WF.canAct(rec)) { notify(WF.whyNot(rec) || 'No puedes aprobar este paso'); return; }
     let saved = null;
@@ -470,7 +456,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
       if (window.api) {
         await window.api.ensureTimesheet(e.id, periodCode, e.name);
         saved = await window.api.approveTimesheet(`TS-${periodCode}-${e.id}`, {
-          comment: rec.stepIdx === 1 ? 'Aprobación ejecutiva final y autorización de nómina' + (((MGH_RBAC.me() || {}).person || '') ? ' • ' + ((MGH_RBAC.me() || {}).person || '') : '') : 'Supervisión técnica y validación de horas de jornada' + (((MGH_RBAC.me() || {}).person || '') ? ' • ' + ((MGH_RBAC.me() || {}).person || '') : ''),
+          comment: '', // the approval itself is recorded in the history; comments are only what a reviewer types
           role: WF.role
         });
       }
@@ -523,7 +509,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
   const totalGrossObligation = list.reduce((s, x) => s + (Number(x.gross) || 0), 0);
   const totalNetObligation = list.reduce((s, x) => {
     const c = DEDUCT(x);
-    return s + (c.net || x.gross * 0.85);
+    return s + (Number(c.net ?? x.gross) || 0);
   }, 0);
   const avgRate = list.length > 0 ? (list.reduce((s, x) => s + (Number(x.rate) || 0), 0) / list.length).toFixed(1) : '0';
 
@@ -646,8 +632,8 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
               const empObj = list.find(x => x.id === id);
               try {
                 await window.api.ensureTimesheet(id, periodCode, empObj ? empObj.name : id);
-                await window.api.approveTimesheet(`TS-${periodCode}-${id}`, { comment: 'Bulk approval', role: WF.role });
-                WF.approve(recOf(id), 'Bulk approval');
+                await window.api.approveTimesheet(`TS-${periodCode}-${id}`, { comment: '', role: WF.role });
+                WF.approve(recOf(id), '');
                 ok++;
               } catch (err) { failed.push(id + ': ' + err.message); }
             }
@@ -665,15 +651,14 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
       {/* Review pane */}
       <div style={{ flex: 1, minWidth: 0, background: 'var(--mgh-surface-page)', borderRadius: 16, overflow: 'hidden', boxShadow: 'var(--shadow-xs)' }}>
         <div style={{ background: '#fff', padding: 24, display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <Avatar src={e.avatar} name={e.name} size={72} status="online" />
+          <Avatar src={e.avatar} name={e.name} size={72} />
           <div style={{ flex: 1, minWidth: 260 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><span className="mgh-h2">{e.name}</span><Badge tone="dark" mono>{e.id}</Badge><Badge tone={STATUS_TONE[e.status]} dot>{e.status}</Badge></div>
-            <div style={{ font: '400 16px/22px var(--font-sans)', color: 'var(--mgh-ink-2)', marginTop: 2 }}>{e.role} • Departamento de {e.dept}</div>
+            <div style={{ font: '400 16px/22px var(--font-sans)', color: 'var(--mgh-ink-2)', marginTop: 2 }}>{e.role || '—'} • Departamento: {e.dept || '—'}</div>
             <div style={{ display: 'flex', gap: 14, marginTop: 8, flexWrap: 'wrap', font: '500 13px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>
-              <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}><Icon name="location_on" size={16} />{e.loc}</span>
-              <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}><Icon name="supervisor_account" size={16} />Manager: <b style={{ color: 'var(--mgh-ink)' }}>{e.mgr}</b></span>
-              <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}><Icon name="apartment" size={16} />{e.entity}</span>
-              <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}><Icon name="work" size={16} />{e.type}</span>
+              <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}><Icon name="location_on" size={16} />{e.loc || '—'}</span>
+              <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}><Icon name="supervisor_account" size={16} />Manager: <b style={{ color: 'var(--mgh-ink)' }}>{e.mgr || '—'}</b></span>
+              <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}><Icon name="work" size={16} />{e.type || '—'}</span>
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -881,7 +866,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
       notify(r.ok ? (mode === 'reject' ? 'Timesheet rechazada' : 'Devuelta al empleado para correcciones • edición reabierta') : r.msg);
     }}>{mode === 'reject' ? 'Rechazar Jornada' : 'Devolver Jornada'}</Button></>}>
       <p className="mgh-body" style={{ margin: 0 }}>{mode === 'reject' ? 'Las hojas rechazadas quedan cerradas permanentemente.' : <>El empleado recibirá una notificación para ajustar sus horas o actividades de jornada y reenviar para revisión.</>}</p>
-      <textarea value={reason} onChange={x => setReason(x.target.value)} placeholder="Motivo de devolución (requerido) — ej. Falta registro de horas en la tarea MSHP-102 el 04 de Abril." rows={4} style={{ border: 'none', outline: 'none', borderRadius: 8, padding: 12, background: 'var(--mgh-surface-1)', font: '400 13px/18px var(--font-sans)', resize: 'vertical' }} />
+      <textarea value={reason} onChange={x => setReason(x.target.value)} placeholder="Motivo de devolución (requerido): qué debe corregir el colaborador." rows={4} style={{ border: 'none', outline: 'none', borderRadius: 8, padding: 12, background: 'var(--mgh-surface-1)', font: '400 13px/18px var(--font-sans)', resize: 'vertical' }} />
     </Modal>
 
     {revAct && (() => {
@@ -898,9 +883,9 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
 
 function TeamApprovalQueue({ go, notify }) {
   useWF();
-  const activeQuincena = typeof getCurrentPeriod === 'function' ? getCurrentPeriod() : { code: 'PP-2026-20', label: '15 al 31 de Octubre 2026', rangeShort: '15 Oct – 31 Oct', startDate: '2026-10-15', endDate: '2026-10-31', phase: 'Periodo Actual • En Curso', daysRemaining: 8 };
+  const activeQuincena = getCurrentPeriod();
   const availablePeriods = React.useMemo(() => [
-    { code: activeQuincena.code, label: `${activeQuincena.code} (${activeQuincena.rangeShort || activeQuincena.range || '15 Oct – 31 Oct, 2026'})`, phase: activeQuincena.phase || 'Periodo Actual • En Curso', start: activeQuincena.startDate, end: activeQuincena.endDate, startDate: activeQuincena.startDate, endDate: activeQuincena.endDate, daysRemaining: activeQuincena.daysRemaining },
+    { code: activeQuincena.code, label: `${activeQuincena.code} (${activeQuincena.rangeShort || activeQuincena.range || ''})`, phase: activeQuincena.phase || 'Periodo Actual • En Curso', start: activeQuincena.startDate, end: activeQuincena.endDate, startDate: activeQuincena.startDate, endDate: activeQuincena.endDate, daysRemaining: activeQuincena.daysRemaining },
     ...window.__mghPrevPeriods(activeQuincena, 2),
   ], [activeQuincena.code]);
 
@@ -970,7 +955,7 @@ function TeamApprovalQueue({ go, notify }) {
         status,
         match,
         rec,
-        flagged: ot > 8 || match < 95
+        flagged: ot > 8 || (typeof match === 'number' && match < 95)
       };
     });
   }, [backendTimesheets, backendPunches, periodCode]);
@@ -978,9 +963,8 @@ function TeamApprovalQueue({ go, notify }) {
   const isPend = s => /Review|Submitted|Supervisión|Aprobación/.test(s);
   const [chip, setChip] = React.useState('all');
   const [dept, setDept] = React.useState('All departments');
-  const [ent, setEnt] = React.useState('All entities');
 
-  const filteredBase = rows.filter(r => (chip === 'all' || (chip === 'pending' && isPend(r.status)) || (chip === 'flag' && r.flagged) || (chip === 'done' && (r.status === 'Approved' || r.status === 'Paid'))) && (dept === 'All departments' || r.dept === dept) && (ent === 'All entities' || r.entity === ent));
+  const filteredBase = rows.filter(r => (chip === 'all' || (chip === 'pending' && isPend(r.status)) || (chip === 'flag' && r.flagged) || (chip === 'done' && (r.status === 'Approved' || r.status === 'Paid'))) && (dept === 'All departments' || r.dept === dept));
   const t = useTable(filteredBase, { search: ['name', 'id', 'project', 'role'], pageSize: 8, initialSort: { key: 'name', dir: 'asc' } });
 
   const bulk = async s => {
@@ -992,8 +976,8 @@ function TeamApprovalQueue({ go, notify }) {
       if (!r) continue;
       try {
         await window.api.ensureTimesheet(id, periodCode, r.name);
-        await window.api.approveTimesheet(`TS-${periodCode}-${id}`, { comment: 'Bulk approval', role: WF ? WF.role : undefined });
-        if (WF && r.rec) WF.approve(r.rec, 'Bulk approval');
+        await window.api.approveTimesheet(`TS-${periodCode}-${id}`, { comment: '', role: WF ? WF.role : undefined });
+        if (WF && r.rec) WF.approve(r.rec, '');
         ok++;
       } catch (err) { failed.push(id + ': ' + err.message); }
     }
@@ -1035,7 +1019,7 @@ function TeamApprovalQueue({ go, notify }) {
       <StatCard label="SLA: due in" value={daysRem} icon="timer" tone="accent" style={{ minHeight: 0 }} footer={<span>Cierre: {curPeriod.endDate || curPeriod.end}</span>} />
     </Grid>
     <Card padding={20}>
-      <TableToolbar search={t.q} onSearch={t.setQ} placeholder="Buscar empleado, ID, proyecto…" filters={<><Select size="sm" icon="apartment" value={dept} onChange={setDept} options={['All departments', ...new Set(EMPLOYEES.map(e => e.dept))]} /><Select size="sm" icon="domain" value={ent} onChange={setEnt} options={['All entities', ...new Set(EMPLOYEES.map(e => e.entity))]} /></>} actions={<Button size="sm" variant="secondary" icon="download" disabled={!t.all.length} onClick={() => window.__mghNotify(window.__mghExport('csv', 'Team Approval Queue', periodCode, { cols: [['ID'], ['Employee'], ['Project'], ['Hours'], ['Est. gross'], ['Status']], rows: t.all.map(r => [r.id, r.name, r.project || '', (r.total || 0).toFixed(1), (r.gross || 0).toFixed(2), liveStatus(r)]) }))}>Export CSV</Button>}
+      <TableToolbar search={t.q} onSearch={t.setQ} placeholder="Buscar empleado, ID, proyecto…" filters={<><Select size="sm" icon="apartment" value={dept} onChange={setDept} options={['All departments', ...new Set(EMPLOYEES.map(e => e.dept).filter(Boolean))]} /></>} actions={<Button size="sm" variant="secondary" icon="download" disabled={!t.all.length} onClick={() => window.__mghNotify(window.__mghExport('csv', 'Team Approval Queue', periodCode, { cols: [['ID'], ['Employee'], ['Project'], ['Hours'], ['Est. gross'], ['Status']], rows: t.all.map(r => [r.id, r.name, r.project || '', (r.total || 0).toFixed(1), (r.gross || 0).toFixed(2), liveStatus(r)]) }))}>Export CSV</Button>}
         chips={<FilterChips value={chip} onChange={setChip} options={[{ value: 'all', label: 'All', count: rows.length }, { value: 'pending', label: 'In review', count: rows.filter(r => isPend(r.status)).length, tone: 'warning' }, { value: 'flag', label: 'Flagged', count: rows.filter(r => r.flagged).length, tone: 'danger' }, { value: 'done', label: 'Approved', count: approvedCount }]} />} />
       <DataTable style={{ marginTop: 14 }} maxHeight={520} selectable selected={t.sel} onSelectedChange={t.setSel} sort={t.sort} onSort={t.setSort} rows={t.rows} onRowClick={r => go('approvals', r.id)}
         bulkBar={<><Button size="sm" variant="primary" icon="done_all" onClick={() => bulk('Approved')}>Approve</Button><Button size="sm" variant="danger" icon="undo" onClick={() => bulk('Returned')}>Return</Button></>}
@@ -1118,13 +1102,25 @@ function Dashboard({ go }) {
     return () => { cancel = true; };
   }, []);
   const byPeriod = {}; runs.forEach(r => { byPeriod[r.period_id] = (byPeriod[r.period_id] || 0) + (Number(r.total_gross) || 0); });
-  const trend = Object.keys(byPeriod).sort().slice(-6).map(p => ({ label: 'PP-' + p.slice(-2), a: +(byPeriod[p] / 1000).toFixed(1), hi: p === curPeriod.code }));
+  // Real status of the current quincena (stored period row); unknown until the backend answers
+  const [storedPeriod, setStoredPeriod] = React.useState(null);
+  React.useEffect(() => {
+    let cancel = false;
+    if (window.api && window.api.currentPeriod) window.api.currentPeriod().then(p => { if (!cancel && p && typeof p === 'object') setStoredPeriod(p); }).catch(() => {});
+    return () => { cancel = true; };
+  }, []);
+  const trend = Object.keys(byPeriod).sort().slice(-6).map(p => ({ label: p, a: +(byPeriod[p] / 1000).toFixed(1), hi: p === curPeriod.code }));
   const timesheetCount = E.filter(e => e.hasTimesheet).length;
   const attention = EMPLOYEES.filter(e => e.hasTimesheet && liveStatus(e) !== 'Approved' && MGH_RBAC.can('timesheets.view', e)).slice(0, 5);
   const daysRemText = curPeriod.daysRemaining === 1 ? '1 día' : `${curPeriod.daysRemaining} días`;
   const periodDesc = `${curPeriod.code} (${curPeriod.rangeShort}, ${curPeriod.year}) cierra en ${daysRemText} • ${O.id.replace(/\.$/, '')}. ` + (pend ? pend + ' timesheet' + (pend === 1 ? ' still needs' : 's still need') + ' your approval before Finance Run.' : inReview + ' timesheet' + (inReview === 1 ? '' : 's') + ' in review • none waiting on you.');
+  const hr = new Date().getHours();
+  const greet = hr < 12 ? 'Buenos días' : hr < 19 ? 'Buenas tardes' : 'Buenas noches';
+  const PERIOD_STATUS_ES = { Draft: 'Borrador', Open: 'Abierto', Processing: 'En procesamiento', Approved: 'Aprobado', Paid: 'Pagado', Closed: 'Cerrado', Archived: 'Archivado' };
+  const periodStatus = storedPeriod && storedPeriod.status ? (PERIOD_STATUS_ES[storedPeriod.status] || storedPeriod.status) : null;
+  const reviewMeta = (periodStatus ? 'Estado del período: ' + periodStatus : 'Estado del período no disponible') + ' • ' + inReview + ' en revisión';
   return <Page>
-    <PageHeader breadcrumbs={['Overview']} title={'Good morning, ' + first} description={periodDesc} actions={<><Button variant="secondary" icon="calendar_month" onClick={() => (window.__mghGo ? window.__mghGo('periods') : go('periods'))}>{curPeriod.rangeShort}</Button>{R.canRoute('approvals') && <Button icon="assignment_turned_in" onClick={() => go('approvals')}>{pend ? 'Review ' + pend + ' Approval' + (pend === 1 ? '' : 's') : 'Open Approvals'}</Button>}</>} />
+    <PageHeader breadcrumbs={['Overview']} title={greet + (first ? ', ' + first : '')} description={periodDesc} actions={<><Button variant="secondary" icon="calendar_month" onClick={() => (window.__mghGo ? window.__mghGo('periods') : go('periods'))}>{curPeriod.rangeShort}</Button>{R.canRoute('approvals') && <Button icon="assignment_turned_in" onClick={() => go('approvals')}>{pend ? 'Review ' + pend + ' Approval' + (pend === 1 ? '' : 's') : 'Open Approvals'}</Button>}</>} />
     <Grid min={220}>
       <StatCard label="Active workforce" value={String(E.length)} unit="employees" icon="groups" footer={O.short + ' • ' + R.SCOPE_LABEL[R.scopeOf('dashboard.executive.view')] + ' scope'} />
       <StatCard label="Period payroll" value={'$' + gk.toFixed(1) + 'k'} unit="USD" icon="payments" tone="accent" footer={timesheetCount + ' timesheet' + (timesheetCount === 1 ? '' : 's') + ' this period • Local currency ' + O.currency} />
@@ -1149,7 +1145,7 @@ function Dashboard({ go }) {
       <Card title="Period timeline" icon="event_upcoming">
         <ActivityFeed items={[
           { icon: 'edit_calendar', tone: 'primary', title: 'Registro de actividades y jornada', meta: `${curPeriod.rangeShort} • Cierre: ${curPeriod.endDay} ${curPeriod.monthShort}, 23:59` },
-          { icon: 'how_to_reg', tone: 'warning', title: 'Aprobación de Supervisor y PM', meta: `En curso • Plazo de revisión` },
+          { icon: 'how_to_reg', tone: 'warning', title: 'Aprobación de Supervisor y PM', meta: reviewMeta },
           { icon: 'badge', tone: 'neutral', title: 'Revisión HR & Compliance', meta: `${curPeriod.endDay} ${curPeriod.monthShort}` },
           { icon: 'account_balance', tone: 'success', title: 'Desembolso y Pago', meta: `Fecha de pago: ${curPeriod.payDate}` }
         ]} />
@@ -1159,26 +1155,24 @@ function Dashboard({ go }) {
 }
 
 function Employees({ go }) {
-  const [chip, setChip] = React.useState('all'); const [dept, setDept] = React.useState('All departments'); const [type, setType] = React.useState('All types');
-  const base = EMPLOYEES.filter(e => MGH_RBAC.can('employees.view', e) && (chip === 'all' || e.entity === chip) && (dept === 'All departments' || e.dept === dept) && (type === 'All types' || e.type === type));
+  const [dept, setDept] = React.useState('All departments'); const [type, setType] = React.useState('All types');
+  const base = EMPLOYEES.filter(e => MGH_RBAC.can('employees.view', e) && (dept === 'All departments' || e.dept === dept) && (type === 'All types' || e.type === type));
   const t = useTable(base, { search: ['name', 'id', 'role', 'dept', 'loc'], pageSize: 10, initialSort: { key: 'name', dir: 'asc' } });
-  const ENTS = [...new Set(EMPLOYEES.map(e => e.entity))].sort();
-  const exportRows = list => window.__mghNotify(window.__mghExport('csv', 'Employees', '', { cols: [['ID'], ['Name'], ['Email'], ['Role'], ['Department'], ['Entity'], ['Location'], ['Type'], ['Rate']], rows: list.map(r => [r.id, r.name, r.email || '', r.role, r.dept, r.entity, r.loc, r.type, r.rate]) }));
+  const exportRows = list => window.__mghNotify(window.__mghExport('csv', 'Employees', '', { cols: [['ID'], ['Name'], ['Email'], ['Role'], ['Department'], ['Location'], ['Type'], ['Rate']], rows: list.map(r => [r.id, r.name, r.email || '', r.role || '', r.dept || '', r.loc || '', r.type || '', r.rate]) }));
   return <Page>
-    <PageHeader breadcrumbs={['Workforce', 'Employee Directory']} title="Employees" description={EMPLOYEES.length + ' employee' + (EMPLOYEES.length === 1 ? '' : 's') + ' across ' + ENTS.length + ' operating entit' + (ENTS.length === 1 ? 'y' : 'ies') + '. Independent contractors are managed separately.'} actions={<>{MGH_RBAC.can('contractors.view') && <Button variant="secondary" icon="handshake" onClick={() => go('contractors')}>View Contractors</Button>}{MGH_RBAC.can('employees.create') && <><Button icon="person_add" onClick={() => go('addEmployee')}>Add Employee</Button></>}</>} />
+    <PageHeader breadcrumbs={['Workforce', 'Employee Directory']} title="Employees" description={EMPLOYEES.length + ' colaborador' + (EMPLOYEES.length === 1 ? '' : 'es') + ' en My Global Hub (Dominicana SRL). Los contratistas son colaboradores y se pagan en la misma nómina.'} actions={<>{MGH_RBAC.can('contractors.view') && <Button variant="secondary" icon="handshake" onClick={() => go('contractors')}>View Contractors</Button>}{MGH_RBAC.can('employees.create') && <><Button icon="person_add" onClick={() => go('addEmployee')}>Add Employee</Button></>}</>} />
     <Card padding={20}>
       <TableToolbar search={t.q} onSearch={t.setQ} placeholder="Search name, ID, role, location…"
-        filters={<><Select size="sm" icon="apartment" value={dept} onChange={setDept} options={['All departments', ...new Set(EMPLOYEES.map(e => e.dept))]} /><Select size="sm" icon="work" value={type} onChange={setType} options={['All types', ...new Set(EMPLOYEES.map(e => e.type))]} /></>}
-        actions={<Button size="sm" variant="secondary" icon="download" disabled={!t.all.length} onClick={() => exportRows(t.all)}>Export</Button>}
-        chips={<FilterChips value={chip} onChange={setChip} options={[{ value: 'all', label: 'All entities', count: EMPLOYEES.length }, ...ENTS.map(n => ({ value: n, label: n, count: EMPLOYEES.filter(e => e.entity === n).length }))]} />} />
+        filters={<><Select size="sm" icon="apartment" value={dept} onChange={setDept} options={['All departments', ...new Set(EMPLOYEES.map(e => e.dept).filter(Boolean))]} /><Select size="sm" icon="work" value={type} onChange={setType} options={['All types', ...new Set(EMPLOYEES.map(e => e.type).filter(Boolean))]} /></>}
+        actions={<Button size="sm" variant="secondary" icon="download" disabled={!t.all.length} onClick={() => exportRows(t.all)}>Export</Button>} />
       <DataTable style={{ marginTop: 14 }} maxHeight={560} selectable selected={t.sel} onSelectedChange={t.setSel} sort={t.sort} onSort={t.setSort} rows={t.rows} onRowClick={r => go('profile', r.id)}
         bulkBar={<Button size="sm" variant="secondary" icon="download" onClick={() => exportRows(t.all.filter(r => t.sel.includes(r.id)))}>Export selected</Button>}
         columns={[
           { key: 'name', label: 'Employee', sortable: true, render: r => <EmployeeCell e={r} /> },
           { key: 'id', label: 'ID', sortable: true, render: r => <Badge mono size="sm">{r.id}</Badge> },
           { key: 'project', label: 'Proyecto', sortable: true, render: r => <Badge size="sm" tone="primary" mono>{r.project || '—'}</Badge> },
-          { key: 'dept', label: 'Department', sortable: true }, { key: 'entity', label: 'Entity', sortable: true }, { key: 'loc', label: 'Location', sortable: true },
-          { key: 'type', label: 'Type', sortable: true, render: r => <Badge size="sm" tone={r.type === 'Exempt' ? 'primary' : 'neutral'}>{r.type}</Badge> },
+          { key: 'dept', label: 'Department', sortable: true, render: r => r.dept || '—' }, { key: 'loc', label: 'Location', sortable: true, render: r => r.loc || '—' },
+          { key: 'type', label: 'Type', sortable: true, render: r => <Badge size="sm" tone={r.type === 'Exempt' ? 'primary' : 'neutral'}>{r.type || '—'}</Badge> },
           { key: 'rate', label: 'Rate', align: 'right', sortable: true, strong: true, render: r => fmt$(r.rate) + '/hr' },
           { key: 'x', label: '', align: 'right', render: r => <IconButton icon="edit" size={28} title="View / Edit Profile & Project" onClick={(ev) => { ev.stopPropagation(); go('profile', r.id); }} /> }]} />
       <Pagination style={{ marginTop: 14 }} page={t.page} pageSize={t.pageSize} total={t.total} onPage={t.setPage} noun="employees" />
@@ -1186,14 +1180,24 @@ function Employees({ go }) {
   </Page>;
 }
 
-function EmployeeProfile(props) { return EMPLOYEES.length ? <EmployeeProfileInner {...props} /> : window.__mghEmpty('Employee Profile', ['Workforce', 'Employees']); }
+function EmployeeProfile(props) {
+  if (!EMPLOYEES.length) return window.__mghEmpty('Employee Profile', ['Workforce', 'Employees']);
+  // Never fall back to another person's record: an unknown id shows an empty state
+  const R = window.MGH_RBAC;
+  const isSelf = R && R.scopeOf('employees.view') === 'self';
+  const myEmpId = (R && R.me() && R.me().emp) || null;
+  const targetId = isSelf ? (myEmpId || props.empId) : (props.empId || (EMPLOYEES[0] && EMPLOYEES[0].id));
+  const found = EMPLOYEES.some(x => x.id === targetId) || !!(window.__MGH_DATA && window.__MGH_DATA.ALL_EMP && window.__MGH_DATA.ALL_EMP.some(x => x.id === targetId));
+  if (!found) return window.__mghEmpty('Empleado no encontrado', ['Workforce', 'Employees'], 'No existe un colaborador con el ID ' + (targetId || '—') + ' en tu alcance.');
+  return <EmployeeProfileInner {...props} />;
+}
 function EmployeeProfileInner({ empId, go, notify }) {
   useWF();
   const R = window.MGH_RBAC;
   const isSelf = R && R.scopeOf('employees.view') === 'self';
   const myEmpId = (R && R.me() && R.me().emp) || null;
   const targetId = isSelf ? (myEmpId || empId) : (empId || (EMPLOYEES[0] && EMPLOYEES[0].id));
-  const e = EMPLOYEES.find(x => x.id === targetId) || (window.__MGH_DATA && window.__MGH_DATA.ALL_EMP && window.__MGH_DATA.ALL_EMP.find(x => x.id === targetId)) || EMPLOYEES[0] || {};
+  const e = EMPLOYEES.find(x => x.id === targetId) || (window.__MGH_DATA && window.__MGH_DATA.ALL_EMP && window.__MGH_DATA.ALL_EMP.find(x => x.id === targetId)) || {};
   const [tab, setTab] = React.useState('overview');
   const [editOpen, setEditOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -1315,13 +1319,13 @@ function EmployeeProfileInner({ empId, go, notify }) {
         <div style={{ flex: 1, minWidth: 280 }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}><span className="mgh-title">{e.name}</span><Badge tone={e.status === 'Active' ? 'success' : 'neutral'}>{e.status || '—'}</Badge></div>
           <Badge mono size="sm" style={{ marginTop: 4 }}>{e.id}</Badge>
-          <div className="mgh-lg" style={{ fontWeight: 500, marginTop: 6 }}>{e.role}</div>
-          <div style={{ font: '400 14px/20px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>{e.dept} • {e.project}</div>
-          <div style={{ display: 'flex', gap: 14, marginTop: 8, flexWrap: 'wrap', font: '500 13px var(--font-sans)', color: 'var(--mgh-ink-2)' }}><span style={{ display: 'flex', gap: 4 }}><Icon name="domain" size={16} />{e.entity}</span><span style={{ display: 'flex', gap: 4 }}><Icon name="work" size={16} />{e.type}</span><span style={{ display: 'flex', gap: 4 }}><Icon name="calendar_today" size={16} />Joined {e.joined}</span></div>
+          <div className="mgh-lg" style={{ fontWeight: 500, marginTop: 6 }}>{e.role || '—'}</div>
+          <div style={{ font: '400 14px/20px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>{e.dept || '—'} • {e.project || '—'}</div>
+          <div style={{ display: 'flex', gap: 14, marginTop: 8, flexWrap: 'wrap', font: '500 13px var(--font-sans)', color: 'var(--mgh-ink-2)' }}><span style={{ display: 'flex', gap: 4 }}><Icon name="work" size={16} />{e.type || '—'}</span><span style={{ display: 'flex', gap: 4 }}><Icon name="calendar_today" size={16} />Joined {e.joined || '—'}</span></div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{canEdit && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit Employee</Button>}{selfEdit && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit My Profile</Button>}{MGH_RBAC.can('payslips.view', e) && <Button variant="secondary" icon="receipt_long" onClick={() => go('paystub', e.id)}>Generate Pay Statement</Button>}{canReset && <Button variant="secondary" icon="lock_reset" onClick={() => setReset({ step: 'confirm' })}>Restablecer contraseña</Button>}{canRemove && <Button variant="danger" icon="person_remove" onClick={openRemoval}>Eliminar empleado</Button>}</div>
       </div>
-      <Tabs style={{ marginTop: 20 }} value={tab} onChange={setTab} tabs={[{ value: 'overview', label: 'Overview & Profile' }, { value: 'bank', label: 'Multi-Bank Allocations', dot: true }, { value: 'comp', label: 'Compensation & Tax' }, { value: 'jira', label: 'Jira Integration', tag: 'LIVE' }, { value: 'pto', label: 'Time Off & PTO' }, { value: 'docs', label: 'Documents' }]} />
+      <Tabs style={{ marginTop: 20 }} value={tab} onChange={setTab} tabs={[{ value: 'overview', label: 'Overview & Profile' }, { value: 'bank', label: 'Multi-Bank Allocations' }, { value: 'comp', label: 'Compensation & Tax' }, { value: 'jira', label: 'Jira Integration' }, { value: 'pto', label: 'Time Off & PTO' }, { value: 'docs', label: 'Documents' }]} />
     </Card>
     <Modal open={!!removal} title={'Eliminar a ' + e.name} onClose={() => removal && !removal.busy && setRemoval(null)} width={540}
       actions={removal && !removal.loading ? <>
@@ -1444,7 +1448,7 @@ function EmployeeProfileInner({ empId, go, notify }) {
         <TextField label="Job Title / Role" value={form.role} onChange={x => setForm(f => ({ ...f, role: typeof x === 'string' ? x : x.target.value }))} />
         <Select label="Department" value={form.dept} onChange={x => setForm(f => ({ ...f, dept: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Executive', 'Engineering', 'Product', 'Design', 'Operations', 'Finance', 'Human Resources']} />
         <TextField label="Base Rate (USD/hr)" type="number" value={String(form.rate)} onChange={x => setForm(f => ({ ...f, rate: typeof x === 'string' ? x : x.target.value }))} />
-        <Select label="Operating Entity" value={form.entity} onChange={x => setForm(f => ({ ...f, entity: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['MGH Dominicana SRL']} />
+        <Select label="Empresa" value={form.entity} onChange={x => setForm(f => ({ ...f, entity: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['MGH Dominicana SRL']} />
         <TextField label="Direct Manager" value={form.mgr} onChange={x => setForm(f => ({ ...f, mgr: typeof x === 'string' ? x : x.target.value }))} />
         <TextField label="Primary Bank" value={form.bank} onChange={x => setForm(f => ({ ...f, bank: typeof x === 'string' ? x : x.target.value }))} />
         <TextField label="RNC / Cédula Personal" value={form.nid} mono onChange={x => setForm(f => ({ ...f, nid: typeof x === 'string' ? x : x.target.value }))} />
@@ -1479,11 +1483,14 @@ function PayrollDashboard({ go }) {
     return () => { cancel = true; };
   }, []);
   const byPeriod = {}; runs.forEach(r => { byPeriod[r.period_id] = (byPeriod[r.period_id] || 0) + (Number(r.total_gross) || 0); });
-  const hist = Object.keys(byPeriod).sort().slice(-6).map(p => ({ label: 'PP-' + p.slice(-2), a: +(byPeriod[p] / 1000).toFixed(1) }));
-  const byEntity = {}; E.forEach(e => { byEntity[e.entity] = (byEntity[e.entity] || 0) + (e.gross || 0); });
-  const entityRows = Object.entries(byEntity).sort((a, b) => b[1] - a[1]);
-  const nextP = getQuincenaForDate(new Date(curPeriod.year, curPeriod.month, curPeriod.isFirstHalf ? 20 : 5));
-  const nextP2 = getQuincenaForDate(new Date(curPeriod.year, curPeriod.month + (curPeriod.isFirstHalf ? 0 : 1), curPeriod.isFirstHalf ? 5 : 20));
+  const hist = Object.keys(byPeriod).sort().slice(-6).map(p => ({ label: p, a: +(byPeriod[p] / 1000).toFixed(1) }));
+  // Estimated gross by department (one company; projects/departments, not legal entities)
+  const byDept = {}; E.forEach(e => { const k = e.dept || '—'; byDept[k] = (byDept[k] || 0) + (e.gross || 0); });
+  const deptRows = Object.entries(byDept).sort((a, b) => b[1] - a[1]);
+  // Next quincenas: step one day past the end of the previous one (no month arithmetic)
+  const after = p => { const d = new Date(p.endDate + 'T12:00:00'); d.setDate(d.getDate() + 1); return getQuincenaForDate(d); };
+  const nextP = after(curPeriod);
+  const nextP2 = after(nextP);
   const upcomingRows = [curPeriod, nextP, nextP2].map(p => ({ id: p.code, range: p.rangeShort, pay: p.payDate }));
   const empty = txt => <div className="mgh-body" style={{ padding: '40px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>{txt}</div>;
   return <Page>
@@ -1496,8 +1503,8 @@ function PayrollDashboard({ go }) {
     </Grid>
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(300px,1fr)', gap: 20 }}>
       <Card icon="stacked_bar_chart" title="Gross by period" subtitle="Saved payroll runs • thousands USD">{hist.length ? <BarChart data={hist} height={200} format={v => '$' + v + 'k'} /> : empty('No payroll runs yet.')}</Card>
-      <Card icon="domain" title="By operating entity">
-        {gross > 0 ? <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{entityRows.map(([n, v]) => <div key={n}><div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}><span style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{n}</span><b style={{ font: '700 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{fmt$(v)}</b></div><ProgressBar value={v / gross * 100} /></div>)}</div> : empty('No hours logged this period.')}
+      <Card icon="donut_small" title="By department" subtitle="Current period estimate">
+        {gross > 0 ? <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{deptRows.map(([n, v]) => <div key={n}><div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}><span style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{n}</span><b style={{ font: '700 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{fmt$(v)}</b></div><ProgressBar value={v / gross * 100} /></div>)}</div> : empty('No hours logged this period.')}
       </Card>
     </div>
     <Card icon="event_repeat" title="Upcoming pay periods" bodyStyle={{ paddingTop: 14 }}>
@@ -1546,14 +1553,14 @@ function PayrollProcessing({ notify }) {
   const [disbursedModal, setDisbursedModal] = React.useState(false);
   const [disbursing, setDisbursing] = React.useState(false);
   const names = ['Pre-checks', 'Import Hours', 'Review Exceptions', 'Calculate', 'Approve & Lock', 'Disburse'];
-  const steps = names.map((l, i) => ({ label: l, state: i < step ? 'done' : i === step ? 'current' : 'pending', icon: ['rule', 'download', 'report', 'calculate', 'lock', 'send_money'][i], status: i < step ? 'Complete' : i === step ? 'Current Step' : 'Pending' }));
+  const steps = names.map((l, i) => ({ label: l, state: i < step ? 'done' : i === step ? 'current' : 'pending', icon: ['rule', 'download', 'report', 'calculate', 'lock', 'send_money'][i], status: i < step ? 'Visto' : i === step ? 'Paso actual' : 'Pendiente' }));
   // Open attendance exceptions from the backend (no invented issues)
   const [rawEx, setRawEx] = React.useState([]);
   const loadEx = React.useCallback(() => {
     if (window.api && window.api.exceptions) window.api.exceptions({ resolved: false }).then(r => setRawEx(Array.isArray(r) ? r : [])).catch(() => setRawEx([]));
   }, []);
   React.useEffect(loadEx, [loadEx]);
-  const ex = rawEx.map(x => ({ id: x.id, emp: EMPLOYEES.find(e => e.id === x.emp) || { id: x.emp, name: x.emp }, issue: x.type + (x.date ? ' • ' + x.date : ''), sev: x.severity || 'Medium', act: x.suggestedAction || '' }));
+  const ex = rawEx.map(x => ({ id: x.id, emp: EMPLOYEES.find(e => e.id === x.emp) || { id: x.emp, name: x.emp }, issue: x.type + (x.date ? ' • ' + x.date : ''), sev: x.severity || '—', act: x.suggestedAction || '' }));
   const totals = EMPLOYEES.reduce((t, e) => ({ hrs: t.hrs + (e.total || 0), gross: t.gross + (e.gross || 0), ded: t.ded + (e.gross ? DEDUCT(e).total : 0) }), { hrs: 0, gross: 0, ded: 0 });
   const resolveSelected = async () => {
     const ids = sel.slice();
@@ -1611,8 +1618,14 @@ function PayrollProcessing({ notify }) {
       </div>
     </Card>
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 8 }}>
-      <MetricTile tone="white" label="Employees" value={String(EMPLOYEES.length)} /><MetricTile tone="white" label="Hours" value={fmtH(totals.hrs)} /><MetricTile tone="white" label="Est. gross" value={fmt$(totals.gross)} /><MetricTile tone="white" label="Est. deductions" value={fmt$(totals.ded)} /><MetricTile tone="success" label="Est. net" value={fmt$(totals.gross - totals.ded)} /><MetricTile tone="danger" label="Exceptions" value={String(ex.length)} />
+      {run ? <>
+        <MetricTile tone="white" label="Empleados en la corrida" value={String(Number(run.total_employees) || 0)} /><MetricTile tone="white" label="Horas" value={run.total_hours != null ? fmtH(Number(run.total_hours)) : '—'} /><MetricTile tone="white" label="Bruto" value={fmt$(Number(run.total_gross) || 0)} /><MetricTile tone="white" label="Deducciones" value={run.total_deductions != null ? fmt$(Number(run.total_deductions)) : fmt$((Number(run.total_gross) || 0) - (Number(run.total_net) || 0))} /><MetricTile tone="success" label="Neto" value={fmt$(Number(run.total_net) || 0)} />
+      </> : periodCode === getCurrentPeriod().code ? <>
+        <MetricTile tone="white" label="Empleados (estimación)" value={String(EMPLOYEES.length)} /><MetricTile tone="white" label="Horas (estimación)" value={fmtH(totals.hrs)} /><MetricTile tone="white" label="Bruto estimado" value={fmt$(totals.gross)} /><MetricTile tone="white" label="Deducciones estimadas" value={fmt$(totals.ded)} /><MetricTile tone="success" label="Neto estimado" value={fmt$(totals.gross - totals.ded)} />
+      </> : <MetricTile tone="white" label={'Totales de ' + periodCode} value="—" sub="Sin corrida calculada" />}
+      <MetricTile tone="danger" label="Excepciones abiertas" value={String(ex.length)} />
     </div>
+    <div style={{ font: '500 12px var(--font-sans)', color: 'var(--mgh-ink-3)', marginTop: -12 }}>{run ? 'Totales de la corrida guardada de ' + periodCode + '.' : periodCode === getCurrentPeriod().code ? 'Estimación del período actual a partir de las hojas de tiempo; la corrida calcula los montos definitivos.' : 'Esta quincena aún no tiene corrida calculada.'}</div>
 
     {step === 5 ? (
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(300px,1fr)', gap: 20 }}>
@@ -1624,7 +1637,7 @@ function PayrollProcessing({ notify }) {
                 
                 
                 <div style={{ marginTop: 12 }}>
-                  <Button size="sm" variant="secondary" icon="download" onClick={() => window.open(`/api/payroll/export/bhd?periodId=${curPeriod.code}&download=true`, '_blank')}>Download BHD File</Button>
+                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => window.open(`/api/payroll/export/bhd?periodId=${curPeriod.code}&download=true`, '_blank')}>Download BHD File</Button>
                 </div>
               </div>
               <div style={{ padding: 16, borderRadius: 10, border: '1px solid var(--mgh-surface-2)', background: 'var(--mgh-surface-1)' }}>
@@ -1632,7 +1645,7 @@ function PayrollProcessing({ notify }) {
                 
                 
                 <div style={{ marginTop: 12 }}>
-                  <Button size="sm" variant="secondary" icon="download" onClick={() => window.open(`/api/payroll/export/nacha?periodId=${curPeriod.code}&download=true`, '_blank')}>Download NACHA (.ach)</Button>
+                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => window.open(`/api/payroll/export/nacha?periodId=${curPeriod.code}&download=true`, '_blank')}>Download NACHA (.ach)</Button>
                 </div>
               </div>
               <div style={{ padding: 16, borderRadius: 10, border: '1px solid var(--mgh-surface-2)', background: 'var(--mgh-surface-1)' }}>
@@ -1640,14 +1653,14 @@ function PayrollProcessing({ notify }) {
                 
                 
                 <div style={{ marginTop: 12 }}>
-                  <Button size="sm" variant="secondary" icon="download" onClick={() => window.open(`/api/payroll/export/usdc?periodId=${curPeriod.code}&download=true`, '_blank')}>Download USDC Batch</Button>
+                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => window.open(`/api/payroll/export/usdc?periodId=${curPeriod.code}&download=true`, '_blank')}>Download USDC Batch</Button>
                 </div>
               </div>
             </div>
             <div style={{ padding: 14, borderRadius: 8, background: 'var(--mgh-success-50)', border: '1px solid var(--mgh-success-200)', display: 'flex', gap: 12, alignItems: 'center' }}>
               <Icon name="verified" size={24} color="var(--mgh-success)" />
               <div style={{ font: '500 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>
-                Click <b>Release Funds</b> above to approve the saved payroll run for this period. Dispersal files are generated from the approved run.
+                {runLocked ? 'La corrida está aprobada: descarga los archivos de pago.' : <>Pulsa <b>Release Funds</b> para aprobar la corrida guardada de esta quincena. Los archivos de pago se habilitan solo desde la corrida aprobada.</>}
               </div>
             </div>
           </div>
@@ -1660,10 +1673,10 @@ function PayrollProcessing({ notify }) {
       </div>
     ) : (
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(300px,1fr)', gap: 20 }}>
-        <Card icon="report" title="Exceptions to resolve" subtitle="Payroll cannot lock while high-severity items are open." bodyStyle={{ paddingTop: 14 }}>
+        <Card icon="report" title="Exceptions to resolve" subtitle="Revisa y resuelve las excepciones abiertas antes de aprobar la corrida (el sistema no lo bloquea automáticamente)." bodyStyle={{ paddingTop: 14 }}>
           <DataTable selectable selected={sel} onSelectedChange={setSel} bulkBar={<Button size="sm" icon="done" onClick={resolveSelected}>Mark resolved</Button>} rows={ex} columns={[
             { key: 'emp', label: 'Employee', render: r => <EmployeeCell e={r.emp} sub={r.emp.id} /> }, { key: 'issue', label: 'Issue', wrap: true },
-            { key: 'sev', label: 'Severity', render: r => <Badge size="sm" tone={r.sev === 'High' ? 'danger' : 'warning'}>{r.sev}</Badge> }, { key: 'act', label: 'Suggested action', wrap: true }]} />
+            { key: 'sev', label: 'Severity', render: r => <Badge size="sm" tone={r.sev === 'High' ? 'danger' : r.sev === '—' ? 'neutral' : 'warning'}>{r.sev}</Badge> }, { key: 'act', label: 'Suggested action', wrap: true }]} />
         </Card>
         <Card icon="checklist" title="Pre-run checklist">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{['Exchange rates confirmed', 'TSS & ISR tables up to date', 'Jira worklogs synced', 'Bank cut-off times confirmed', 'Dual control approver assigned'].map((t) => <Checkbox key={t} label={t} />)}</div>
@@ -1730,9 +1743,9 @@ function PayStubPreview({ notify, empId }) {
 
   const row = (l, a, b, c, bold) => <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 90px 110px', gap: 8, padding: '8px 0', borderBottom: '1px solid var(--mgh-surface-2)', font: `${bold ? 700 : 500} 13px var(--font-sans)`, color: bold ? 'var(--mgh-ink)' : 'var(--mgh-ink-2)' }}><span>{l}</span><span style={{ textAlign: 'right' }}>{a}</span><span style={{ textAlign: 'right' }}>{b}</span><span style={{ textAlign: 'right', color: 'var(--mgh-ink)' }}>{c}</span></div>;
   const dateStr = d => d ? new Date(d + 'T00:00:00Z').toLocaleDateString(LOC(), { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) : '—';
-  const adjAdd = s.adjustments.reduce((sum, a) => sum + (a.amount > 0 ? a.amount : 0), 0);
+  const adjAdd = (s.adjustments || []).reduce((sum, a) => sum + (a.amount > 0 ? a.amount : 0), 0);
   const ytd = stubs.filter(x => x.year === s.year && x.periodNumber <= s.periodNumber);
-  const ytdGross = ytd.reduce((sum, x) => sum + x.grossPay, 0), ytdDed = ytd.reduce((sum, x) => sum + x.totalDeductions, 0);
+  const ytdGross = ytd.reduce((sum, x) => sum + (Number(x.grossPay) || 0), 0), ytdDed = ytd.reduce((sum, x) => sum + (Number(x.totalDeductions) || 0), 0);
   const issued = ['Approved', 'Paid', 'Closed', 'Archived'].includes(s.status);
   const COLORS = ['var(--mgh-primary)', 'var(--mgh-navy)', 'var(--mgh-accent)'];
 
@@ -1752,18 +1765,18 @@ function PayStubPreview({ notify, empId }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}><img src="assets/logo-mgh.png" alt="My Global Hub" style={{ height: 52 }} /><div style={{ textAlign: 'right' }}><div className="mgh-overline">Earnings statement</div><div className="mgh-h3">{s.periodId}</div><div className="mgh-body">Pay date {dateStr(s.payDate)}</div></div></div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, padding: 14, borderRadius: 8, background: 'var(--mgh-surface-page)' }}>
               <div><div className="mgh-overline">Employee</div><div className="mgh-lg">{s.employeeName}</div><div className="mgh-body">{s.employeeId}{s.employeeRole ? ' • ' + s.employeeRole : ''}</div></div>
-              <div><div className="mgh-overline">Employer</div><div className="mgh-lg">{s.entity}</div>{/dominicana/i.test(s.entity) && <div className="mgh-body">RNC 133-474018 • Punta Cana</div>}</div>
+              <div><div className="mgh-overline">Employer</div><div className="mgh-lg">{s.entity || 'My Global Hub (Dominicana SRL)'}</div>{(!s.entity || /dominicana|my global hub|mgh/i.test(s.entity)) && <div className="mgh-body">RNC 133-474018 • Punta Cana</div>}</div>
             </div>
-            <div><div className="mgh-overline" style={{ marginBottom: 4 }}>Earnings</div>{row('Description', 'Hours', 'Rate', 'Amount', true)}{row('Regular', s.regHours.toFixed(1), fmt$(s.rate), fmt$(s.regHours * s.rate))}{s.otHours > 0 && row('Overtime 1.5×', s.otHours.toFixed(1), fmt$(s.rate * 1.5), fmt$(s.otHours * s.rate * 1.5))}{s.ptoHours > 0 && row('PTO', s.ptoHours.toFixed(1), fmt$(s.rate), fmt$(s.ptoHours * s.rate))}{adjAdd > 0 && row('Adjustments', '', '', fmt$(adjAdd))}{row('Gross pay', '', '', fmt$(s.grossPay), true)}</div>
-            <div><div className="mgh-overline" style={{ marginBottom: 4 }}>Deductions</div>{s.deductions.length ? s.deductions.map(d => row(d.label, '', '', '−' + fmt$(d.amount))) : row('Tax deductions', '', '', 'Exempt')}{row('Total deductions', '', '', '−' + fmt$(s.totalDeductions), true)}</div>
-            {s.payoutDistribution.length > 0 && <div><div className="mgh-overline" style={{ marginBottom: 8 }}>Direct deposit allocation</div><ProgressBar height={16} segments={s.payoutDistribution.map((p, i) => ({ value: p.percentage, color: COLORS[i % COLORS.length], label: `${p.target} ${p.percentage}%` }))} /></div>}
+            <div><div className="mgh-overline" style={{ marginBottom: 4 }}>Earnings</div>{row('Description', 'Hours', 'Rate', 'Amount', true)}{row('Regular', (Number(s.regHours) || 0).toFixed(1), fmt$(s.rate), fmt$((Number(s.regHours) || 0) * (Number(s.rate) || 0)))}{s.otHours > 0 && row('Overtime 1.5×', Number(s.otHours).toFixed(1), fmt$(s.rate * 1.5), fmt$(s.otHours * s.rate * 1.5))}{s.ptoHours > 0 && row('PTO', Number(s.ptoHours).toFixed(1), fmt$(s.rate), fmt$(s.ptoHours * s.rate))}{adjAdd > 0 && row('Adjustments', '', '', fmt$(adjAdd))}{row('Gross pay', '', '', fmt$(s.grossPay), true)}</div>
+            <div><div className="mgh-overline" style={{ marginBottom: 4 }}>Deductions</div>{(s.deductions || []).length ? s.deductions.map(d => row(d.label, '', '', '−' + fmt$(d.amount))) : row('Sin deducciones', '', '', '—')}{row('Total deductions', '', '', '−' + fmt$(s.totalDeductions), true)}</div>
+            {(s.payoutDistribution || []).length > 0 && <div><div className="mgh-overline" style={{ marginBottom: 8 }}>Direct deposit allocation</div><ProgressBar height={16} segments={s.payoutDistribution.map((p, i) => ({ value: p.percentage, color: COLORS[i % COLORS.length], label: `${p.target} ${p.percentage}%` }))} /></div>}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderRadius: 8, background: 'var(--mgh-navy)', color: '#fff' }}><span className="mgh-overline" style={{ color: 'var(--mgh-nav-text)' }}>Net pay</span><span style={{ font: '800 28px var(--font-sans)', letterSpacing: '-0.56px' }}>{fmt$(s.netPay)}</span></div>
             <div style={{ font: '400 11px/16px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>Document ID PS-{s.periodId}-{s.employeeId} • Payroll run {s.runId}</div>
           </div>
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <Card title="Summary" padding={20}><div style={{ display: 'grid', gap: 8 }}><KeyValue label="Gross" value={fmt$(s.grossPay)} /><KeyValue label="Deductions" value={s.deductions.length ? '−' + fmt$(s.totalDeductions) : 'Exempt'} /><KeyValue label="Net" value={fmt$(s.netPay)} aside={<Badge tone={issued ? 'success' : 'warning'}>{s.status}</Badge>} /></div></Card>
+        <Card title="Summary" padding={20}><div style={{ display: 'grid', gap: 8 }}><KeyValue label="Gross" value={fmt$(s.grossPay)} /><KeyValue label="Deductions" value={(s.deductions || []).length ? '−' + fmt$(s.totalDeductions) : 'Sin deducciones'} /><KeyValue label="Net" value={fmt$(s.netPay)} aside={<Badge tone={issued ? 'success' : 'warning'}>{s.status}</Badge>} /></div></Card>
         <Card title="Year to date" padding={20}><div style={{ display: 'grid', gap: 8 }}><KeyValue label="YTD gross" value={fmt$(ytdGross)} /><KeyValue label="YTD withholding" value={fmt$(ytdDed)} /></div></Card>
       </div>
     </div>
@@ -1799,8 +1812,8 @@ function Banking({ notify }) {
   const t = useTable(accounts, { search: ['bank', 'country', 'type'], pageSize: 10 });
 
   const exportCsv = () => {
-    const headers = ['Institution', 'Code', 'Country', 'Rail', 'Account', 'Routing', 'Currency', 'Status', 'Volume'];
-    const rows = accounts.map(a => [a.bank, a.code, a.country, a.type, a.acct, a.routing, a.cur, a.st, a.vol]);
+    const headers = ['Institution', 'Code', 'Country', 'Rail', 'Account', 'Routing', 'Currency', 'Status'];
+    const rows = accounts.map(a => [a.bank, a.code, a.country, a.type, a.acct, a.routing, a.cur, a.st].map(x => x == null ? '' : x));
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.map(x => `"${String(x).replace(/"/g, '""')}"`).join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
@@ -1827,7 +1840,6 @@ function Banking({ notify }) {
       routing: form.routing.toUpperCase(),
       cur: form.cur,
       st: 'Pending verification',
-      vol: 0,
     };
     const next = [...accounts, newAccount];
     setAccounts(next);
@@ -1838,10 +1850,9 @@ function Banking({ notify }) {
   };
 
   return <Page>
-    <PageHeader breadcrumbs={['Payroll & Finance', 'Banking & Allocations']} title="Central Banking & Treasury" description="Funding accounts, payout rails and multi-bank splits for every operating entity." actions={<><Button variant="secondary" icon="history" onClick={() => window.__mghGo('audit')}>Audit History</Button><Button icon="add_circle" onClick={() => setAddOpen(true)}>Add Bank Account</Button></>} />
+    <PageHeader breadcrumbs={['Payroll & Finance', 'Banking & Allocations']} title="Central Banking & Treasury" description="Cuentas de fondeo y rieles de pago de My Global Hub (Dominicana SRL). Estas cuentas se guardan solo en este navegador." actions={<><Button variant="secondary" icon="history" onClick={() => window.__mghGo('audit')}>Audit History</Button><Button icon="add_circle" onClick={() => setAddOpen(true)}>Add Bank Account</Button></>} />
     <Grid min={220}>
-      <StatCard label="Accounts" value={String(accounts.length)} icon="account_balance" style={{ minHeight: 0 }} />
-      <StatCard label="Verified rails" value={`${accounts.filter(a => a.st === 'Verified').length} / ${accounts.length}`} icon="verified_user" tone="success" style={{ minHeight: 0 }} />
+      <StatCard label="Accounts" value={String(accounts.length)} icon="account_balance" style={{ minHeight: 0 }} footer="Solo en este navegador" />
       <StatCard label="Pending verification" value={String(accounts.filter(a => a.st !== 'Verified').length)} icon="lock_clock" tone="warning" style={{ minHeight: 0 }} />
     </Grid>
     <Card padding={20} icon="account_balance" title="Disbursement accounts">
@@ -1849,12 +1860,9 @@ function Banking({ notify }) {
       <DataTable style={{ marginTop: 14 }} sort={t.sort} onSort={t.setSort} rows={t.rows} columns={[
         { key: 'bank', label: 'Institution', sortable: true, render: r => <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ width: 36, height: 36, borderRadius: 8, background: r.id === 2 ? 'var(--mgh-navy)' : 'var(--mgh-primary-50)', color: r.id === 2 ? '#fff' : 'var(--mgh-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '800 11px var(--font-sans)' }}>{r.code}</span><div><div style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{r.bank}</div><div style={{ font: '400 11px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>{r.country}</div></div></div> },
         { key: 'type', label: 'Rail', sortable: true, render: r => <Badge size="sm" tone="primary" uppercase>{r.type}</Badge> }, { key: 'acct', label: 'Account', mono: true }, { key: 'routing', label: 'BIC / Routing', mono: true }, { key: 'cur', label: 'Currency' },
-        { key: 'st', label: 'Status', render: r => <Badge size="sm" dot tone={r.st === 'Verified' ? 'success' : 'warning'}>{r.st}</Badge> }, { key: 'vol', label: 'Cycle volume', align: 'right', sortable: true, strong: true, render: r => fmt$(r.vol) }]} />
+        { key: 'st', label: 'Status', render: r => <Badge size="sm" dot tone={r.st === 'Verified' ? 'success' : 'warning'}>{r.st || '—'}</Badge> }]} emptyText="No hay cuentas de fondeo registradas en este navegador." />
     </Card>
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-      <Card icon="call_split" title="Payout splits" subtitle="Configured per employee in their profile (bank / Coinbase allocation must total 100%)" />
-      <Card icon="gavel" title="Compliance & 3-Day Verification Policy" tone="muted"><p className="mgh-body" style={{ margin: 0 }}>Bank account modifications require hardware-token 2FA and countersignature from HR Finance leadership. Allocation updates are subject to an auditable 72-hour cooling period to prevent payroll diversion fraud.</p></Card>
-    </div>
+    <Card icon="call_split" title="Payout splits" subtitle="Configured per employee in their profile (bank / Coinbase allocation must total 100%)" />
 
     <Modal open={addOpen} title="Add Disbursement Bank Account" onClose={() => setAddOpen(false)} width={520}
       actions={<>
@@ -1866,10 +1874,10 @@ function Banking({ notify }) {
         <TextField label="Bank Institution" value={form.bank} onChange={x => setForm(f => ({ ...f, bank: typeof x === 'string' ? x : x.target.value }))} placeholder="e.g. Banco Popular" />
         <TextField label="Bank Code" value={form.code} onChange={x => setForm(f => ({ ...f, code: typeof x === 'string' ? x : x.target.value }))} placeholder="e.g. BPD" />
         <TextField label="Country" value={form.country} onChange={x => setForm(f => ({ ...f, country: typeof x === 'string' ? x : x.target.value }))} placeholder="e.g. Dominican Republic" />
-        <Select label="Payout Rail" value={form.type} onChange={x => setForm(f => ({ ...f, type: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Primary ACH', 'Offshore FedWire', 'BACS', 'SEPA']} />
+        <Select label="Payout Rail" value={form.type} onChange={x => setForm(f => ({ ...f, type: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Primary ACH', 'ACH (US)']} />
         <TextField label="Account Number / Masked" value={form.acct} mono onChange={x => setForm(f => ({ ...f, acct: typeof x === 'string' ? x : x.target.value }))} placeholder="•••• 1234" />
         <TextField label="BIC / Routing Number" value={form.routing} mono onChange={x => setForm(f => ({ ...f, routing: typeof x === 'string' ? x : x.target.value }))} placeholder="e.g. BPDODO22" />
-        <Select label="Currency" value={form.cur} onChange={x => setForm(f => ({ ...f, cur: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['DOP / USD', 'USD', 'EUR', 'GBP']} />
+        <Select label="Currency" value={form.cur} onChange={x => setForm(f => ({ ...f, cur: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['DOP / USD', 'DOP', 'USD']} />
       </div>
     </Modal>
   </Page>;
@@ -1886,8 +1894,6 @@ const { Button, IconButton, Badge, Avatar, Icon, Card, FilterChips, StatCard, Me
 const PT = { 'On track': 'success', 'At risk': 'warning', 'Over budget': 'danger', 'Non-billable': 'neutral' };
 
 function JiraIntegration({ notify }) {
-  const [auto, setAuto] = React.useState(true);
-  const [map, setMap] = React.useState(true);
   const [status, setStatus] = React.useState(null);
   const [issues, setIssues] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -1932,7 +1938,7 @@ function JiraIntegration({ notify }) {
     setSyncing(true);
     setErrorMsg(null);
     try {
-      const res = await window.api.syncJiraIssues({ projectKey: status?.projectKey || 'MSHP' });
+      const res = await window.api.syncJiraIssues(status?.projectKey ? { projectKey: status.projectKey } : {});
       if (res && res.ok) {
         if (notify) notify(`Sincronización completada: ${res.syncedCount || 0} tareas actualizadas desde Jira Cloud`);
         loadData();
@@ -1998,7 +2004,7 @@ function JiraIntegration({ notify }) {
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: 13 }}>{errorMsg}</div>
           <div style={{ fontSize: 12, color: '#B91C1C', marginTop: 2 }}>
-            La aplicación continúa operando con la <strong>Base de datos local SQLite</strong> ({totalCached} tareas en caché). Puedes registrar y conciliar jornadas sin interrupción.
+            La aplicación sigue usando las tareas ya guardadas en la base de datos ({totalCached} en total). Puedes registrar actividades mientras se restablece la conexión.
           </div>
         </div>
         <Button size="sm" variant="secondary" onClick={handleSyncNow} disabled={syncing}>
@@ -2008,14 +2014,14 @@ function JiraIntegration({ notify }) {
     )}
 
     <Grid min={220}>
-      <StatCard label="Tareas en caché local (SQLite)" value={totalCached.toString()} icon="inventory_2" tone="accent" />
-      <StatCard label="Estado de sincronización" value={isConnected ? 'Activo (En vivo)' : 'Caché Resiliente'} icon={isConnected ? 'check_circle' : 'database'} tone={isConnected ? 'success' : 'warning'} />
-      <StatCard label="Proyecto configurado" value={status?.projectKey || 'MSHP'} icon="folder_open" tone="primary" />
-      <StatCard label="Última sincronización" value={lastSyncStr} icon="history" delta={status?.sync?.status === 'SUCCESS' ? 'Completado' : 'Local'} deltaTone={isConnected ? 'success' : 'neutral'} />
+      <StatCard label="Tareas guardadas" value={String(totalCached)} icon="inventory_2" tone="accent" />
+      <StatCard label="Estado de sincronización" value={isConnected ? 'Conectado' : 'Sin conexión'} icon={isConnected ? 'check_circle' : 'database'} tone={isConnected ? 'success' : 'warning'} />
+      <StatCard label="Proyecto configurado" value={status?.projectKey || '—'} icon="folder_open" tone="primary" />
+      <StatCard label="Última sincronización" value={lastSyncStr} icon="history" delta={status?.sync?.status === 'SUCCESS' ? 'Completado' : (status?.sync?.status || undefined)} deltaTone={isConnected ? 'success' : 'neutral'} />
     </Grid>
 
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.6fr) minmax(300px,1fr)', gap: 20 }}>
-      <Card icon="hub" title="Arquitectura de Datos" subtitle="Protocolo: Jira (Autoridad) → SQLite (Lectura Ultrarrápida)">
+      <Card icon="hub" title="Arquitectura de Datos" subtitle="Jira es la fuente; la aplicación guarda una copia de las tareas">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0' }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <div style={{ background: 'var(--mgh-surface-2)', padding: 8, borderRadius: 8 }}><Icon name="verified" size={20} color="var(--mgh-primary)" /></div>
@@ -2027,8 +2033,8 @@ function JiraIntegration({ notify }) {
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <div style={{ background: 'var(--mgh-surface-2)', padding: 8, borderRadius: 8 }}><Icon name="bolt" size={20} color="#10B981" /></div>
             <div>
-              <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--mgh-ink)' }}>Base de Datos Local SQLite (&lt; 5ms)</div>
-              <div style={{ fontSize: 12, color: 'var(--mgh-ink-2)' }}>Lectura instantánea de tareas, estados y estimaciones para el selector de actividades diarias y reportes de conciliación sin trabas.</div>
+              <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--mgh-ink)' }}>Copia en la base de datos de la aplicación</div>
+              <div style={{ fontSize: 12, color: 'var(--mgh-ink-2)' }}>Las tareas sincronizadas se guardan para el selector de actividades diarias y los reportes de conciliación.</div>
             </div>
           </div>
         </div>
@@ -2036,16 +2042,14 @@ function JiraIntegration({ notify }) {
 
       <Card icon="settings_ethernet" title="Conexión Jira Cloud">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <KeyValue label="Sitio Atlassian" value={status?.host ? status.host.replace('https://', '') : 'myglobalhub.atlassian.net'} mono aside={<Badge tone={isConnected ? 'success' : 'warning'} size="sm">{status?.mode || 'Local'}</Badge>} />
-          <KeyValue label="Proyecto" value={status?.projectKey || 'MSHP'} mono />
-          <KeyValue label="Cuenta / Correo" value={status?.email || 'dev-ops@myglobalhub.com'} mono />
-          <Toggle checked={auto} onChange={setAuto} label="Sincronización periódica" description="Consulta de novedades y actualización de caché" />
-          <Toggle checked={map} onChange={setMap} label="Resiliencia local" description="Servir catálogo local si Jira no responde" />
+          <KeyValue label="Sitio Atlassian" value={status?.host ? status.host.replace('https://', '') : 'No configurado'} mono aside={<Badge tone={isConnected ? 'success' : 'warning'} size="sm">{status?.mode || (isConnected ? 'Conectado' : 'Sin conexión')}</Badge>} />
+          <KeyValue label="Proyecto" value={status?.projectKey || '—'} mono />
+          <KeyValue label="Cuenta / Correo" value={status?.email || 'No configurado'} mono />
         </div>
       </Card>
     </div>
 
-    <Card icon="list_alt" title={`Tareas de Jira en Base de Datos Local (${totalCached})`} bodyStyle={{ paddingTop: 14 }}>
+    <Card icon="list_alt" title={`Tareas de Jira guardadas (${totalCached})`} bodyStyle={{ paddingTop: 14 }}>
       <DataTable
         density="compact"
         rows={issues.map((iss, idx) => ({ id: iss.key || idx, ...iss }))}
@@ -2083,6 +2087,8 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
   const [teamProjectFilter, setTeamProjectFilter] = React.useState('all');
   const [teamTypeFilter, setTeamTypeFilter] = React.useState('all');
 
+  // Empty numeric inputs are sent as null: never invent a budget or a billable %
+  const numOrNull = x => { if (x == null || String(x).trim() === '') return null; const n = Number(x); return Number.isFinite(n) ? n : null; };
   // Modal para Crear Nuevo Proyecto
   const [createProjectOpen, setCreateProjectOpen] = React.useState(false);
   const [creatingProject, setCreatingProject] = React.useState(false);
@@ -2090,8 +2096,8 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
     name: '',
     key: '',
     lead: (currentUser && (currentUser.name || currentUser.userName)) || '',
-    budget: '50000',
-    bill: '100',
+    budget: '',
+    bill: '',
     st: 'On track'
   });
 
@@ -2103,8 +2109,8 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
     key: '',
     name: '',
     lead: '',
-    budget: '50000',
-    bill: '100',
+    budget: '',
+    bill: '',
     st: 'On track'
   });
 
@@ -2155,7 +2161,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
   const [taskQuery, setTaskQuery] = React.useState('');
   const [taskStatusFilter, setTaskStatusFilter] = React.useState('all');
 
-  // Cargar proyectos desde el backend (SQLite)
+  // Cargar proyectos desde el backend
   const fetchProjects = React.useCallback(async () => {
     try {
       setLoadingProjects(true);
@@ -2173,7 +2179,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
     }
   }, []);
 
-  // Cargar empleados desde el backend (SQLite)
+  // Cargar empleados desde el backend
   const fetchEmployees = React.useCallback(async () => {
     try {
       setLoadingEmployees(true);
@@ -2244,12 +2250,16 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
       if (notify) notify('Ingresa un correo electrónico corporativo válido.');
       return;
     }
-    if (workerForm.password && (workerForm.password.length < 10 || !/[a-z]/.test(workerForm.password) || !/[A-Z]/.test(workerForm.password) || !/d/.test(workerForm.password))) {
+    if (workerForm.password && (workerForm.password.length < 10 || !/[a-z]/.test(workerForm.password) || !/[A-Z]/.test(workerForm.password) || !/\d/.test(workerForm.password))) {
       if (notify) notify('La contraseña debe tener al menos 10 caracteres con mayúscula, minúscula y número (o déjala vacía para generar una segura).');
       return;
     }
     if (!(Number(workerForm.rate) > 0)) {
       if (notify) notify('Ingresa la tarifa por hora del trabajador.');
+      return;
+    }
+    if (!workerForm.project) {
+      if (notify) notify('Selecciona el proyecto inicial del trabajador.');
       return;
     }
 
@@ -2320,8 +2330,8 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
         name: projectForm.name.trim(),
         key: projectForm.key ? projectForm.key.trim().toUpperCase() : undefined,
         lead: projectForm.lead || '',
-        budget: Number(projectForm.budget) || 50000,
-        bill: Number(projectForm.bill) || 100,
+        budget: numOrNull(projectForm.budget),
+        bill: numOrNull(projectForm.bill),
         st: projectForm.st || 'On track'
       });
       if (notify) notify(`Proyecto '${res.name}' (${res.key}) creado exitosamente`);
@@ -2330,8 +2340,8 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
         name: '',
         key: '',
         lead: (currentUser && (currentUser.name || currentUser.userName)) || '',
-        budget: '50000',
-        bill: '100',
+        budget: '',
+        bill: '',
         st: 'On track'
       });
       fetchProjects();
@@ -2349,8 +2359,8 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
       key: proj.key || proj.id,
       name: proj.name || '',
       lead: proj.lead || '',
-      budget: String(proj.budget || 50000),
-      bill: String(proj.bill != null ? proj.bill : 100),
+      budget: proj.budget != null && proj.budget !== '' ? String(proj.budget) : '',
+      bill: proj.bill != null && proj.bill !== '' ? String(proj.bill) : '',
       st: proj.st || 'On track'
     });
     setEditProjectOpen(true);
@@ -2370,8 +2380,8 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
       await fn(projectToEdit.key || projectToEdit.id, {
         name: editProjectForm.name.trim(),
         lead: editProjectForm.lead,
-        budget: Number(editProjectForm.budget) || 50000,
-        bill: Number(editProjectForm.bill) || 100,
+        budget: numOrNull(editProjectForm.budget),
+        bill: numOrNull(editProjectForm.bill),
         st: editProjectForm.st
       });
       if (notify) notify(`Proyecto '${editProjectForm.name}' actualizado exitosamente`);
@@ -2475,7 +2485,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
         }
       }
     } catch (err) {
-      setTasksError('No se ha podido conectar con Jira. Mostrando datos locales de SQLite.');
+      setTasksError('No se ha podido conectar con Jira. Mostrando las tareas ya guardadas.');
       setIsOfflineTasks(true);
     } finally {
       setLoadingTasks(false);
@@ -2747,7 +2757,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
           />
           <StatCard
             label="Presupuesto Asignado"
-            value={`$${Math.round(projectsList.reduce((s, p) => s + (p.budget || 0), 0) / 1000)}k`}
+            value={(() => { const withBudget = projectsList.filter(p => Number(p.budget) > 0); return withBudget.length ? `$${Math.round(withBudget.reduce((s, p) => s + Number(p.budget), 0) / 1000)}k` : '—'; })()}
             unit="USD"
             icon="account_balance_wallet"
             tone="accent"
@@ -2785,7 +2795,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 <Button size="sm" variant="secondary" icon="cloud_sync" onClick={() => { setLinkError(null); setLinkedResult(null); setLinkModalOpen(true); }}>
                   Vincular Jira
                 </Button>
-                <Button size="sm" variant="secondary" icon="download" disabled={!projectsList.length} onClick={() => window.__mghNotify(window.__mghExport('csv', 'Projects', '', { cols: [['Key'], ['Name'], ['Lead'], ['People'], ['Budget'], ['Spent'], ['Hours'], ['Status']], rows: projectsList.map(p => [p.key || p.id, p.name, p.lead || '', p.people || 0, p.budget || 0, p.spent || 0, p.hrs || 0, p.st || '']) }))}>
+                <Button size="sm" variant="secondary" icon="download" disabled={!projectsList.length} onClick={() => window.__mghNotify(window.__mghExport('csv', 'Projects', '', { cols: [['Key'], ['Name'], ['Lead'], ['People'], ['Budget'], ['Spent'], ['Hours'], ['Status']], rows: projectsList.map(p => [p.key || p.id, p.name, p.lead || '', p.people || 0, p.budget != null ? p.budget : '', p.spent != null ? p.spent : '', p.hrs || 0, p.st || '']) }))}>
                   Exportar
                 </Button>
               </div>
@@ -2847,20 +2857,22 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 sortable: true,
                 width: 200,
                 render: r => {
-                  const pct = r.budget > 0 ? Math.round((r.spent / r.budget) * 100) : 0;
+                  const budget = Number(r.budget), spent = Number(r.spent) || 0;
+                  if (!(budget > 0)) return <span style={{ color: 'var(--mgh-ink-3)' }}>—</span>;
+                  const pct = Math.round((spent / budget) * 100);
                   return (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <ProgressBar
                         style={{ flex: 1 }}
                         value={pct}
-                        tone={r.spent > r.budget ? 'danger' : pct > 85 ? 'warning' : 'primary'}
+                        tone={spent > budget ? 'danger' : pct > 85 ? 'warning' : 'primary'}
                       />
                       <span style={{ font: '600 12px var(--font-sans)', width: 40, textAlign: 'right' }}>{pct}%</span>
                     </div>
                   );
                 }
               },
-              { key: 'bill', label: 'Facturable', align: 'right', sortable: true, render: r => r.bill ? r.bill + '%' : '—' },
+              { key: 'bill', label: 'Facturable', align: 'right', sortable: true, render: r => r.bill != null && r.bill !== '' ? r.bill + '%' : '—' },
               { key: 'st', label: 'Estado', render: r => <Badge size="sm" dot tone={PT[r.st] || 'neutral'}>{r.st}</Badge> },
               {
                 key: 'actions',
@@ -3048,8 +3060,8 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 label: 'Cargo / Especialidad',
                 render: r => (
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--mgh-ink)' }}>{r.role || r.title || 'Developer'}</div>
-                    <div style={{ fontSize: 11, color: 'var(--mgh-ink-3)' }}>{r.dept || 'Engineering'}</div>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--mgh-ink)' }}>{r.role || r.title || '—'}</div>
+                    <div style={{ fontSize: 11, color: 'var(--mgh-ink-3)' }}>{r.dept || '—'}</div>
                   </div>
                 )
               },
@@ -3057,7 +3069,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 key: 'type',
                 label: 'Tipo',
                 render: r => {
-                  const tp = r.etype || r.type || 'Full-time';
+                  const tp = r.etype || r.type || '—';
                   return <Badge size="xs" tone={tp === 'Contractor' ? 'accent' : 'neutral'}>{tp}</Badge>;
                 }
               },
@@ -3091,7 +3103,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 align: 'right',
                 render: r => (
                   <span style={{ font: '600 13px var(--font-mono, monospace)', color: 'var(--mgh-ink)' }}>
-                    ${r.rate != null ? Number(r.rate).toFixed(2) : '50.00'}/h
+                    {r.rate != null && r.rate !== '' && Number.isFinite(Number(r.rate)) ? '$' + Number(r.rate).toFixed(2) + '/h' : '—'}
                   </span>
                 )
               },
@@ -3113,7 +3125,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                       size="sm"
                       variant="ghost"
                       icon="visibility"
-                      onClick={() => go && go('employee', r.id)}
+                      onClick={() => go && go('profile', r.id)}
                       title="Ver perfil"
                     >
                       Perfil
@@ -3155,7 +3167,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
         {!linkedResult ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ font: '400 13px var(--font-sans)', color: 'var(--mgh-ink-2)', lineHeight: '18px' }}>
-              Ingresa la clave oficial del proyecto en Jira Cloud. El backend verificará la existencia en vivo del proyecto y los permisos de la cuenta antes de registrarlo en la base de datos local SQLite.
+              Ingresa la clave oficial del proyecto en Jira Cloud. El backend verificará la existencia en vivo del proyecto y los permisos de la cuenta antes de registrarlo.
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -3167,7 +3179,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 autoFocus
                 value={projectKeyInput}
                 onChange={e => setProjectKeyInput(e.target.value.toUpperCase())}
-                placeholder="ej. MSHP, TRES, KAN, AR..."
+                placeholder="ej. MSHP, ARW, TR3"
                 disabled={linking}
                 style={{
                   height: 40,
@@ -3186,7 +3198,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 }}
               />
               <div style={{ font: '400 11px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>
-                Puedes ingresar claves como <strong>MSHP</strong> o la clave real de TR3SLOG (<strong>TRES</strong>).
+                Puedes ingresar claves como <strong>MSHP</strong> (Wokokai), <strong>ARW</strong> (Arawaki) o <strong>TR3</strong> (Tr3slog).
               </div>
             </div>
 
@@ -3234,7 +3246,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 ID oficial Jira: <code>{linkedResult.jira_id || linkedResult.id}</code> • Líder: {linkedResult.lead}
               </div>
               <div style={{ font: '400 12px var(--font-sans)', color: 'var(--mgh-ink-3)', borderTop: '1px solid #A7F3D0', paddingTop: 8 }}>
-                Guardado en SQLite sin duplicados y añadido a la tabla de proyectos.
+                Guardado sin duplicados y añadido a la tabla de proyectos.
               </div>
             </div>
 
@@ -3307,7 +3319,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
             </Button>
           </div>
 
-          {/* Notificación de Modo Resiliente SQLite cuando Jira falla o no está conectado */}
+          {/* Notificación de sin conexión cuando Jira falla o no está conectado */}
           {isOfflineTasks && (
             <div style={{
               background: '#FFFBEB',
@@ -3322,7 +3334,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
             }}>
               <Icon name="dns" size={18} color="#D97706" style={{ flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
-                <strong>Modo Resiliente SQLite:</strong> Jira Cloud no respondió o no está disponible. Utilizando tareas almacenadas localmente en SQLite (Última sincronización: {formatSyncDate(tasksLastSyncAt)}).
+                <strong>Sin conexión con Jira:</strong> Jira Cloud no respondió o no está disponible. Se muestran las tareas ya guardadas (Última sincronización: {formatSyncDate(tasksLastSyncAt)}).
               </div>
             </div>
           )}
@@ -3405,7 +3417,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
           }}>
             {loadingTasks ? (
               <div style={{ padding: 40, textAlign: 'center', color: 'var(--mgh-ink-3)', font: '500 13px var(--font-sans)' }}>
-                Cargando incidencias de SQLite...
+                Cargando incidencias...
               </div>
             ) : filteredTasks.length === 0 ? (
               <div style={{ padding: 40, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
@@ -3414,7 +3426,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                   {projectTasks.length === 0 ? 'No hay tareas sincronizadas aún para este proyecto' : 'No hay incidencias que coincidan con la búsqueda'}
                 </div>
                 <div style={{ font: '400 12px var(--font-sans)', color: 'var(--mgh-ink-3)', maxWidth: 400 }}>
-                  {projectTasks.length === 0 ? 'Pulsa "Sincronizar ahora" para consultar Jira Cloud y guardar las incidencias en la base de datos local SQLite.' : 'Intenta ajustar los filtros o el término de búsqueda.'}
+                  {projectTasks.length === 0 ? 'Pulsa "Sincronizar ahora" para consultar Jira Cloud y guardar las incidencias.' : 'Intenta ajustar los filtros o el término de búsqueda.'}
                 </div>
                 {projectTasks.length === 0 && (
                   <Button size="sm" icon="sync" onClick={handleSyncCurrentProject} disabled={syncingTasks}>
@@ -3462,7 +3474,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                     label: 'Estado',
                     render: r => (
                       <Badge size="xs" tone={getStatusTone(r.status)}>
-                        {r.status || 'In Progress'}
+                        {r.status || '—'}
                       </Badge>
                     )
                   },
@@ -3537,10 +3549,12 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
               <Icon name="check_circle" size={28} color="#059669" />
               <div>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#065F46' }}>
-                  ¡Cuenta creada exitosamente!
+                  Colaborador registrado
                 </div>
                 <div style={{ fontSize: 12, color: '#047857', marginTop: 2 }}>
-                  El trabajador ha sido registrado en la base de datos y su usuario de acceso está habilitado.
+                  {createdSummary.account && ['created', 'linked'].includes(createdSummary.account.status)
+                    ? 'El colaborador quedó registrado y su usuario de acceso está habilitado.'
+                    : 'El colaborador quedó registrado. Revisa abajo el estado de su acceso.'}
                 </div>
               </div>
             </div>
@@ -3552,9 +3566,9 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 <KeyValue label="Correo Electrónico" value={createdSummary.email} mono />
                 {createdSummary.password ? <KeyValue label="Contraseña Temporal" value={createdSummary.password} mono aside={<Badge size="sm" tone="warning">Debe cambiarla al entrar</Badge>} /> : null}
                 {window.__mghAccountNotice(createdSummary.account) ? <div style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--mgh-warning-bg)', font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-ink)' }}>{window.__mghAccountNotice(createdSummary.account)}</div> : null}
-                <KeyValue label="Cargo / Especialidad" value={createdSummary.role} />
-                <KeyValue label="Proyecto Asignado" value={createdSummary.project} aside={<Badge mono tone="primary">{createdSummary.project}</Badge>} />
-                <KeyValue label="Tarifa Acordada" value={`$${createdSummary.rate}/h`} mono />
+                <KeyValue label="Cargo / Especialidad" value={createdSummary.role || '—'} />
+                <KeyValue label="Proyecto Asignado" value={createdSummary.project || '—'} />
+                <KeyValue label="Tarifa Acordada" value={createdSummary.rate != null && createdSummary.rate !== '' ? `$${createdSummary.rate}/h` : '—'} mono />
               </div>
             </Card>
           </div>
@@ -3629,7 +3643,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                   style={{ height: 38, padding: '0 10px', borderRadius: 8, border: '1px solid var(--mgh-surface-3, #CBD5E1)', fontSize: 13, background: '#fff' }}
                 >
                   <option value="employee">Empleado Estándar (Registrar horas, ver proyectos)</option>
-                  <option value="contractor">Contratista Internacional (Facturación por invoice)</option>
+                  <option value="contractor">Contratista</option>
                   <option value="supervisor">Supervisor (Supervisión de equipo)</option>
                   {['hr', 'admin'].includes((MGH_RBAC.user || {}).role) && <option value="pm">Project Manager (Gestión de proyectos y equipo)</option>}
                   {(MGH_RBAC.user || {}).role === 'admin' && <><option value="hr">Recursos Humanos</option><option value="finance">Finanzas</option><option value="admin">Administrador (acceso total)</option></>}
@@ -3671,6 +3685,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                   onChange={e => setWorkerForm(p => ({ ...p, project: e.target.value }))}
                   style={{ height: 38, padding: '0 10px', borderRadius: 8, border: '1px solid var(--mgh-surface-3, #CBD5E1)', fontSize: 13, background: '#fff' }}
                 >
+                  <option value="">Selecciona…</option>
                   {allProjectNames.map(pn => (
                     <option key={pn} value={pn}>{pn}</option>
                   ))}
@@ -3771,7 +3786,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 step="5000"
                 value={projectForm.budget}
                 onChange={e => setProjectForm(p => ({ ...p, budget: e.target.value }))}
-                placeholder="50000"
+                placeholder="Opcional"
                 style={{ height: 38, padding: '0 10px', borderRadius: 8, border: '1px solid var(--mgh-surface-3, #CBD5E1)', fontSize: 13 }}
               />
             </div>
@@ -3786,7 +3801,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 max="100"
                 value={projectForm.bill}
                 onChange={e => setProjectForm(p => ({ ...p, bill: e.target.value }))}
-                placeholder="100"
+                placeholder="Opcional"
                 style={{ height: 38, padding: '0 10px', borderRadius: 8, border: '1px solid var(--mgh-surface-3, #CBD5E1)', fontSize: 13 }}
               />
             </div>
@@ -4104,15 +4119,17 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
   </Page>;
 }
 
-// Project → client mapping has no backend source yet; empty so reports show '—' instead of invented clients
-const CLIENT_OF = {};
-window.__MGH_CLIENT_OF = CLIENT_OF;
+// Arawaki, Wokokai and Tr3slog are projects of the one company, not clients: reports have no client dimension.
+// (kept as an empty global only because older screens may still read it)
+window.__MGH_CLIENT_OF = {};
+const COMPANY = 'My Global Hub (Dominicana SRL)';
+const localToday = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const REPORTS = [
   { id: 'hours', label: 'Employee Hours', icon: 'schedule' }, { id: 'weekly', label: 'Weekly Hours', icon: 'date_range' }, { id: 'payroll', label: 'Biweekly Payroll', icon: 'payments' },
   { id: 'ot', label: 'Overtime', icon: 'more_time' }, { id: 'attendance', label: 'Attendance', icon: 'how_to_reg' }, { id: 'summary', label: 'Payroll Summary', icon: 'summarize' },
-  { id: 'labor', label: 'Labor Cost', icon: 'account_tree' }, { id: 'pto', label: 'PTO', icon: 'beach_access' }, { id: 'contractors', label: 'Contractor Payments', icon: 'currency_exchange' },
+  { id: 'labor', label: 'Labor Cost', icon: 'account_tree' }, { id: 'pto', label: 'PTO', icon: 'beach_access' },
   { id: 'org', label: 'Organization Summary', icon: 'hub' }];
-const n1 = v => (Math.round(v * 10) / 10).toFixed(1), m2 = v => fmt$(v || 0);
+const n1 = v => { const x = Number(v); return Number.isFinite(x) ? (Math.round(x * 10) / 10).toFixed(1) : '—'; }, m2 = v => fmt$(Number(v) || 0);
 function weekSplit(e, per) {
   const d = buildDays(e, per); const w = [1, 2].map(k => d.filter(x => x.week === k).map(x => x.hrs || 0));
   const ot = w.map(h => WF ? WF.splitOT(h).reduce((s, x) => s + x, 0) : 0);
@@ -4120,19 +4137,18 @@ function weekSplit(e, per) {
 }
 function buildReport(id, E, per) {
   const grp = (key, f) => Object.values(E.reduce((m, e) => { const k = f(e); (m[k] = m[k] || { k, list: [] }).list.push(e); return m; }, {}));
-  const sum = (l, f) => l.reduce((s, e) => s + f(e), 0);
+  const sum = (l, f) => l.reduce((s, e) => s + (Number(f(e)) || 0), 0);
   const ded = e => DEDUCT(e).total || 0;
-  if (id === 'hours') return { cols: [['ID', 'mono'], ['Employee'], ['Department'], ['Project'], ['Regular', 'num'], ['Overtime', 'num'], ['PTO', 'num'], ['Total', 'num'], ['Status']], rows: E.map(e => [e.id, e.name, e.dept, e.project, n1(e.reg), n1(e.ot), n1(e.pto), n1(e.total), liveStatus(e)]), total: ['', 'Total', '', '', n1(sum(E, e => e.reg)), n1(sum(E, e => e.ot)), n1(sum(E, e => e.pto)), n1(sum(E, e => e.total)), ''] };
+  if (id === 'hours') return { cols: [['ID', 'mono'], ['Employee'], ['Department'], ['Project'], ['Regular', 'num'], ['Overtime', 'num'], ['PTO', 'num'], ['Total', 'num'], ['Status']], rows: E.map(e => [e.id, e.name, e.dept || '—', e.project || '—', n1(e.reg), n1(e.ot), n1(e.pto), n1(e.total), liveStatus(e)]), total: ['', 'Total', '', '', n1(sum(E, e => e.reg)), n1(sum(E, e => e.ot)), n1(sum(E, e => e.pto)), n1(sum(E, e => e.total)), ''] };
   if (id === 'weekly') { const W = E.map(e => ({ e, ...weekSplit(e, per) })); return { cols: [['ID', 'mono'], ['Employee'], ['Week 1', 'num'], ['Week 2', 'num'], ['Period total', 'num'], ['Overtime (rule)', 'num']], rows: W.map(x => [x.e.id, x.e.name, n1(x.w1), n1(x.w2), n1(x.w1 + x.w2), n1(x.ot)]), total: ['', 'Total', n1(sum(W, x => x.w1)), n1(sum(W, x => x.w2)), n1(sum(W, x => x.w1 + x.w2)), n1(sum(W, x => x.ot))], note: 'Overtime recalculated with the organization rule: ' + (WF ? WF.otLabel() : 'Weekly > 44h') };
   }
   if (id === 'payroll') return { cols: [['ID', 'mono'], ['Employee'], ['Regular', 'num'], ['Overtime', 'num'], ['Rate', 'num'], ['Gross', 'num'], ['Deductions', 'num'], ['Net', 'num'], ['Status']], rows: E.map(e => [e.id, e.name, n1(e.reg), n1(e.ot), m2(e.rate), m2(e.gross), m2(ded(e)), m2(e.gross - ded(e)), liveStatus(e)]), total: ['', 'Total', n1(sum(E, e => e.reg)), n1(sum(E, e => e.ot)), '', m2(sum(E, e => e.gross)), m2(sum(E, ded)), m2(sum(E, e => e.gross - ded(e))), ''] };
   if (id === 'ot') { const O = E.filter(e => e.ot > 0); const all = sum(E, e => e.total) || 1; return { cols: [['ID', 'mono'], ['Employee'], ['Department'], ['OT hours', 'num'], ['OT cost (1.5×)', 'num'], ['% of hours', 'num']], rows: O.map(e => [e.id, e.name, e.dept, n1(e.ot), m2(e.ot * e.rate * 1.5), n1(e.ot / (e.total || 1) * 100) + '%']), total: ['', 'Total', '', n1(sum(O, e => e.ot)), m2(sum(O, e => e.ot * e.rate * 1.5)), n1(sum(O, e => e.ot) / all * 100) + '%'] }; }
-  if (id === 'attendance') { const today = window.MGH_ATT ? window.MGH_ATT.TODAY : '9999-12-31'; const A2 = E.map(e => { const d = buildDays(e, per).filter(x => !x.weekend && x.dateStr <= today); const worked = d.filter(x => x.hrs > 0).length, pto = e.pto / 8, sched = Math.max(0, d.length - pto); return [e.id, e.name, e.dept, String(worked), String(Math.max(0, Math.round(sched - worked))), n1(pto), sched ? n1(Math.min(100, worked / sched * 100)) + '%' : '—']; }); return { cols: [['ID', 'mono'], ['Employee'], ['Department'], ['Days with punches', 'num'], ['Days without record', 'num'], ['PTO days', 'num'], ['Attendance', 'num']], rows: A2, total: null }; }
-  if (id === 'summary') { const G = grp('entity', e => e.entity); return { cols: [['Organization'], ['Employees', 'num'], ['Hours', 'num'], ['Gross', 'num'], ['Deductions', 'num'], ['Net', 'num']], rows: G.map(g => [g.k, String(g.list.length), n1(sum(g.list, e => e.total)), m2(sum(g.list, e => e.gross)), m2(sum(g.list, ded)), m2(sum(g.list, e => e.gross - ded(e)))]), total: ['Total', String(E.length), n1(sum(E, e => e.total)), m2(sum(E, e => e.gross)), m2(sum(E, ded)), m2(sum(E, e => e.gross - ded(e)))] }; }
-  if (id === 'labor') { const G = grp('project', e => e.project); return { cols: [['Project'], ['Client'], ['People', 'num'], ['Hours', 'num'], ['Labor cost', 'num'], ['Jira match', 'num']], rows: G.map(g => [g.k, CLIENT_OF[g.k] || '—', String(g.list.length), n1(sum(g.list, e => e.total)), m2(sum(g.list, e => e.gross)), (g.list.some(hasMatch) ? n1(sum(g.list.filter(hasMatch), e => e.match) / g.list.filter(hasMatch).length) + '%' : '—')]), total: ['Total', '', String(E.length), n1(sum(E, e => e.total)), m2(sum(E, e => e.gross)), ''] }; }
+  if (id === 'attendance') { const today = (window.MGH_ATT && window.MGH_ATT.TODAY) || localToday(); const A2 = E.map(e => { const d = buildDays(e, per).filter(x => !x.weekend && x.dateStr <= today); const worked = d.filter(x => x.hrs > 0).length, pto = e.pto / 8, sched = Math.max(0, d.length - pto); return [e.id, e.name, e.dept, String(worked), String(Math.max(0, Math.round(sched - worked))), n1(pto), sched ? n1(Math.min(100, worked / sched * 100)) + '%' : '—']; }); return { cols: [['ID', 'mono'], ['Employee'], ['Department'], ['Days with punches', 'num'], ['Days without record', 'num'], ['PTO days', 'num'], ['Attendance', 'num']], rows: A2, total: null }; }
+  if (id === 'summary') { const G = grp('dept', e => e.dept || '—'); return { cols: [['Department'], ['Employees', 'num'], ['Hours', 'num'], ['Gross', 'num'], ['Deductions', 'num'], ['Net', 'num']], rows: G.map(g => [g.k, String(g.list.length), n1(sum(g.list, e => e.total)), m2(sum(g.list, e => e.gross)), m2(sum(g.list, ded)), m2(sum(g.list, e => e.gross - ded(e)))]), total: ['Total', String(E.length), n1(sum(E, e => e.total)), m2(sum(E, e => e.gross)), m2(sum(E, ded)), m2(sum(E, e => e.gross - ded(e)))] }; }
+  if (id === 'labor') { const G = grp('project', e => e.project || '—'); return { cols: [['Project'], ['People', 'num'], ['Hours', 'num'], ['Labor cost', 'num'], ['Jira match', 'num']], rows: G.map(g => [g.k, String(g.list.length), n1(sum(g.list, e => e.total)), m2(sum(g.list, e => e.gross)), (g.list.some(hasMatch) ? n1(sum(g.list.filter(hasMatch), e => e.match) / g.list.filter(hasMatch).length) + '%' : '—')]), total: ['Total', String(E.length), n1(sum(E, e => e.total)), m2(sum(E, e => e.gross)), ''] }; }
   if (id === 'pto') { const yr = String(new Date().getFullYear()), holN = e => window.MGH_ATT ? window.MGH_ATT.holidays(e.entity).filter(h => String(h.date).startsWith(yr)).length : 0; return { cols: [['ID', 'mono'], ['Employee'], ['Department'], ['PTO used (h)', 'num'], ['Holidays (' + yr + ')', 'num']], rows: E.map(e => [e.id, e.name, e.dept, n1(e.pto), String(holN(e))]), total: ['', 'Total', '', n1(sum(E, e => e.pto)), ''] }; }
-  if (id === 'contractors') { const C = window.__MGH_CTR; const P = C ? C.INIT_PAYMENTS : []; return { cols: [['Payment', 'mono'], ['Contractor'], ['Country'], ['Rail'], ['Amount', 'num'], ['Status']], rows: P.map(p => [p.id, p.c.name, p.c.country, p.c.method === 'Western Union' ? 'Western Union' : 'Coinbase', m2(p.amount), p.status]), total: ['', 'Total', '', '', m2(P.reduce((s, p) => s + p.amount, 0)), ''], note: 'Contractors are reported separately from employee payroll; organization, department and supervisor filters do not apply.' }; }
-  if (id === 'org') { const G = grp('entity', e => e.entity); return { cols: [['Organization'], ['Employees', 'num'], ['Hours', 'num'], ['Overtime', 'num'], ['Labor cost', 'num'], ['Pending timesheets', 'num']], rows: G.map(g => [g.k, String(g.list.length), n1(sum(g.list, e => e.total)), n1(sum(g.list, e => e.ot)), m2(sum(g.list, e => e.gross)), String(g.list.filter(e => /Review|Submitted/.test(liveStatus(e))).length)]), total: ['Total', String(E.length), n1(sum(E, e => e.total)), n1(sum(E, e => e.ot)), m2(sum(E, e => e.gross)), String(E.filter(e => /Review|Submitted/.test(liveStatus(e))).length)] }; }
+  if (id === 'org') { const G = E.length ? [{ k: COMPANY, list: E }] : []; return { cols: [['Organization'], ['Employees', 'num'], ['Hours', 'num'], ['Overtime', 'num'], ['Labor cost', 'num'], ['Pending timesheets', 'num']], rows: G.map(g => [g.k, String(g.list.length), n1(sum(g.list, e => e.total)), n1(sum(g.list, e => e.ot)), m2(sum(g.list, e => e.gross)), String(g.list.filter(e => /Review|Submitted/.test(liveStatus(e))).length)]), total: ['Total', String(E.length), n1(sum(E, e => e.total)), n1(sum(E, e => e.ot)), m2(sum(E, e => e.gross)), String(E.filter(e => /Review|Submitted/.test(liveStatus(e))).length)] }; }
   return { cols: [], rows: [] };
 }
 function exportReport(kind, title, sub, rep) {
@@ -4154,9 +4170,9 @@ function Reports({ notify }) {
   const ALL = 'All';
   const curP = getCurrentPeriod();
   const PERIODS = React.useMemo(() => [curP.code, ...window.__mghPrevPeriods(curP, 5).map(p => p.code)], [curP.code]);
-  const [f, setF] = React.useState({ org: ALL, dept: ALL, project: ALL, client: ALL, sup: ALL, emp: ALL, period: curP.code, status: ALL });
+  const [f, setF] = React.useState({ dept: ALL, project: ALL, sup: ALL, emp: ALL, period: curP.code, status: ALL });
   const set = k => v => setF(x => ({ ...x, [k]: typeof v === 'string' ? v : v.target.value }));
-  const opts = (l) => [ALL, ...[...new Set(l)].sort()];
+  const opts = (l) => [ALL, ...[...new Set(l.filter(Boolean))].sort()];
   // Past periods: hours come from that period's stored timesheets (current period is already on EMPLOYEES)
   const [past, setPast] = React.useState(null);
   React.useEffect(() => {
@@ -4165,37 +4181,38 @@ function Reports({ notify }) {
     window.api.timesheets({ periodId: f.period }).then(list => { if (cancel) return; const m = {}; (Array.isArray(list) ? list : []).forEach(t => { m[t.emp] = t; }); setPast(m); }).catch(() => { if (!cancel) setPast({}); });
     return () => { cancel = true; };
   }, [f.period]);
-  const withPeriod = e => { if (!past) return e; const t = past[e.id] || {}; const reg = Number(t.reg) || 0, ot = Number(t.ot) || 0, pto = Number(t.pto) || 0; return { ...e, reg, ot, pto, total: reg + ot + pto, gross: +(reg * e.rate + ot * e.rate * 1.5 + pto * e.rate).toFixed(2) }; };
+  const withPeriod = e => { if (!past) return e; const t = past[e.id] || {}; const reg = Number(t.reg) || 0, ot = Number(t.ot) || 0, pto = Number(t.pto) || 0, rate = Number(e.rate) || 0; return { ...e, reg, ot, pto, total: reg + ot + pto, gross: +(reg * rate + ot * rate * 1.5 + pto * rate).toFixed(2) }; };
   const E0 = EMPLOYEES.filter(e => MGH_RBAC.can('reports.view', e)).map(withPeriod);
-  const E = E0.filter(e => (f.org === ALL || e.entity === f.org) && (f.dept === ALL || e.dept === f.dept) && (f.project === ALL || e.project === f.project) && (f.client === ALL || CLIENT_OF[e.project] === f.client) && (f.sup === ALL || e.mgr === f.sup) && (f.emp === ALL || e.id + ' • ' + e.name === f.emp) && (f.status === ALL || liveStatus(e) === f.status));
+  const E = E0.filter(e => (f.dept === ALL || e.dept === f.dept) && (f.project === ALL || e.project === f.project) && (f.sup === ALL || e.mgr === f.sup) && (f.emp === ALL || e.id + ' • ' + e.name === f.emp) && (f.status === ALL || liveStatus(e) === f.status));
   const perObj = f.period === curP.code ? curP : (window.__mghPrevPeriods(curP, 5).find(p => p.code === f.period) || curP);
   const R = buildReport(rep, E, perObj), meta = REPORTS.find(r => r.id === rep);
   const active = Object.entries(f).filter(([k, v]) => v !== ALL && k !== 'period').length;
-  const sub = f.period + ' • ' + (active ? active + ' filter(s)' : 'All organizations') + ' • USD';
+  const sub = f.period + ' • ' + COMPANY + (active ? ' • ' + active + ' filter(s)' : '') + ' • USD';
   const hist = WF ? WF.all().flatMap(r => { const s = r.history.find(h => h.to === 'Submitted'), a2 = r.history.find(h => h.to === 'Approved'); return s && a2 ? [(new Date(a2.at) - new Date(s.at)) / 864e5] : []; }) : [];
   const avg = hist.length ? hist.reduce((s, x) => s + x, 0) / hist.length : null;
   const pendingTs = E.filter(e => /Review|Submitted/.test(liveStatus(e))).length, approvedNotPaid = E.filter(e => liveStatus(e) === 'Approved');
   const ex = kind => notify(exportReport(kind, meta.label, sub, R));
-  const fsel = (k, label, list, icon) => <Select size="sm" icon={icon} value={f[k]} onChange={set(k)} options={list.map(v => ({ value: v, label: v === ALL ? 'All ' + label : v }))} />;
+  const fsel = (k, label, list, icon) => <Select size="sm" icon={icon} value={f[k]} onChange={set(k)} options={opts(list).map(v => ({ value: v, label: v === ALL ? 'All ' + label : v }))} />;
+  const num = x => Number(x) || 0;
   return <Page>
-    <PageHeader breadcrumbs={['Payroll & Finance', 'Reports & Register']} title="Reports & Export Center" description="Ten operational reports with live filters. Every report exports to PDF, Excel, CSV or print in the selected language." status={<Badge tone="primary">{sub}</Badge>} />
+    <PageHeader breadcrumbs={['Payroll & Finance', 'Reports & Register']} title="Reports & Export Center" description="Operational reports with live filters. Every report exports to PDF, Excel, CSV or print in the selected language." status={<Badge tone="primary">{sub}</Badge>} />
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,170px),1fr))', gap: 14 }}>
-      <StatCard label="Hours worked" value={n1(E.reduce((s, e) => s + e.total, 0))} unit="h" icon="schedule" style={{ minHeight: 0 }} />
-      <StatCard label="Overtime" value={n1(E.reduce((s, e) => s + e.ot, 0))} unit="h" icon="more_time" tone="warning" style={{ minHeight: 0 }} />
-      <StatCard label="Labor cost" value={'$' + (E.reduce((s, e) => s + e.gross, 0) / 1000).toFixed(1) + 'k'} icon="payments" tone="primary" style={{ minHeight: 0 }} />
+      <StatCard label="Hours worked" value={n1(E.reduce((s, e) => s + num(e.total), 0))} unit="h" icon="schedule" style={{ minHeight: 0 }} />
+      <StatCard label="Overtime" value={n1(E.reduce((s, e) => s + num(e.ot), 0))} unit="h" icon="more_time" tone="warning" style={{ minHeight: 0 }} />
+      <StatCard label="Labor cost" value={'$' + (E.reduce((s, e) => s + num(e.gross), 0) / 1000).toFixed(1) + 'k'} icon="payments" tone="primary" style={{ minHeight: 0 }} />
       <StatCard label="Active employees" value={String(E.length)} icon="group" tone="success" style={{ minHeight: 0 }} />
       <StatCard label="Pending timesheets" value={String(pendingTs)} icon="hourglass_top" tone="warning" style={{ minHeight: 0 }} />
-      <StatCard label="Payroll pending" value={String(approvedNotPaid.length)} unit={fmt$(approvedNotPaid.reduce((s, e) => s + e.gross, 0))} icon="account_balance_wallet" tone="accent" style={{ minHeight: 0 }} />
+      <StatCard label="Payroll pending" value={String(approvedNotPaid.length)} unit={fmt$(approvedNotPaid.reduce((s, e) => s + num(e.gross), 0))} icon="account_balance_wallet" tone="accent" style={{ minHeight: 0 }} />
       <StatCard label="Avg approval time" value={avg == null ? '—' : n1(avg)} unit={avg == null ? 'no completed approvals yet' : 'days'} icon="timer" style={{ minHeight: 0 }} />
     </div>
     <Card padding={20}>
       <FilterChips value={rep} onChange={setRep} options={REPORTS.map(r => ({ value: r.id, label: r.label }))} />
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
-        {fsel('org', 'organizations', E0.map(e => e.entity), 'domain')}{fsel('dept', 'departments', E0.map(e => e.dept), 'apartment')}{fsel('project', 'projects', E0.map(e => e.project), 'folder_open')}
-        {fsel('client', 'clients', E0.map(e => CLIENT_OF[e.project] || '—'), 'handshake')}{fsel('sup', 'supervisors', E0.map(e => e.mgr), 'supervisor_account')}{fsel('emp', 'employees', E0.map(e => e.id + ' • ' + e.name), 'person')}
+        {fsel('dept', 'departments', E0.map(e => e.dept), 'apartment')}{fsel('project', 'projects', E0.map(e => e.project), 'folder_open')}
+        {fsel('sup', 'supervisors', E0.map(e => e.mgr), 'supervisor_account')}{fsel('emp', 'employees', E0.map(e => e.id + ' • ' + e.name), 'person')}
         <Select size="sm" icon="calendar_month" value={f.period} onChange={set('period')} options={PERIODS} />
         {fsel('status', 'statuses', E0.map(liveStatus), 'flag')}
-        {active > 0 && <Button size="sm" variant="ghost" icon="filter_alt_off" onClick={() => setF(x => ({ ...x, org: ALL, dept: ALL, project: ALL, client: ALL, sup: ALL, emp: ALL, status: ALL }))}>Clear filters</Button>}
+        {active > 0 && <Button size="sm" variant="ghost" icon="filter_alt_off" onClick={() => setF(x => ({ ...x, dept: ALL, project: ALL, sup: ALL, emp: ALL, status: ALL }))}>Clear filters</Button>}
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '18px 0 10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Icon name={meta.icon} size={18} color="var(--mgh-primary)" /><span className="mgh-h3">{meta.label}</span><Badge size="sm" tone="neutral">{R.rows.length} rows</Badge></div>
@@ -4220,7 +4237,7 @@ function Reports({ notify }) {
   </Page>;
 }
 
-// Users come from GET /users; entity cards count the real employee roster. User accounts are created
+// Users come from GET /users (one company, no per-entity cards). User accounts are created
 // from Add Employee (there is no invite / MFA / suspend backend yet, so those actions are not offered).
 function Administration({ notify, go }) {
   const [users, setUsers] = React.useState(null);
@@ -4234,16 +4251,14 @@ function Administration({ notify, go }) {
   }, []);
   try { localStorage.removeItem('mgh-admin-users'); } catch (_) {}
 
-  const byEntity = {}; EMPLOYEES.forEach(e => { byEntity[e.entity] = (byEntity[e.entity] || 0) + 1; });
-  const rows = (users || []).map(u => ({ id: u.id, e: { name: u.name, role: u.email, avatar: u.avatar }, r: u.role, ent: u.entity || '—', active: u.is_active, last: u.last_login_at ? new Date(u.last_login_at.replace(' ', 'T') + (u.last_login_at.endsWith('Z') ? '' : 'Z')).toLocaleString(LOC()) : 'Never' }));
+  const rows = (users || []).map(u => ({ id: u.id, e: { name: u.name || '—', role: u.email, avatar: u.avatar }, r: u.role || '—', active: u.is_active, last: u.last_login_at ? new Date(u.last_login_at.replace(' ', 'T') + (u.last_login_at.endsWith('Z') ? '' : 'Z')).toLocaleString(LOC()) : 'Never' }));
 
   return <Page>
-    <PageHeader breadcrumbs={['System', 'Administration']} title="Administration" description="Operating entities, users and roles." />
-    {Object.keys(byEntity).length ? <Grid min={260}>{Object.entries(byEntity).map(([n, c]) => <Card key={n} padding={20}><Icon name="domain" size={18} color="var(--mgh-primary)" /><div className="mgh-lg" style={{ marginTop: 10 }}>{n}</div><div style={{ marginTop: 10, font: '700 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{c} employee{c === 1 ? '' : 's'}</div></Card>)}</Grid> : null}
+    <PageHeader breadcrumbs={['System', 'Administration']} title="Administration" description="Users and roles of My Global Hub (Dominicana SRL)." />
     <Card icon="group" title="Users & roles" subtitle={users ? rows.length + ' user account' + (rows.length === 1 ? '' : 's') : 'Loading…'} bodyStyle={{ paddingTop: 14 }}>
       {users && !rows.length ? <div className="mgh-body" style={{ padding: '32px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>No user accounts yet.</div> :
       <DataTable rows={rows} columns={[
-        { key: 'e', label: 'User', render: r => <EmployeeCell e={r.e} /> }, { key: 'r', label: 'Role', render: r => <Badge size="sm" tone="primary">{r.r}</Badge> }, { key: 'ent', label: 'Entity' },
+        { key: 'e', label: 'User', render: r => <EmployeeCell e={r.e} /> }, { key: 'r', label: 'Role', render: r => <Badge size="sm" tone="primary">{r.r}</Badge> },
         { key: 'active', label: 'Status', render: r => <Badge size="sm" dot tone={r.active ? 'success' : 'neutral'}>{r.active ? 'Active' : 'Inactive'}</Badge> }, { key: 'last', label: 'Last login' }]} />}
     </Card>
     <Card icon="account_tree" title="Approval workflow policy" subtitle="Configured in Approval Workflows" actions={<Button size="sm" variant="ghost" iconRight="arrow_forward" onClick={() => go('workflows')}>Open Approval Workflows</Button>} />
@@ -4259,17 +4274,15 @@ function CompanySettings({ notify }) {
     rnc: '133-474018',
     hq: 'Punta Cana, La Altagracia, DR',
     currency: 'USD',
-    frequency: 'Quincenal (24 / yr)',
-    periodStart: '1st and 15th of the month',
+    frequency: 'Quincenal (1–15 / 16–fin)',
+    periodStart: 'Días 1 y 16 de cada mes',
     deadline: 'Last day of the quincena, 23:59',
     offset: '5',
     ot: true,
     esig: true,
     lock: true,
-    weekend: false,
     notifStatus: true,
     notifPayment: true,
-    secMfa: true,
     secAudit: true
   };
 
@@ -4277,7 +4290,8 @@ function CompanySettings({ notify }) {
     try {
       const saved = localStorage.getItem('mgh-company-settings');
       const v = saved ? JSON.parse(saved) : initialProfile;
-      return v.rnc === '1-31-88421-7' ? { ...v, rnc: initialProfile.rnc } : v;
+      // The pay schedule is fixed (quincenas); older saved values are replaced
+      return { ...v, rnc: v.rnc === '1-31-88421-7' ? initialProfile.rnc : v.rnc, frequency: initialProfile.frequency, periodStart: initialProfile.periodStart };
     } catch {
       return initialProfile;
     }
@@ -4301,7 +4315,7 @@ function CompanySettings({ notify }) {
   const handleDiscard = () => {
     try {
       const saved = localStorage.getItem('mgh-company-settings');
-      setForm(saved ? JSON.parse(saved) : initialProfile);
+      setForm(saved ? { ...JSON.parse(saved), frequency: initialProfile.frequency, periodStart: initialProfile.periodStart } : initialProfile);
       notify('Changes discarded');
     } catch {
       notify('Changes discarded');
@@ -4321,30 +4335,28 @@ function CompanySettings({ notify }) {
     </Card>}
     {tab === 'pay' && <Card icon="event_repeat" title="Pay schedule">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14 }}>
-        <Select label="Frequency" value={form.frequency} onChange={v => setField('frequency', v)} options={['Bi-weekly (26 / yr)', 'Semi-monthly', 'Monthly']} />
-        <Select label="Period start" value={form.periodStart} onChange={v => setField('periodStart', v)} options={['Monday', 'Sunday']} />
+        <Select label="Frequency" value={form.frequency} onChange={v => setField('frequency', v)} options={['Quincenal (1–15 / 16–fin)']} />
+        <Select label="Period start" value={form.periodStart} onChange={v => setField('periodStart', v)} options={['Días 1 y 16 de cada mes']} />
         <TextField label="Submission deadline" value={form.deadline} onChange={v => setField('deadline', v)} />
         <TextField label="Pay date offset" value={form.offset} suffix="days" onChange={v => setField('offset', v)} />
       </div>
     </Card>}
     {tab === 'time' && <Card icon="rule" title="Time & approval rules" actions={<Button size="sm" variant="ghost" iconRight="arrow_forward" onClick={() => window.__mghGo('workflows')}>Approval workflow & overtime rule</Button>}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <Toggle checked={form.ot} onChange={tg('ot')} label="Require pre-authorization for overtime" description="Overtime over 44h/week must be approved before it is logged." />
-        <Toggle checked={form.esig} onChange={tg('esig')} label="Electronic signature on approval" description="Approvers sign each decision; signatures are hashed into the audit log." />
-        <Toggle checked={form.lock} onChange={tg('lock')} label="Auto-lock period after Finance Run" description="Prevents edits once disbursement is batched." />
-        <Toggle checked={form.weekend} onChange={tg('weekend')} label="Allow weekend time entry" description="Sunday hours are paid at double rate." />
+        <Toggle checked={form.ot} onChange={tg('ot')} label="Require pre-authorization for overtime (No aplicado aún)" description="No aplicado aún: se guarda solo en este navegador. Overtime would need approval before it is logged." />
+        <Toggle checked={form.esig} onChange={tg('esig')} label="Electronic signature on approval (No aplicado aún)" description="No aplicado aún: se guarda solo en este navegador. Approvals are recorded in the timesheet history." />
+        <div className="mgh-body" style={{ color: 'var(--mgh-ink-3)' }}>Paid periods are locked by the system: corrections go through Payroll Adjustments.</div>
       </div>
     </Card>}
     {tab === 'notif' && <Card icon="notifications" title="Notifications">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <Toggle checked={form.notifStatus} onChange={tg('notifStatus')} label="Timesheet status changes" description="Employee, Supervisor, Manager and Payroll are notified on every transition." />
-        <Toggle checked={form.notifPayment} onChange={tg('notifPayment')} label="Payment completed" description="Employee is notified when the pay stub is generated." />
+        <Toggle checked={form.notifStatus} onChange={tg('notifStatus')} label="Timesheet status changes (No aplicado aún)" description="No aplicado aún: se guarda solo en este navegador. No notifications are sent yet." />
+        <Toggle checked={form.notifPayment} onChange={tg('notifPayment')} label="Payment completed (No aplicado aún)" description="No aplicado aún: se guarda solo en este navegador. No notifications are sent yet." />
       </div>
     </Card>}
     {tab === 'sec' && <Card icon="shield_lock" title="Security">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <Toggle checked={form.secMfa} onChange={tg('secMfa')} label="Require MFA for approvers" description="Applies to Supervisor, Manager and Payroll roles." />
-        <Toggle checked={form.secAudit} onChange={tg('secAudit')} label="Audit every state change" description="User, timestamp, previous and new state and comment are recorded." />
+        <div className="mgh-body" style={{ color: 'var(--mgh-ink-3)' }}>State changes are recorded in the Audit Log by the server (user, time, previous and new state). Multi-factor authentication is not available yet.</div>
       </div>
     </Card>}
   </Page>;
@@ -4407,22 +4419,11 @@ const Modal = window.Modal;
 // Real contractors and payments are loaded from the backend; no sample records.
 const CONTRACTORS = [];
 const isWU = c => c.method === 'Western Union';
-const flowOf = c => isWU(c) ? ['Timesheet', 'Manager Approval', 'Calculate Amount', 'Create Payment', 'Approve Payment', 'Send via Western Union', 'Record MTCN', 'Paid'] : FLOW;
-const mtcn = seed => { let x = seed * 7919 + 104729, s = ''; for (let i = 0; i < 10; i++) { x = (x * 48271) % 2147483647; s += x % 10; } return s.slice(0, 3) + '-' + s.slice(3, 6) + '-' + s.slice(6); };
-const HOURS = {};
-const FLOW = ['Timesheet', 'Manager Approval', 'Calculate Amount', 'Create Payment', 'Approve Payment', 'Send via Coinbase', 'Record Tx ID', 'Paid'];
-const PST = ['Calculated', 'Pending Approval', 'Approved', 'Sent', 'Paid'];
-const PTONE = { Calculated: 'neutral', 'Pending Approval': 'warning', Approved: 'info', Sent: 'info', Paid: 'success' };
-const hex = (seed, n) => { let s = '', x = seed; for (let i = 0; i < n; i++) { x = (x * 1103515245 + 12345) % 2147483648; s += (x % 16).toString(16); } return s; };
-// Hourly contractors are owed only for hours actually recorded (no assumed 80h)
-const amountOf = c => c.basis === 'Fixed Monthly' ? c.rate / 2 : (HOURS[c.id] || 0) * c.rate;
-CONTRACTORS.forEach(c => { c.entity = c.entity || 'MGH Dominicana SRL'; });
 const INIT_PAYMENTS = [];
 const fmtUSD = n => (n == null || isNaN(Number(n))) ? '—' : '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-// A payment whose contractor record is missing still renders (the screen reads p.c everywhere)
-const withContractor = p => ({ ...p, c: p.c || { id: p.cid || p.contractorId, name: (p.cid || p.contractorId || 'Unknown') + ' (contractor not found)', country: '—', rate: null, basis: 'Hourly', method: '', st: 'Unknown' } });
-const WU_TRACK = 'https://www.westernunion.com/us/en/track-transfer.html';
-const explorer = (net, h) => ({ Base: 'https://basescan.org/tx/', Ethereum: 'https://etherscan.io/tx/', Polygon: 'https://polygonscan.com/tx/' }[net] || '#') + h;
+// Select options with an explicit empty choice: nothing is preselected for the user
+const selOpts = (list, cur) => [{ value: '', label: 'Seleccione…' }, ...[...list, ...(cur && !list.includes(cur) ? [cur] : [])].map(v => ({ value: v, label: v }))];
+const COUNTRIES = ['Dominican Republic', 'Venezuela', 'Colombia', 'Argentina', 'Peru', 'Mexico', 'Honduras', 'United States'];
 
 function Section({ icon, title, children }) {
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -4435,50 +4436,9 @@ function PersonCell({ c, sub }) {
     <div style={{ minWidth: 0 }}><div style={{ font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-ink)' }}>{c.name}</div><div style={{ font: '400 11px/14px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>{sub}</div></div></div>;
 }
 
-function ReceiptDrop({ pid, notify, label = 'Coinbase' }) {
-  const KEY = 'mgh-contractor-receipts';
-  const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return {}; } };
-  const [all, setAll] = React.useState(load); const [hot, setHot] = React.useState(false); const inp = React.useRef();
-  const f = all[pid];
-  const save = next => { setAll(next); try { localStorage.setItem(KEY, JSON.stringify(next)); } catch (e) { notify('File too large to persist — kept for this session'); } };
-  const attach = file => {
-    if (!file) return;
-    if (!/^(image\/|application\/pdf)/.test(file.type)) { notify('Upload a PDF, PNG or JPG receipt'); return; }
-    if (file.size > 5 * 1024 * 1024) { notify('Max file size is 5 MB'); return; }
-    const r = new FileReader();
-    r.onload = () => { save({ ...all, [pid]: { name: file.name, type: file.type, size: file.size, data: r.result, at: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) } }); notify(label + ' receipt attached • ' + pid); };
-    r.readAsDataURL(file);
-  };
-  const kb = n => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB';
-  return <div>
-    {f ? <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 10, borderRadius: 8, background: 'var(--mgh-surface-1)' }}>
-      {f.type.startsWith('image/') ? <img src={f.data} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }} /> : <span style={{ width: 40, height: 40, borderRadius: 4, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="picture_as_pdf" size={20} color="var(--mgh-danger)" /></span>}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <a href={f.data} target="_blank" download={f.name} style={{ font: '600 12px/16px var(--font-sans)', color: 'var(--mgh-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'none' }}>{f.name}</a>
-        <span style={{ font: '400 11px/14px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>{kb(f.size)} • {f.at}</span>
-      </div>
-      <IconButton icon="swap_horiz" title="Replace" onClick={() => inp.current.click()} />
-      <IconButton icon="delete" title="Remove" onClick={() => { const n = { ...all }; delete n[pid]; save(n); }} />
-    </div>
-    : <div role="button" tabIndex={0} onClick={() => inp.current.click()} onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && inp.current.click()}
-        onDragOver={e => { e.preventDefault(); setHot(true); }} onDragLeave={() => setHot(false)} onDrop={e => { e.preventDefault(); setHot(false); attach(e.dataTransfer.files[0]); }}
-        style={{ padding: '16px 12px', borderRadius: 8, border: '1.5px dashed ' + (hot ? 'var(--mgh-primary)' : 'var(--mgh-surface-4)'), background: hot ? 'var(--mgh-primary-50)' : 'var(--mgh-surface-page)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', textAlign: 'center', transition: 'all 160ms cubic-bezier(.2,0,0,1)' }}>
-      <Icon name="upload_file" size={20} color="var(--mgh-primary)" />
-      <span style={{ font: '600 12px/16px var(--font-sans)', color: 'var(--mgh-ink)' }}>Drop {label} receipt or <span style={{ color: 'var(--mgh-primary)' }}>browse</span></span>
-      <span style={{ font: '400 11px/14px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>PDF, PNG or JPG • Max 5 MB</span>
-    </div>}
-    <input ref={inp} type="file" accept="application/pdf,image/*" style={{ display: 'none' }} onChange={e => { attach(e.target.files[0]); e.target.value = ''; }} />
-  </div>;
-}
-
-const STORAGE_KEY = 'mgh_contractors_v1';
-// Start from what the backend bootstrap loaded (window.__MGH_CTR), never from a browser cache of old/demo rows
+// Start from what the backend bootstrap loaded (window.__MGH_CTR); the old browser cache is dropped
+try { localStorage.removeItem('mgh_contractors_v1'); } catch (_) {}
 const loadContractors = () => (window.__MGH_CTR && window.__MGH_CTR.CONTRACTORS) || CONTRACTORS;
-const saveContractors = l => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(l));
-  } catch (e) {}
-};
 
 function Contractors({ go, notify }) {
   const [list, setList] = React.useState(loadContractors);
@@ -4494,7 +4454,6 @@ function Contractors({ go, notify }) {
       const data = await client.contractors();
       if (Array.isArray(data)) {
         setList(data);
-        saveContractors(data);
         setDbConnected(true);
         if (window.__MGH_CTR) window.__MGH_CTR.CONTRACTORS = data;
         if (showToast) notify('Contractors synchronized with database (' + data.length + ' records)');
@@ -4527,19 +4486,19 @@ function Contractors({ go, notify }) {
   const initialAdd = {
     name: '',
     role: '',
-    country: 'Dominican Republic',
+    country: '',
     email: '',
     phone: '',
     basis: 'Hourly',
-    rate: 50,
-    method: 'Coinbase',
-    network: 'Base',
-    asset: 'USDC',
+    rate: '',
+    method: '',
+    network: '',
+    asset: '',
     wallet: '',
-    delivery: 'Direct Crypto',
+    delivery: '',
     receiver: '',
     city: '',
-    payCur: 'USD',
+    payCur: '',
     password: ''
   };
   const [addForm, setAddForm] = React.useState(initialAdd);
@@ -4561,14 +4520,15 @@ function Contractors({ go, notify }) {
       role: c.role || '',
       email: c.email || '',
       phone: c.phone || '',
-      country: c.country || 'Dominican Republic',
+      country: c.country || '',
       st: c.st || 'Active',
-      delivery: c.delivery || 'Cash Pickup',
+      method: c.method || '',
+      delivery: c.delivery || '',
       receiver: c.receiver || '',
       city: c.city || '',
-      payCur: c.payCur || 'USD',
-      network: c.network || 'Base',
-      asset: c.asset || 'USDC'
+      payCur: c.payCur || '',
+      network: c.network || '',
+      asset: c.asset || ''
     });
     setEditOpen(true);
   };
@@ -4580,6 +4540,14 @@ function Contractors({ go, notify }) {
     }
     if (!(Number(addForm.rate) > 0)) {
       notify('Please enter a rate greater than 0');
+      return;
+    }
+    if (!addForm.country || !addForm.method) {
+      notify('Seleccione el país y el método de pago');
+      return;
+    }
+    if (addForm.method === 'Coinbase' && (!addForm.asset || !addForm.network)) {
+      notify('Seleccione el activo y la red de Coinbase');
       return;
     }
     try {
@@ -4601,7 +4569,7 @@ function Contractors({ go, notify }) {
         delivery: addForm.delivery,
         receiver: addForm.receiver || addForm.name,
         city: addForm.city || '',
-        payCur: addForm.payCur || (addForm.method === 'Western Union' ? 'DOP' : 'USD'),
+        payCur: addForm.payCur || '',
         password: addForm.password || undefined,
         st: 'Active',
         entity: 'MGH Dominicana SRL'
@@ -4615,7 +4583,6 @@ function Contractors({ go, notify }) {
 
       const updated = [nextItem, ...list.filter(x => x.id !== nextItem.id)];
       setList(updated);
-      saveContractors(updated);
       if (window.__MGH_CTR) window.__MGH_CTR.CONTRACTORS = updated;
       setCur(nextItem.id);
       setAddOpen(false);
@@ -4634,12 +4601,12 @@ function Contractors({ go, notify }) {
       const client = window.api || api;
       const patch = {
         name: editForm.name.trim(),
-        role: editForm.role.trim(),
+        role: (editForm.role || '').trim(),
         country: editForm.country,
         email: editForm.email,
         phone: editForm.phone,
         basis: editForm.basis,
-        rate: Number(editForm.rate) || 0,
+        rate: Number(editForm.rate) > 0 ? Number(editForm.rate) : null,
         method: editForm.method,
         wallet: editForm.wallet,
         walletFull: editForm.wallet,
@@ -4656,7 +4623,6 @@ function Contractors({ go, notify }) {
 
       const updated = list.map(x => x.id === editForm.id ? (updatedRecord || { ...x, ...editForm, ...patch }) : x);
       setList(updated);
-      saveContractors(updated);
       if (window.__MGH_CTR) window.__MGH_CTR.CONTRACTORS = updated;
       setEditOpen(false);
       notify(`Contractor ${editForm.name} (${editForm.id}) updated in database`);
@@ -4669,7 +4635,7 @@ function Contractors({ go, notify }) {
     <PageHeader
       breadcrumbs={['Contractors', tab === 'contractors' ? 'Directory' : 'Contracts']}
       title="Contractors"
-      status={<Badge tone={dbConnected ? 'success' : 'warning'} dot>{dbConnected ? 'Database Connected • Real Time' : 'Local Fallback'}</Badge>}
+      status={<Badge tone={dbConnected ? 'success' : 'warning'} dot>{dbConnected ? 'Conectado' : 'Sin conexión'}</Badge>}
       description="Payout profile of contractor-type employees. They log time like everyone else and are paid in the same payroll (#processing) from their approved timesheets — no withholdings or TSS."
       actions={<>
         <Button variant="secondary" icon="refresh" onClick={() => fetchContractors(true)}>Refresh</Button>
@@ -4678,8 +4644,7 @@ function Contractors({ go, notify }) {
     />
     <Grid min={200}>
       <StatCard label="Active contractors" value={active.length} unit={'/ ' + list.length} icon="badge" style={{ minHeight: 0 }} />
-      <StatCard label="Countries" value={new Set(active.map(x => x.country)).size} icon="public" tone="accent" style={{ minHeight: 0 }} />
-      <StatCard label={`Due ${getCurrentPeriod().code}`} value={fmtUSD(active.reduce((s, x) => s + amountOf(x), 0))} unit="USD" icon="request_quote" tone="warning" style={{ minHeight: 0 }} />
+      <StatCard label="Countries" value={new Set(active.map(x => x.country).filter(Boolean)).size} icon="public" tone="accent" style={{ minHeight: 0 }} />
       <StatCard label="Payout rails" value={active.filter(x => !isWU(x)).length + ' / ' + active.filter(isWU).length} unit="Coinbase • WU" icon="currency_exchange" tone="success" style={{ minHeight: 0 }} />
     </Grid>
     <Tabs value={tab} onChange={setTab} tabs={[{ value: 'contractors', label: 'Contractors' }, { value: 'contracts', label: 'Contracts' }]} />
@@ -4687,28 +4652,29 @@ function Contractors({ go, notify }) {
       <Card padding={20} style={{ flex: '1 1 520px', minWidth: 0 }}>
         <TableToolbar search={t.q} onSearch={t.setQ} placeholder="Search name, ID, country…" chips={<FilterChips value={chip} onChange={setChip} options={[{ value: 'all', label: 'All', count: list.length }, { value: 'Active', label: 'Active', count: active.length }, { value: 'Ended', label: 'Ended' }]} />} />
         <DataTable style={{ marginTop: 14 }} rows={t.rows} onRowClick={r => setCur(r.id)} activeRow={cur} columns={tab === 'contractors' ? [
-          { key: 'name', label: 'Contractor', render: r => <PersonCell c={r} sub={r.id + ' • ' + r.role} /> },
-          { key: 'country', label: 'Country' },
+          { key: 'name', label: 'Contractor', render: r => <PersonCell c={r} sub={r.id + ' • ' + (r.role || '—')} /> },
+          { key: 'country', label: 'Country', render: r => r.country || '—' },
           { key: 'rate', label: 'Rate', align: 'right', render: r => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{rateTxt(r)}</span> },
-          { key: 'asset', label: 'Payout', render: r => isWU(r) ? <span style={{ display: 'flex', gap: 4 }}><Badge size="sm" tone="warning">Western Union</Badge><Badge size="sm" tone="neutral">{r.delivery}</Badge></span> : <span style={{ display: 'flex', gap: 4 }}><Badge size="sm" tone="primary">{r.asset}</Badge><Badge size="sm" tone="neutral">{r.network}</Badge></span> },
+          { key: 'asset', label: 'Payout', render: r => isWU(r) ? <span style={{ display: 'flex', gap: 4 }}><Badge size="sm" tone="warning">Western Union</Badge>{r.delivery && <Badge size="sm" tone="neutral">{r.delivery}</Badge>}</span> : r.method ? <span style={{ display: 'flex', gap: 4 }}><Badge size="sm" tone="primary">{r.asset || r.method}</Badge>{r.network && <Badge size="sm" tone="neutral">{r.network}</Badge>}</span> : '—' },
           { key: 'st', label: 'Status', render: r => <Badge size="sm" dot tone={r.st === 'Active' ? 'success' : 'neutral'}>{r.st}</Badge> }] : [
           { key: 'name', label: 'Contractor', render: r => <PersonCell c={r} sub={r.country} /> },
           { key: 'basis', label: 'Basis' },
-          { key: 'start', label: 'Start' },
+          { key: 'start', label: 'Start', render: r => r.start || '—' },
           { key: 'end', label: 'End', render: r => r.end || '—' },
           { key: 'rate', label: 'Rate', align: 'right', render: r => rateTxt(r) },
-          { key: 'cur', label: 'Currency', mono: true }]} />
+          { key: 'cur', label: 'Currency', mono: true, render: r => r.cur || '—' }]} emptyText={list.length ? 'No contractors match these filters.' : 'No hay contratistas registrados.'} />
         <Pagination style={{ marginTop: 14 }} page={t.page} pageSize={t.pageSize} total={t.total} onPage={t.setPage} noun="contractors" />
       </Card>
       <Card padding={20} style={{ flex: '1 1 320px', maxWidth: 400, minWidth: 0 }}>
+        {!c.id ? <div className="mgh-body" style={{ padding: '32px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>No hay contratistas registrados. Los contratistas son colaboradores y se pagan en la misma nómina (#processing).</div> :
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><Avatar name={c.name} size={48} /><div style={{ flex: 1, minWidth: 0 }}><div className="mgh-h3">{c.name}</div><div className="mgh-body">{c.role} • {c.country}</div></div><Badge mono tone="dark">{c.id}</Badge></div>
-          <Section icon="person" title="Personal information"><KeyValue label="Email" value={c.email} /><KeyValue label="Phone" value={c.phone} mono /><KeyValue label="Country" value={c.country} /></Section>
-          <Section icon="contract" title="Contract"><KeyValue label="Start date" value={c.start} /><KeyValue label="End date" value={c.end || 'Open-ended'} /><KeyValue label={c.basis === 'Fixed Monthly' ? 'Fixed monthly fee' : 'Hourly rate'} value={rateTxt(c)} /><KeyValue label="Contract currency" value={c.cur} mono /></Section>
-          {isWU(c) ? <Section icon="currency_exchange" title="Payment"><KeyValue label="Method" value="Western Union" /><KeyValue label="Delivery" value={c.delivery} /><KeyValue label="Receiver name (as on ID)" value={c.receiver} /><KeyValue label="Payout location" value={c.city + ', ' + c.country} />{c.bank && <KeyValue label="Receiver bank" value={c.bank + ' ' + c.acct} mono />}<KeyValue label="Payout currency" value={c.payCur} mono aside={<Badge size="sm" tone="neutral">{'1 USD = ' + c.fx + ' ' + c.payCur}</Badge>} /><KeyValue label="Transfer fee" value={fmtUSD(c.wuFee || 4.99)} aside={<Badge size="sm" tone="neutral">Company-paid</Badge>} /></Section>
-          : <Section icon="account_balance_wallet" title="Payment"><KeyValue label="Method" value={c.method} /><KeyValue label={(c.walletFull || c.wallet || '').includes('@') ? 'Coinbase email' : 'Wallet address'} value={c.wallet} mono /><KeyValue label="Preferred currency" value={c.asset} aside={c.asset === 'USDC' && <Badge size="sm" tone="success">Recommended</Badge>} /><KeyValue label="Network" value={c.network} /></Section>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><Avatar name={c.name} size={48} /><div style={{ flex: 1, minWidth: 0 }}><div className="mgh-h3">{c.name}</div><div className="mgh-body">{c.role || '—'} • {c.country || '—'}</div></div><Badge mono tone="dark">{c.id}</Badge></div>
+          <Section icon="person" title="Personal information"><KeyValue label="Email" value={c.email || '—'} /><KeyValue label="Phone" value={c.phone || '—'} mono /><KeyValue label="Country" value={c.country || '—'} /></Section>
+          <Section icon="contract" title="Contract"><KeyValue label="Start date" value={c.start || '—'} /><KeyValue label="End date" value={c.end || 'Open-ended'} /><KeyValue label={c.basis === 'Fixed Monthly' ? 'Fixed monthly fee' : 'Hourly rate'} value={rateTxt(c)} /><KeyValue label="Contract currency" value={c.cur || '—'} mono /></Section>
+          {isWU(c) ? <Section icon="currency_exchange" title="Payment"><KeyValue label="Method" value="Western Union" /><KeyValue label="Delivery" value={c.delivery || '—'} /><KeyValue label="Receiver name (as on ID)" value={c.receiver || '—'} /><KeyValue label="Payout location" value={[c.city, c.country].filter(Boolean).join(', ') || '—'} />{c.bank && <KeyValue label="Receiver bank" value={c.bank + (c.acct ? ' ' + c.acct : '')} mono />}<KeyValue label="Payout currency" value={c.payCur || '—'} mono aside={c.fx != null && c.payCur ? <Badge size="sm" tone="neutral">{'1 USD = ' + c.fx + ' ' + c.payCur}</Badge> : null} /><KeyValue label="Transfer fee" value={c.wuFee != null ? fmtUSD(c.wuFee) : '—'} /></Section>
+          : <Section icon="account_balance_wallet" title="Payment"><KeyValue label="Method" value={c.method || '—'} /><KeyValue label={(c.walletFull || c.wallet || '').includes('@') ? 'Coinbase email' : 'Wallet address'} value={c.wallet || '—'} mono /><KeyValue label="Preferred currency" value={c.asset || '—'} aside={c.asset === 'USDC' && <Badge size="sm" tone="success">Recommended</Badge>} /><KeyValue label="Network" value={c.network || '—'} /></Section>}
           <div style={{ display: 'flex', gap: 8 }}><Button variant="secondary" icon="edit" style={{ flex: 1 }} onClick={handleOpenEdit}>Edit</Button></div>
-        </div>
+        </div>}
       </Card>
     </div>
 
@@ -4735,25 +4701,25 @@ function Contractors({ go, notify }) {
         </div>
         <TextField label="Contractor Full Name" value={addForm.name} onChange={x => setAddForm(f => ({ ...f, name: typeof x === 'string' ? x : x.target.value }))} placeholder="e.g. Roberto Sánchez" />
         <TextField label="Role / Scope" value={addForm.role} onChange={x => setAddForm(f => ({ ...f, role: typeof x === 'string' ? x : x.target.value }))} placeholder="e.g. Senior Frontend Dev" />
-        <Select label="Country of Residence" value={addForm.country} onChange={x => setAddForm(f => ({ ...f, country: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Dominican Republic', 'Venezuela', 'Colombia', 'Argentina', 'Peru', 'Mexico', 'Honduras', 'United States']} />
+        <Select label="Country of Residence" value={addForm.country} onChange={x => setAddForm(f => ({ ...f, country: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(COUNTRIES)} />
         <TextField label="Email Address (Login Account)" value={addForm.email} onChange={x => setAddForm(f => ({ ...f, email: typeof x === 'string' ? x : x.target.value }))} placeholder="e.g. dev@myglobalhub.net" />
         <TextField label="Contraseña Inicial (Password)" type="password" value={addForm.password || ''} onChange={x => setAddForm(f => ({ ...f, password: typeof x === 'string' ? x : x.target.value }))} placeholder="Vacío = se genera una segura" />
         <TextField label="Phone Number" value={addForm.phone} onChange={x => setAddForm(f => ({ ...f, phone: typeof x === 'string' ? x : x.target.value }))} placeholder="+1 809 ..." />
         <Select label="Compensation Basis" value={addForm.basis} onChange={x => setAddForm(f => ({ ...f, basis: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Hourly', 'Fixed Monthly']} />
-        <TextField label={addForm.basis === 'Hourly' ? 'Hourly Rate (USD)' : 'Monthly Rate (USD)'} type="number" value={String(addForm.rate)} onChange={x => setAddForm(f => ({ ...f, rate: typeof x === 'string' ? x : x.target.value }))} />
-        <Select label="Disbursement Method" value={addForm.method} onChange={x => setAddForm(f => ({ ...f, method: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Coinbase', 'Western Union']} />
+        <TextField label={addForm.basis === 'Hourly' ? 'Hourly Rate (USD)' : 'Monthly Rate (USD)'} type="number" value={String(addForm.rate)} placeholder="0.00" onChange={x => setAddForm(f => ({ ...f, rate: typeof x === 'string' ? x : x.target.value }))} />
+        <Select label="Disbursement Method" value={addForm.method} onChange={x => setAddForm(f => ({ ...f, method: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(['Coinbase', 'Western Union'])} />
         {addForm.method === 'Coinbase' ? <>
-          <Select label="Crypto Asset" value={addForm.asset} onChange={x => setAddForm(f => ({ ...f, asset: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['USDC', 'ETH', 'BTC']} />
-          <Select label="Network Rail" value={addForm.network} onChange={x => setAddForm(f => ({ ...f, network: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Base', 'Polygon', 'Ethereum', 'Solana']} />
+          <Select label="Crypto Asset" value={addForm.asset} onChange={x => setAddForm(f => ({ ...f, asset: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(['USDC', 'ETH', 'BTC'])} />
+          <Select label="Network Rail" value={addForm.network} onChange={x => setAddForm(f => ({ ...f, network: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(['Base', 'Polygon', 'Ethereum', 'Solana'])} />
           <div style={{ gridColumn: 'span 2' }}>
             <TextField label="Wallet Address or Coinbase Email" mono value={addForm.wallet} onChange={x => setAddForm(f => ({ ...f, wallet: typeof x === 'string' ? x : x.target.value }))} placeholder="0x... or user@coinbase" />
           </div>
-        </> : <>
-          <Select label="Delivery Mode" value={addForm.delivery} onChange={x => setAddForm(f => ({ ...f, delivery: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Cash Pickup', 'Bank Deposit']} />
+        </> : addForm.method === 'Western Union' ? <>
+          <Select label="Delivery Mode" value={addForm.delivery} onChange={x => setAddForm(f => ({ ...f, delivery: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(['Cash Pickup', 'Bank Deposit'])} />
           <TextField label="Receiver Full Name (as on ID)" value={addForm.receiver} onChange={x => setAddForm(f => ({ ...f, receiver: typeof x === 'string' ? x : x.target.value }))} placeholder="Legal name" />
           <TextField label="Payout City / State" value={addForm.city} onChange={x => setAddForm(f => ({ ...f, city: typeof x === 'string' ? x : x.target.value }))} placeholder="City, State" />
           <TextField label="Payout Currency" mono value={addForm.payCur} onChange={x => setAddForm(f => ({ ...f, payCur: typeof x === 'string' ? x : x.target.value }))} placeholder="MXN, HNL, USD" />
-        </>}
+        </> : null}
       </div>
     </Modal>
 
@@ -4767,209 +4733,32 @@ function Contractors({ go, notify }) {
         <TextField label="Contractor Full Name" value={editForm.name || ''} onChange={x => setEditForm(f => ({ ...f, name: typeof x === 'string' ? x : x.target.value }))} />
         <TextField label="Role / Scope" value={editForm.role || ''} onChange={x => setEditForm(f => ({ ...f, role: typeof x === 'string' ? x : x.target.value }))} />
         <Select label="Status" value={editForm.st || 'Active'} onChange={x => setEditForm(f => ({ ...f, st: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Active', 'Ended']} />
-        <Select label="Country of Residence" value={editForm.country || ''} onChange={x => setEditForm(f => ({ ...f, country: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Venezuela', 'Colombia', 'Argentina', 'Peru', 'Mexico', 'Honduras', 'Dominican Republic', 'United States']} />
+        <Select label="Country of Residence" value={editForm.country || ''} onChange={x => setEditForm(f => ({ ...f, country: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(COUNTRIES, editForm.country)} />
         <TextField label="Email Address" value={editForm.email || ''} onChange={x => setEditForm(f => ({ ...f, email: typeof x === 'string' ? x : x.target.value }))} />
         <TextField label="Phone Number" value={editForm.phone || ''} onChange={x => setEditForm(f => ({ ...f, phone: typeof x === 'string' ? x : x.target.value }))} />
         <Select label="Compensation Basis" value={editForm.basis || 'Hourly'} onChange={x => setEditForm(f => ({ ...f, basis: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Hourly', 'Fixed Monthly']} />
         <TextField label={editForm.basis === 'Hourly' ? 'Hourly Rate (USD)' : 'Monthly Rate (USD)'} type="number" value={String(editForm.rate || '')} onChange={x => setEditForm(f => ({ ...f, rate: typeof x === 'string' ? x : x.target.value }))} />
-        <Select label="Disbursement Method" value={editForm.method || 'Coinbase'} onChange={x => setEditForm(f => ({ ...f, method: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Coinbase', 'Western Union']} />
+        <Select label="Disbursement Method" value={editForm.method || ''} onChange={x => setEditForm(f => ({ ...f, method: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(['Coinbase', 'Western Union'], editForm.method)} />
         {editForm.method === 'Coinbase' ? <>
-          <Select label="Crypto Asset" value={editForm.asset || 'USDC'} onChange={x => setEditForm(f => ({ ...f, asset: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['USDC', 'ETH', 'BTC']} />
-          <Select label="Network Rail" value={editForm.network || 'Base'} onChange={x => setEditForm(f => ({ ...f, network: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Base', 'Polygon', 'Ethereum', 'Solana']} />
+          <Select label="Crypto Asset" value={editForm.asset || ''} onChange={x => setEditForm(f => ({ ...f, asset: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(['USDC', 'ETH', 'BTC'], editForm.asset)} />
+          <Select label="Network Rail" value={editForm.network || ''} onChange={x => setEditForm(f => ({ ...f, network: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(['Base', 'Polygon', 'Ethereum', 'Solana'], editForm.network)} />
           <div style={{ gridColumn: 'span 2' }}>
             <TextField label="Wallet Address or Coinbase Email" mono value={editForm.wallet || ''} onChange={x => setEditForm(f => ({ ...f, wallet: typeof x === 'string' ? x : x.target.value }))} />
           </div>
-        </> : <>
-          <Select label="Delivery Mode" value={editForm.delivery || 'Cash Pickup'} onChange={x => setEditForm(f => ({ ...f, delivery: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Cash Pickup', 'Bank Deposit']} />
+        </> : editForm.method === 'Western Union' ? <>
+          <Select label="Delivery Mode" value={editForm.delivery || ''} onChange={x => setEditForm(f => ({ ...f, delivery: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(['Cash Pickup', 'Bank Deposit'], editForm.delivery)} />
           <TextField label="Receiver Full Name" value={editForm.receiver || ''} onChange={x => setEditForm(f => ({ ...f, receiver: typeof x === 'string' ? x : x.target.value }))} />
           <TextField label="Payout City / State" value={editForm.city || ''} onChange={x => setEditForm(f => ({ ...f, city: typeof x === 'string' ? x : x.target.value }))} />
-          <TextField label="Payout Currency" mono value={editForm.payCur || 'USD'} onChange={x => setEditForm(f => ({ ...f, payCur: typeof x === 'string' ? x : x.target.value }))} />
-        </>}
+          <TextField label="Payout Currency" mono value={editForm.payCur || ''} onChange={x => setEditForm(f => ({ ...f, payCur: typeof x === 'string' ? x : x.target.value }))} />
+        </> : null}
       </div>
     </Modal>
   </Page>;
 }
 
-// The route itself is permission-guarded; the list starts with what the backend bootstrap loaded.
-function ContractorPayments(props) { return <ContractorPaymentsInner {...props} />; }
-function ContractorPaymentsInner({ notify }) {
-  const [pays, setPays] = React.useState(() => ((window.__MGH_CTR && window.__MGH_CTR.INIT_PAYMENTS) || INIT_PAYMENTS).map(withContractor).filter(p => MGH_RBAC.can('contractors.view', p.c)));
-  const [chip, setChip] = React.useState('all');
-  const [dbConnected, setDbConnected] = React.useState(false);
-
-  const fetchPayments = React.useCallback(async (showToast = false) => {
-    try {
-      const client = window.api || api;
-      const data = await client.contractorPayments({ periodId: getCurrentPeriod().code });
-      if (Array.isArray(data)) {
-        setPays(data.map(withContractor));
-        setDbConnected(true);
-        if (window.__MGH_CTR) window.__MGH_CTR.INIT_PAYMENTS = data;
-        if (showToast) notify('Payments synchronized with database (' + data.length + ' records)');
-      }
-    } catch (e) {
-      console.warn('[payments API error]', e);
-      setDbConnected(false);
-      if (showToast) notify('Failed to fetch payments: ' + e.message);
-    }
-  }, [notify]);
-
-  React.useEffect(() => {
-    fetchPayments(false);
-  }, [fetchPayments]);
-
-  const [cur, setCur] = React.useState((pays[0] || {}).id);
-  const [txDraft, setTxDraft] = React.useState({ cb: '', hash: '', mtcn: '' });
-  const [via, setVia] = React.useState('all');
-  const t = useTable(pays.filter(p => (chip === 'all' || p.status === chip) && (via === 'all' || (via === 'wu') === isWU(p.c))), { search: ['id', 'cid'], pageSize: 10 });
-  const p = pays.find(x => x.id === cur) || pays[0] || {};
-  const c = p.c || {};
-  // No payments yet: the detail panel needs a real payment, so show an empty state instead
-  if (!pays.length) return <Page>
-    <PageHeader breadcrumbs={['Payroll & Finance', 'Contractor Payments']} title="Contractor Payments" description={'Payments for ' + getCurrentPeriod().code} actions={<Button variant="secondary" icon="sync" onClick={() => fetchPayments(true)}>Refresh</Button>} />
-    <Card padding={24}><div className="mgh-body" style={{ color: 'var(--mgh-ink-3)' }}>No contractor payments for this period yet. They are created from approved contractor timesheets.</div></Card>
-  </Page>;
-  const wu = isWU(c);
-
-  // Optimistic update, rolled back (with an error toast that replaces the success one) if the backend rejects it
-  const upd = async (id, patch) => {
-    const before = pays.find(x => x.id === id);
-    setPays(ps => ps.map(x => x.id === id ? { ...x, ...patch } : x));
-    try {
-      const client = window.api || api;
-      await client.updateContractorPayment(id, patch);
-    } catch (e) {
-      setPays(ps => ps.map(x => x.id === id ? before : x));
-      notify('Payment ' + id + ' was NOT saved • ' + e.message);
-    }
-  };
-  const todayLabel = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const stepIdx = { Calculated: 3, 'Pending Approval': 4, Approved: 5, Sent: 6, Paid: 8 }[p.status];
-  const steps = flowOf(c).map((l, i) => ({ label: l, state: i < stepIdx ? 'done' : i === stepIdx ? 'current' : 'todo' }));
-  const action = {
-    Calculated: { label: 'Create Payment', icon: 'add_card', run: () => { upd(p.id, { status: 'Pending Approval' }); notify('Payment created • awaiting approval'); } },
-    'Pending Approval': { label: 'Approve Payment', icon: 'task_alt', run: () => { upd(p.id, { status: 'Approved' }); notify('Payment approved • ' + fmtUSD(p.amount)); } },
-    Approved: wu ? { label: 'Send via Western Union', icon: 'send_money', run: () => { upd(p.id, { status: 'Sent', date: todayLabel }); setTxDraft({ cb: '', hash: '', mtcn: '' }); notify('Sent ' + fmtUSD(p.amount) + ' via Western Union • ' + c.delivery + ' in ' + c.country); } }
-      : { label: 'Send via Coinbase', icon: 'send_money', run: () => { upd(p.id, { status: 'Sent', date: todayLabel }); setTxDraft({ cb: '', hash: '', mtcn: '' }); notify('Sent ' + fmtUSD(p.amount) + ' ' + c.asset + ' on ' + c.network); } },
-    Sent: wu ? { label: 'Record MTCN & Mark Paid', icon: 'verified', run: () => { const m = p.mtcn || txDraft.mtcn; if (!/^\d{3}-?\d{3}-?\d{4}$/.test(m.trim())) { notify('Enter the 10-digit MTCN'); return; } const d = m.replace(/\D/g, ''); upd(p.id, { status: 'Paid', mtcn: d.slice(0, 3) + '-' + d.slice(3, 6) + '-' + d.slice(6) }); notify('Western Union payment recorded as Paid in database'); } }
-      : { label: 'Record Transaction & Mark Paid', icon: 'verified', run: () => { const cb = p.cbId || txDraft.cb, hash = p.hash || txDraft.hash; if (!cb || !hash) { notify('Enter the Coinbase transaction ID and hash'); return; } upd(p.id, { status: 'Paid', cbId: cb, hash }); notify('Payment recorded as Paid in database'); } },
-  }[p.status];
-  const tot = s => pays.filter(x => !s || s.includes(x.status)).reduce((a, x) => a + x.amount, 0);
-
-  const handleExportPayments = () => {
-    const headers = ['Payment ID', 'Contractor ID', 'Contractor Name', 'Country', 'Role', 'Basis', 'Hours', 'Rate', 'Amount USD', 'Method', 'Status', 'Date', 'TxID_MTCN'];
-    const rows = pays.map(item => [
-      item.id,
-      item.cid,
-      `"${(item.c.name || '').replace(/"/g, '""')}"`,
-      `"${(item.c.country || '').replace(/"/g, '""')}"`,
-      `"${(item.c.role || '').replace(/"/g, '""')}"`,
-      item.c.basis,
-      item.hours == null ? 'Fixed' : item.hours,
-      item.c.rate,
-      item.amount,
-      isWU(item.c) ? 'Western Union' : 'Coinbase',
-      item.status,
-      item.date || '—',
-      `"${(isWU(item.c) ? item.mtcn : (item.cbId || item.hash || ''))}"`
-    ]);
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `contractor-payments-${getCurrentPeriod().code}-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    notify('Contractor payment register exported to CSV');
-  };
-
-  return <Page>
-    <PageHeader
-      breadcrumbs={['Contractors', 'Payments']}
-      title="Contractor Payments"
-      status={<Badge tone={dbConnected ? 'success' : 'info'} dot>{dbConnected ? `Database Connected • ${getCurrentPeriod().code}` : 'Local Fallback'}</Badge>}
-      actions={<>
-        <Button variant="secondary" icon="refresh" onClick={() => fetchPayments(true)}>Refresh</Button>
-        <Button variant="secondary" icon="download" onClick={handleExportPayments}>Export CSV</Button>
-      </>}
-    />
-    <Grid min={200}>
-      <StatCard label="Total due" value={fmtUSD(tot())} unit="USD" icon="request_quote" style={{ minHeight: 0 }} />
-      <StatCard label="Awaiting approval" value={pays.filter(x => x.status === 'Pending Approval').length} icon="hourglass_top" tone="warning" style={{ minHeight: 0 }} />
-      <StatCard label="In flight" value={fmtUSD(tot(['Approved', 'Sent']))} icon="send_money" tone="accent" style={{ minHeight: 0 }} />
-      <StatCard label="Paid" value={fmtUSD(tot(['Paid']))} icon="task_alt" tone="success" style={{ minHeight: 0 }} />
-    </Grid>
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'flex-start' }}>
-      <Card padding={20} style={{ flex: '1 1 520px', minWidth: 0 }}>
-        <TableToolbar search={t.q} onSearch={t.setQ} placeholder="Search payment or contractor ID…" chips={<FilterChips value={chip} onChange={setChip} options={[{ value: 'all', label: 'All', count: pays.length }, ...PST.filter(s => s !== 'Calculated').map(s => ({ value: s, label: s, count: pays.filter(x => x.status === s).length }))]} />} />
-        <div style={{ marginTop: 10 }}><FilterChips value={via} onChange={setVia} options={[{ value: 'all', label: 'All rails' }, { value: 'cb', label: 'Coinbase', count: pays.filter(x => !isWU(x.c)).length }, { value: 'wu', label: 'Western Union', count: pays.filter(x => isWU(x.c)).length }]} /></div>
-        <DataTable style={{ marginTop: 14 }} rows={t.rows} onRowClick={r => setCur(r.id)} activeRow={cur} columns={[
-          { key: 'cid', label: 'Contractor', render: r => <PersonCell c={r.c} sub={r.id} /> },
-          { key: 'country', label: 'Country', render: r => r.c.country },
-          { key: 'hours', label: 'Hours', align: 'right', render: r => r.hours == null ? 'Fixed' : r.hours.toFixed(1) },
-          { key: 'rate', label: 'Rate', align: 'right', render: r => r.c.basis === 'Fixed Monthly' ? fmtUSD(r.c.rate) + '/mo' : fmtUSD(r.c.rate) },
-          { key: 'amount', label: 'Amount', align: 'right', weight: 700, render: r => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtUSD(r.amount)}</span> },
-          { key: 'via', label: 'Paid via', render: r => isWU(r.c) ? 'Western Union' : 'Coinbase' },
-          { key: 'status', label: 'Status', render: r => <Badge size="sm" dot tone={PTONE[r.status]}>{r.status}</Badge> }]} />
-        <Pagination style={{ marginTop: 14 }} page={t.page} pageSize={t.pageSize} total={t.total} onPage={t.setPage} noun="payments" />
-      </Card>
-      <Card padding={20} style={{ flex: '1 1 320px', maxWidth: 400, minWidth: 0 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-            <PersonCell c={c} sub={c.country + ' • ' + c.role} />
-            <Badge dot tone={PTONE[p.status]}>{p.status}</Badge>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: 14, borderRadius: 8, background: 'var(--mgh-navy)', color: '#fff' }}>
-            <div><div className="mgh-overline" style={{ color: 'var(--mgh-nav-text)' }}>Amount sent</div><div style={{ font: '600 11px/14px var(--font-mono)', color: 'var(--mgh-nav-text)', marginTop: 2 }}>{p.id}</div></div>
-            <div style={{ textAlign: 'right' }}><div style={{ font: '800 26px/30px var(--font-sans)', letterSpacing: '-0.5px' }}>{fmtUSD(p.amount)}</div><div style={{ font: '600 11px/14px var(--font-sans)', color: 'var(--mgh-nav-text)' }}>{wu ? (Number(p.amount || 0) * Number(c.fx || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + c.payCur + ' • ' + c.delivery : Number(p.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' ' + c.asset + ' • ' + c.network}</div></div>
-          </div>
-          <div style={{ overflowX: 'auto' }}><Stepper steps={steps} style={{ minWidth: 560 }} /></div>
-          {wu ? <Section icon="receipt_long" title="Transaction">
-            <KeyValue label="Payment date" value={p.date || '—'} />
-            <KeyValue label="MTCN (tracking number)" value={p.mtcn || '—'} mono aside={p.mtcn && <a href={WU_TRACK} target="_blank" style={{ display: 'flex' }}><Icon name="open_in_new" size={16} color="var(--mgh-primary)" /></a>} />
-            <KeyValue label="Receiver (as on ID)" value={c.receiver} />
-            <KeyValue label="Delivery" value={c.delivery + (c.bank ? ' • ' + c.bank + ' ' + c.acct : '')} />
-            <KeyValue label="Payout location" value={c.city + ', ' + c.country} />
-            <KeyValue label="Exchange rate" value={'1 USD = ' + c.fx + ' ' + c.payCur} mono />
-            <KeyValue label="Transfer fee" value={fmtUSD(p.fee)} aside={<Badge size="sm" tone="neutral">Company-paid</Badge>} />
-          </Section> : <Section icon="receipt_long" title="Transaction">
-            <KeyValue label="Payment date" value={p.date || '—'} />
-            <KeyValue label="Coinbase transaction ID" value={p.cbId || '—'} mono />
-            <KeyValue label="Blockchain tx hash" value={p.hash ? p.hash.slice(0, 10) + '…' + p.hash.slice(-6) : '—'} mono aside={p.hash && <a href={explorer(c.network, p.hash)} target="_blank" style={{ display: 'flex' }}><Icon name="open_in_new" size={16} color="var(--mgh-primary)" /></a>} />
-            <KeyValue label="Wallet address" value={c.wallet} mono />
-            <KeyValue label="Network" value={c.network} />
-            <KeyValue label="Network fee" value={fmtUSD(p.fee)} aside={<Badge size="sm" tone="neutral">Company-paid</Badge>} />
-          </Section>}
-          {wu && p.status === 'Sent' && !p.mtcn && <TextField label="MTCN from Western Union receipt" mono value={txDraft.mtcn} onChange={v => setTxDraft(d => ({ ...d, mtcn: typeof v === 'string' ? v : v.target.value }))} placeholder="000-000-0000" />}
-          {!wu && p.status === 'Sent' && !p.hash && <div style={{ display: 'grid', gap: 10 }}>
-            <TextField label="Coinbase transaction ID" mono value={txDraft.cb} onChange={v => setTxDraft(d => ({ ...d, cb: typeof v === 'string' ? v : v.target.value }))} placeholder="CB-…" />
-            <TextField label="Blockchain transaction hash" mono value={txDraft.hash} onChange={v => setTxDraft(d => ({ ...d, hash: typeof v === 'string' ? v : v.target.value }))} placeholder="0x…" />
-          </div>}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icon name="attach_file" size={16} color="var(--mgh-primary)" /><span className="mgh-overline">Supporting document</span></div>
-            <ReceiptDrop key={p.id} pid={p.id} notify={notify} label={wu ? 'Western Union' : 'Coinbase'} />
-          </div>
-          <Section icon="menu_book" title="Accounting entry">
-            <KeyValue label="Debit • Contractor Expense" value={fmtUSD(p.amount)} />
-            <KeyValue label={wu ? 'Credit • Western Union Business Solutions' : 'Credit • Coinbase USDC Wallet'} value={fmtUSD(p.amount)} />
-            <KeyValue label={wu ? 'Debit • Transfer Fees' : 'Debit • Network Fees'} value={fmtUSD(p.fee)} />
-          </Section>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span className="mgh-overline">Notes</span>
-            <textarea value={p.notes} onChange={e => upd(p.id, { notes: e.target.value })} rows={3} placeholder="Add a note for the payment record…" style={{ font: '400 13px/18px var(--font-sans)', color: 'var(--mgh-ink)', padding: 10, borderRadius: 8, border: 'none', boxShadow: 'inset 0 0 0 1px var(--mgh-surface-3)', resize: 'vertical', outline: 'none' }} />
-          </label>
-          {action && <Button icon={action.icon} onClick={action.run} style={{ width: '100%' }}>{action.label}</Button>}
-        </div>
-      </Card>
-    </div>
-  </Page>;
-}
-
-window.__MGH_CTR = { CONTRACTORS, INIT_PAYMENTS, amountOf };
-window.__MGH_KIT = Object.assign(window.__MGH_KIT || {}, { contractors: Contractors, contractorPayments: ContractorPayments });
+// App.loadFromApi writes the backend contractors/payments here
+window.__MGH_CTR = { CONTRACTORS, INIT_PAYMENTS };
+window.__MGH_KIT = Object.assign(window.__MGH_KIT || {}, { contractors: Contractors });
 
 })();
 
@@ -5039,15 +4828,16 @@ function Dashboard({ f, setF, go }) {
 function Daily({ f, go, notify }) {
   const [st, setSt] = React.useState('All');
   const [punchDlg, setPunchDlg] = React.useState(false);
-  const [punchEmp, setPunchEmp] = React.useState(() => (A.roster[0] && A.roster[0].id) || '');
-  const [cin, setCin] = React.useState('08:30');
-  const [cout, setCout] = React.useState('17:30');
+  const [punchEmp, setPunchEmp] = React.useState('');
+  const [cin, setCin] = React.useState('');
+  const [cout, setCout] = React.useState('');
   const [mode, setMode] = React.useState('Office');
   const L = A.daily(f.d, match(f)).filter(x => st === 'All' || x.status === st);
   const all = A.daily(f.d, match(f));
 
   const savePunch = async () => {
     if (!punchEmp) { if (notify) notify('Selecciona un empleado'); return; }
+    if (!cin || !cout) { if (notify) notify('Indica la hora de entrada y la de salida'); return; }
     const a = A.tm(cin), b = A.tm(cout);
     if (a == null || b == null || b <= a) { if (notify) notify('La salida debe ser posterior a la entrada'); return; }
     // Hours from the entered times (minus the org's auto-lunch when the shift is over 6h)
@@ -5059,7 +4849,7 @@ function Daily({ f, go, notify }) {
       await window.api.recordPunch({ empId: punchEmp, date: f.d, clock_in: cin, clock_out: cout, mode, hours, overtime });
       A.punch({ emp: punchEmp, date: f.d, in: cin, out: cout, mode, hours, overtime });
       if (notify) notify(`Ponche guardado para ${punchEmp} (${cin} – ${cout} • ${hours}h)`);
-      setPunchDlg(false);
+      setPunchDlg(false); setPunchEmp(''); setCin(''); setCout('');
     } catch (err) {
       if (notify) notify('Error al guardar ponche: ' + err.message);
     }
@@ -5073,12 +4863,12 @@ function Daily({ f, go, notify }) {
     <div style={{ height: 14 }} />
     <Table cols={[['Employee'], ['Status'], ['Clock In'], ['Lunch'], ['Clock Out'], ['Hours', 'right'], ['Exception'], ['Supervisor']]} rows={L.map(x => [<Who id={x.emp} />, <Pill status={x.status} />, x.punches.in || '—', lunchTxt(x.punches) + (x.autoLunch ? ' (auto ' + A.rules.minLunch + 'm)' : ''), x.inProgress ? 'In progress' : x.punches.out || '—', x.hours ? x.hours.toFixed(1) + 'h' : '—',
       x.exceptions.length ? <a onClick={() => go('attExceptions')} style={{ cursor: 'pointer', font: '600 12px/16px var(--font-sans)' }}>{x.exceptions.map(e => e.label.split(' • ')[0]).join(', ')}</a> : (x.leave ? x.leave.type : x.holiday ? x.holiday.desc : '—'), x.sup])} />
-    <Dlg open={punchDlg} title={`Registrar Ponche • ${fmtD(f.d)}`} onClose={() => setPunchDlg(false)} actions={<><Button variant="outline" onClick={() => setPunchDlg(false)}>Cancelar</Button><Button icon="save" onClick={savePunch}>Guardar Ponche</Button></>}>
+    <Dlg open={punchDlg} title={`Registrar Ponche • ${fmtD(f.d)}`} onClose={() => setPunchDlg(false)} actions={<><Button variant="outline" onClick={() => setPunchDlg(false)}>Cancelar</Button><Button icon="save" disabled={!punchEmp || !cin || !cout} onClick={savePunch}>Guardar Ponche</Button></>}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <Select label="Empleado" value={punchEmp} onChange={x => setPunchEmp(v(x))} options={EMPLOYEES.map(e => ({ value: e.id, label: e.name + ' • ' + e.id }))} />
+        <Select label="Empleado *" value={punchEmp} onChange={x => setPunchEmp(v(x))} options={[{ value: '', label: 'Selecciona…' }, ...EMPLOYEES.map(e => ({ value: e.id, label: e.name + ' • ' + e.id }))]} />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <TextField label="Hora Entrada" type="time" value={cin} onChange={x => setCin(v(x))} />
-          <TextField label="Hora Salida" type="time" value={cout} onChange={x => setCout(v(x))} />
+          <TextField label="Hora Entrada *" type="time" value={cin} onChange={x => setCin(v(x))} />
+          <TextField label="Hora Salida *" type="time" value={cout} onChange={x => setCout(v(x))} />
         </div>
         <Select label="Modalidad" value={mode} onChange={x => setMode(v(x))} options={[{ value: 'Office', label: 'Office' }, { value: 'Remote', label: 'Remote' }, { value: 'Field', label: 'Field' }]} />
       </div>
@@ -5115,15 +4905,29 @@ function Exceptions({ f, notify }) {
   const L = all.filter(x => (type === 'All' || x.type === type) && (st === 'All' || (st === 'Open' ? !done(x.status) : done(x.status))));
   const types = [...new Set(all.map(x => x.type))];
   const TL = { missing_in: 'Missing Clock In', missing_out: 'Missing Clock Out', late: 'Late Arrival', early: 'Early Departure', overtime: 'Overtime', duplicate: 'Duplicate Entries', overlap: 'Overlapping Time', invalid: 'Invalid Shift' };
+  // Exceptions are computed in the browser from the punches (the server stores none yet), so review decisions
+  // live in this browser. A correction changes the punch itself: it is saved to the server first.
   const run = async (x, a, c, fx) => {
-    const r = A.exAction(x, a, c, fx);
-    try {
-      if (window.api && r.ok) {
-        await window.api.resolveException(x.id, { action: a, comment: c, corrections: fx });
+    if (a === 'correct') {
+      if (!A.canManage(x)) { notify('Only Supervisor, Manager, HR or Admin can correct'); return false; }
+      const p = (A.day(x.emp, x.date) || {}).punches || {};
+      const nx = { ...p };
+      Object.keys(fx || {}).forEach(k => { if (fx[k] !== undefined) nx[k] = fx[k]; });
+      if (!nx.in || !nx.out) { notify('Indica la entrada y la salida para guardar la corrección'); return false; }
+      const ta = A.tm(nx.in), tb = A.tm(nx.out);
+      if (ta == null || tb == null || tb <= ta) { notify('La salida debe ser posterior a la entrada'); return false; }
+      const lo = nx.lo ? A.tm(nx.lo) : null, li = nx.li ? A.tm(nx.li) : null;
+      const rr = A.rulesFor((A.roster.find(e => e.id === x.emp) || {}).entity);
+      const lunch = lo != null && li != null && li > lo ? li - lo : (rr.autoLunch && tb - ta > 360 ? rr.minLunch : 0);
+      const worked = Math.max(0, (tb - ta - lunch) / 60);
+      try {
+        await window.api.recordPunch({ empId: x.emp, date: x.date, clock_in: nx.in, clock_out: nx.out, lunch_out: nx.lo || null, lunch_in: nx.li || null, hours: +worked.toFixed(2), overtime: +Math.max(0, worked - rr.shift).toFixed(2) });
+      } catch (err) {
+        notify('No se pudo guardar la corrección • ' + err.message);
+        return false;
       }
-    } catch (err) {
-      console.warn('[Exceptions] API resolve fallback:', err.message);
     }
+    const r = A.exAction(x, a, c, fx);
     notify(r.ok ? x.label.split(' • ')[0] + ' • ' + (a === 'comment' ? 'comment added' : a === 'correct' ? 'corrected' : a === 'review' ? 'in review' : a + 'd') : r.msg);
     return r.ok;
   };
@@ -5140,13 +4944,14 @@ function Exceptions({ f, notify }) {
       rows={L.map(x => [<Who id={x.emp} />, fmtD(x.date), x.label, <Badge size="sm" tone={x.sev === 'high' ? 'danger' : x.sev === 'medium' ? 'warning' : 'neutral'}>{x.sev}</Badge>, <Badge size="sm" dot tone={done(x.status) ? 'success' : x.status === 'In Review' ? 'info' : 'warning'}>{x.status}</Badge>, String(x.comments.length),
         <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}><Button size="sm" variant="secondary" icon="visibility" onClick={() => { setDlg({ id: x.id, x }); setTxt(''); setFix({}); if (x.status === 'Open') A.exAction(x, 'review'); }}>Review</Button>{!done(x.status) && A.canManage(x) && <Button size="sm" variant="ghost" icon="check" onClick={() => run(x, 'approve')}>Approve</Button>}</div>])} />
     <Dlg open={!!cur} title={cur ? cur.label : ''} onClose={() => setDlg(null)} actions={cur && <>
-      <Button variant="outline" icon="chat" onClick={() => { if (run(cur, 'comment', txt)) setTxt(''); }}>Comment</Button>
-      {A.canManage(cur) && !done(cur.status) && <Button variant="outline" icon="check" onClick={() => { if (run(cur, 'approve', txt)) setDlg(null); }}>Approve as is</Button>}
-      {A.canManage(cur) && !done(cur.status) && <Button icon="edit" onClick={() => { if (run(cur, 'correct', txt, fix)) setDlg(null); }}>Save correction</Button>}
-      {A.canManage(cur) && !['Closed'].includes(cur.status) && <Button variant="ghost" icon="task_alt" onClick={() => { if (run(cur, 'close', txt)) setDlg(null); }}>Close</Button>}
+      <Button variant="outline" icon="chat" onClick={() => run(cur, 'comment', txt).then(ok => { if (ok) setTxt(''); })}>Comment</Button>
+      {A.canManage(cur) && !done(cur.status) && <Button variant="outline" icon="check" onClick={() => run(cur, 'approve', txt).then(ok => { if (ok) setDlg(null); })}>Approve as is</Button>}
+      {A.canManage(cur) && !done(cur.status) && <Button icon="edit" onClick={() => run(cur, 'correct', txt, fix).then(ok => { if (ok) setDlg(null); })}>Save correction</Button>}
+      {A.canManage(cur) && !['Closed'].includes(cur.status) && <Button variant="ghost" icon="task_alt" onClick={() => run(cur, 'close', txt).then(ok => { if (ok) setDlg(null); })}>Close</Button>}
       {A.canManage(cur) && done(cur.status) && <Button variant="ghost" icon="undo" onClick={() => run(cur, 'reopen', txt)}>Reopen</Button>}</>}>
       {cur && <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}><Who id={cur.emp} /><span className="mgh-body">{fmtD(cur.date)} • <b>{cur.status}</b></span></div>
+        <span className="mgh-body" style={{ color: 'var(--mgh-ink-3)' }}>Las correcciones de ponches se guardan en el servidor. Los comentarios y estados de revisión de la excepción se guardan solo en este navegador.</span>
         {!A.canManage(cur) && <span className="mgh-body" style={{ color: 'var(--mgh-ink-3)' }}>Viewing as {window.MGH_WF ? window.MGH_WF.role : ''}: you can comment; approval and corrections need Supervisor, Manager, HR or Admin.</span>}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>{[['in', 'Clock in'], ['lo', 'Lunch out'], ['li', 'Lunch in'], ['out', 'Clock out']].map(([kk, l]) => <label key={kk} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}><span style={{ font: '700 10px/12px var(--font-sans)', textTransform: 'uppercase', letterSpacing: '0.44px', color: 'var(--mgh-ink-2)' }}>{l}</span><input type="time" disabled={!A.canManage(cur) || done(cur.status)} value={fix[kk] !== undefined ? fix[kk] : day.punches[kk] || ''} onChange={e => setFix(p => ({ ...p, [kk]: e.target.value }))} style={{ height: 36, border: 'none', borderRadius: 8, boxShadow: 'inset 0 0 0 1px var(--mgh-surface-3)', padding: '0 8px', font: '600 13px var(--font-sans)' }} /></label>)}</div>
         <textarea value={txt} onChange={e => setTxt(e.target.value)} rows={3} placeholder="Comment (visible to the employee and approvers)" style={{ border: 'none', outline: 'none', borderRadius: 8, padding: 10, background: 'var(--mgh-surface-1)', font: '400 13px/18px var(--font-sans)', resize: 'vertical' }} />
@@ -5157,7 +4962,7 @@ function Exceptions({ f, notify }) {
 }
 function Leave({ notify }) {
   useLeaveSync();
-  const [form, setForm] = React.useState(() => ({ emp: (MGH_RBAC.visible(EMPLOYEES, 'leave.request')[0] || {}).id || '', type: 'Vacation', from: A.TODAY, to: A.TODAY, reason: '' }));
+  const [form, setForm] = React.useState(() => ({ emp: '', type: 'Vacation', from: A.TODAY, to: A.TODAY, reason: '' }));
   const [rej, setRej] = React.useState(null); const [why, setWhy] = React.useState(''); const [chip, setChip] = React.useState('All');
   const L = A.leave().filter(l => chip === 'All' || (chip === 'Pending' ? /Pending/.test(l.status) : l.status === chip));
   const selfOnly = MGH_RBAC.scopeOf('leave.request') === 'self', meId = (MGH_RBAC.me() || {}).emp, canReq = MGH_RBAC.can('leave.request');
@@ -5165,7 +4970,7 @@ function Leave({ notify }) {
   // Backend first (field names match leave.controller: empId/fromDate/toDate); the local engine only mirrors
   // what the server accepted, so a failed save is reported instead of silently living in this browser.
   const submit = async () => {
-    if (!emp) { notify('Your account is not linked to an employee record'); return; }
+    if (!emp) { notify(selfOnly ? 'Your account is not linked to an employee record' : 'Selecciona un empleado'); return; }
     const e = EMPLOYEES.find(x => x.id === emp);
     const name = e ? e.name : emp;
     if (!form.from || !form.to || form.to < form.from) { notify('End date must be on or after start date'); return; }
@@ -5199,7 +5004,7 @@ function Leave({ notify }) {
   return <>
     <Card icon="route" title="Leave workflow" subtitle="Employee → Supervisor → HR → Approved → Calendar → Payroll">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,160px),1fr))', gap: 10, alignItems: 'end' }}>
-        {!canReq ? null : selfOnly ? <KeyValue label="Employee" value={MGH_RBAC.me().person + ' • ' + meId} /> : <Select label="Employee" value={form.emp} onChange={x => setForm(p => ({ ...p, emp: v(x) }))} options={MGH_RBAC.visible(EMPLOYEES, 'leave.request').map(e => ({ value: e.id, label: e.name + ' • ' + e.id }))} />}
+        {!canReq ? null : selfOnly ? <KeyValue label="Employee" value={MGH_RBAC.me().person + ' • ' + meId} /> : <Select label="Employee" value={form.emp} onChange={x => setForm(p => ({ ...p, emp: v(x) }))} options={[{ value: '', label: 'Selecciona…' }, ...MGH_RBAC.visible(EMPLOYEES, 'leave.request').map(e => ({ value: e.id, label: e.name + ' • ' + e.id }))]} />}
         {canReq && <Select label="Type" value={form.type} onChange={x => setForm(p => ({ ...p, type: v(x) }))} options={A.LEAVE_TYPES} />}
         {canReq && <TextField label="From" type="date" value={form.from} onChange={x => setForm(p => ({ ...p, from: v(x) }))} />}
         {canReq && <TextField label="To" type="date" value={form.to} onChange={x => setForm(p => ({ ...p, to: v(x) }))} />}
@@ -5241,35 +5046,35 @@ function Holidays({ notify }) {
       <TextField label="Description" value={n.desc} onChange={x => setN(p => ({ ...p, desc: v(x) }))} placeholder="e.g. Company anniversary" />
       <TextField label="Country" value={n.country} onChange={x => setN(p => ({ ...p, country: v(x) }))} />
       <TextField label="Region" value={n.region} onChange={x => setN(p => ({ ...p, region: v(x) }))} />
+      <Toggle checked={n.paid} onChange={x => setN(p => ({ ...p, paid: !!x }))} label="Paid" />
+      <Toggle checked={n.working} onChange={x => setN(p => ({ ...p, working: !!x }))} label="Working holiday" />
       <Button icon="add" onClick={async () => {
-        const r = A.addHoliday({ ...n, org });
+        if (!n.date || !n.desc.trim()) { notify('Date and description are required'); return; }
+        if (H.some(h => h.date === n.date)) { notify('A holiday already exists on that date'); return; }
         try {
-          if (window.api && r.ok) {
-            await window.api.createHoliday({
-              id: r.h ? r.h.id : undefined,
-              orgId: org,
-              date: n.date,
-              description: n.desc,
-              country: n.country,
-              region: n.region,
-              paid: n.paid,
-              working: n.working
-            });
-          }
+          await window.api.createHoliday({ orgId: org, date: n.date, description: n.desc.trim(), country: n.country, region: n.region, paid: n.paid, working: n.working });
         } catch (err) {
-          console.warn('[Holidays] API create fallback:', err.message);
+          notify('No se pudo guardar el feriado • ' + err.message);
+          return;
         }
-        notify(r.ok ? 'Holiday added • ' + n.desc : r.msg);
-        if (r.ok) setN(p => ({ ...p, date: '', desc: '' }));
+        // The server list is the source of truth (ids included, so it can be deleted later)
+        try { const list = await window.api.holidays(); A.setHolidays(Array.isArray(list) ? list : []); }
+        catch (_) { notify('Feriado guardado • recarga la página para verlo'); }
+        notify('Holiday added • ' + n.desc.trim());
+        setN(p => ({ ...p, date: '', desc: '' }));
       }}>Add Holiday</Button>
     </div>
     <div style={{ height: 14 }} />
-    <Table cols={[['Date'], ['Description'], ['Country'], ['Region'], ['Organization'], ['Paid', 'center'], ['Working holiday', 'center'], ['', 'right']]} empty="No holidays configured."
-      rows={H.map(h => [fmt(h), h.desc, h.country, h.region, h.org, <Toggle checked={h.paid} onChange={() => A.updateHoliday(h.id, { paid: !h.paid })} />, <Toggle checked={h.working} onChange={() => A.updateHoliday(h.id, { working: !h.working })} />, <IconButton icon="delete" title="Remove" onClick={async () => {
-        A.removeHoliday(h.id);
+    <div className="mgh-body" style={{ color: 'var(--mgh-ink-3)', marginTop: 10 }}>Paid / working are set when the holiday is created; to change them, delete it and add it again (the server has no edit for holidays yet).</div>
+    <Table cols={[['Date'], ['Description'], ['Country'], ['Region'], ['Paid', 'center'], ['Working holiday', 'center'], ['', 'right']]} empty="No holidays configured."
+      rows={H.map(h => [fmt(h), h.desc, h.country || '—', h.region || '—', h.paid ? 'Yes' : 'No', h.working ? 'Yes' : 'No', <IconButton icon="delete" title="Remove" onClick={async () => {
         try {
-          if (window.api) await window.api.deleteHoliday(h.id);
-        } catch (_) {}
+          await window.api.deleteHoliday(h.id);
+        } catch (err) {
+          notify('No se pudo eliminar el feriado • ' + err.message);
+          return;
+        }
+        A.removeHoliday(h.id);
         notify('Holiday removed • ' + h.desc);
       }} />])} />
   </Card>;
@@ -5291,7 +5096,7 @@ function AttReports({ f, notify }) {
   if (rep === 'ot') { cols = [['Employee'], ['Days with OT', 'num'], ['OT hours (daily > ' + A.rules.shift + 'h)', 'num'], ['Hours worked', 'num']]; rows = P.map(p => { const o = p.ex.filter(x => x.type === 'overtime'); return [p.e.name, String(o.length), n1(o.reduce((s, x) => s + parseFloat(x.label.split('• ')[1]), 0)), n1(p.hrs)]; }).filter(r => r[1] !== '0'); }
   if (rep === 'missing') { cols = [['Employee'], ['Date'], ['Missing'], ['Status']]; rows = P.flatMap(p => p.ex.filter(x => /missing/.test(x.type)).map(x => [p.e.name, x.date, x.label, x.status])); }
   if (rep === 'dept') { const G = {}; P.forEach(p => { (G[p.e.dept] = G[p.e.dept] || []).push(p); }); cols = [['Department'], ['Employees', 'num'], ['Attendance %', 'num'], ['Late', 'num'], ['No record', 'num']]; rows = Object.entries(G).map(([d, l]) => [d, String(l.length), n1(l.reduce((s, p) => s + p.pres, 0) / Math.max(1, l.reduce((s, p) => s + p.sched, 0)) * 100) + '%', String(l.reduce((s, p) => s + p.c('Late'), 0)), String(l.reduce((s, p) => s + p.c('No Record'), 0))]); }
-  const sub = (rep === 'daily' ? fmtD(f.d) : rng) + ' • ' + (f.org === 'All' ? 'All organizations' : f.org);
+  const sub = (rep === 'daily' ? fmtD(f.d) : rng) + ' • My Global Hub (Dominicana SRL)';
   const ex = kind => notify(window.__mghExport ? window.__mghExport(kind, REPS[rep], sub, { cols, rows, total }) : 'Export unavailable');
   return <Card padding={20}>
     <FilterChips value={rep} onChange={setRep} options={Object.entries(REPS).map(([k2, l]) => ({ value: k2, label: l }))} />
@@ -5364,7 +5169,7 @@ function Permissions() {
         </tr>)}
       </React.Fragment>)}</tbody></table></div></Card>
     <Card icon="route" title="Route protection" subtitle={'Current role: ' + cur + ' • ' + routes.filter(([r]) => R.canRoute(r)).length + ' of ' + routes.length + ' routes allowed • others return 403'}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 6 }}>{routes.map(([r, p]) => <div key={r} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '6px 10px', borderRadius: 8, background: 'var(--mgh-surface-1)' }}><span data-i18n-skip="" style={{ font: '600 12px/16px var(--font-mono)', color: 'var(--mgh-ink)' }}>#{r}</span><span data-i18n-skip="" style={{ font: '500 11px/16px var(--font-mono)', color: R.canRoute(r) ? 'var(--mgh-success)' : 'var(--mgh-danger)', textAlign: 'right' }}>{R.canRoute(r) ? '✓ ' : '403 • '}{p.join(' | ')}</span></div>)}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 6 }}>{routes.map(([r, p]) => <div key={r} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '6px 10px', borderRadius: 8, background: 'var(--mgh-surface-1)' }}><span data-i18n-skip="" style={{ font: '600 12px/16px var(--font-mono)', color: 'var(--mgh-ink)' }}>#{r}</span><span data-i18n-skip="" style={{ font: '500 11px/16px var(--font-mono)', color: R.canRoute(r) ? 'var(--mgh-success)' : 'var(--mgh-danger)', textAlign: 'right' }}>{R.canRoute(r) ? 'OK • ' : '403 • '}{p.join(' | ')}</span></div>)}</div>
     </Card>
     <Card icon="domain" title="Memberships" subtitle="Active authenticated user organization & permissions">
       <div style={{ display: 'flex', flexDirection: 'column' }}>

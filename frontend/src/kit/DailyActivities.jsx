@@ -43,7 +43,7 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
     try { localStorage.removeItem('mgh-activities'); } catch (_) {}
   }, []);
 
-  const todayStr = (A && A.TODAY) || '2025-04-15';
+  const todayStr = (A && A.TODAY) || (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
   const activeDate = f && f.d ? f.d : todayStr;
 
   // Cargar desde el backend las actividades del empleado activo para la fecha seleccionada
@@ -96,7 +96,7 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
     }
   };
 
-  // Sugerencias de Jira reactivas con API, caché SQLite y estados de carga / error
+  // Sugerencias de Jira reactivas con API, tareas guardadas y estados de carga / error
   const [liveJiraTickets, setLiveJiraTickets] = useState([]);
   const [loadingJira, setLoadingJira] = useState(false);
   const [jiraError, setJiraError] = useState(null);
@@ -761,7 +761,7 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
                     <div style={{ position: 'relative' }}>
                       <input
                         type="text"
-                        placeholder="Buscar tarea ágil o ticket (ej. MSHP-1, MSH-214, ATLAS-412)..."
+                        placeholder="Buscar tarea o ticket por clave o título..."
                         value={jiraSearch}
                         onChange={e => setJiraSearch(e.target.value)}
                         style={{
