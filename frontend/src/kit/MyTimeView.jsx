@@ -97,14 +97,17 @@ function MyTimeEntry({ user, empId, notify, go }) {
   }, [loadPeriodActivities]);
 
   // Status of this quincena's timesheet: activities are editable only by their owner while it is Draft/Returned
+  // null = not known yet (or the lookup failed): editing stays blocked until the real status is known
   const [sheetStatus, setSheetStatus] = useState(null);
+  const [sheetErr, setSheetErr] = useState(false);
   useEffect(() => {
     let cancel = false;
-    setSheetStatus(null);
+    setSheetStatus(null); setSheetErr(false);
     if (!activeEmpId || !window.api || !window.api.timesheets) return;
     window.api.timesheets({ empId: activeEmpId, periodId: quincena.code })
+      // No sheet yet for this quincena = it will be created as Draft on first save
       .then(list => { if (!cancel) setSheetStatus((Array.isArray(list) && list[0] && list[0].status) || 'Draft'); })
-      .catch(() => { if (!cancel) setSheetStatus('Draft'); });
+      .catch(() => { if (!cancel) { setSheetStatus(null); setSheetErr(true); } });
     return () => { cancel = true; };
   }, [activeEmpId, quincena.code]);
   const viewingOther = !!(activeEmpId && myEmpId && activeEmpId !== myEmpId);
@@ -120,10 +123,11 @@ function MyTimeEntry({ user, empId, notify, go }) {
       .catch(() => {});
   }, [canAddAttendees, modalOpen, staff.length]);
   const showAttendees = canAddAttendees && workType === 'Reunión' && !viewingOther;
-  const readOnly = !activeEmpId || viewingOther || (sheetStatus != null && !EDITABLE.includes(sheetStatus));
+  const readOnly = !activeEmpId || viewingOther || sheetStatus == null || !EDITABLE.includes(sheetStatus);
   const lockReason = !activeEmpId ? 'Tu usuario no está vinculado a un empleado.'
     : viewingOther ? 'Estás viendo el registro de otra persona (solo lectura).'
-    : sheetStatus && !EDITABLE.includes(sheetStatus) ? `Esta quincena está "${statusLabel(sheetStatus)}": ya no se puede editar. Si hay un error, pide al PM que te la devuelva.`
+    : sheetStatus == null ? (sheetErr ? 'No se pudo consultar el estado de tu hoja de esta quincena; la edición queda bloqueada hasta poder verificarlo. Recarga la página.' : 'Consultando el estado de tu hoja…')
+    : !EDITABLE.includes(sheetStatus) ? `Esta quincena está "${statusLabel(sheetStatus)}": ya no se puede editar. Si hay un error, pide al PM que te la devuelva.`
     : '';
 
   // Tasks of my projects (backend scopes the search to projects I'm a member of); mine first
@@ -634,7 +638,7 @@ function MyTimeEntry({ user, empId, notify, go }) {
               onClick={() => setSearchQuery('')}
               style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--mgh-ink-3)', fontSize: '12px' }}
             >
-              ✕
+              <span className="material-symbols-outlined" style={{ fontSize: 16, lineHeight: 1 }} aria-hidden="true">close</span>
             </button>
           )}
         </div>

@@ -5169,7 +5169,7 @@ function Permissions() {
         </tr>)}
       </React.Fragment>)}</tbody></table></div></Card>
     <Card icon="route" title="Route protection" subtitle={'Current role: ' + cur + ' • ' + routes.filter(([r]) => R.canRoute(r)).length + ' of ' + routes.length + ' routes allowed • others return 403'}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 6 }}>{routes.map(([r, p]) => <div key={r} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '6px 10px', borderRadius: 8, background: 'var(--mgh-surface-1)' }}><span data-i18n-skip="" style={{ font: '600 12px/16px var(--font-mono)', color: 'var(--mgh-ink)' }}>#{r}</span><span data-i18n-skip="" style={{ font: '500 11px/16px var(--font-mono)', color: R.canRoute(r) ? 'var(--mgh-success)' : 'var(--mgh-danger)', textAlign: 'right' }}>{R.canRoute(r) ? '✓ ' : '403 • '}{p.join(' | ')}</span></div>)}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 6 }}>{routes.map(([r, p]) => <div key={r} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '6px 10px', borderRadius: 8, background: 'var(--mgh-surface-1)' }}><span data-i18n-skip="" style={{ font: '600 12px/16px var(--font-mono)', color: 'var(--mgh-ink)' }}>#{r}</span><span data-i18n-skip="" style={{ font: '500 11px/16px var(--font-mono)', color: R.canRoute(r) ? 'var(--mgh-success)' : 'var(--mgh-danger)', textAlign: 'right' }}>{R.canRoute(r) ? 'OK • ' : '403 • '}{p.join(' | ')}</span></div>)}</div>
     </Card>
     <Card icon="domain" title="Memberships" subtitle="Active authenticated user organization & permissions">
       <div style={{ display: 'flex', flexDirection: 'column' }}>

@@ -243,8 +243,8 @@ export default function AgileWorkspace({
           statusId: defStatus ? defStatus.id : null,
           taskType: 'Task',
           priority: 'Medium',
-          estimateHours: 4.0,
-          storyPoints: 2
+          estimateHours: 0,
+          storyPoints: null
         });
         if (notify) notify(`Tarea ${created.task_key} creada.`);
         setQuickTaskTitle('');
@@ -1034,7 +1034,7 @@ export default function AgileWorkspace({
                     </div>
                     {sprint.goal && (
                       <div style={{ fontSize: 13, color: 'var(--mgh-ink-2)', marginTop: 4 }}>
-                        🎯 <strong>Objetivo:</strong> {sprint.goal}
+                        <Icon name="flag" size={14} /> <strong>Objetivo:</strong> {sprint.goal}
                       </div>
                     )}
                   </div>
@@ -1271,7 +1271,7 @@ export default function AgileWorkspace({
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--mgh-ink)' }}>
-                🔄 Clonador y Migrador de Incidencias Jira Legacy
+                <Icon name="sync" size={18} /> Clonador y Migrador de Incidencias Jira Legacy
               </span>
               <Badge tone="success" size="sm">Cero Costo de Licencia</Badge>
             </div>
@@ -1429,7 +1429,7 @@ export default function AgileWorkspace({
                       alignItems: 'center',
                       justifyContent: 'space-between'
                     }}>
-                      <span>✅ Creada como tarea nativa <strong>{clonedSuccess.task_key}</strong></span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="check_circle" size={16} /> Creada como tarea nativa <strong>{clonedSuccess.task_key}</strong></span>
                       <Button size="xs" variant="secondary" onClick={() => setActiveTab('board')}>
                         Ver en Tablero
                       </Button>
