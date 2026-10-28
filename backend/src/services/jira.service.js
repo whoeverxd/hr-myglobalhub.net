@@ -363,7 +363,7 @@ const jiraService = {
   /**
    * Valida la existencia de un proyecto en Jira Cloud y lo vincula en SQLite sin duplicados
    */
-  async validateAndLinkProject({ key, user = 'Elena Rostova', ip = '127.0.0.1' }) {
+  async validateAndLinkProject({ key, user = 'System', ip = '127.0.0.1' }) {
     if (!key || typeof key !== 'string' || !key.trim()) {
       const err = new Error('La clave del proyecto Jira es obligatoria.');
       err.status = 400;
@@ -557,7 +557,7 @@ const jiraService = {
    * Utiliza el endpoint moderno /rest/api/3/search/jql y paginación basada en cursor (nextPageToken)
    * Corrigiendo el error HTTP 410 (Gone) del endpoint antiguo /rest/api/3/search
    */
-  async syncIssuesFromJira({ projectKey = null, limit = 100, user = 'Elena Rostova', ip = '127.0.0.1' } = {}) {
+  async syncIssuesFromJira({ projectKey = null, limit = 100, user = 'System', ip = '127.0.0.1' } = {}) {
     const config = getJiraConfig();
     const targetProject = (projectKey || config.projectKey || 'MSHP').trim().toUpperCase();
 
@@ -817,7 +817,7 @@ const jiraService = {
   /**
    * Conciliación de registros de jornada contra estimaciones y registros de Jira
    */
-  syncWorklogs({ empId, dateFrom, dateTo, user = 'Elena Rostova', ip = '127.0.0.1' } = {}) {
+  syncWorklogs({ empId, dateFrom, dateTo, user = 'System', ip = '127.0.0.1' } = {}) {
     let actQuery = `SELECT * FROM daily_activities WHERE 1=1`;
     const params = [];
 

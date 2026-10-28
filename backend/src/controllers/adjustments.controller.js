@@ -27,7 +27,7 @@ function listAdjustments(empId = null, empName = null) {
   }));
 }
 
-function createAdjustment(data, user = 'Elena Rostova', ip = '127.0.0.1') {
+function createAdjustment(data, user = 'System', ip = '127.0.0.1') {
   const amt = Number(data.amt);
   if (!data.name || !data.type || isNaN(amt)) {
     const err = new Error('name, type and numeric amt are required');
@@ -86,7 +86,7 @@ function createAdjustment(data, user = 'Elena Rostova', ip = '127.0.0.1') {
   return { ...adj, by: adj.by_user };
 }
 
-function updateAdjustment(id, patch, user = 'Elena Rostova', ip = '127.0.0.1') {
+function updateAdjustment(id, patch, user = 'System', ip = '127.0.0.1') {
   const current = db.getOne(`SELECT * FROM payroll_adjustments WHERE id = ?`, [id]);
   if (!current) {
     const err = new Error('Adjustment not found');

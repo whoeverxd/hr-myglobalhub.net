@@ -512,7 +512,7 @@ function createContractorPayment(data, user = 'System', ip = '127.0.0.1') {
 }
 
 /* Express Handlers */
-const getUserName = (req) => (req.user && req.user.name) || req.headers['x-user'] || 'System';
+const { getUserName } = require('../utils/actor');
 const getClientIp = (req) => req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
 
 function getContractorsList(req, res, next) {

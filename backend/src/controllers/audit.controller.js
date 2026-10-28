@@ -1,6 +1,6 @@
 const db = require('../db');
 
-function logAction({ actor = 'Elena Rostova', action, entityType, entityId, oldValues = null, newValues = null, ip = '127.0.0.1' }) {
+function logAction({ actor = 'System', action, entityType, entityId, oldValues = null, newValues = null, ip = '127.0.0.1' }) {
   try {
     db.execute(
       `INSERT INTO audit_logs (actor, action, entity_type, entity_id, old_values, new_values, ip_address)

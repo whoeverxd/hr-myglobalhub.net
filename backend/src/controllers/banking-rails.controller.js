@@ -3,7 +3,7 @@ const { logAction } = require('./audit.controller');
 const db = require('../db');
 
 const getClientIp = (req) => req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-const getUserName = (req) => (req.user && req.user.name) || req.headers['x-user'] || 'Elena Rostova';
+const { getUserName } = require('../utils/actor');
 
 function exportNacha(req, res, next) {
   try {

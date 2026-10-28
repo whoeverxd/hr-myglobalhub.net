@@ -19,7 +19,7 @@ function listProofs() {
   }));
 }
 
-function saveProof(data, user = 'Elena Rostova', ip = '127.0.0.1') {
+function saveProof(data, user = 'System', ip = '127.0.0.1') {
   if (!['bhd', 'chase', 'coinbase'].includes(data.transfer)) {
     const err = new Error('Unknown transfer');
     err.status = 400;
@@ -88,7 +88,7 @@ function saveProof(data, user = 'Elena Rostova', ip = '127.0.0.1') {
   return proof;
 }
 
-function deleteProof(id, user = 'Elena Rostova', ip = '127.0.0.1') {
+function deleteProof(id, user = 'System', ip = '127.0.0.1') {
   const current = db.getOne(`SELECT * FROM payment_proofs WHERE id = ?`, [String(id)]);
   if (!current) {
     const err = new Error('Proof not found');

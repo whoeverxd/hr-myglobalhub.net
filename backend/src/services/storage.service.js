@@ -35,7 +35,7 @@ const storageService = {
     dataBase64 = null,
     mimeType = 'application/octet-stream',
     category = 'general',
-    user = 'Elena Rostova',
+    user = 'System',
     ip = '127.0.0.1',
   }) {
     ensureDirectories();
@@ -122,7 +122,7 @@ const storageService = {
   /**
    * Delete file from disk and database
    */
-  deleteFile(id, user = 'Elena Rostova', ip = '127.0.0.1') {
+  deleteFile(id, user = 'System', ip = '127.0.0.1') {
     const row = db.getOne(`SELECT * FROM file_attachments WHERE id = ?`, [id]);
     if (!row) {
       const err = new Error('File not found');

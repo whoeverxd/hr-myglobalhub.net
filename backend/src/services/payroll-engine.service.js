@@ -128,7 +128,7 @@ function calculatePeriodPayroll({
   periodId,
   entity = 'All',
   saveAsRun = false,
-  user = 'Elena Rostova',
+  user = 'System',
   ip = '127.0.0.1',
 }) {
   const period = db.getOne(`SELECT * FROM pay_periods WHERE id = ?`, [periodId]);

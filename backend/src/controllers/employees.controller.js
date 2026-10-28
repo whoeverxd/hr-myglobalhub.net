@@ -124,7 +124,7 @@ function getNextEmployeeId() {
 }
 
 // actorRole: role of whoever creates it (null = internal/system call). It bounds the login role that can be given.
-function createEmployee(data, user = 'Elena Rostova', ip = '127.0.0.1', actorRole = null) {
+function createEmployee(data, user = 'System', ip = '127.0.0.1', actorRole = null) {
   let initialPassword = null; // returned once so HR can hand it to the employee
   // What happened to the login: created | linked | conflict | failed | none (no email) — shown to whoever created it
   let account = { status: 'none' };

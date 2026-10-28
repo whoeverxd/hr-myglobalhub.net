@@ -2,7 +2,7 @@ const path = require('path');
 const storageService = require('../services/storage.service');
 
 const getClientIp = (req) => req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-const getUserName = (req) => (req.user && req.user.name) || req.headers['x-user'] || 'Elena Rostova';
+const { getUserName } = require('../utils/actor');
 
 function uploadFile(req, res, next) {
   try {

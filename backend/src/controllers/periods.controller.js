@@ -103,7 +103,7 @@ function getPeriodOverrides(year = new Date().getFullYear()) {
 }
 
 
-function updatePeriodStatus(id, status, user = 'Elena Rostova', ip = '127.0.0.1') {
+function updatePeriodStatus(id, status, user = 'System', ip = '127.0.0.1') {
   if (!STATUSES.includes(status)) {
     throw new Error('Invalid status');
   }

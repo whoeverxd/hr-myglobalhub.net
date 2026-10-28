@@ -20,7 +20,7 @@ function listWorklogs(empId = null) {
   }));
 }
 
-function addWorklog(data, user = 'Elena Rostova', ip = '127.0.0.1') {
+function addWorklog(data, user = 'System', ip = '127.0.0.1') {
   const hrs = Number(data.hrs);
   if (!data.key || !(hrs > 0 && hrs <= 12)) {
     const err = new Error('key and hrs (0–12) are required');
@@ -63,7 +63,7 @@ function addWorklog(data, user = 'Elena Rostova', ip = '127.0.0.1') {
   };
 }
 
-function deleteWorklog(id, user = 'Elena Rostova', ip = '127.0.0.1') {
+function deleteWorklog(id, user = 'System', ip = '127.0.0.1') {
   const current = db.getOne(`SELECT * FROM worklogs WHERE id = ?`, [id]);
   if (!current) {
     const err = new Error('Worklog not found');

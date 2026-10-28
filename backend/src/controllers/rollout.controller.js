@@ -30,7 +30,7 @@ function updateRolloutStage(req, res, next) {
   try {
     const { orgId } = req.params;
     const { status, description } = req.body || {};
-    const user = (req.user && req.user.name) || 'Executive Rollout Lead';
+    const user = (req.user && req.user.name) || 'System';
     const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
 
     const stage = db.getOne(`SELECT * FROM rollout_stages WHERE org_id = ? OR id = ?`, [orgId, orgId]);

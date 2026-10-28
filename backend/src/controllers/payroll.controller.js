@@ -3,7 +3,7 @@ const reconciliationService = require('../services/reconciliation.service');
 const employeesController = require('./employees.controller');
 
 const getClientIp = (req) => req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-const getUserName = (req) => (req.user && req.user.name) || 'Elena Rostova';
+const { getUserName } = require('../utils/actor');
 
 function calculateRun(req, res, next) {
   try {
