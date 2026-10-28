@@ -126,13 +126,24 @@ test('Employee payroll calculation: gross, deductions, net, and payout split', (
 });
 
 test('Period payroll run: math balance integrity (Gross - Deductions === Net)', () => {
+  // Only approved timesheets are paid: give every active employee an approved sheet in its own period
+  const db = require('../src/db');
+  const periodId = 'PP-2025-19'; // 1–15 October 2025
+  db.execute('DELETE FROM timesheets WHERE period_id = ?', [periodId]);
+  const emps = db.query(`SELECT id, name FROM employees WHERE status != 'Terminated'`);
+  emps.forEach((e) => db.execute(
+    `INSERT INTO timesheets (id, employee_id, employee_name, period_id, status, step_index, regular_hours, overtime_hours, pto_hours, holiday_hours, total_hours, history_json)
+     VALUES (?, ?, ?, ?, 'Approved', 2, 80, 4, 0, 0, 84, '[]')`,
+    [`TS-${periodId}-${e.id}`, e.id, e.name, periodId]
+  ));
   const run = calculatePeriodPayroll({
-    periodId: 'PP-2025-08',
+    periodId,
     entity: 'All',
     saveAsRun: false,
   });
 
-  assert.ok(run.totalEmployees >= 4);
+  assert.equal(run.totalEmployees, emps.length);
+  assert.equal(run.totalHours, emps.length * 84, 'hours come from the approved timesheets');
   assert.ok(run.totalGross > 0);
   assert.ok(run.totalDeductions > 0);
   assert.ok(run.totalNet > 0);

@@ -3,6 +3,17 @@ const db = require('../db');
 const { round2 } = require('../utils/money');
 const payrollEngine = require('./payroll-engine.service');
 
+// Payment files are only produced from the payroll run the owner approved (never computed on the fly)
+function approvedRunOrThrow(periodId) {
+  const run = payrollEngine.getPayrollRunDetails(`PR-${periodId}`);
+  if (!run || !Array.isArray(run.items) || !run.items.length || !['Approved', 'Paid'].includes(run.status)) {
+    const err = new Error(`No approved payroll run for ${periodId}: calculate and approve it before generating payment files`);
+    err.status = 409;
+    throw err;
+  }
+  return run;
+}
+
 // Utility pad functions
 const padRight = (str, len, char = ' ') => String(str || '').slice(0, len).padEnd(len, char);
 const padLeft = (str, len, char = '0') => String(str || '').slice(0, len).padStart(len, char);
@@ -23,10 +34,7 @@ const bankingRailsService = {
     effectiveDate = null,
   } = {}) {
     // 1. Get or calculate payroll run
-    let run = payrollEngine.getPayrollRunDetails(`PR-${periodId}`);
-    if (!run || !run.items) {
-      run = payrollEngine.calculatePeriodPayroll({ periodId, entity: 'All', saveAsRun: false });
-    }
+    const run = approvedRunOrThrow(periodId);
 
     const payDate = run.payDate || new Date().toISOString().slice(0, 10);
     const effDateFormatted = (effectiveDate || payDate).replace(/-/g, '').slice(2); // YYMMDD
@@ -205,10 +213,7 @@ const bankingRailsService = {
     companyAccount = '0123456789',
     currency = 'DOP',
   } = {}) {
-    let run = payrollEngine.getPayrollRunDetails(`PR-${periodId}`);
-    if (!run || !run.items) {
-      run = payrollEngine.calculatePeriodPayroll({ periodId, entity: 'All', saveAsRun: false });
-    }
+    const run = approvedRunOrThrow(periodId);
 
     const payDate = run.payDate || new Date().toISOString().slice(0, 10);
     const dateFormatted = payDate.replace(/-/g, '');
@@ -305,10 +310,7 @@ const bankingRailsService = {
     network = 'Base',
     tokenAddress = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // Official Base USDC contract
   } = {}) {
-    let run = payrollEngine.getPayrollRunDetails(`PR-${periodId}`);
-    if (!run || !run.items) {
-      run = payrollEngine.calculatePeriodPayroll({ periodId, entity: 'All', saveAsRun: false });
-    }
+    const run = approvedRunOrThrow(periodId);
 
     const employees = db.query(`SELECT * FROM employees WHERE status != 'Terminated'`);
     const empMap = new Map(employees.map((e) => [e.id, e]));

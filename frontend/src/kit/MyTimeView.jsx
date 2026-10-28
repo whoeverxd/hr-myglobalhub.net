@@ -800,6 +800,14 @@ function MyTimeEntry({ user, empId, notify, go }) {
                                         {act.description}
                                       </span>
                                     )}
+                                    {act.reviewStatus && (
+                                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', font: '500 11px/15px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>
+                                        <Badge size="sm" tone={act.reviewStatus === 'approved' ? 'success' : act.reviewStatus === 'partial' ? 'warning' : 'danger'}>
+                                          {act.reviewStatus === 'approved' ? 'Aprobada' : act.reviewStatus === 'partial' ? `Aprobadas ${act.approvedHours}h de ${act.hours}h` : 'Horas rechazadas'}
+                                        </Badge>
+                                        {act.reviewComment ? `“${act.reviewComment}”${act.reviewedBy ? ' — ' + act.reviewedBy : ''}` : null}
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
 

@@ -37,6 +37,12 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   (+ approved paid leave, paid holidays; OT by org rule) and frozen on submit; 0 worked+leave hours can't be submitted;
   only sheets under review can be approved/returned/adjusted; nobody but admin approves their own sheet; activities are
   written only by their owner (admin may correct) and locked once the sheet leaves Draft/Returned.
+- Review → pay flow: employee logs activities (optionally on project tasks) → submits (hours frozen) → PM step
+  (`#approvals`): per-activity review `POST /timesheets/:id/activities/:aid/review` (all / partial with mandatory reason /
+  none), comments `POST /timesheets/:id/comments` (stored in sheet history), approve recomputes hours from the decisions
+  → owner step (stepIdx ≥ 1, admin only) → Approved. `#processing`: run pays only Approved sheets (`notIncluded` lists the
+  rest) → approve run → bank/USDC files (only from an approved run) → `POST /payroll/runs/:id/paid` (admin) marks run,
+  sheets and period Paid. Employee sees decisions on each activity (`#myentry`) and in `#myhistory`.
 - Projects (`jira_projects`): MSHP "Wokokai" (keeps the Jira key), ARW "Arawaki", TR3 "Tr3slog"
   (`backend/scripts/setup-mgh-projects.js`). Membership = `project_members.user_id` = employee id (or the employee
   profile's `project`). Employees/contractors/supervisors see only member projects (`#projects` → `MyProjects.jsx`),
@@ -44,7 +50,13 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   sprints, statuses and assign by employee id (`AgileWorkspace.jsx`). Add Employee "Projects" creates memberships.
   Backend enforcement in `routes.js` (`requireProjectMember`, `taskAccess`); task search is membership-scoped.
 - Accounts: never a shared default password. New employee/contractor logins get a random one-time password
-  (`initialPassword`, shown once). Google-only accounts have no local password until they set one via
+  (`initialPassword`, shown once); a password typed by the admin must pass `passwordProblem`. Either way the account gets
+  `must_change_password=1`: `authenticate` answers 403 `PASSWORD_CHANGE_REQUIRED` (except /auth/me, /auth/password,
+  /auth/logout) until the user replaces it, and App.jsx shows a non-dismissable modal. Create responses carry
+  `account.status` (created | linked | conflict | failed | none); an email already linked to another employee is never
+  taken over. Forgotten password: "Restablecer contraseña" on the employee profile (HR/admin/PM, not own profile; only admin
+  for an admin; a PM only for employee/contractor/supervisor accounts) → `POST /employees/:id/reset-password` issues a new temporary password (shown once), revokes the
+  user's sessions and sets must_change_password. Google-only accounts have no local password until they set one via
   `POST /api/auth/password` (current password, Google re-verification, or none set yet).
 - Payouts: bank, Coinbase (USDC/BTC/ETH on Base/Ethereum/Polygon/Solana) or split; must total 100%.
   Coinbase requires KYC + W-8BEN.

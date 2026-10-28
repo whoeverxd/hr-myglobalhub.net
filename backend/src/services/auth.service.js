@@ -300,7 +300,7 @@ function validateSession(token) {
   if (!token) return null;
 
   const session = db.getOne(
-    `SELECT s.*, u.id as u_id, u.email, u.name, u.role, u.entity, u.employee_id, u.avatar, u.is_active
+    `SELECT s.*, u.id as u_id, u.email, u.name, u.role, u.entity, u.employee_id, u.avatar, u.is_active, u.must_change_password
      FROM sessions s
      JOIN users u ON s.user_id = u.id
      WHERE s.token = ? AND datetime(s.expires_at) > datetime('now') AND u.is_active = 1`,
@@ -327,6 +327,7 @@ function validateSession(token) {
     entity: session.entity,
     employeeId: session.employee_id,
     avatar: avatar || null,
+    mustChangePassword: Boolean(Number(session.must_change_password)),
   };
 }
 
@@ -363,12 +364,18 @@ function sanitizeUser(user) {
     avatar: avatar || null,
     lastLoginAt: user.last_login_at,
     hasPassword: Boolean(user.password_hash),
+    mustChangePassword: Boolean(Number(user.must_change_password)),
   };
 }
 
 function hasLocalPassword(userId) {
   const row = db.getOne(`SELECT password_hash FROM users WHERE id = ?`, [userId]);
   return Boolean(row && row.password_hash);
+}
+
+function mustChangePassword(userId) {
+  const row = db.getOne(`SELECT must_change_password FROM users WHERE id = ?`, [userId]);
+  return Boolean(row && Number(row.must_change_password));
 }
 
 /**
@@ -423,7 +430,7 @@ async function changePassword({ userId, currentPassword, newPassword, googleIdTo
 
   const salt = generateSalt();
   db.transaction(() => {
-    db.execute(`UPDATE users SET password_hash = ?, salt = ?, updated_at = datetime('now') WHERE id = ?`, [hashPassword(newPassword, salt), salt, user.id]);
+    db.execute(`UPDATE users SET password_hash = ?, salt = ?, must_change_password = 0, updated_at = datetime('now') WHERE id = ?`, [hashPassword(newPassword, salt), salt, user.id]);
     logAction({
       actor: user.name,
       action: user.password_hash ? 'PASSWORD_CHANGED' : 'PASSWORD_SET',
@@ -433,7 +440,51 @@ async function changePassword({ userId, currentPassword, newPassword, googleIdTo
       ip,
     });
   });
-  return { ok: true, hasPassword: true };
+  return { ok: true, hasPassword: true, mustChangePassword: false };
+}
+
+/**
+ * Administrator reset for a user who forgot their password: a random one-time password is generated and returned
+ * ONCE as `temporaryPassword`, every open session of that user is signed out, and the user must replace it at the
+ * next sign-in (must_change_password). Only HR/admin may reset; only an admin may reset an admin; nobody resets
+ * their own (that goes through changePassword).
+ */
+const PM_RESETTABLE_ROLES = ['employee', 'contractor', 'supervisor'];
+
+function resetPasswordForEmployee({ employeeId, actor, ip = '127.0.0.1' }) {
+  const fail = (status, message) => { const err = new Error(message); err.status = status; return err; };
+  if (!actor || !['admin', 'hr', 'pm'].includes(actor.role)) throw fail(403, 'Only HR, a PM or an administrator can reset passwords');
+  const emp = db.getOne(`SELECT id, email, name FROM employees WHERE id = ?`, [employeeId]);
+  if (!emp) throw fail(404, 'Employee not found');
+
+  let user = db.getOne(`SELECT * FROM users WHERE employee_id = ?`, [emp.id]);
+  if (!user && emp.email) {
+    // Account created by email before it was linked; never touch one that belongs to another employee
+    const byEmail = db.getOne(`SELECT * FROM users WHERE LOWER(email) = ?`, [String(emp.email).trim().toLowerCase()]);
+    if (byEmail && (!byEmail.employee_id || byEmail.employee_id === emp.id)) user = byEmail;
+  }
+  if (!user) throw fail(404, 'This employee has no login account');
+  if (!Number(user.is_active)) throw fail(409, 'This login account is disabled');
+  if (user.id === actor.id) throw fail(400, 'Use Change Password to update your own password');
+  if (user.role === 'admin' && actor.role !== 'admin') throw fail(403, 'Only an administrator can reset an administrator password');
+  // A PM manages the team, not other managers or HR/finance accounts
+  if (actor.role === 'pm' && !PM_RESETTABLE_ROLES.includes(user.role)) throw fail(403, 'A PM can only reset passwords of employees, contractors and supervisors');
+
+  const temporaryPassword = generateTempPassword();
+  const salt = generateSalt();
+  db.transaction(() => {
+    db.execute(`UPDATE users SET password_hash = ?, salt = ?, must_change_password = 1, updated_at = datetime('now') WHERE id = ?`, [hashPassword(temporaryPassword, salt), salt, user.id]);
+    db.execute(`DELETE FROM sessions WHERE user_id = ?`, [user.id]);
+    logAction({
+      actor: actor.name,
+      action: 'PASSWORD_RESET',
+      entityType: 'user',
+      entityId: user.id,
+      newValues: { employeeId: emp.id, resetBy: actor.id },
+      ip,
+    });
+  });
+  return { ok: true, email: user.email, temporaryPassword };
 }
 
 function authenticateUser(email, password, ip = '127.0.0.1') {
@@ -460,12 +511,18 @@ function getSessionUser(token) {
 }
 
 // Creates the login account for a new employee/contractor. Without an explicit password a random one-time password
-// is generated and returned ONCE as `initialPassword` (never a shared default).
+// is generated and returned ONCE as `initialPassword` (never a shared default). Either way the password was chosen by
+// an administrator, so the user must replace it at first sign-in (must_change_password).
+// `accountStatus`: 'created' | 'linked' (the email already had an account, e.g. from Google sign-in, now linked to
+// this employee) | 'conflict' (the email's account belongs to another employee: left untouched).
 function ensureUserForEmployee({ email, name, role = 'employee', entity = 'MGH Dominicana SRL', employeeId, password = null, avatar = null }) {
   if (!email || !email.trim()) return null;
   const normalizedEmail = email.trim().toLowerCase();
   const existing = db.getOne(`SELECT * FROM users WHERE LOWER(email) = ?`, [normalizedEmail]);
-  
+
+  if (existing && existing.employee_id && employeeId && existing.employee_id !== employeeId) {
+    return { ...existing, accountStatus: 'conflict' };
+  }
   if (existing) {
     db.execute(
       `UPDATE users SET
@@ -478,9 +535,17 @@ function ensureUserForEmployee({ email, name, role = 'employee', entity = 'MGH D
        WHERE id = ?`,
       [employeeId || null, name || null, role || null, entity || null, avatar || null, existing.id]
     );
-    return db.getOne(`SELECT * FROM users WHERE id = ?`, [existing.id]);
+    return { ...db.getOne(`SELECT * FROM users WHERE id = ?`, [existing.id]), accountStatus: 'linked' };
   }
 
+  if (password) {
+    const problem = passwordProblem(password);
+    if (problem) {
+      const err = new Error(problem);
+      err.status = 400;
+      throw err;
+    }
+  }
   const generated = !password;
   const plain = password || generateTempPassword();
   const salt = generateSalt();
@@ -488,12 +553,12 @@ function ensureUserForEmployee({ email, name, role = 'employee', entity = 'MGH D
   const id = 'usr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
 
   db.execute(
-    `INSERT INTO users (id, email, password_hash, salt, name, role, entity, employee_id, avatar, is_active)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+    `INSERT INTO users (id, email, password_hash, salt, name, role, entity, employee_id, avatar, is_active, must_change_password)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1)`,
     [id, normalizedEmail, hash, salt, name, role, entity, employeeId || null, avatar || null]
   );
 
-  const created = db.getOne(`SELECT * FROM users WHERE id = ?`, [id]);
+  const created = { ...db.getOne(`SELECT * FROM users WHERE id = ?`, [id]), accountStatus: 'created' };
   return generated ? { ...created, initialPassword: plain } : created;
 }
 
@@ -504,6 +569,7 @@ module.exports = {
   login,
   loginWithGoogle,
   changePassword,
+  resetPasswordForEmployee,
   hasLocalPassword,
   validateSession,
   authenticateUser,
@@ -511,6 +577,7 @@ module.exports = {
   logout,
   sanitizeUser,
   ensureUserForEmployee,
+  mustChangePassword,
 };
 
 

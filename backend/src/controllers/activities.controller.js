@@ -50,6 +50,12 @@ function listActivities({ empId, date, dateFrom, dateTo } = {}) {
       files,
       links,
       createdAt: a.created_at,
+      // Reviewer decision (partial approval): approvedHours is what counts for payroll once reviewed
+      reviewStatus: a.review_status || 'pending',
+      approvedHours: a.approved_hours == null ? null : Number(a.approved_hours),
+      reviewComment: a.review_comment || '',
+      reviewedBy: a.reviewed_by || null,
+      reviewedAt: a.reviewed_at || null,
     };
   });
 }

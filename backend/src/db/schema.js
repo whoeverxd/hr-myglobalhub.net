@@ -586,6 +586,15 @@ function initSchema() {
   try { exec(`ALTER TABLE payroll_runs ADD COLUMN owner_approved_at TEXT;`); } catch (_) {}
   try { exec(`ALTER TABLE contractors ADD COLUMN employee_id TEXT;`); } catch (_) {}
   try { exec(`CREATE INDEX IF NOT EXISTS idx_contractors_employee ON contractors (employee_id);`); } catch (_) {}
+  // Reviewer decision per activity (partial approval of hours): pending | approved | partial | rejected
+  try { exec(`ALTER TABLE daily_activities ADD COLUMN review_status TEXT;`); } catch (_) {}
+  try { exec(`ALTER TABLE daily_activities ADD COLUMN approved_hours REAL;`); } catch (_) {}
+  try { exec(`ALTER TABLE daily_activities ADD COLUMN review_comment TEXT;`); } catch (_) {}
+  try { exec(`ALTER TABLE daily_activities ADD COLUMN reviewed_by TEXT;`); } catch (_) {}
+  try { exec(`ALTER TABLE daily_activities ADD COLUMN reviewed_at TEXT;`); } catch (_) {}
+  try { exec(`ALTER TABLE payroll_runs ADD COLUMN paid_by TEXT;`); } catch (_) {}
+  // 1 = the password was set by an administrator; the user must replace it on next sign-in
+  try { exec(`ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0;`); } catch (_) {}
 }
 
 module.exports = { initSchema };

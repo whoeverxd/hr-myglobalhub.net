@@ -117,7 +117,7 @@ export default class App extends React.Component {
         const empId = res.user.employeeId || res.user.employee_id || this.state.empId;
         const targetRoute = window.MGH_RBAC && !window.MGH_RBAC.canRoute(this.state.route) ? window.MGH_RBAC.homeRoute() : this.state.route;
         this.setState({ currentUser: res.user, empId, route: targetRoute, authChecking: false });
-        await this.loadFromApi();
+        if (!res.user.mustChangePassword) await this.loadFromApi();
       } else {
         api.setToken(null);
         if (window.MGH_RBAC && window.MGH_RBAC.setUser) {
@@ -135,6 +135,7 @@ export default class App extends React.Component {
   }
   // Load persisted data from the SQLite backend. If the API is down the app keeps working on the built-in demo data.
   async loadFromApi(){
+    if (this.mustChangePassword()) return; // the server refuses data until the temporary password is replaced
     try{
       const [d, periods, emps] = await Promise.all([
         api.bootstrap(),
@@ -266,7 +267,7 @@ export default class App extends React.Component {
         authChecking: false,
       });
       this.flash(`Logged in with Google as ${res.user.name} (${(res.user.role || 'USER').toUpperCase()})`);
-      await this.loadFromApi();
+      if (!res.user.mustChangePassword) await this.loadFromApi();
     } catch (err) {
       console.error('[Google Auth Error]', err);
       let errMsg = err.message || 'Google authentication failed';
@@ -312,7 +313,7 @@ export default class App extends React.Component {
         authChecking: false
       });
       this.flash(`Logged in as ${res.user.name} (${res.user.role.toUpperCase()})`);
-      await this.loadFromApi();
+      if (!res.user.mustChangePassword) await this.loadFromApi();
     } catch(err) {
       let errMsg = err.message || 'Invalid email or password';
       if (err.status === 502 || (err.message && err.message.includes('502'))) {
@@ -381,8 +382,12 @@ export default class App extends React.Component {
       this.setState(s => ({ pw: { ...s.pw, error: 'Google verification failed: ' + e.message } }));
     }
   };
+  // An administrator chose this user's password (new account): it must be replaced before using the app
+  mustChangePassword = () => Boolean(this.state.currentUser && this.state.currentUser.mustChangePassword);
+  pwForm = () => ({ current: '', next: '', confirm: '', googleToken: null, googleEmail: '', saving: false, error: '', ...(this.state.pw || {}) });
   submitPassword = async () => {
-    const { pw, currentUser } = this.state;
+    const { currentUser } = this.state;
+    const pw = this.pwForm();
     const hasPw = !(currentUser && currentUser.hasPassword === false);
     const set = patch => this.setState(s => ({ pw: { ...s.pw, ...patch } }));
     if (pw.next !== pw.confirm) return set({ error: 'The new passwords do not match' });
@@ -391,17 +396,21 @@ export default class App extends React.Component {
     set({ saving: true, error: '' });
     try {
       await api.changePassword({ newPassword: pw.next, currentPassword: pw.current || undefined, googleIdToken: pw.googleToken || undefined });
-      this.setState(s => ({ pw: null, currentUser: s.currentUser ? { ...s.currentUser, hasPassword: true } : s.currentUser }));
+      const wasForced = this.mustChangePassword();
+      this.setState(s => ({ pw: null, currentUser: s.currentUser ? { ...s.currentUser, hasPassword: true, mustChangePassword: false } : s.currentUser }));
       this.flash(hasPw ? 'Password changed' : 'Password created • you can now also sign in with email and password');
+      if (wasForced) await this.loadFromApi(); // the server blocked data requests until the temporary password was replaced
     } catch (e) {
       set({ saving: false, error: e.message });
     }
   };
   renderPasswordModal() {
-    const { pw, currentUser } = this.state;
+    const { currentUser } = this.state;
+    const pw = this.pwForm();
+    const forced = this.mustChangePassword();
     const hasPw = !(currentUser && currentUser.hasPassword === false);
     const set = k => e => { const v = e.target.value; this.setState(s => ({ pw: { ...s.pw, [k]: v, error: '' } })); };
-    const close = () => this.setState({ pw: null });
+    const close = () => { if (!forced) this.setState({ pw: null }); };
     const input = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--mgh-surface-3)', font: '500 14px var(--font-sans)', boxSizing: 'border-box' };
     const label = { display: 'block', font: '600 12px/16px var(--font-sans)', color: 'var(--mgh-ink-2)', marginBottom: 6 };
     return (
@@ -409,12 +418,12 @@ export default class App extends React.Component {
         <div onClick={e => e.stopPropagation()} style={{ width: 460, maxWidth: '100%', background: '#fff', borderRadius: 16, boxShadow: 'var(--shadow-lg)', padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><DS.Icon name="key" size={22} color="var(--mgh-primary)" /><span style={{ font: '700 20px/26px var(--font-sans)', color: 'var(--mgh-ink)' }}>{hasPw ? 'Change password' : 'Create a password'}</span></div>
-              <span style={{ font: '400 13px/18px var(--font-sans)', color: 'var(--mgh-ink-2)', marginTop: 4, display: 'block' }}>{hasPw ? 'Confirm it is you with your current password, or verify with Google if you usually sign in with Google.' : 'You signed in with Google. Create a password to also sign in with ' + ((currentUser && currentUser.email) || 'your email') + '.'}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><DS.Icon name="key" size={22} color="var(--mgh-primary)" /><span style={{ font: '700 20px/26px var(--font-sans)', color: 'var(--mgh-ink)' }}>{forced ? 'Choose your own password' : hasPw ? 'Change password' : 'Create a password'}</span></div>
+              <span style={{ font: '400 13px/18px var(--font-sans)', color: 'var(--mgh-ink-2)', marginTop: 4, display: 'block' }}>{forced ? 'Your account was created with a temporary password given by an administrator. Replace it to continue: enter the temporary password (or verify with Google) and choose a new one.' : hasPw ? 'Confirm it is you with your current password, or verify with Google if you usually sign in with Google.' : 'You signed in with Google. Create a password to also sign in with ' + ((currentUser && currentUser.email) || 'your email') + '.'}</span>
             </div>
-            <button onClick={close} style={{ background: 'transparent', border: 0, cursor: 'pointer', padding: 4 }}><DS.Icon name="close" size={20} color="var(--mgh-ink-3)" /></button>
+            {forced ? null : <button onClick={close} style={{ background: 'transparent', border: 0, cursor: 'pointer', padding: 4 }}><DS.Icon name="close" size={20} color="var(--mgh-ink-3)" /></button>}
           </div>
-          {hasPw && !pw.googleToken ? <div><label style={label}>Current password</label><input type="password" autoComplete="current-password" value={pw.current} onChange={set('current')} style={input} /></div> : null}
+          {hasPw && !pw.googleToken ? <div><label style={label}>{forced ? 'Temporary password' : 'Current password'}</label><input type="password" autoComplete="current-password" value={pw.current} onChange={set('current')} style={input} /></div> : null}
           {hasPw ? (pw.googleToken
             ? <div style={{ font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-success)' }}>Verified with Google{pw.googleEmail ? ' • ' + pw.googleEmail : ''}</div>
             : <DS.Button variant="secondary" icon="login" onClick={this.verifyWithGoogle}>Forgot it? Verify with Google instead</DS.Button>) : null}
@@ -423,7 +432,7 @@ export default class App extends React.Component {
           <span style={{ font: '400 12px/16px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>At least 10 characters, with upper case, lower case and a number.</span>
           {pw.error ? <div style={{ font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-danger)' }}>{pw.error}</div> : null}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <DS.Button variant="secondary" onClick={close}>Cancel</DS.Button>
+            {forced ? <DS.Button variant="secondary" icon="logout" onClick={this.handleLogout}>Sign out</DS.Button> : <DS.Button variant="secondary" onClick={close}>Cancel</DS.Button>}
             <DS.Button icon="save" disabled={pw.saving} onClick={this.submitPassword}>{pw.saving ? 'Saving…' : hasPw ? 'Change password' : 'Create password'}</DS.Button>
           </div>
         </div>
@@ -874,7 +883,7 @@ export default class App extends React.Component {
     const missing=[];if(!personal)missing.push('personal info');if(!employ)missing.push('job title & start date');if(!pay)missing.push('hourly rate');if(useBank&&!(n.acct&&n.route&&allocOk))missing.push('bank details');if(!cbOk)missing.push('Coinbase payout details');
     return {
       isAddEmp:this.state.route==='addEmployee',addCrumbs:['Workforce','Employee Directory','Add Employee'],
-      addActions:this.btns([['ghost','close','Cancel',()=>this.go('employees')],['primary','person_add','Create Employee',()=>{const make=async pending=>{try{const r=await api.createEmployee({...n,fullName,pending});const newId=r&&r.id;if(!newId)throw new Error('the server did not return an employee ID');const facts=[['Employee ID',newId],['Job title',n.title||'—'],['Department',n.dept],['Entity',n.entity],['Supervisor',n.mgr],['Type',n.etype],['Start date',n.start||'—'],['First period',firstP],['Rate',n.rate?'$'+Number(n.rate).toFixed(2)+' / hr '+n.cur:'—'],['Payment method',n.pmethod],['Tax profile',n.tax],['Est. gross / period',pay?fmtC(pc.gross,n.cur):'—'],['Est. deductions',pay?(pc.exempt?'Exempt • '+fmtC(0,n.cur):fmtC(pc.ded,n.cur)):'—'],['Est. net / period',pay?fmtC(pc.net,n.cur):'—'],['Approval route',n.flow]];this.setState({dialog:null,created:{id:newId,initialPassword:(r&&r.initialPassword)||'',by:(this.state.currentUser&&this.state.currentUser.name)||'',name:fullName,title:(n.title||'Job title pending')+' • '+n.dept,email:n.email,pending,facts,useCb,useBank,jira:!!n.jira,when:new Date().toLocaleString('en-US',{month:'short',day:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}});this.go('empCreated');this.flash(fullName+' created as '+newId+' • saved to database');await this.loadFromApi();}catch(err){this.setState({dialog:null});this.flash('Creation blocked: '+err.message);}};
+      addActions:this.btns([['ghost','close','Cancel',()=>this.go('employees')],['primary','person_add','Create Employee',()=>{const make=async pending=>{try{const r=await api.createEmployee({...n,fullName,pending});const newId=r&&r.id;if(!newId)throw new Error('the server did not return an employee ID');const facts=[['Employee ID',newId],['Job title',n.title||'—'],['Department',n.dept],['Entity',n.entity],['Supervisor',n.mgr],['Type',n.etype],['Start date',n.start||'—'],['First period',firstP],['Rate',n.rate?'$'+Number(n.rate).toFixed(2)+' / hr '+n.cur:'—'],['Payment method',n.pmethod],['Tax profile',n.tax],['Est. gross / period',pay?fmtC(pc.gross,n.cur):'—'],['Est. deductions',pay?(pc.exempt?'Exempt • '+fmtC(0,n.cur):fmtC(pc.ded,n.cur)):'—'],['Est. net / period',pay?fmtC(pc.net,n.cur):'—'],['Approval route',n.flow]];this.setState({dialog:null,created:{id:newId,initialPassword:(r&&r.initialPassword)||'',account:(r&&r.account)||null,by:(this.state.currentUser&&this.state.currentUser.name)||'',name:fullName,title:(n.title||'Job title pending')+' • '+n.dept,email:n.email,pending,facts,useCb,useBank,jira:!!n.jira,when:new Date().toLocaleString('en-US',{month:'short',day:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}});this.go('empCreated');this.flash(fullName+' created as '+newId+' • saved to database');await this.loadFromApi();}catch(err){this.setState({dialog:null});this.flash('Creation blocked: '+err.message);}};
           if(missing.length){this.setState({dialog:{title:'Create with missing details?',body:'Still missing: '+missing.join(', ')+'. The record will be created as Pending Onboarding and excluded from payroll until these are completed.',confirm:'Create as Pending',variant:'primary',icon:'person_add',run:()=>make(missing)}});return}make([])}]]),
       addSteps:['Personal','Employment','Payroll','Banking','Jira & Approvals'].map((l,i)=>({label:l,state:i===cur?'current':st([personal,employ,pay,bank,jira][i])})),
       addSections:[
@@ -1866,6 +1875,19 @@ export default class App extends React.Component {
                     </div>
                   </div>
                 </DS.Card>
+                {v.created.account && ['linked', 'conflict', 'failed', 'none'].includes(v.created.account.status) ? (() => {
+                  const a = v.created.account;
+                  const msg = a.status === 'linked' ? ['info', 'link', 'This email already had a login (for example from Google sign-in). It is now linked to this employee: no new password was created — they keep signing in as before.']
+                    : a.status === 'conflict' ? ['danger', 'error', 'This email already belongs to the login of another employee (' + (a.linkedEmployeeId || 'unknown') + '). No access was created for this employee: use a different email or fix the other record.']
+                    : a.status === 'failed' ? ['danger', 'error', 'The employee was saved but the login could not be created' + (a.error ? ' (' + a.error + ')' : '') + '. They cannot sign in yet.']
+                    : ['warning', 'warning', 'No email was given, so no login was created. Add an email to the employee to give them access.'];
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 20px', borderRadius: '12px', background: msg[0] === 'danger' ? 'var(--mgh-danger-50, #FDECEC)' : msg[0] === 'warning' ? 'var(--mgh-warning-bg)' : 'var(--mgh-primary-50)', flexWrap: 'wrap' }}>
+                      <DS.Icon name={msg[1]} size={18} color={msg[0] === 'danger' ? 'var(--mgh-danger)' : msg[0] === 'warning' ? 'var(--mgh-warning)' : 'var(--mgh-primary)'} />
+                      <span style={{ flex: '1', minWidth: '220px', font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-ink)' }}>{msg[2]}</span>
+                    </div>
+                  );
+                })() : null}
                 {v.created.initialPassword ? (
                   <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 20px", borderRadius: "12px", background: "var(--mgh-primary-50)", flexWrap: "wrap" }}>
                     <DS.Icon name="key" size={18} color="var(--mgh-primary)" />
@@ -1874,7 +1896,7 @@ export default class App extends React.Component {
                         {"Initial password for " + (v.created.email || "this account") + " — shown only once"}
                       </span>
                       <span style={{ font: "700 16px/22px var(--font-mono)", color: "var(--mgh-ink)", letterSpacing: "0.5px" }}>{v.created.initialPassword}</span>
-                      <span style={{ font: "400 12px/16px var(--font-sans)", color: "var(--mgh-ink-3)" }}>Share it privately. They can change it from the user menu → Cambiar contraseña, or sign in with Google.</span>
+                      <span style={{ font: "400 12px/16px var(--font-sans)", color: "var(--mgh-ink-3)" }}>Share it privately. It is temporary: on first sign-in they must replace it with their own (or they can sign in with Google and set one).</span>
                     </div>
                     <DS.Button size="sm" variant="secondary" icon="content_copy" onClick={() => { try { navigator.clipboard.writeText(v.created.initialPassword); this.flash("Password copied"); } catch (e) { this.flash("Copy failed • select and copy it manually"); } }}>Copy</DS.Button>
                   </div>
@@ -2719,7 +2741,7 @@ export default class App extends React.Component {
         ) : null}
 
         {/* CHANGE / SET PASSWORD MODAL */}
-        {this.state.pw ? this.renderPasswordModal() : null}
+        {this.state.pw || this.mustChangePassword() ? this.renderPasswordModal() : null}
 
         {/* NEW ADJUSTMENT ENTRY MODAL */}
         {this.state.showAdjModal ? (

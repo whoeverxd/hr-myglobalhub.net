@@ -3,9 +3,31 @@ const assert = require('node:assert/strict');
 const bankingRailsService = require('../src/services/banking-rails.service');
 const bankingRailsController = require('../src/controllers/banking-rails.controller');
 const { getAuditLogs } = require('../src/controllers/audit.controller');
+const db = require('../src/db');
+const payrollEngine = require('../src/services/payroll-engine.service');
+
+// Payment files only come from an owner-approved run: build one from approved timesheets in its own quincena
+const PERIOD = 'PP-2025-17'; // 1–15 September 2025
+test('Banking Rails: setup — approved timesheets → calculated → approved run; no files before approval', () => {
+  db.execute('DELETE FROM payroll_run_items WHERE run_id = ?', [`PR-${PERIOD}`]);
+  db.execute('DELETE FROM payroll_runs WHERE id = ?', [`PR-${PERIOD}`]);
+  db.execute('DELETE FROM timesheets WHERE period_id = ?', [PERIOD]);
+  assert.throws(() => bankingRailsService.generateNachaFile({ periodId: PERIOD }), /No approved payroll run/);
+  for (const e of db.query(`SELECT id, name FROM employees WHERE status != 'Terminated'`)) {
+    db.execute(
+      `INSERT INTO timesheets (id, employee_id, employee_name, period_id, status, step_index, regular_hours, overtime_hours, pto_hours, holiday_hours, total_hours, history_json)
+       VALUES (?, ?, ?, ?, 'Approved', 2, 80, 0, 0, 0, 80, '[]')`,
+      [`TS-${PERIOD}-${e.id}`, e.id, e.name, PERIOD]
+    );
+  }
+  const run = payrollEngine.calculatePeriodPayroll({ periodId: PERIOD, saveAsRun: true });
+  assert.ok(run.items.length >= 1);
+  assert.throws(() => bankingRailsService.generateNachaFile({ periodId: PERIOD }), /No approved payroll run/, 'calculated is not enough');
+  payrollEngine.approvePayrollRun(`PR-${PERIOD}`, 'Owner');
+});
 
 test('Banking Rails: NACHA ACH file format specification compliance', () => {
-  const nacha = bankingRailsService.generateNachaFile({ periodId: 'PP-2025-08' });
+  const nacha = bankingRailsService.generateNachaFile({ periodId: PERIOD });
 
   assert.ok(nacha.content);
   assert.equal(nacha.format, 'NACHA-ACH');
@@ -29,7 +51,7 @@ test('Banking Rails: NACHA ACH file format specification compliance', () => {
 });
 
 test('Banking Rails: Banco BHD León electronic dispersion file specification', () => {
-  const bhd = bankingRailsService.generateBhdFile({ periodId: 'PP-2025-08', currency: 'DOP' });
+  const bhd = bankingRailsService.generateBhdFile({ periodId: PERIOD, currency: 'DOP' });
 
   assert.ok(bhd.content);
   assert.equal(bhd.format, 'BANCO-BHD-LEON');
@@ -52,7 +74,7 @@ test('Banking Rails: Banco BHD León electronic dispersion file specification', 
 });
 
 test('Banking Rails: Base USDC crypto payout batch generation', () => {
-  const usdc = bankingRailsService.generateUsdcPayoutBatch({ periodId: 'PP-2025-08' });
+  const usdc = bankingRailsService.generateUsdcPayoutBatch({ periodId: PERIOD });
 
   assert.equal(usdc.format, 'BASE-USDC-BATCH');
   assert.equal(usdc.batchPayload.chainId, 8453, 'Chain ID must be Base Mainnet 8453');

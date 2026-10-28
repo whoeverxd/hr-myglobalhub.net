@@ -99,8 +99,18 @@ test('E2E Flujo 1: Colaborador registra actividad con evidencias -> Hoja de tiem
   db.execute('DELETE FROM timesheets WHERE id = ?', [ts.id]);
 });
 
-test('E2E Flujo 2: Finanzas procesa calculo de nomina -> Validacion fiscal y balance -> Dispersion bancaria NACHA y BHD', async () => {
-  const periodId = 'PP-2025-08';
+test('E2E Flujo 2: Hojas aprobadas -> calculo de nomina -> aprobacion del dueño -> dispersion NACHA/BHD/USDC -> pagada', async () => {
+  const periodId = 'PP-2025-18'; // 16–30 September 2025: own period for this flow
+  db.execute('DELETE FROM payroll_run_items WHERE run_id = ?', [`PR-${periodId}`]);
+  db.execute('DELETE FROM payroll_runs WHERE id = ?', [`PR-${periodId}`]);
+  db.execute('DELETE FROM timesheets WHERE period_id = ?', [periodId]);
+  // Hours that went through PM + owner review (only these are paid); one employee stays in review
+  const emps = db.query(`SELECT id, name FROM employees WHERE status != 'Terminated' ORDER BY id`);
+  emps.forEach((e, i) => db.execute(
+    `INSERT INTO timesheets (id, employee_id, employee_name, period_id, status, step_index, regular_hours, overtime_hours, pto_hours, holiday_hours, total_hours, history_json)
+     VALUES (?, ?, ?, ?, ?, ?, 80, 0, 0, 0, 80, '[]')`,
+    [`TS-${periodId}-${e.id}`, e.id, e.name, periodId, i === 0 ? 'PM Review' : 'Approved', i === 0 ? 0 : 2]
+  ));
 
   // 1. Finanzas inicia sesion
   const financeLogin = await login({
@@ -121,7 +131,8 @@ test('E2E Flujo 2: Finanzas procesa calculo de nomina -> Validacion fiscal y bal
   });
 
   assert.ok(run.id);
-  assert.ok(run.totalEmployees >= 4);
+  assert.equal(run.totalEmployees, emps.length - 1, 'only approved timesheets are paid');
+  assert.ok(run.notIncluded.some((x) => x.employeeId === emps[0].id), 'the sheet still in review is reported, not paid');
   assert.ok(run.totalGross > 0);
   assert.ok(run.totalNet > 0);
 
@@ -151,13 +162,22 @@ test('E2E Flujo 2: Finanzas procesa calculo de nomina -> Validacion fiscal y bal
   assert.equal(usdcBatch.batchPayload.chainId, 8453);
   assert.ok(usdcBatch.batchPayload.transactions.length >= 1);
 
-  // 8. Generar comprobante de pago oficial verifiable (Paystub)
+  // 8. Generar comprobante de pago oficial verifiable (Paystub) de alguien incluido en la corrida
+  const paidEmp = emps[1].id;
   const paystub = bankingRailsService.generatePaystub({
-    employeeId: 'MGH-1042',
+    employeeId: paidEmp,
     periodId,
   });
   assert.ok(paystub.paystubId);
   assert.ok(paystub.fingerprint);
   assert.ok(paystub.netPay > 0);
-  assert.ok(paystub.deductions.lines.length >= 1);
+
+  // 9. El dueño confirma el pago: corrida, hojas y periodo quedan Paid y la corrida ya no se recalcula
+  const paid = payrollEngine.markPayrollRunPaid(run.id, financeLogin.user.name, '10.0.0.1');
+  assert.equal(paid.status, 'Paid');
+  assert.equal(paid.timesheetsPaid, emps.length - 1);
+  assert.equal(db.getOne('SELECT status FROM timesheets WHERE id = ?', [`TS-${periodId}-${paidEmp}`]).status, 'Paid');
+  assert.equal(db.getOne('SELECT status FROM timesheets WHERE id = ?', [`TS-${periodId}-${emps[0].id}`]).status, 'PM Review');
+  assert.throws(() => payrollEngine.calculatePeriodPayroll({ periodId, saveAsRun: true }), /can no longer be recalculated/);
+  assert.throws(() => payrollEngine.markPayrollRunPaid(run.id, 'x'), /only be marked paid from Approved/);
 });

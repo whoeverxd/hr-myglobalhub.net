@@ -206,7 +206,14 @@ Object.assign(window, window.__MGH_DATA);
 (function(){
 const DS = window.MyGlobalHubDesignSystem_2a603d;
 const { Button, IconButton, Badge, Avatar, Icon, Card, FilterChips, StatCard, MetricTile, DataTable, TableToolbar, Pagination, ActivityFeed, Tabs, PageHeader, Select, ProgressBar, KeyValue, Toggle, Stepper, Checkbox, TextField, SearchField } = DS;
+const v = x => typeof x === 'string' ? x : x && x.target ? x.target.value : x; // DS inputs pass a value or an event
 
+// What happened to the login of a just-created employee/contractor (backend `account.status`); null when all is normal
+window.__mghAccountNotice = (a) => !a || a.status === 'created' ? null
+  : a.status === 'linked' ? 'Este correo ya tenía una cuenta (por ejemplo, de Google). Quedó vinculada a este colaborador: no se creó contraseña nueva y entra como antes.'
+  : a.status === 'conflict' ? 'Este correo ya pertenece a la cuenta de otro colaborador (' + (a.linkedEmployeeId || 'desconocido') + '). No se creó acceso: usa otro correo o corrige el otro registro.'
+  : a.status === 'failed' ? 'El colaborador se guardó, pero no se pudo crear su acceso' + (a.error ? ' (' + a.error + ')' : '') + '. Todavía no puede iniciar sesión.'
+  : 'Sin correo no se crea acceso. Agrega un correo para que pueda iniciar sesión.';
 window.__mghEmpty = (title, crumbs, desc) => <div style={{ padding: 28 }}><DS.PageHeader breadcrumbs={crumbs || [title]} title={title} description={desc || 'No data available in your scope for this organization yet.'} /></div>;
 function Page({ children, style }) { return <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 1600, ...style }}>{children}</div>; }
 function Grid({ cols = 4, min = 220, gap = 14, children, style }) { return <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap, ...style }}>{children}</div>; }
@@ -334,7 +341,8 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
   const [ret, setRet] = React.useState(false);
   const [reason, setReason] = React.useState('');
   const [comment, setComment] = React.useState('');
-  const [extraComments, setExtraComments] = React.useState([]);
+  const [detailsTick, setDetailsTick] = React.useState(0); // bump to reload reconciliation + activities
+  const [revAct, setRevAct] = React.useState(null); // { act, hours, comment } — per-activity review dialog
   const [mode, setMode] = React.useState('return');
   useWF();
 
@@ -418,8 +426,8 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
             window.api.activities({ empId: e.id, dateFrom: curPeriod.start || curPeriod.startDate, dateTo: curPeriod.end || curPeriod.endDate }).catch(() => [])
           ]);
           if (active) {
-            if (recRes) setReconcil(recRes);
-            if (actsRes) setEmpActivities(actsRes);
+            setReconcil(recRes); // null when this employee has no sheet yet (never keep the previous employee's)
+            setEmpActivities(actsRes || []);
           }
         }
       } catch (err) {
@@ -428,13 +436,14 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
     }
     loadEmployeeDetails();
     return () => { active = false; };
-  }, [e && e.id, periodCode, curPeriod.start, curPeriod.end]);
+  }, [e && e.id, periodCode, curPeriod.start, curPeriod.end, detailsTick]);
+
+  // (hooks must run before the early return below)
+  const days = React.useMemo(() => buildDays(e, curPeriod, reconcil), [e && e.id, curPeriod, reconcil]);
 
   if (!e) return <div style={{ padding: 28 }}><PageHeader breadcrumbs={['Approvals', 'Approval Workspace']} title="Approval Workspace" description="No timesheets in your scope for this organization." /></div>;
 
   const rec = recOf(e.id), can = WF.canAct(rec), canPay = WF.canPay(rec), why = WF.whyNot(rec);
-
-  const days = React.useMemo(() => buildDays(e, curPeriod, reconcil), [e.id, curPeriod, reconcil]);
   const shown = days.filter(d => week === 'all' || d.week === +week);
   const filtered = list.filter(x => (filter === 'all' || (filter === 'ot' && x.ot > 0) || (filter === 'jira' && lowMatch(x)) || (filter === 'ready' && ['Ready', 'Approved'].includes(x.status))) && (!q || (x.name + x.id + x.project).toLowerCase().includes(q.toLowerCase())));
   const jiraTotal = days.reduce((s, d) => s + (Number(d.jira) || 0), 0);
@@ -454,10 +463,11 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
     const isOwner = ['Org Admin', 'Platform Admin', 'Admin', 'admin'].includes(WF.role) || (window.MGH_RBAC && window.MGH_RBAC.user && window.MGH_RBAC.user.id === 'MGH-1001');
     // Local permission check first (no mutation), then the backend decides; the local engine mirrors only on success
     if (!WF.canAct(rec)) { notify(WF.whyNot(rec) || 'No puedes aprobar este paso'); return; }
+    let saved = null;
     try {
       if (window.api) {
         await window.api.ensureTimesheet(e.id, periodCode, e.name);
-        await window.api.approveTimesheet(`TS-${periodCode}-${e.id}`, {
+        saved = await window.api.approveTimesheet(`TS-${periodCode}-${e.id}`, {
           comment: rec.stepIdx === 1 ? 'Aprobación ejecutiva final y autorización de nómina' + (((MGH_RBAC.me() || {}).person || '') ? ' • ' + ((MGH_RBAC.me() || {}).person || '') : '') : 'Supervisión técnica y validación de horas de jornada' + (((MGH_RBAC.me() || {}).person || '') ? ' • ' + ((MGH_RBAC.me() || {}).person || '') : ''),
           role: WF.role
         });
@@ -468,7 +478,10 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
     }
     const r = WF.approve(rec, '');
     notify(`${e.name} aprobado • ${r.next ? 'Enviado a aprobación del Dueño' : 'Listo para pago y dispersión bancaria'}`);
-    setStatus(e.id, r.next ? 'Aprobación Dueño' : 'Approved');
+    // The backend recomputes hours from the per-activity decisions: show what was actually approved
+    if (saved && saved.id) setBackendTimesheets(prev => prev.some(t => t.id === saved.id) ? prev.map(t => t.id === saved.id ? saved : t) : [...prev, saved]);
+    else setStatus(e.id, r.next ? 'Aprobación Dueño' : 'Approved');
+    setDetailsTick(n => n + 1);
     if (adv) next();
   };
 
@@ -478,7 +491,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
   const net = calc.net;
 
   // Real attachments extracted from activities and reconciliation
-  const files = React.useMemo(() => {
+  const files = (() => { // plain computation: this runs after an early return, so it must not be a hook
     const fromActs = (empActivities || []).flatMap(a => a.files || []);
     const fromRec = (reconcil?.reconciliation?.days || []).flatMap(d => (d.activities || []).flatMap(a => a.files || []));
     const all = [...fromActs, ...fromRec];
@@ -493,7 +506,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
       }
     }
     return unique;
-  }, [empActivities, reconcil]);
+  })();
 
   // Dynamic header metrics (no placeholders)
   const isUnderReview = s => ['Submitted', 'Supervisión PM', 'Aprobación Dueño', 'In Review', 'Under Review', 'Ready'].includes(s);
@@ -524,25 +537,34 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
       body: `"${h.comment}"`
     }));
 
-  const commentsList = [...extraComments, ...historyComments];
+  const commentsList = [...historyComments].reverse();
 
+  const sheetId = `TS-${periodCode}-${e.id}`;
+  // Comments are stored in the sheet history, so the employee and the next reviewer see them
   const postComment = async () => {
     if (!comment.trim()) return;
-    const newEntry = {
-      person: WF.person(),
-      title: `${WF.person()} (${WF.role})`,
-      time: 'Ahora',
-      body: `"${comment.trim()}"`
-    };
-    setExtraComments(c => [newEntry, ...c]);
     try {
-      if (window.api && window.api.saveTimesheetHours) {
-        await window.api.saveTimesheetHours(`TS-${periodCode}-${e.id}`, { note: comment.trim() }).catch(() => null);
-      }
-    } catch (_) {}
-    notify('Nota añadida a la cadena de aprobación');
-    setComment('');
+      await window.api.addTimesheetComment(sheetId, comment.trim());
+      setComment('');
+      setDetailsTick(n => n + 1);
+      notify('Comentario añadido a la hoja');
+    } catch (err) { notify('No se pudo guardar el comentario • ' + err.message); }
   };
+
+  // Per-activity decision (PM step only): all hours, part of them (reason required) or none
+  const reviewOpen = /Review|Revisión|Supervisión/i.test(String(reconcil?.timesheet?.status || e.status)) && (rec.stepIdx || 0) === 0 && can;
+  const saveActivityReview = async (act, approvedHours, note) => {
+    try {
+      await window.api.reviewActivity(sheetId, act.id, { approvedHours, comment: note || '', role: WF.role });
+      setRevAct(null);
+      setDetailsTick(n => n + 1);
+      notify(approvedHours >= act.hours ? 'Actividad aprobada' : approvedHours > 0 ? 'Aprobación parcial registrada' : 'Horas de la actividad rechazadas');
+    } catch (err) { notify('No se pudo guardar la revisión • ' + err.message); }
+  };
+  const REVIEW_TONE = { approved: 'success', partial: 'warning', rejected: 'danger' };
+  const REVIEW_LABEL = { approved: 'Aprobada', partial: 'Parcial', rejected: 'Rechazada' };
+  const reviewedActs = empActivities.filter(a => a.reviewStatus);
+  const approvedActHours = empActivities.reduce((s, a) => s + (a.reviewStatus ? Number(a.approvedHours) || 0 : Number(a.hours) || 0), 0);
 
   return <Page>
     <PageHeader
@@ -708,6 +730,41 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
                 </div>
               </Card>
 
+              <Card padding={20} icon="fact_check" title="Revisión de Actividades" subtitle={reviewOpen ? 'Aprueba, aprueba parcialmente o rechaza las horas de cada actividad. Lo que no revises se aprueba completo al aprobar la hoja.' : 'Decisiones del PM sobre cada actividad reportada'}>
+                {!empActivities.length ? (
+                  <div style={{ padding: 14, font: '500 13px var(--font-sans)', color: 'var(--mgh-ink-3)', textAlign: 'center' }}>No hay actividades registradas en esta quincena.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {empActivities.map(a => (
+                      <div key={a.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 8, background: 'var(--mgh-surface-1)', flexWrap: 'wrap' }}>
+                        <div style={{ width: 84, flexShrink: 0, font: '600 12px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>{a.date}</div>
+                        <div style={{ flex: 1, minWidth: 200 }}>
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                            {a.jiraKey && <Badge mono size="sm" tone="primary">{a.jiraKey}</Badge>}
+                            <span style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{a.jiraSummary || a.workType || 'Actividad'}</span>
+                            {a.reviewStatus && <Badge size="sm" tone={REVIEW_TONE[a.reviewStatus]}>{REVIEW_LABEL[a.reviewStatus]}</Badge>}
+                          </div>
+                          {a.description && <div style={{ font: '400 12px/16px var(--font-sans)', color: 'var(--mgh-ink-2)', marginTop: 2 }}>{a.description}</div>}
+                          {a.reviewComment && <div style={{ font: '500 12px/16px var(--font-sans)', color: 'var(--mgh-ink-2)', marginTop: 4, display: 'flex', gap: 4 }}><Icon name="comment" size={14} />{a.reviewComment}{a.reviewedBy ? ' — ' + a.reviewedBy : ''}</div>}
+                        </div>
+                        <div style={{ textAlign: 'right', font: '700 13px var(--font-sans)', color: 'var(--mgh-ink)', minWidth: 70 }}>
+                          {a.reviewStatus && Number(a.approvedHours) !== Number(a.hours) ? <><s style={{ color: 'var(--mgh-ink-4)', fontWeight: 500 }}>{fmtH(a.hours)}</s> {fmtH(a.approvedHours)}</> : fmtH(a.hours)}
+                        </div>
+                        {reviewOpen && <div style={{ display: 'flex', gap: 4 }}>
+                          <IconButton icon="check" size={28} title="Aprobar todas las horas" onClick={() => saveActivityReview(a, Number(a.hours), '')} />
+                          <IconButton icon="rule" size={28} title="Aprobar parcialmente" onClick={() => setRevAct({ act: a, hours: String(a.reviewStatus ? a.approvedHours : a.hours), comment: a.reviewComment || '' })} />
+                          <IconButton icon="block" size={28} title="Rechazar las horas" onClick={() => setRevAct({ act: a, hours: '0', comment: a.reviewComment || '' })} />
+                        </div>}
+                      </div>
+                    ))}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 4px 0', font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)', flexWrap: 'wrap', gap: 8 }}>
+                      <span style={{ color: 'var(--mgh-ink-3)', fontWeight: 500 }}>{reviewedActs.length} de {empActivities.length} actividades revisadas</span>
+                      <span>Horas a aprobar: <b>{fmtH(approvedActHours)}</b> de {fmtH(empActivities.reduce((s, a) => s + (Number(a.hours) || 0), 0))}</span>
+                    </div>
+                  </div>
+                )}
+              </Card>
+
               <Card padding={20} icon="sync_alt" title="Agile & Jira Worklogs by Task" subtitle="Conciliación de horas contra registros de jornada (#attDaily)">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {(() => {
@@ -793,7 +850,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
           {why && <span style={{ font: '500 12px/16px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>{why}</span>}
           <span style={{ flex: 1 }} />
           <Button variant="outline" size="sm" icon="picture_as_pdf" onClick={() => window.print()}>Imprimir / PDF</Button>
-          {!can && !canPay ? null : canPay ? <Button size="lg" icon="paid" onClick={() => { const r = WF.markPaid(rec); notify(r.ok ? e.name + ' marcado como Pagado • la dispersión bancaria se ejecuta desde Payroll Processing' : r.msg); }}>Marcar Pagado</Button> : <>
+          {!can && !canPay ? null : canPay ? <Button size="lg" icon="paid" iconRight="arrow_forward" onClick={() => window.__mghGo('processing')}>Pagar desde la corrida de nómina</Button> : <>
           <Button variant="outline" icon="block" onClick={() => { setMode('reject'); setRet(true); }}>Rechazar</Button>
           <Button variant="danger" icon="undo" onClick={() => { setMode('return'); setRet(true); }}>Devolver para Correcciones</Button>
           <Button variant="outline" icon="check" disabled={!sign || !can} onClick={() => approve(false)}>Solo Aprobar</Button>
@@ -824,6 +881,16 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
       <p className="mgh-body" style={{ margin: 0 }}>{mode === 'reject' ? 'Las hojas rechazadas quedan cerradas permanentemente.' : <>El empleado recibirá una notificación para ajustar sus horas o actividades de jornada y reenviar para revisión.</>}</p>
       <textarea value={reason} onChange={x => setReason(x.target.value)} placeholder="Motivo de devolución (requerido) — ej. Falta registro de horas en la tarea MSHP-102 el 04 de Abril." rows={4} style={{ border: 'none', outline: 'none', borderRadius: 8, padding: 12, background: 'var(--mgh-surface-1)', font: '400 13px/18px var(--font-sans)', resize: 'vertical' }} />
     </Modal>
+
+    {revAct && (() => {
+      const max = Number(revAct.act.hours) || 0, h = Number(revAct.hours);
+      const valid = revAct.hours !== '' && h >= 0 && h <= max && (h >= max || revAct.comment.trim());
+      return <Modal open title={`Revisar actividad del ${revAct.act.date}`} onClose={() => setRevAct(null)} actions={<><Button variant="outline" onClick={() => setRevAct(null)}>Cancelar</Button><Button icon="save" disabled={!valid} onClick={() => saveActivityReview(revAct.act, h, revAct.comment.trim())}>{h <= 0 ? 'Rechazar horas' : h < max ? 'Aprobar parcialmente' : 'Aprobar'}</Button></>}>
+        <p className="mgh-body" style={{ margin: 0 }}>{revAct.act.jiraKey ? revAct.act.jiraKey + ' • ' : ''}{revAct.act.description || revAct.act.jiraSummary || 'Actividad'} — reportó <b>{fmtH(max)}</b>.</p>
+        <TextField label={`Horas aprobadas (0 – ${max})`} type="number" value={revAct.hours} onChange={x => setRevAct(r => ({ ...r, hours: v(x) }))} />
+        <textarea value={revAct.comment} onChange={x => setRevAct(r => ({ ...r, comment: x.target.value }))} placeholder="Motivo (requerido si apruebas menos de lo reportado). El empleado lo verá en su historial." rows={3} style={{ border: 'none', outline: 'none', borderRadius: 8, padding: 12, background: 'var(--mgh-surface-1)', font: '400 13px/18px var(--font-sans)', resize: 'vertical' }} />
+      </Modal>;
+    })()}
   </Page>;
 }
 
@@ -1130,6 +1197,18 @@ function EmployeeProfileInner({ empId, go, notify }) {
   const [saving, setSaving] = React.useState(false);
   const canEdit = MGH_RBAC.can('employees.edit', e);
   const selfEdit = !canEdit && MGH_RBAC.can('profile.edit', e);
+  // Password reset for someone who forgot it: HR/admin/PM, never on your own profile (use Change password).
+  // The backend decides per target account (a PM only resets employees, contractors and supervisors).
+  const me = MGH_RBAC.user;
+  const canReset = !!me && ['hr', 'admin', 'pm'].includes(me.role) && !!e.id && me.employeeId !== e.id;
+  const [reset, setReset] = React.useState(null); // null | { step: 'confirm' | 'busy' | 'done', email, pw, error }
+  const doReset = async () => {
+    setReset({ step: 'busy' });
+    try {
+      const r = await window.api.resetEmployeePassword(e.id);
+      setReset({ step: 'done', email: r.email, pw: r.temporaryPassword });
+    } catch (err) { setReset({ step: 'confirm', error: err.message }); }
+  };
   // Form starts from the stored values only (no sample cédula / bank / rate)
   const initialForm = () => ({ name: e.name || '', phone: e.phone || '', role: e.role || '', dept: e.dept || '', type: e.type || 'Full-time', entity: e.entity || '', loc: e.loc || '', mgr: e.mgr || '', project: e.project || '', rate: e.rate || '', bank: e.bank || '', nid: e.nid || '' });
   const [form, setForm] = React.useState(initialForm);
@@ -1183,10 +1262,22 @@ function EmployeeProfileInner({ empId, go, notify }) {
           <div style={{ font: '400 14px/20px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>{e.dept} • {e.project}</div>
           <div style={{ display: 'flex', gap: 14, marginTop: 8, flexWrap: 'wrap', font: '500 13px var(--font-sans)', color: 'var(--mgh-ink-2)' }}><span style={{ display: 'flex', gap: 4 }}><Icon name="domain" size={16} />{e.entity}</span><span style={{ display: 'flex', gap: 4 }}><Icon name="work" size={16} />{e.type}</span><span style={{ display: 'flex', gap: 4 }}><Icon name="calendar_today" size={16} />Joined {e.joined}</span></div>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{canEdit && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit Employee</Button>}{selfEdit && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit My Profile</Button>}{MGH_RBAC.can('payslips.view', e) && <Button variant="secondary" icon="receipt_long" onClick={() => go('paystub', e.id)}>Generate Pay Statement</Button>}</div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{canEdit && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit Employee</Button>}{selfEdit && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit My Profile</Button>}{MGH_RBAC.can('payslips.view', e) && <Button variant="secondary" icon="receipt_long" onClick={() => go('paystub', e.id)}>Generate Pay Statement</Button>}{canReset && <Button variant="secondary" icon="lock_reset" onClick={() => setReset({ step: 'confirm' })}>Restablecer contraseña</Button>}</div>
       </div>
       <Tabs style={{ marginTop: 20 }} value={tab} onChange={setTab} tabs={[{ value: 'overview', label: 'Overview & Profile' }, { value: 'bank', label: 'Multi-Bank Allocations', dot: true }, { value: 'comp', label: 'Compensation & Tax' }, { value: 'jira', label: 'Jira Integration', tag: 'LIVE' }, { value: 'pto', label: 'Time Off & PTO' }, { value: 'docs', label: 'Documents' }]} />
     </Card>
+    <Modal open={!!reset} title={reset && reset.step === 'done' ? 'Contraseña restablecida' : 'Restablecer contraseña de ' + e.name} onClose={() => reset && reset.step !== 'busy' && setReset(null)} width={500}
+      actions={reset && reset.step === 'done'
+        ? <><Button variant="secondary" icon="content_copy" onClick={() => { try { navigator.clipboard.writeText(reset.pw); notify('Contraseña copiada'); } catch (_) { notify('No se pudo copiar • selecciónala manualmente'); } }}>Copiar</Button><Button onClick={() => setReset(null)}>Listo</Button></>
+        : <><Button variant="outline" disabled={reset && reset.step === 'busy'} onClick={() => setReset(null)}>Cancelar</Button><Button variant="danger" icon="lock_reset" disabled={reset && reset.step === 'busy'} onClick={doReset}>{reset && reset.step === 'busy' ? 'Restableciendo…' : 'Restablecer'}</Button></>}>
+      {reset && reset.step === 'done' ? <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="mgh-body">Contraseña temporal para <b>{reset.email}</b>. Se muestra una sola vez: compártela en privado. Al entrar tendrá que cambiarla por una propia.</div>
+        <div style={{ padding: 12, borderRadius: 8, background: 'var(--mgh-surface-1)', font: '700 16px/22px var(--font-mono)', color: 'var(--mgh-ink)', letterSpacing: 0.5 }}>{reset.pw}</div>
+      </div> : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="mgh-body">Se generará una contraseña temporal nueva para <b>{e.email || e.name}</b>. Su contraseña actual dejará de funcionar, se cerrarán sus sesiones abiertas y deberá elegir una nueva al entrar. Si usa Google para iniciar sesión, puede seguir haciéndolo.</div>
+        {reset && reset.error ? <div style={{ font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-danger)' }}>{reset.error}</div> : null}
+      </div>}
+    </Modal>
     {tab === 'overview' && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,420px),1fr))', gap: 20 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <Card icon="badge" title="Employment details">
@@ -1322,7 +1413,39 @@ function PayrollDashboard({ go }) {
 }
 
 function PayrollProcessing({ notify }) {
-  const curPeriod = getCurrentPeriod();
+  // The quincena being paid: usually the one that just closed (its sheets were reviewed by the PM and the owner)
+  const periodOpts = React.useMemo(() => { const c = getCurrentPeriod(); return [{ code: c.code, label: c.code + ' (' + c.rangeShort + ', en curso)' }, ...window.__mghPrevPeriods(c, 3)]; }, []);
+  const [periodCode, setPeriodCode] = React.useState(() => periodOpts[1] ? periodOpts[1].code : periodOpts[0].code);
+  const curPeriod = { ...getCurrentPeriod(), code: periodCode };
+  const [run, setRun] = React.useState(null);
+  const [sheets, setSheets] = React.useState([]);
+  const [busy, setBusy] = React.useState(false);
+  const [runTick, setRunTick] = React.useState(0);
+  React.useEffect(() => {
+    let cancel = false;
+    Promise.all([
+      window.api.payrollRuns().catch(() => []),
+      window.api.timesheets({ periodId: periodCode }).catch(() => []),
+    ]).then(([runs, ts]) => {
+      if (cancel) return;
+      setRun((Array.isArray(runs) ? runs : []).find(r => r.period_id === periodCode) || null);
+      setSheets(Array.isArray(ts) ? ts : []);
+    });
+    return () => { cancel = true; };
+  }, [periodCode, runTick]);
+  const runStatus = run ? run.status : 'Sin corrida';
+  const runLocked = run && /^(Approved|Paid)$/.test(run.status);
+  const approvedSheets = sheets.filter(s => /^(Approved|Paid)$/.test(s.status));
+  const pendingSheets = sheets.filter(s => !/^(Approved|Paid)$/.test(s.status));
+  const runAction = async (fn, ok) => {
+    setBusy(true);
+    try { const r = await fn(); notify(typeof ok === 'function' ? ok(r) : ok); setRunTick(n => n + 1); }
+    catch (err) { notify('No se pudo completar • ' + err.message); }
+    finally { setBusy(false); }
+  };
+  const calculateRun = () => runAction(() => window.api.calculatePayroll({ periodId: periodCode, saveAsRun: true }), r => `Corrida calculada • ${r.totalEmployees} pagados${r.notIncluded && r.notIncluded.length ? ' • ' + r.notIncluded.length + ' sin hoja aprobada (no incluidos)' : ''}`);
+  const approveRun = () => runAction(() => window.api.approvePayrollRun(run.id), 'Corrida aprobada • ya puedes generar los archivos de pago');
+  const markPaid = () => { if (window.confirm('¿Confirmas que el pago de ' + periodCode + ' ya fue ejecutado? La corrida, las hojas y el periodo quedarán como Pagados y no se podrán modificar.')) runAction(() => window.api.markPayrollRunPaid(run.id), r => `${periodCode} marcado como pagado • ${r.timesheetsPaid || 0} hojas pagadas`); };
   const [step, setStep] = React.useState(0);
   const [sel, setSel] = React.useState([]);
   const [disbursedModal, setDisbursedModal] = React.useState(false);
@@ -1353,11 +1476,9 @@ function PayrollProcessing({ notify }) {
     // Release = approve the saved payroll run for this period. Only report success if the backend confirms it.
     setDisbursing(true);
     try {
-      const runs = await window.api.payrollRuns();
-      const run = (Array.isArray(runs) ? runs : []).find(r => r.period_id === curPeriod.code);
-      if (!run) { notify(`No calculated payroll run exists for ${curPeriod.code} yet`); return; }
-      await window.api.approvePayrollRun(run.id);
-      notify(`Payroll run ${run.id} approved`);
+      if (!run) { notify(`Primero calcula la corrida de ${periodCode}`); return; }
+      if (!runLocked) await window.api.approvePayrollRun(run.id);
+      setRunTick(n => n + 1);
       setDisbursedModal(true);
     } catch (err) {
       notify('Could not approve the payroll run • ' + err.message);
@@ -1370,6 +1491,30 @@ function PayrollProcessing({ notify }) {
     <PageHeader breadcrumbs={['Payroll & Finance', 'Pay Periods', curPeriod.code]} title="Payroll Processing" status={<Badge tone="warning" dot>{`${curPeriod.code} • Step ${step + 1} of 6`}</Badge>}
       actions={<><Button variant="secondary" icon="arrow_back" disabled={step === 0} onClick={() => setStep(s => s - 1)}>Back</Button><Button icon={step === 5 ? 'send_money' : 'arrow_forward'} disabled={disbursing} onClick={handleNext}>{disbursing ? 'Releasing...' : step === 5 ? 'Release Funds' : 'Continue to ' + names[step + 1]}</Button></>} />
     <Card padding={24}><Stepper steps={steps} /></Card>
+    <Card icon="account_balance" title={`Corrida de nómina • ${periodCode}`} subtitle="Solo se pagan hojas aprobadas por el PM y por el dueño. Los archivos bancarios salen de la corrida aprobada."
+      actions={<Select size="sm" value={periodCode} onChange={x => setPeriodCode(typeof x === 'string' ? x : x.target.value)} options={periodOpts.map(p => ({ value: p.code, label: p.label }))} />}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Badge tone={!run ? 'neutral' : run.status === 'Paid' ? 'success' : run.status === 'Approved' ? 'primary' : 'warning'} dot>{runStatus}</Badge>
+          {run && <span style={{ font: '500 13px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>{run.total_employees || 0} empleados • Bruto {fmt$(Number(run.total_gross) || 0)} • Neto {fmt$(Number(run.total_net) || 0)}</span>}
+          <span style={{ flex: 1 }} />
+          {!runLocked && <Button size="sm" variant="secondary" icon="calculate" disabled={busy || !approvedSheets.length} onClick={calculateRun}>{run ? 'Recalcular' : 'Calcular corrida'}</Button>}
+          {run && /^(Calculated|PM_Approved)$/.test(run.status) && <Button size="sm" icon="verified" disabled={busy} onClick={approveRun}>Aprobar corrida</Button>}
+          {run && run.status === 'Approved' && <Button size="sm" icon="paid" disabled={busy} onClick={markPaid}>Marcar pagada</Button>}
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {[['nacha', 'NACHA (.ach)'], ['bhd', 'Banco BHD (.txt)'], ['usdc', 'USDC Base (.json)']].map(([k, l]) => <Button key={k} size="sm" variant="outline" icon="download" disabled={!runLocked} onClick={() => window.open(`/api/payroll/export/${k}?periodId=${periodCode}&download=true`, '_blank')}>{l}</Button>)}
+          {!runLocked && <span style={{ font: '500 12px var(--font-sans)', color: 'var(--mgh-ink-3)', alignSelf: 'center' }}>Los archivos se habilitan al aprobar la corrida.</span>}
+        </div>
+        <div style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{approvedSheets.length} hojas aprobadas para pago{pendingSheets.length ? ` • ${pendingSheets.length} todavía en revisión (no se pagan en esta corrida)` : ''}</div>
+        {pendingSheets.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {pendingSheets.map(s => <div key={s.id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '6px 10px', borderRadius: 8, background: 'var(--mgh-surface-1)', font: '500 13px var(--font-sans)' }}>
+            <Badge mono size="sm" tone="dark">{s.emp}</Badge><span style={{ flex: 1 }}>{s.name || s.emp}</span><WFPill size="sm" status={s.status} /><span>{fmtH(Number(s.total) || 0)}</span>
+          </div>)}
+        </div>}
+        {!sheets.length && <div style={{ font: '500 13px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>No hay hojas de tiempo en esta quincena.</div>}
+      </div>
+    </Card>
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 8 }}>
       <MetricTile tone="white" label="Employees" value={String(EMPLOYEES.length)} /><MetricTile tone="white" label="Hours" value={fmtH(totals.hrs)} /><MetricTile tone="white" label="Est. gross" value={fmt$(totals.gross)} /><MetricTile tone="white" label="Est. deductions" value={fmt$(totals.ded)} /><MetricTile tone="success" label="Est. net" value={fmt$(totals.gross - totals.ded)} /><MetricTile tone="danger" label="Exceptions" value={String(ex.length)} />
     </div>
@@ -2004,8 +2149,8 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
       if (notify) notify('Ingresa un correo electrónico corporativo válido.');
       return;
     }
-    if (workerForm.password && workerForm.password.length < 10) {
-      if (notify) notify('La contraseña debe tener al menos 10 caracteres (o déjala vacía para generar una segura).');
+    if (workerForm.password && (workerForm.password.length < 10 || !/[a-z]/.test(workerForm.password) || !/[A-Z]/.test(workerForm.password) || !/d/.test(workerForm.password))) {
+      if (notify) notify('La contraseña debe tener al menos 10 caracteres con mayúscula, minúscula y número (o déjala vacía para generar una segura).');
       return;
     }
     if (!(Number(workerForm.rate) > 0)) {
@@ -2040,6 +2185,7 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
         email: workerForm.email,
         // The password typed by the admin, or the one-time password generated by the server
         password: workerForm.password || (res && res.initialPassword) || '',
+        account: (res && res.account) || null,
         role: workerForm.role,
         project: workerForm.project,
         rate: workerForm.rate
@@ -3309,7 +3455,8 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 <KeyValue label="ID de Colaborador" value={createdSummary.id} mono />
                 <KeyValue label="Nombre Completo" value={createdSummary.name} />
                 <KeyValue label="Correo Electrónico" value={createdSummary.email} mono />
-                <KeyValue label="Contraseña Temporal" value={createdSummary.password} mono />
+                {createdSummary.password ? <KeyValue label="Contraseña Temporal" value={createdSummary.password} mono aside={<Badge size="sm" tone="warning">Debe cambiarla al entrar</Badge>} /> : null}
+                {window.__mghAccountNotice(createdSummary.account) ? <div style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--mgh-warning-bg)', font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-ink)' }}>{window.__mghAccountNotice(createdSummary.account)}</div> : null}
                 <KeyValue label="Cargo / Especialidad" value={createdSummary.role} />
                 <KeyValue label="Proyecto Asignado" value={createdSummary.project} aside={<Badge mono tone="primary">{createdSummary.project}</Badge>} />
                 <KeyValue label="Tarifa Acordada" value={`$${createdSummary.rate}/h`} mono />
@@ -4367,6 +4514,7 @@ function Contractors({ go, notify }) {
       const { initialPassword, ...nextItem } = await client.createContractor(payload);
       // A generated login password is shown once and never kept in the list/cache
       if (initialPassword) setNewPass({ email: nextItem.email || payload.email, pw: initialPassword });
+      else if (window.__mghAccountNotice(nextItem.account)) notify(window.__mghAccountNotice(nextItem.account));
 
       const updated = [nextItem, ...list.filter(x => x.id !== nextItem.id)];
       setList(updated);
@@ -4471,7 +4619,7 @@ function Contractors({ go, notify }) {
     <Modal open={!!newPass} title="Contractor login created" onClose={() => setNewPass(null)} width={480}
       actions={<><Button variant="secondary" icon="content_copy" onClick={() => { try { navigator.clipboard.writeText(newPass.pw); notify('Password copied'); } catch (e) { notify('Copy failed • select it manually'); } }}>Copy</Button><Button onClick={() => setNewPass(null)}>Done</Button></>}>
       {newPass && <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div className="mgh-body">Initial password for <b>{newPass.email}</b>. It is shown only once — share it privately.</div>
+        <div className="mgh-body">Initial password for <b>{newPass.email}</b>. It is shown only once and is temporary: they must replace it at first sign-in. Share it privately.</div>
         <div style={{ padding: 12, borderRadius: 8, background: 'var(--mgh-surface-1)', font: '700 16px/22px var(--font-mono)', color: 'var(--mgh-ink)', letterSpacing: 0.5 }}>{newPass.pw}</div>
         <div className="mgh-body" style={{ color: 'var(--mgh-ink-3)' }}>They can change it from the user menu → Cambiar contraseña, or sign in with Google.</div>
       </div>}
@@ -4580,6 +4728,11 @@ function ContractorPaymentsInner({ notify }) {
   const t = useTable(pays.filter(p => (chip === 'all' || p.status === chip) && (via === 'all' || (via === 'wu') === isWU(p.c))), { search: ['id', 'cid'], pageSize: 10 });
   const p = pays.find(x => x.id === cur) || pays[0] || {};
   const c = p.c || {};
+  // No payments yet: the detail panel needs a real payment, so show an empty state instead
+  if (!pays.length) return <Page>
+    <PageHeader breadcrumbs={['Payroll & Finance', 'Contractor Payments']} title="Contractor Payments" description={'Payments for ' + getCurrentPeriod().code} actions={<Button variant="secondary" icon="sync" onClick={() => fetchPayments(true)}>Refresh</Button>} />
+    <Card padding={24}><div className="mgh-body" style={{ color: 'var(--mgh-ink-3)' }}>No contractor payments for this period yet. They are created from approved contractor timesheets.</div></Card>
+  </Page>;
   const wu = isWU(c);
 
   // Optimistic update, rolled back (with an error toast that replaces the success one) if the backend rejects it
@@ -4675,7 +4828,7 @@ function ContractorPaymentsInner({ notify }) {
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: 14, borderRadius: 8, background: 'var(--mgh-navy)', color: '#fff' }}>
             <div><div className="mgh-overline" style={{ color: 'var(--mgh-nav-text)' }}>Amount sent</div><div style={{ font: '600 11px/14px var(--font-mono)', color: 'var(--mgh-nav-text)', marginTop: 2 }}>{p.id}</div></div>
-            <div style={{ textAlign: 'right' }}><div style={{ font: '800 26px/30px var(--font-sans)', letterSpacing: '-0.5px' }}>{fmtUSD(p.amount)}</div><div style={{ font: '600 11px/14px var(--font-sans)', color: 'var(--mgh-nav-text)' }}>{wu ? (p.amount * c.fx).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + c.payCur + ' • ' + c.delivery : p.amount.toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' ' + c.asset + ' • ' + c.network}</div></div>
+            <div style={{ textAlign: 'right' }}><div style={{ font: '800 26px/30px var(--font-sans)', letterSpacing: '-0.5px' }}>{fmtUSD(p.amount)}</div><div style={{ font: '600 11px/14px var(--font-sans)', color: 'var(--mgh-nav-text)' }}>{wu ? (Number(p.amount || 0) * Number(c.fx || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + c.payCur + ' • ' + c.delivery : Number(p.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' ' + c.asset + ' • ' + c.network}</div></div>
           </div>
           <div style={{ overflowX: 'auto' }}><Stepper steps={steps} style={{ minWidth: 560 }} /></div>
           {wu ? <Section icon="receipt_long" title="Transaction">

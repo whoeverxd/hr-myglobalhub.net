@@ -7,8 +7,23 @@ const signoffController = require('../src/controllers/signoff.controller');
 const rolloutController = require('../src/controllers/rollout.controller');
 const payrollEngine = require('../src/services/payroll-engine.service');
 
+// Payroll pays only approved timesheets: give each active employee an approved sheet in the pilot period
+const PILOT = 'PP-2025-21'; // 1–15 November 2025
+function seedApprovedSheets(periodId) {
+  db.execute('DELETE FROM payroll_run_items WHERE run_id = ?', ['PR-' + periodId]);
+  db.execute('DELETE FROM payroll_runs WHERE id = ?', ['PR-' + periodId]);
+  db.execute('DELETE FROM timesheets WHERE period_id = ?', [periodId]);
+  for (const e of db.query("SELECT id, name FROM employees WHERE status != 'Terminated'")) {
+    db.execute(
+      "INSERT INTO timesheets (id, employee_id, employee_name, period_id, status, step_index, regular_hours, overtime_hours, pto_hours, holiday_hours, total_hours, history_json) VALUES (?, ?, ?, ?, 'Approved', 2, 80, 0, 0, 0, 80, '[]')",
+      ['TS-' + periodId + '-' + e.id, e.id, e.name, periodId]
+    );
+  }
+}
+
 test('Parallel Pilot Cycle: Cent-by-cent audit against legacy baseline data', () => {
-  const periodId = 'PP-2025-08';
+  const periodId = PILOT;
+  seedApprovedSheets(periodId);
 
   // 1. Calculate payroll for the period
   const run = payrollEngine.calculatePeriodPayroll({
@@ -51,7 +66,7 @@ test('Parallel Pilot Cycle: Cent-by-cent audit against legacy baseline data', ()
 });
 
 test('Parallel Pilot Cycle: Variance detection on intentional discrepancy', () => {
-  const periodId = 'PP-2025-08';
+  const periodId = PILOT;
   const run = payrollEngine.calculatePeriodPayroll({ periodId, entity: 'All', saveAsRun: false });
   const firstEmp = run.items[0];
 

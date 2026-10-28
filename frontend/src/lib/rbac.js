@@ -191,6 +191,8 @@
     },
     orgs() { return Object.keys(P().memberships); },
     me, person(r) { return (activeUser && activeUser.name) || r; },
+    /** The signed-in backend user ({ id, role, employeeId, … }) or null */
+    get user() { return activeUser; },
     setUser(user) {
       activeUser = user;
       try {

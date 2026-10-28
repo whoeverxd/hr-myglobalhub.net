@@ -1,6 +1,7 @@
 const db = require('../db');
 const { logAction } = require('./audit.controller');
 const { ensureUserForEmployee } = require('../services/auth.service');
+const { passwordProblem } = require('../utils/crypto');
 
 const EMAIL_REGEX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -124,10 +125,21 @@ function getNextEmployeeId() {
 
 function createEmployee(data, user = 'Elena Rostova', ip = '127.0.0.1') {
   let initialPassword = null; // returned once so HR can hand it to the employee
+  // What happened to the login: created | linked | conflict | failed | none (no email) — shown to whoever created it
+  let account = { status: 'none' };
   if (data.email && !EMAIL_REGEX.test(data.email)) {
     const err = new Error('Invalid email');
     err.status = 400;
     throw err;
+  }
+  // A password typed by the administrator must meet the same rule as a self-chosen one (checked before anything is saved)
+  if (data.password) {
+    const problem = passwordProblem(data.password);
+    if (problem) {
+      const err = new Error(problem);
+      err.status = 400;
+      throw err;
+    }
   }
 
   const id = getNextEmployeeId();
@@ -266,7 +278,7 @@ function createEmployee(data, user = 'Elena Rostova', ip = '127.0.0.1') {
     }
 
     try {
-      const account = ensureUserForEmployee({
+      const user = ensureUserForEmployee({
         email: employeeRecord.email,
         name: employeeRecord.name,
         role: userRole,
@@ -275,9 +287,11 @@ function createEmployee(data, user = 'Elena Rostova', ip = '127.0.0.1') {
         password: data.password || null,
         avatar: employeeRecord.avatar,
       });
-      if (account && account.initialPassword) initialPassword = account.initialPassword;
+      if (user && user.initialPassword) initialPassword = user.initialPassword;
+      account = user ? { status: user.accountStatus, email: user.email, role: user.role, linkedEmployeeId: user.employee_id || null } : { status: 'none' };
     } catch (e) {
       console.warn('[employee creation: user provisioning error]', e);
+      account = { status: 'failed', error: e.message };
     }
   }
 
@@ -321,7 +335,7 @@ function createEmployee(data, user = 'Elena Rostova', ip = '127.0.0.1') {
   }
 
   const created = getEmployeeById(id);
-  return initialPassword ? { ...created, initialPassword } : created;
+  return initialPassword ? { ...created, account, initialPassword } : { ...created, account };
 }
 
 function updateEmployee(id, data, { user = 'System', ip = '127.0.0.1' } = {}) {

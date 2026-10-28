@@ -1,6 +1,8 @@
 const { validateSession } = require('../services/auth.service');
 const db = require('../db');
 
+const PASSWORD_CHANGE_ALLOWED = ['/auth/me', '/auth/password', '/auth/logout'];
+
 function authenticate(req, res, next) {
   const authHeader = req.headers['authorization'];
   let token = null;
@@ -17,6 +19,10 @@ function authenticate(req, res, next) {
       return res.status(401).json({ error: 'Invalid or expired session token' });
     }
     req.user = user;
+    // A temporary password set by an administrator must be replaced before the account can do anything else
+    if (user.mustChangePassword && !PASSWORD_CHANGE_ALLOWED.some((p) => req.originalUrl.split('?')[0].endsWith(p))) {
+      return res.status(403).json({ error: 'You must replace your temporary password before continuing', code: 'PASSWORD_CHANGE_REQUIRED' });
+    }
     return next();
   }
 

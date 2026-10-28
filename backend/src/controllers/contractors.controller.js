@@ -1,6 +1,7 @@
 const db = require('../db');
 const { logAction } = require('./audit.controller');
 const { ensureUserForEmployee } = require('../services/auth.service');
+const { passwordProblem } = require('../utils/crypto');
 
 function formatContractor(c) {
   if (!c) return null;
@@ -167,6 +168,15 @@ function createContractor(data, user = 'System', ip = '127.0.0.1') {
     err.status = 400;
     throw err;
   }
+  // A password typed by the administrator must meet the same rule as a self-chosen one (checked before anything is saved)
+  if (data.password) {
+    const problem = passwordProblem(data.password);
+    if (problem) {
+      const err = new Error(problem);
+      err.status = 400;
+      throw err;
+    }
+  }
 
   const name = data.name.trim();
   const role = data.role.trim();
@@ -227,15 +237,21 @@ function createContractor(data, user = 'System', ip = '127.0.0.1') {
   const id = data.id && /^CTR-\d+$/i.test(data.id) ? data.id : `CTR-${employeeId.replace(/\D/g, '')}`;
 
   // 2. Ensure system login user exists for contractor with role 'contractor'
-  const account = ensureUserForEmployee({
-    email,
-    name,
-    role: 'contractor',
-    entity,
-    employeeId,
-    password: data.password || null,
-    avatar: null
-  });
+  let account = null, accountError = null;
+  try {
+    account = ensureUserForEmployee({
+      email,
+      name,
+      role: 'contractor',
+      entity,
+      employeeId,
+      password: data.password || null,
+      avatar: null
+    });
+  } catch (e) {
+    console.warn('[contractor creation: user provisioning error]', e);
+    accountError = e.message;
+  }
 
   // 3. Insert or replace contractor record
   db.transaction(() => {
@@ -263,7 +279,7 @@ function createContractor(data, user = 'System', ip = '127.0.0.1') {
   });
 
   // A generated initial password is returned once so it can be handed to the contractor
-  const created = getContractor(id);
+  const created = { ...getContractor(id), account: accountError ? { status: 'failed', error: accountError } : account ? { status: account.accountStatus, email: account.email, linkedEmployeeId: account.employee_id || null } : { status: 'none' } };
   return account && account.initialPassword ? { ...created, initialPassword: account.initialPassword } : created;
 }
 

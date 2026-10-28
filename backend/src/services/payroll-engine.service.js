@@ -138,7 +138,16 @@ function calculatePeriodPayroll({
     throw err;
   }
 
-  // Fetch employees
+  // An approved / paid run is final: corrections go through Payroll Adjustments in a later period
+  const runIdCheck = `PR-${periodId}`;
+  const existingRun = saveAsRun ? db.getOne(`SELECT status FROM payroll_runs WHERE id = ?`, [runIdCheck]) : null;
+  if (existingRun && ['Approved', 'Paid'].includes(existingRun.status)) {
+    const err = new Error(`Payroll run ${runIdCheck} is ${existingRun.status} and can no longer be recalculated`);
+    err.status = 409;
+    throw err;
+  }
+
+  // Pay ONLY what was approved: each employee's timesheet for the period that passed PM + owner review
   let empQuery = `SELECT * FROM employees WHERE status != 'Terminated'`;
   const empParams = [];
   if (entity && entity !== 'All') {
@@ -147,40 +156,32 @@ function calculatePeriodPayroll({
   }
   empQuery += ` ORDER BY name ASC`;
   const employees = db.query(empQuery, empParams);
+  const sheets = {};
+  db.query(`SELECT * FROM timesheets WHERE period_id = ?`, [periodId]).forEach((t) => { sheets[t.employee_id] = t; });
 
-  // Fetch adjustments
-  const adjustments = db.query(`SELECT * FROM payroll_adjustments`);
-
-  // Default OT and PTO demo data from kit to reflect realistic hours if not logged
-  const otMap = {
-    'MGH-1042': 6.5,
-    'MGH-1102': 12.0,
-    'MGH-1131': 2.0,
-    'MGH-1059': 9.5,
-    'MGH-1162': 4.0,
-  };
-  const ptoMap = {
-    'MGH-1088': 8.0,
-    'MGH-1120': 4.0,
-    'MGH-1150': 8.0,
-  };
+  // Only approved adjustments are paid
+  const adjustments = db.query(`SELECT * FROM payroll_adjustments`).filter((a) => /^approved/i.test(String(a.status || '')));
 
   const items = [];
+  const notIncluded = [];
   let totalHours = 0;
   let totalGross = 0;
   let totalDeductions = 0;
   let totalNet = 0;
 
   for (const emp of employees) {
+    const ts = sheets[emp.id];
+    if (!ts || !['Approved', 'Paid'].includes(ts.status)) {
+      notIncluded.push({ employeeId: emp.id, name: emp.name, status: ts ? ts.status : 'No timesheet' });
+      continue;
+    }
     const empAdjs = adjustments.filter((a) => a.id === emp.id || a.name === emp.name);
-    const ot = otMap[emp.id] || 0;
-    const pto = ptoMap[emp.id] || 0;
-    const reg = (emp.type && emp.type.includes('Part-time')) ? 40 : 80;
 
     const calc = calculateEmployeePeriodPayroll(emp, {
-      regHours: reg,
-      otHours: ot,
-      ptoHours: pto,
+      regHours: Number(ts.regular_hours) || 0,
+      otHours: Number(ts.overtime_hours) || 0,
+      // paid leave and paid holidays are both paid at the regular rate
+      ptoHours: (Number(ts.pto_hours) || 0) + (Number(ts.holiday_hours) || 0),
       adjustments: empAdjs,
     });
 
@@ -211,6 +212,8 @@ function calculatePeriodPayroll({
     cutoffDate: period.cutoff,
     payDate: period.pay_date,
     items,
+    // employees left out because their timesheet is not approved yet (shown to the owner before approving)
+    notIncluded,
   };
 
   if (saveAsRun) {
@@ -299,13 +302,23 @@ function calculatePeriodPayroll({
 /**
  * PM First-tier Approval: Validates that contributor activities & hours have been audited
  */
-function pmApprovePayrollRun(runId, user = 'Joshua Hernandez', ip = '127.0.0.1') {
+function runOrThrow(runId, allowed, verb) {
   const run = db.getOne(`SELECT * FROM payroll_runs WHERE id = ?`, [runId]);
   if (!run) {
     const err = new Error(`Payroll run ${runId} not found`);
     err.status = 404;
     throw err;
   }
+  if (!allowed.includes(run.status)) {
+    const err = new Error(`Payroll run ${runId} is ${run.status}; it can only be ${verb} from ${allowed.join(' / ')}`);
+    err.status = 409;
+    throw err;
+  }
+  return run;
+}
+
+function pmApprovePayrollRun(runId, user = 'System', ip = '127.0.0.1') {
+  const run = runOrThrow(runId, ['Calculated'], 'PM-approved');
 
   db.transaction(() => {
     db.execute(
@@ -332,11 +345,12 @@ function pmApprovePayrollRun(runId, user = 'Joshua Hernandez', ip = '127.0.0.1')
 /**
  * Owner/Admin Second-tier Approval: Authorizes final payout, locking the run
  */
-function approvePayrollRun(runId, user = 'Edwin Montalvo', ip = '127.0.0.1') {
-  const run = db.getOne(`SELECT * FROM payroll_runs WHERE id = ?`, [runId]);
-  if (!run) {
-    const err = new Error(`Payroll run ${runId} not found`);
-    err.status = 404;
+function approvePayrollRun(runId, user = 'System', ip = '127.0.0.1') {
+  // Hours were already reviewed per timesheet (PM, then owner); this is the owner's sign-off on the money
+  const run = runOrThrow(runId, ['Calculated', 'PM_Approved'], 'approved');
+  if (!db.getOne(`SELECT id FROM payroll_run_items WHERE run_id = ?`, [runId])) {
+    const err = new Error(`Payroll run ${runId} has no employees: approve their timesheets and recalculate first`);
+    err.status = 409;
     throw err;
   }
 
@@ -373,6 +387,24 @@ function approvePayrollRun(runId, user = 'Edwin Montalvo', ip = '127.0.0.1') {
   });
 
   return { id: runId, status: 'Approved', approvedBy: user, ownerApprovedBy: user };
+}
+
+/**
+ * Owner confirms the money left the bank: run → Paid, its timesheets → Paid, period → Paid.
+ * Only an approved run can be paid; paid runs and sheets are final.
+ */
+function markPayrollRunPaid(runId, user = 'System', ip = '127.0.0.1') {
+  const run = runOrThrow(runId, ['Approved'], 'marked paid');
+  const empIds = db.query(`SELECT employee_id FROM payroll_run_items WHERE run_id = ?`, [runId]).map((r) => r.employee_id);
+  const timesheetsController = require('../controllers/timesheets.controller'); // lazy: avoid a load-time cycle
+  let sheets = 0;
+  db.transaction(() => {
+    db.execute(`UPDATE payroll_runs SET status = 'Paid', paid_at = datetime('now'), paid_by = ?, updated_at = datetime('now') WHERE id = ?`, [user, runId]);
+    db.execute(`UPDATE pay_periods SET status = 'Paid', is_locked = 1, updated_at = datetime('now') WHERE id = ?`, [run.period_id]);
+    sheets = timesheetsController.markPeriodPaid(run.period_id, empIds, user, runId);
+    logAction({ actor: user, action: 'PAYROLL_RUN_PAID', entityType: 'payroll_run', entityId: runId, oldValues: { status: run.status }, newValues: { status: 'Paid', employees: empIds.length, timesheets: sheets }, ip });
+  });
+  return { id: runId, status: 'Paid', paidBy: user, employees: empIds.length, timesheetsPaid: sheets };
 }
 
 /**
@@ -451,6 +483,7 @@ module.exports = {
   calculatePeriodPayroll,
   pmApprovePayrollRun,
   approvePayrollRun,
+  markPayrollRunPaid,
   listPayrollRuns,
   getPayrollRunDetails,
   listEmployeePaystubs,

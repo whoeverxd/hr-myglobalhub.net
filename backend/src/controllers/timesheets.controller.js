@@ -51,9 +51,16 @@ function computeHours(empId, periodId) {
   const weekday = (x) => x.dow !== 0 && x.dow !== 6;
   const weekOf = (x) => { const t = new Date(x.date + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() - ((x.dow + 6) % 7)); return t.toISOString().slice(0, 10); };
 
+  // A reviewed activity counts its approved hours (partial approval); an unreviewed one counts what was logged
   const byDay = {};
-  db.query(`SELECT date, hours FROM daily_activities WHERE employee_id = ? AND date >= ? AND date <= ?`, [empId, range.start, range.end])
-    .forEach((a) => { byDay[a.date] = (byDay[a.date] || 0) + (Number(a.hours) || 0); });
+  let rejected = 0;
+  db.query(`SELECT date, hours, approved_hours FROM daily_activities WHERE employee_id = ? AND date >= ? AND date <= ?`, [empId, range.start, range.end])
+    .forEach((a) => {
+      const logged = Number(a.hours) || 0;
+      const counted = a.approved_hours == null ? logged : Math.min(logged, Math.max(0, Number(a.approved_hours) || 0));
+      rejected += logged - counted;
+      byDay[a.date] = (byDay[a.date] || 0) + counted;
+    });
 
   let reg = 0, otH = 0;
   const weekReg = {};
@@ -88,7 +95,91 @@ function computeHours(empId, periodId) {
     else if (onLeave(x.date)) pto += dailyMax;
   }
   reg = r2(reg); otH = r2(otH);
-  return { reg, ot: otH, pto, hol, total: r2(reg + otH + pto + hol), worked: r2(reg + otH) };
+  return { reg, ot: otH, pto, hol, total: r2(reg + otH + pto + hol), worked: r2(reg + otH), rejected: r2(rejected) };
+}
+
+function sheetRow(id) {
+  const row = db.getOne(`SELECT * FROM timesheets WHERE id = ?`, [id]);
+  if (!row) {
+    const err = new Error('Timesheet not found');
+    err.status = 404;
+    throw err;
+  }
+  return row;
+}
+
+function pushHistory(row, entry) {
+  const history = row.history_json ? JSON.parse(row.history_json) : [];
+  history.push({ at: new Date().toISOString(), from: row.status, to: row.status, ...entry });
+  db.execute(`UPDATE timesheets SET history_json = ?, updated_at = datetime('now') WHERE id = ?`, [JSON.stringify(history), row.id]);
+}
+
+/**
+ * Reviewer decision on one activity of a sheet under review: approve all, part or none of its hours.
+ * Less than the logged hours requires a comment (the employee sees why). Approving the sheet then counts
+ * only the approved hours.
+ */
+function reviewActivity(sheetId, activityId, { approvedHours, comment = '', role = 'pm' } = {}, user = 'System', ip = '127.0.0.1') {
+  const row = sheetRow(sheetId);
+  if (NOT_IN_REVIEW.includes(row.status)) {
+    const err = new Error(`Activities can only be reviewed while the timesheet is under review (current status: ${row.status})`);
+    err.status = 400;
+    throw err;
+  }
+  const act = db.getOne(`SELECT * FROM daily_activities WHERE id = ?`, [activityId]);
+  const range = periodRange(row.period_id);
+  if (!act || act.employee_id !== row.employee_id || !range || act.date < range.start || act.date > range.end) {
+    const err = new Error('Activity does not belong to this timesheet');
+    err.status = 404;
+    throw err;
+  }
+  const logged = Number(act.hours) || 0;
+  const approved = Number(approvedHours);
+  if (isNaN(approved) || approved < 0 || approved > logged) {
+    const err = new Error(`Approved hours must be between 0 and ${logged}`);
+    err.status = 400;
+    throw err;
+  }
+  if (approved < logged && !String(comment).trim()) {
+    const err = new Error('A comment is required when not approving all the hours');
+    err.status = 400;
+    throw err;
+  }
+  const status = approved === logged ? 'approved' : approved === 0 ? 'rejected' : 'partial';
+  db.transaction(() => {
+    db.execute(
+      `UPDATE daily_activities SET review_status = ?, approved_hours = ?, review_comment = ?, reviewed_by = ?, reviewed_at = datetime('now') WHERE id = ?`,
+      [status, approved, String(comment).trim(), user, activityId]
+    );
+    pushHistory(row, { actor: user, role, type: 'activity_review', comment: `${act.jira_key || 'Actividad'} ${act.date}: ${approved}/${logged}h aprobadas${comment ? ' — ' + String(comment).trim() : ''}` });
+    logAction({ actor: user, action: 'REVIEW_ACTIVITY', entityType: 'activity', entityId: activityId, oldValues: { hours: logged }, newValues: { status, approved, comment }, ip });
+  });
+  return { id: activityId, reviewStatus: status, approvedHours: approved, hours: logged, reviewComment: String(comment).trim() };
+}
+
+// After the owner releases the payroll run: the approved sheets it paid become Paid (immutable from then on)
+function markPeriodPaid(periodId, employeeIds, user = 'System', runId = '') {
+  const ids = new Set(employeeIds || []);
+  const rows = db.query(`SELECT * FROM timesheets WHERE period_id = ? AND status = 'Approved'`, [periodId]).filter((r) => ids.has(r.employee_id));
+  for (const row of rows) {
+    const history = row.history_json ? JSON.parse(row.history_json) : [];
+    history.push({ at: new Date().toISOString(), actor: user, role: 'Owner', from: 'Approved', to: 'Paid', comment: `Pagado en la nómina ${runId}` });
+    db.execute(`UPDATE timesheets SET status = 'Paid', history_json = ?, updated_at = datetime('now') WHERE id = ?`, [JSON.stringify(history), row.id]);
+  }
+  return rows.length;
+}
+
+// Reviewer or employee note on the sheet, kept in its history
+function addComment(sheetId, { comment, role = '' } = {}, user = 'System', ip = '127.0.0.1') {
+  if (!comment || !String(comment).trim()) {
+    const err = new Error('Comment is empty');
+    err.status = 400;
+    throw err;
+  }
+  const row = sheetRow(sheetId);
+  pushHistory(row, { actor: user, role, type: 'comment', comment: String(comment).trim() });
+  logAction({ actor: user, action: 'TIMESHEET_COMMENT', entityType: 'timesheet', entityId: sheetId, newValues: { comment }, ip });
+  return getTimesheet(sheetId);
 }
 
 function listTimesheets({ periodId, empId, live = false } = {}) {
@@ -196,6 +287,15 @@ function submitTimesheet(id, user = 'System', ip = '127.0.0.1') {
     throw err;
   }
 
+  // A (re)submission gets a fresh review: earlier decisions stay in the sheet history
+  const subRange = periodRange(current.period_id);
+  if (subRange) {
+    db.execute(
+      `UPDATE daily_activities SET review_status = NULL, approved_hours = NULL, review_comment = NULL, reviewed_by = NULL, reviewed_at = NULL
+       WHERE employee_id = ? AND date >= ? AND date <= ?`,
+      [current.employee_id, subRange.start, subRange.end]
+    );
+  }
   // Hours are frozen from the employee's real records at submission time
   const hours = computeHours(current.employee_id, current.period_id);
   // Paid holidays alone don't make a submission: there must be worked hours or approved leave
@@ -271,6 +371,14 @@ function approveTimesheet(id, { comment = '', role = 'pm' } = {}, user = 'System
     nextStatus = nextStep.review || `${nextStep.label} Review` || `${nextStep.label}`;
   }
 
+  // If the reviewer decided on individual activities, the sheet's hours become the approved ones
+  const range = periodRange(current.period_id);
+  const reviewed = range && db.query(
+    `SELECT id FROM daily_activities WHERE employee_id = ? AND date >= ? AND date <= ? AND approved_hours IS NOT NULL`,
+    [current.employee_id, range.start, range.end]
+  ).length > 0;
+  const hours = reviewed ? computeHours(current.employee_id, current.period_id) : null;
+
   const history = current.history_json ? JSON.parse(current.history_json) : [];
   history.push({
     at: new Date().toISOString(),
@@ -278,7 +386,7 @@ function approveTimesheet(id, { comment = '', role = 'pm' } = {}, user = 'System
     role,
     from: current.status,
     to: nextStatus,
-    comment,
+    comment: [comment, hours ? `${hours.total}h aprobadas${hours.rejected ? ' • ' + hours.rejected + 'h rechazadas' : ''}` : ''].filter(Boolean).join(' • '),
   });
 
   db.transaction(() => {
@@ -290,6 +398,12 @@ function approveTimesheet(id, { comment = '', role = 'pm' } = {}, user = 'System
        WHERE id = ?`,
       [nextStatus, nextStepIdx, JSON.stringify(history), nextStatus, id]
     );
+    if (hours) {
+      db.execute(
+        `UPDATE timesheets SET regular_hours = ?, overtime_hours = ?, pto_hours = ?, holiday_hours = ?, total_hours = ? WHERE id = ?`,
+        [hours.reg, hours.ot, hours.pto, hours.hol, hours.total, id]
+      );
+    }
 
     logAction({
       actor: user,
@@ -552,4 +666,7 @@ module.exports = {
   computeHours,
   periodIdForDate,
   EDITABLE,
+  reviewActivity,
+  addComment,
+  markPeriodPaid,
 };

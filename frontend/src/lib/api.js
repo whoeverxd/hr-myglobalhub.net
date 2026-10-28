@@ -92,6 +92,7 @@ export const api = {
   me: () => request('GET', '/auth/me'),
   // { newPassword, currentPassword?, googleIdToken? } — see auth.service.changePassword
   changePassword: (payload) => request('POST', '/auth/password', payload),
+  resetEmployeePassword: (employeeId) => request('POST', `/employees/${encodeURIComponent(employeeId)}/reset-password`),
   logout: async () => {
     try {
       await request('POST', '/auth/logout');
@@ -202,6 +203,10 @@ export const api = {
   approveTimesheet: (id, data) => request('POST', `/timesheets/${encodeURIComponent(id)}/approve`, data),
   returnTimesheet: (id, data) => request('POST', `/timesheets/${encodeURIComponent(id)}/return`, data),
   saveTimesheetHours: (id, hours) => request('PUT', `/timesheets/${encodeURIComponent(id)}/hours`, hours),
+  // Reviewer partial approval of one activity: { approvedHours, comment } (comment required if not all hours)
+  reviewActivity: (id, activityId, payload) => request('POST', `/timesheets/${encodeURIComponent(id)}/activities/${encodeURIComponent(activityId)}/review`, payload),
+  addTimesheetComment: (id, comment) => request('POST', `/timesheets/${encodeURIComponent(id)}/comments`, { comment }),
+  markPayrollRunPaid: (id) => request('POST', `/payroll/runs/${encodeURIComponent(id)}/paid`),
   timesheetReconciliation: (id) => request('GET', `/timesheets/${encodeURIComponent(id)}/reconciliation`),
 
   // Daily Activities & Deliverable-based Timekeeping

@@ -157,7 +157,7 @@ export function MyHistory({ user, notify }) {
 
   const events = useMemo(() => {
     const out = [];
-    (sheets || []).forEach((s) => (s.history || []).forEach((h) => out.push({ kind: 'sheet', ref: s.period, at: h.at, from: h.from, to: h.to, actor: h.actor, role: h.role, comment: h.comment })));
+    (sheets || []).forEach((s) => (s.history || []).forEach((h) => out.push({ kind: 'sheet', ref: s.period, at: h.at, from: h.from, to: h.to, actor: h.actor, role: h.role, comment: h.comment, type: h.type })));
     const A = window.MGH_ATT;
     (A ? A.leave() : []).filter((l) => l.emp === empId).forEach((l) => (l.history || []).forEach((h) => out.push({ kind: 'leave', ref: l.id + ' • ' + l.type + ' ' + l.from + (l.to !== l.from ? ' → ' + l.to : ''), at: h.at, from: h.from, to: h.to, actor: h.actor, role: h.role, comment: h.comment })));
     return out.sort((a, b) => String(b.at).localeCompare(String(a.at)));
@@ -177,8 +177,10 @@ export function MyHistory({ user, notify }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <Badge size="sm" tone={e.kind === 'sheet' ? 'primary' : 'info'}>{e.kind === 'sheet' ? 'Quincena ' + e.ref : 'Permiso ' + e.ref}</Badge>
-                    {e.from ? <span className="mgh-body">{statusLabel(e.from)} →</span> : null}
-                    <Badge size="sm" dot tone={statusTone(e.to)}>{statusLabel(e.to)}</Badge>
+                    {e.type === 'activity_review' ? <Badge size="sm" tone="warning">Revisión de actividad</Badge> : e.type === 'comment' ? <Badge size="sm" tone="neutral">Comentario</Badge> : <>
+                      {e.from ? <span className="mgh-body">{statusLabel(e.from)} →</span> : null}
+                      <Badge size="sm" dot tone={statusTone(e.to)}>{statusLabel(e.to)}</Badge>
+                    </>}
                   </div>
                   <span style={{ font: '500 13px/18px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>{e.actor || '—'}{e.role ? ' • ' + e.role : ''}</span>
                   {e.comment ? <span style={{ font: '400 13px/18px var(--font-sans)', color: 'var(--mgh-ink)' }}>“{e.comment}”</span> : null}

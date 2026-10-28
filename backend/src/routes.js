@@ -387,6 +387,9 @@ router.put('/employees/:id', authenticate, (req, res, next) => {
   }
 });
 
+// Forgotten password: HR/Admin (and a PM, for team accounts) issue a one-time password (shown once; replaced at sign-in)
+router.post('/employees/:id/reset-password', authenticate, requireRole('pm', 'hr', 'admin'), authController.resetEmployeePassword);
+
 /* ---------- Contractors & Contractor Payments (RBAC) ---------- */
 router.get('/contractors', authenticate, contractorsController.getContractorsList);
 router.get('/contractors/:id', authenticate, contractorsController.getContractorById);
@@ -453,6 +456,15 @@ router.post(
   requireRole('admin', 'finance'),
   payrollController.approveRun
 );
+
+// Owner confirms the payment was executed: run → Paid, its timesheets → Paid, period → Paid
+router.post('/payroll/runs/:id/paid', authenticate, requireRole('admin'), (req, res, next) => {
+  try {
+    res.json(payrollEngine.markPayrollRunPaid(req.params.id, getUserName(req), getClientIp(req)));
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Real-time preview for an employee compensation breakdown
 router.post('/payroll/preview-employee', authenticate, payrollController.previewEmployee);
@@ -824,6 +836,40 @@ router.post('/timesheets/:id/submit', authenticate, (req, res, next) => {
   }
 });
 
+// Two-step review: step 0 (PM review) by supervisor/PM/HR/admin; step 1+ (owner review & payment) by the admin/owner only.
+// Nobody but the admin acts on their own sheet.
+const REVIEWER_ROLES = ['supervisor', 'pm', 'hr', 'finance', 'admin'];
+function reviewStepError(user, ts) {
+  if (!ts) return null;
+  if (user.role !== 'admin' && user.employeeId && ts.emp === user.employeeId) return 'You cannot review your own timesheet';
+  if (Number(ts.stepIdx) >= 1 && user.role !== 'admin') return 'This timesheet is at the owner review step; only the owner (admin) can act on it';
+  return null;
+}
+
+// PM / owner partial approval of one activity's hours (comment required when not approving all)
+router.post('/timesheets/:id/activities/:activityId/review', authenticate, requireRole(...REVIEWER_ROLES), (req, res, next) => {
+  try {
+    const stepError = reviewStepError(req.user, timesheetsController.getTimesheet(req.params.id));
+    if (stepError) return res.status(403).json({ error: stepError });
+    res.json(timesheetsController.reviewActivity(req.params.id, req.params.activityId, { ...(req.body || {}), role: req.user.role }, getUserName(req), getClientIp(req)));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Comments on a sheet (reviewers, or the employee who owns it) — persisted in the sheet history
+router.post('/timesheets/:id/comments', authenticate, (req, res, next) => {
+  try {
+    const ts = timesheetsController.getTimesheet(req.params.id);
+    if (!ts) return res.status(404).json({ error: 'Timesheet not found' });
+    const isOwner = req.user.employeeId && ts.emp === req.user.employeeId;
+    if (!isOwner && !REVIEWER_ROLES.includes(req.user.role)) return res.status(403).json({ error: 'Not allowed to comment on this timesheet' });
+    res.json(timesheetsController.addComment(req.params.id, { comment: (req.body || {}).comment, role: isOwner ? 'Employee' : req.user.role }, getUserName(req), getClientIp(req)));
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post(
   '/timesheets/:id/approve',
   authenticate,
@@ -835,6 +881,8 @@ router.post(
       if (target && req.user.role !== 'admin' && req.user.employeeId && target.emp === req.user.employeeId) {
         return res.status(403).json({ error: 'You cannot approve your own timesheet' });
       }
+      const stepError = reviewStepError(req.user, target);
+      if (stepError) return res.status(403).json({ error: stepError });
       const ts = timesheetsController.approveTimesheet(
         req.params.id,
         req.body || {},
@@ -854,6 +902,8 @@ router.post(
   requireRole('supervisor', 'pm', 'hr', 'finance', 'admin'),
   (req, res, next) => {
     try {
+      const stepError = reviewStepError(req.user, timesheetsController.getTimesheet(req.params.id));
+      if (stepError) return res.status(403).json({ error: stepError });
       const ts = timesheetsController.returnTimesheet(
         req.params.id,
         req.body || {},
