@@ -29,7 +29,8 @@ function buildPeriods(year, overrides = {}, payOffsetDays = 6) {
     const q1Start = `${year}-${pad(m + 1)}-01`;
     const q1End = `${year}-${pad(m + 1)}-15`;
     const q1PayDate = `${year}-${pad(m + 1)}-20`;
-    let q1Status = overrides[q1Id] || (todayStr > q1End ? 'Closed' : (todayStr >= q1Start ? 'Open' : 'Draft'));
+    // A period is never closed by the calendar: it stays Open until its payroll is paid and someone locks it
+    let q1Status = overrides[q1Id] || (todayStr >= q1Start ? 'Open' : 'Draft');
     out.push({
       id: q1Id,
       n: q1Num,
@@ -48,7 +49,7 @@ function buildPeriods(year, overrides = {}, payOffsetDays = 6) {
     const q2End = `${year}-${pad(m + 1)}-${pad(lastDay)}`;
     const payNextMonth = m === 11 ? new Date(year + 1, 0, 5) : new Date(year, m + 1, 5);
     const q2PayDate = `${payNextMonth.getFullYear()}-${pad(payNextMonth.getMonth() + 1)}-${pad(payNextMonth.getDate())}`;
-    let q2Status = overrides[q2Id] || (todayStr > q2End ? 'Closed' : (todayStr >= q2Start ? 'Open' : 'Draft'));
+    let q2Status = overrides[q2Id] || (todayStr >= q2Start ? 'Open' : 'Draft');
     out.push({
       id: q2Id,
       n: q2Num,

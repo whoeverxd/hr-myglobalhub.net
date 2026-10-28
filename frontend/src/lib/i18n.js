@@ -847,6 +847,15 @@ Day 1 • 07:00 AST|Día 1 • 07:00 AST
 Review Cycle|Revisar ciclo
 Current Cycle|Ciclo actual
 Next in Queue|Siguiente en cola
+Previous Cycle|Ciclo anterior
+Payroll run|Corrida de nómina
+Process Payroll|Procesar nómina
+Showing |Mostrando 
+ of | de 
+ (| (
+ pay cycles with activity in {n} (current, next and any with timesheets or a payroll run) • My Global Hub Dominicana SRL| ciclos con actividad en {n} (actual, siguiente y los que tienen hojas o corrida de nómina) • My Global Hub Dominicana SRL
+A period is locked when its payroll run is marked paid. Closed periods are immutable; retroactive hours or corrections go through an auditable Payroll Adjustment.|Un período se bloquea cuando su corrida de nómina se marca como pagada. Los períodos cerrados son inmutables; las horas retroactivas o correcciones se registran como un Ajuste de Nómina auditable.
+Filter cycle (e.g. PP-{n})|Filtrar ciclo (ej. PP-{n})
 1 Adjustment|1 ajuste
 Reopen|Reabrir
 Payroll Adjustments &amp; Statutory Severance Engine|Motor de ajustes de nómina y prestaciones legales

@@ -1,5 +1,6 @@
 const express = require('express');
 const authController = require('./controllers/auth.controller');
+const authService = require('./services/auth.service');
 const periodsController = require('./controllers/periods.controller');
 const adjustmentsController = require('./controllers/adjustments.controller');
 const worklogsController = require('./controllers/worklogs.controller');
@@ -353,7 +354,8 @@ router.post('/employees', authenticate, requireRole('pm', 'hr', 'admin'), (req, 
     const result = employeesController.createEmployee(
       req.body || {},
       getUserName(req),
-      getClientIp(req)
+      getClientIp(req),
+      req.user && req.user.role
     );
     res.status(201).json(result);
   } catch (err) {
@@ -388,6 +390,23 @@ router.put('/employees/:id', authenticate, (req, res, next) => {
 });
 
 // Forgotten password: HR/Admin (and a PM, for team accounts) issue a one-time password (shown once; replaced at sign-in)
+// Remove an employee: preview → delete in cascade (only without payroll history) or deactivate (keeps history)
+router.get('/employees/:id/removal', authenticate, requireRole('pm', 'admin'), (req, res, next) => {
+  try { res.json(employeesController.employeeRemovalPreview(req.params.id, req.user)); } catch (err) { next(err); }
+});
+router.delete('/employees/:id', authenticate, requireRole('pm', 'admin'), (req, res, next) => {
+  try { res.json(employeesController.deleteEmployee(req.params.id, req.user, getClientIp(req))); } catch (err) { next(err); }
+});
+router.post('/employees/:id/deactivate', authenticate, requireRole('pm', 'admin'), (req, res, next) => {
+  try { res.json(employeesController.deactivateEmployee(req.params.id, req.user, getClientIp(req))); } catch (err) { next(err); }
+});
+// Login of an employee (role, last sign-in…) for the profile screen; changing the role is admin only
+router.get('/employees/:id/account', authenticate, requireRole('pm', 'hr', 'admin'), (req, res, next) => {
+  try { res.json(authService.accountForEmployee(req.params.id)); } catch (err) { next(err); }
+});
+router.put('/employees/:id/account/role', authenticate, requireRole('admin'), (req, res, next) => {
+  try { res.json(authService.setRoleForEmployee({ employeeId: req.params.id, role: (req.body || {}).role, actor: req.user, ip: getClientIp(req) })); } catch (err) { next(err); }
+});
 router.post('/employees/:id/reset-password', authenticate, requireRole('pm', 'hr', 'admin'), authController.resetEmployeePassword);
 
 /* ---------- Contractors & Contractor Payments (RBAC) ---------- */

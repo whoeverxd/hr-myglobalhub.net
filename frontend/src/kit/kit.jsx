@@ -1209,6 +1209,61 @@ function EmployeeProfileInner({ empId, go, notify }) {
       setReset({ step: 'done', email: r.email, pw: r.temporaryPassword });
     } catch (err) { setReset({ step: 'confirm', error: err.message }); }
   };
+  // Remove an employee (PM/admin, not yourself): delete in cascade when there is no payroll history, else deactivate
+  const canRemove = !!me && ['pm', 'admin'].includes(me.role) && !!e.id && me.employeeId !== e.id;
+  const [removal, setRemoval] = React.useState(null); // null | { loading } | preview + { busy, error, confirmText }
+  const openRemoval = async () => {
+    setRemoval({ loading: true });
+    try { setRemoval({ ...(await window.api.employeeRemoval(e.id)), confirmText: '' }); }
+    catch (err) { setRemoval({ error: err.message, blockers: [] }); }
+  };
+  const forget = () => {
+    for (const list of [EMPLOYEES, window.EMPLOYEES, window.ALL_EMP].filter(Array.isArray)) { const i = list.findIndex(x => x.id === e.id); if (i >= 0) list.splice(i, 1); }
+  };
+  const doDelete = async () => {
+    setRemoval(r => ({ ...r, busy: true, error: '' }));
+    try {
+      await window.api.deleteEmployee(e.id);
+      const name = e.name; forget(); setRemoval(null);
+      notify(name + ' eliminado junto con sus datos');
+      window.dispatchEvent(new Event('mgh-wf')); go('employees');
+    } catch (err) { setRemoval(r => ({ ...r, busy: false, error: err.message })); }
+  };
+  const doDeactivate = async () => {
+    setRemoval(r => ({ ...r, busy: true, error: '' }));
+    try {
+      await window.api.deactivateEmployee(e.id);
+      e.status = 'Terminated'; setRemoval(null);
+      notify(e.name + ' desactivado • ya no puede iniciar sesión y su historial se conserva');
+      window.dispatchEvent(new Event('mgh-wf'));
+    } catch (err) { setRemoval(r => ({ ...r, busy: false, error: err.message })); }
+  };
+  const REMOVAL_LABELS = { timesheets: 'Hojas de tiempo', activities: 'Actividades', punches: 'Ponches', exceptions: 'Excepciones de asistencia', leaveRequests: 'Solicitudes de permiso', worklogs: 'Worklogs', projectMemberships: 'Membresías de proyecto', tasksUnassigned: 'Tareas (quedan sin asignar)', pendingAdjustments: 'Ajustes pendientes', contractorRecords: 'Registro de contratista', contractorPayments: 'Pagos de contratista' };
+  // Login of this employee: PM/HR/admin see it; only an admin changes the role (never their own)
+  const canSeeAccount = !!me && ['pm', 'hr', 'admin'].includes(me.role);
+  const canSetRole = !!me && me.role === 'admin' && me.employeeId !== e.id;
+  const [account, setAccount] = React.useState(null);
+  const [roleDraft, setRoleDraft] = React.useState('');
+  const [roleBusy, setRoleBusy] = React.useState(false);
+  React.useEffect(() => {
+    let cancel = false;
+    setAccount(null);
+    if (canSeeAccount && e.id && window.api && window.api.employeeAccount) {
+      window.api.employeeAccount(e.id).then(a => { if (!cancel) { setAccount(a); setRoleDraft(a.role || ''); } }).catch(() => { if (!cancel) setAccount({ hasAccount: false, error: true }); });
+    }
+    return () => { cancel = true; };
+  }, [e.id, canSeeAccount]);
+  const ROLE_LABELS = { employee: 'Empleado', contractor: 'Contratista', supervisor: 'Supervisor', pm: 'Project Manager', hr: 'Recursos Humanos', finance: 'Finanzas', admin: 'Administrador (acceso total)' };
+  const saveRole = async () => {
+    if (roleDraft === 'admin' && !window.confirm('¿Dar acceso total de administrador a ' + e.name + '? Podrá aprobar nóminas, ejecutar pagos y cambiar roles.')) return;
+    setRoleBusy(true);
+    try {
+      const r = await window.api.setEmployeeRole(e.id, roleDraft);
+      setAccount(a => ({ ...a, role: r.role }));
+      notify(r.changed ? `Rol de ${e.name}: ${ROLE_LABELS[r.previousRole] || r.previousRole} → ${ROLE_LABELS[r.role] || r.role}. Se aplica en su próxima acción.` : 'Sin cambios');
+    } catch (err) { notify('No se pudo cambiar el rol • ' + err.message); }
+    finally { setRoleBusy(false); }
+  };
   // Form starts from the stored values only (no sample cédula / bank / rate)
   const initialForm = () => ({ name: e.name || '', phone: e.phone || '', role: e.role || '', dept: e.dept || '', type: e.type || 'Full-time', entity: e.entity || '', loc: e.loc || '', mgr: e.mgr || '', project: e.project || '', rate: e.rate || '', bank: e.bank || '', nid: e.nid || '' });
   const [form, setForm] = React.useState(initialForm);
@@ -1262,10 +1317,32 @@ function EmployeeProfileInner({ empId, go, notify }) {
           <div style={{ font: '400 14px/20px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>{e.dept} • {e.project}</div>
           <div style={{ display: 'flex', gap: 14, marginTop: 8, flexWrap: 'wrap', font: '500 13px var(--font-sans)', color: 'var(--mgh-ink-2)' }}><span style={{ display: 'flex', gap: 4 }}><Icon name="domain" size={16} />{e.entity}</span><span style={{ display: 'flex', gap: 4 }}><Icon name="work" size={16} />{e.type}</span><span style={{ display: 'flex', gap: 4 }}><Icon name="calendar_today" size={16} />Joined {e.joined}</span></div>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{canEdit && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit Employee</Button>}{selfEdit && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit My Profile</Button>}{MGH_RBAC.can('payslips.view', e) && <Button variant="secondary" icon="receipt_long" onClick={() => go('paystub', e.id)}>Generate Pay Statement</Button>}{canReset && <Button variant="secondary" icon="lock_reset" onClick={() => setReset({ step: 'confirm' })}>Restablecer contraseña</Button>}</div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{canEdit && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit Employee</Button>}{selfEdit && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit My Profile</Button>}{MGH_RBAC.can('payslips.view', e) && <Button variant="secondary" icon="receipt_long" onClick={() => go('paystub', e.id)}>Generate Pay Statement</Button>}{canReset && <Button variant="secondary" icon="lock_reset" onClick={() => setReset({ step: 'confirm' })}>Restablecer contraseña</Button>}{canRemove && <Button variant="danger" icon="person_remove" onClick={openRemoval}>Eliminar empleado</Button>}</div>
       </div>
       <Tabs style={{ marginTop: 20 }} value={tab} onChange={setTab} tabs={[{ value: 'overview', label: 'Overview & Profile' }, { value: 'bank', label: 'Multi-Bank Allocations', dot: true }, { value: 'comp', label: 'Compensation & Tax' }, { value: 'jira', label: 'Jira Integration', tag: 'LIVE' }, { value: 'pto', label: 'Time Off & PTO' }, { value: 'docs', label: 'Documents' }]} />
     </Card>
+    <Modal open={!!removal} title={'Eliminar a ' + e.name} onClose={() => removal && !removal.busy && setRemoval(null)} width={540}
+      actions={removal && !removal.loading ? <>
+        <Button variant="outline" disabled={removal.busy} onClick={() => setRemoval(null)}>Cancelar</Button>
+        {e.status !== 'Terminated' && <Button variant="secondary" icon="person_off" disabled={removal.busy} onClick={doDeactivate}>Desactivar</Button>}
+        {removal.canDelete && <Button variant="danger" icon="delete_forever" disabled={removal.busy || removal.confirmText !== e.id} onClick={doDelete}>{removal.busy ? 'Eliminando…' : 'Eliminar definitivamente'}</Button>}
+      </> : null}>
+      {!removal || removal.loading ? <div className="mgh-body">Calculando qué se eliminaría…</div> : <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {removal.canDelete ? <>
+          <div className="mgh-body">Se eliminará el empleado y, en cascada, todo lo siguiente. <b>No se puede deshacer.</b></div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '4px 16px', padding: 12, borderRadius: 8, background: 'var(--mgh-surface-1)', font: '500 13px/18px var(--font-sans)' }}>
+            {Object.entries(REMOVAL_LABELS).filter(([k]) => removal.willDelete && removal.willDelete[k]).map(([k, l]) => <React.Fragment key={k}><span>{l}</span><b>{removal.willDelete[k]}</b></React.Fragment>)}
+            <span>Cuenta de acceso</span><b>{removal.willDelete && removal.willDelete.login ? removal.willDelete.login : 'Sin cuenta'}</b>
+          </div>
+          <TextField label={'Escribe ' + e.id + ' para confirmar'} value={removal.confirmText || ''} onChange={x => { const val = typeof x === 'string' ? x : x.target.value; setRemoval(r => ({ ...r, confirmText: val })); }} />
+          <div style={{ font: '400 12px/16px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>Si prefieres conservar su información, usa Desactivar: no podrá entrar y su historial se mantiene.</div>
+        </> : removal.blockers && removal.blockers.length ? <>
+          <div className="mgh-body"><b>{e.name}</b> ya tiene historial de nómina ({removal.blockers.join(', ')}). Esos registros deben conservarse, por eso no se puede eliminar.</div>
+          <div className="mgh-body">Puedes <b>desactivarlo</b>: no podrá iniciar sesión, sale de sus proyectos y deja de aparecer como activo, pero su historial se mantiene.</div>
+        </> : null}
+        {removal.error ? <div style={{ font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-danger)' }}>{removal.error}</div> : null}
+      </div>}
+    </Modal>
     <Modal open={!!reset} title={reset && reset.step === 'done' ? 'Contraseña restablecida' : 'Restablecer contraseña de ' + e.name} onClose={() => reset && reset.step !== 'busy' && setReset(null)} width={500}
       actions={reset && reset.step === 'done'
         ? <><Button variant="secondary" icon="content_copy" onClick={() => { try { navigator.clipboard.writeText(reset.pw); notify('Contraseña copiada'); } catch (_) { notify('No se pudo copiar • selecciónala manualmente'); } }}>Copiar</Button><Button onClick={() => setReset(null)}>Listo</Button></>
@@ -1280,6 +1357,22 @@ function EmployeeProfileInner({ empId, go, notify }) {
     </Modal>
     {tab === 'overview' && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,420px),1fr))', gap: 20 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {canSeeAccount && <Card icon="admin_panel_settings" title="Acceso al sistema" subtitle="Cuenta con la que esta persona inicia sesión">
+          {!account ? <div className="mgh-body" style={{ color: 'var(--mgh-ink-3)' }}>Cargando…</div>
+            : !account.hasAccount ? <div className="mgh-body" style={{ color: 'var(--mgh-ink-3)' }}>{account.error ? 'No se pudo consultar la cuenta.' : 'Sin cuenta de acceso. Agrega un correo al empleado para crearla.'}</div>
+            : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <KeyValue label="Correo de acceso" value={account.email} />
+                <KeyValue label="Rol en el sistema" value={ROLE_LABELS[account.role] || account.role} aside={!account.isActive ? <Badge size="sm" tone="danger">Desactivada</Badge> : account.mustChangePassword ? <Badge size="sm" tone="warning">Contraseña temporal</Badge> : null} />
+                <KeyValue label="Último acceso" value={account.lastLoginAt ? fmtAt(account.lastLoginAt) : 'Nunca'} />
+                <KeyValue label="Contraseña propia" value={account.hasPassword ? 'Sí' : 'No (solo Google)'} />
+              </div>
+              {canSetRole && <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <Select size="sm" value={roleDraft} onChange={x => setRoleDraft(typeof x === 'string' ? x : x.target.value)} options={Object.entries(ROLE_LABELS).map(([value, label]) => ({ value, label }))} />
+                <Button size="sm" icon="save" disabled={roleBusy || roleDraft === account.role} onClick={saveRole}>{roleBusy ? 'Guardando…' : 'Cambiar rol'}</Button>
+              </div>}
+            </div>}
+        </Card>}
         <Card icon="badge" title="Employment details">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}><KeyValue label="Email" value={e.email || '—'} /><KeyValue label="Manager" value={e.mgr || '—'} /><KeyValue label="Work location" value={e.loc || '—'} /><KeyValue label="Pay frequency" value={e.freq || '—'} /><KeyValue label="Tax profile" value={String(e.tax || '—').split(' — ')[0]} aside={<Badge tone={/^Exempt/.test(e.tax) ? 'success' : 'info'} size="sm">{/^Exempt/.test(e.tax) ? 'No withholdings' : 'Withholding'}</Badge>} /><KeyValue label="Primary bank" value={e.bank || '—'} /><KeyValue label="RNC / Cédula Personal" value={e.nid || '—'} mono /><KeyValue label="Payment method" value={e.pmethod || '—'} /></div>
         </Card>
@@ -3535,7 +3628,9 @@ function ProjectsWorkspace({ go, notify, currentUser }) {
                 >
                   <option value="employee">Empleado Estándar (Registrar horas, ver proyectos)</option>
                   <option value="contractor">Contratista Internacional (Facturación por invoice)</option>
-                  <option value="pm">Project Manager (Gestión de proyectos y equipo)</option>
+                  <option value="supervisor">Supervisor (Supervisión de equipo)</option>
+                  {['hr', 'admin'].includes((MGH_RBAC.user || {}).role) && <option value="pm">Project Manager (Gestión de proyectos y equipo)</option>}
+                  {(MGH_RBAC.user || {}).role === 'admin' && <><option value="hr">Recursos Humanos</option><option value="finance">Finanzas</option><option value="admin">Administrador (acceso total)</option></>}
                 </select>
               </div>
             </div>

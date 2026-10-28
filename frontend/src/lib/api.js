@@ -92,6 +92,11 @@ export const api = {
   me: () => request('GET', '/auth/me'),
   // { newPassword, currentPassword?, googleIdToken? } — see auth.service.changePassword
   changePassword: (payload) => request('POST', '/auth/password', payload),
+  employeeRemoval: (employeeId) => request('GET', `/employees/${encodeURIComponent(employeeId)}/removal`),
+  deleteEmployee: (employeeId) => request('DELETE', `/employees/${encodeURIComponent(employeeId)}`),
+  deactivateEmployee: (employeeId) => request('POST', `/employees/${encodeURIComponent(employeeId)}/deactivate`),
+  employeeAccount: (employeeId) => request('GET', `/employees/${encodeURIComponent(employeeId)}/account`),
+  setEmployeeRole: (employeeId, role) => request('PUT', `/employees/${encodeURIComponent(employeeId)}/account/role`, { role }),
   resetEmployeePassword: (employeeId) => request('POST', `/employees/${encodeURIComponent(employeeId)}/reset-password`),
   logout: async () => {
     try {

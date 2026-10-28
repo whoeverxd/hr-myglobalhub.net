@@ -22,7 +22,10 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
 
 ## Data conventions
 - Pay periods: `PP-{YYYY}-{NN}` quincenas (`frontend/src/lib/periodService.js`, `backend/src/payroll.js`): 1–15 and
-  16–end of month; pay date = period end + 5 days. Unlocked existing rows are corrected on load. The app uses
+  16–end of month; pay date = period end + 5 days. Unlocked existing rows are corrected on load. New rows are Open once
+  started, else Draft — never Closed by the calendar (old auto-closed rows: `scripts/reopen-auto-closed-periods.js`).
+  `#periods` reads the stored rows (`periodsDb`) and lists only the current, the next and periods with timesheets or a
+  payroll run. The app uses
   the real current date (attendance engine `MGH_ATT.TODAY` included); no frozen demo date.
 - No sample data: screens show backend data or an empty state. A day without punches is "No Record", not "Absent".
 - 12 statuses: Draft → Open → Awaiting Employee/Supervisor/PM/HR/Finance → Processing → Approved → Paid →
@@ -55,7 +58,17 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   /auth/logout) until the user replaces it, and App.jsx shows a non-dismissable modal. Create responses carry
   `account.status` (created | linked | conflict | failed | none); an email already linked to another employee is never
   taken over. Forgotten password: "Restablecer contraseña" on the employee profile (HR/admin/PM, not own profile; only admin
-  for an admin; a PM only for employee/contractor/supervisor accounts) → `POST /employees/:id/reset-password` issues a new temporary password (shown once), revokes the
+  for an admin; a PM only for employee/contractor/supervisor accounts)
+  System roles (one per login): employee, contractor, supervisor, pm, hr, finance, admin (= Platform Admin, top level,
+  passes every `requireRole`). Who may give which role on creation: `ASSIGNABLE_ROLES` in `auth.service.js` (PM →
+  employee/contractor/supervisor; a job title never escalates beyond that). Admin changes roles on the profile card
+  "Acceso al sistema" (`PUT /employees/:id/account/role`; not own role, not the last admin). Bootstrap admins:
+  `node scripts/set-user-role.js --role admin <email…>` (dry run) / `--apply` (reads live Firestore, then asks CAMBIAR).
+- Removing an employee ("Eliminar empleado" on the profile; PM for team accounts, admin for any; never yourself or the
+  last admin): `GET /employees/:id/removal` previews, `DELETE /employees/:id` cascades over operational data
+  (activities, unpaid sheets, punches, leave, memberships, task assignment, contractor rows, login + sessions) and is
+  refused (409) with payroll history (approved/paid sheets, run lines, approved adjustments, paid contractor payments);
+  then `POST /employees/:id/deactivate` (status Terminated, login disabled, history kept). `employees.controller.js`. → `POST /employees/:id/reset-password` issues a new temporary password (shown once), revokes the
   user's sessions and sets must_change_password. Google-only accounts have no local password until they set one via
   `POST /api/auth/password` (current password, Google re-verification, or none set yet).
 - Payouts: bank, Coinbase (USDC/BTC/ETH on Base/Ethereum/Polygon/Solana) or split; must total 100%.

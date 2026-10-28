@@ -230,11 +230,15 @@ export default class App extends React.Component {
         }
       }
 
+      const runs = await api.payrollRuns().catch(() => []); // pm/finance/admin only; others just don't see run status
       this.setState({
         adj: d.adjustments || [],
         worklogs: d.worklogs || [],
         proofs: d.proofs || [],
         ov,
+        periodsDb: Array.isArray(periods) ? periods : [],
+        sheetsDb: Array.isArray(d.timesheets) ? d.timesheets : [],
+        runsDb: Array.isArray(runs) ? runs : [],
         currentUser: d.currentUser || this.state.currentUser,
         apiOnline: true
       });
@@ -824,15 +828,19 @@ export default class App extends React.Component {
     const lastDay = new Date(year, m + 1, 0).getDate();
     const startDay = isFirstHalf ? 1 : 16;
     const endDay = isFirstHalf ? 15 : lastDay;
-    const s = new Date(Date.UTC(year, m, startDay));
-    const e = new Date(Date.UTC(year, m, endDay));
-    const pay = new Date(Date.UTC(year, m, Math.min(lastDay, endDay + (this.state.offset || 5))));
-    const todayStr = (window.MGH_ATT && window.MGH_ATT.TODAY) || new Date().toISOString().slice(0, 10);
-    const sStr = s.toISOString().slice(0, 10), eStr = e.toISOString().slice(0, 10);
-    let st = todayStr > eStr ? 'Closed' : todayStr >= sStr ? 'Open' : 'Draft';
     const id = `PP-${year}-${String(n).padStart(2, '0')}`;
+    // The stored row is the source of truth (dates, pay date, status); computed only if the backend has none
+    const row = (this.state.periodsDb || []).find(r => r.id === id);
+    const utc = str => new Date(str + 'T00:00:00Z');
+    const s = row ? utc(row.start) : new Date(Date.UTC(year, m, startDay));
+    const e = row ? utc(row.end) : new Date(Date.UTC(year, m, endDay));
+    const pay = row && row.payDate ? utc(row.payDate) : add(e, 5);
+    const todayStr = (window.MGH_ATT && window.MGH_ATT.TODAY) || new Date().toISOString().slice(0, 10);
+    const sStr = s.toISOString().slice(0, 10);
+    // Never "Closed" by the calendar: a period stays Open until its payroll is paid and someone locks it
+    let st = row ? row.status : todayStr >= sStr ? 'Open' : 'Draft';
     st = this.state.ov[id] || st;
-    return {n,id,s,e,pay,status:st,dl:[[add(e,1),'10:00'],[add(e,1),'18:00'],[add(e,2),'12:00'],[add(e,2),'17:00'],[add(e,4),'12:00']]};
+    return {n,id,s,e,pay,status:st,stored:Boolean(row)};
   }
   async setStatus(id,st,msg){
     try {
@@ -985,22 +993,30 @@ export default class App extends React.Component {
     const activePeriodNum = curP.periodNumber;
     const curIdx = Math.max(0, Math.min(all.length - 1, activePeriodNum - 1));
     const cur=all[curIdx] || all[0];
+    // Real activity per period: timesheets (submitted / approved) and payroll runs
+    const sheetsBy={},runBy={};
+    (s.sheetsDb||[]).forEach(t=>{const k=t.period;if(!k)return;const x=sheetsBy[k]||(sheetsBy[k]={total:0,submitted:0,approved:0});x.total++;if(!['Draft','Returned'].includes(t.status))x.submitted++;if(['Approved','Paid'].includes(t.status))x.approved++;});
+    (s.runsDb||[]).forEach(r=>{runBy[r.period_id]=r;});
+    const hasData=p=>p.n===activePeriodNum||p.n===activePeriodNum+1||sheetsBy[p.id]||runBy[p.id]||!['Open','Draft'].includes(p.status);
+    const real=all.filter(hasData);
     const fl={all:()=>true,active:p=>!LOCKED.includes(p.status),locked:p=>LOCKED.includes(p.status)};
     const q=s.pq.trim().toLowerCase();
-    const shown=all.filter(fl[s.periodFilter]).filter(p=>!q||p.id.toLowerCase().includes(q)).sort((a,b)=>{const pr=x=>x.n===activePeriodNum?0:x.n===activePeriodNum+1?1:x.n>activePeriodNum?2+x.n:100-x.n;return pr(a)-pr(b)});
-    const periodRows=shown.slice(0,12).map(p=>{
+    const shown=real.filter(fl[s.periodFilter]).filter(p=>!q||p.id.toLowerCase().includes(q)).sort((a,b)=>{const pr=x=>x.n===activePeriodNum?0:x.n===activePeriodNum+1?1:x.n>activePeriodNum?2+x.n:100-x.n;return pr(a)-pr(b)});
+    const RUN_LABEL={Calculated:'Calculada',PM_Approved:'Aprobada PM',Approved:'Aprobada',Paid:'Pagada'};
+    const periodRows=shown.map(p=>{
       const locked=LOCKED.includes(p.status),isCur=p.n===activePeriodNum;
-      const dl=p.dl.map(([d,t],i)=>{const past=locked||(isCur&&i<2);const curStep=isCur&&i===2;return {v:(past&&!locked&&isCur?'Passed • ':'')+f(d)+', '+t,color:curStep?'var(--mgh-warning)':past?'var(--mgh-success)':'var(--mgh-ink-2)',font:(curStep||past&&isCur?'700':'400')+' 13px/18px var(--font-sans)',bg:curStep?'var(--mgh-warning-bg)':'transparent'}});
+      const sh=sheetsBy[p.id],run=runBy[p.id];
       let act;
       if(p.status==='Draft')act=['secondary','play_arrow','Open',()=>this.setStatus(p.id,'Open',p.id+' opened for time entry • employees notified')];
       else if(p.status==='Closed'||p.status==='Archived')act=['ghost','lock_open','Reopen',()=>this.setState({dialog:{title:'Reopen '+p.id+'?',body:'Reopening a locked period requires dual approval from the Payroll Administrator and Finance VP. Original records stay immutable — any change posts as an adjustment in the next open period.',confirm:'Request Reopen',variant:'primary',icon:'key',run:()=>{this.setState({dialog:null});this.flash('Reopening locked periods is not available yet • post corrections as Payroll Adjustments')}}})];
       else if(p.status==='Paid'||p.status==='Approved')act=['dark','lock','Lock',()=>this.setStatus(p.id,'Closed',p.id+' locked • SHA-256 seal written')];
+      else if(p.n<activePeriodNum)act=['secondary','payments','Process Payroll',()=>this.go('processing')];
       else act=[isCur?'primary':'secondary','visibility','Review Cycle',()=>this.go('approvals')];
-      return {id:p.id,start:fy(p.s),end:fy(p.e),cutoff:f(p.e)+', 23:59',dl,pay:fy(p.pay),status:p.status,statusShort:SHORT[p.status]||p.status,tone:TONE(p.status),locked,
+      return {id:p.id,start:fy(p.s),end:fy(p.e),cutoff:f(p.e)+', 23:59',sheets:sh?sh.submitted+' enviadas • '+sh.approved+' aprobadas':'Sin hojas',run:run?(RUN_LABEL[run.status]||run.status):'Sin corrida',runTone:run?(run.status==='Paid'?'success':run.status==='Approved'?'primary':'warning'):'neutral',pay:fy(p.pay),status:p.status,statusShort:SHORT[p.status]||p.status,tone:TONE(p.status),locked,
         hasFlag:isCur||p.n===activePeriodNum+1||p.n===activePeriodNum-1,flag:isCur?'Current Cycle':p.n===activePeriodNum+1?'Next in Queue':'Previous Cycle',flagTone:isCur?'success':p.n===activePeriodNum+1?'info':'warning',
         rowBg:isCur?'var(--mgh-primary-50)':'transparent',actVariant:act[0],actIcon:act[1],actLabel:act[2],act:act[3]};
     });
-    const lockedCount=all.filter(p=>LOCKED.includes(p.status)).length;
+    const lockedCount=real.filter(p=>LOCKED.includes(p.status)).length;
     const daysTo=Math.max(0, Math.round((cur.pay-new Date())/DAY));
     const WFc=window.MGH_WF,wfSteps=WFc?WFc.steps():[];
     const STAGES_ARR=['employee',...wfSteps.map(x=>x.key),'paid'].map(k=>{const x=STAGE_INFO[k]||STAGE_INFO.manager,stp=wfSteps.find(y=>y.key===k);const r=stp?stp.role:k==='employee'?'Employee':'Payroll';return {...x,kv:[['Role',r],['Person',WFc?WFc.person(r):r]],owner:r+' • '+(WFc?WFc.person(r):r)}});
@@ -1126,11 +1142,11 @@ export default class App extends React.Component {
           {label:'Locked / completed',value:lockedCount+' Periods',icon:'verified_user',tone:'success',footer:'Closed, paid or archived in '+curYear},
           {label:'Open adjustments',value:pendAdj.length+' Pending',icon:'pending_actions',tone:'warning',footer:pendAdj.length?money(pendAmt)+' pending approval':'Nothing pending'}];
       })(),
-      periodFilterOpts:[{value:'all',label:'All Cycles',count:all.length},{value:'active',label:'Active & Upcoming',count:all.filter(fl.active).length},{value:'locked',label:'Locked / Completed',count:lockedCount}],
+      periodFilterOpts:[{value:'all',label:'All Cycles',count:real.length},{value:'active',label:'Active & Upcoming',count:real.filter(fl.active).length},{value:'locked',label:'Locked / Completed',count:lockedCount}],
       periodFilter:s.periodFilter,setPeriodFilter:v=>this.setState({periodFilter:v}),pq:s.pq,setPq:v=>this.setState({pq:typeof v==='string'?v:(v&&v.target?v.target.value:'')}),searchStyle:{width:280},
-      periodCols:[['Pay period','left'],['Work start','left'],['Work end','left'],['Payroll cutoff','left'],['Emp. deadline','left'],['Sup. deadline','left'],['PM deadline','left'],['HR deadline','left'],['Finance deadline','left'],['Pay date','left'],['Status','left'],['Actions','right']].map(x=>({label:x[0],align:x[1]})),
-      periodRows,periodCount:all.length,periodShown:periodRows.length+(shown.length>12?' of '+shown.length+' matching':''),
-      lockRules:[{t:'Automatic Period Freeze',d:'Periods lock 24 hours post disbursement. All direct edits permanently rejected.'},{t:'Hours, Rates & Calculations Preserved',d:'Gross, deductions, employer contributions and net pay stored exactly as computed.'},{t:'Corrections via Payroll Adjustments Only',d:'Retro pay or deductions are new entries routed through approval.'},{t:'Two-Party Override Required',d:'Unlocking an archived cycle requires Finance VP and Lead Auditor dual-signature.'}],
+      periodCols:[['Pay period','left'],['Work start','left'],['Work end','left'],['Payroll cutoff','left'],['Timesheets','left'],['Payroll run','left'],['Pay date','left'],['Status','left'],['Actions','right']].map(x=>({label:x[0],align:x[1]})),
+      periodRows,periodCount:real.length,periodShown:periodRows.length,periodYear:curYear,
+      lockRules:[{t:'Un período no se cierra por calendario',d:'Sigue abierto hasta que su nómina se paga, aunque sus fechas hayan pasado.'},{t:'Pagar bloquea el período',d:'Al marcar la corrida como pagada (Payroll Processing), el período, sus hojas y la corrida quedan en Pagado.'},{t:'Cerrado o archivado es inmutable',d:'Las correcciones se registran como Ajustes de Nómina en el siguiente período abierto.'},{t:'Reabrir no está disponible',d:'Un período cerrado no se puede reabrir desde la aplicación.'}],
       saveSettingsBtn:null,
       // Read from the live config (attendance rules, workflow engine, holidays loaded from the backend)
       settingsRows:(()=>{
@@ -1980,12 +1996,9 @@ export default class App extends React.Component {
                       Period Locking Protocol Policy
                     </span>
                     <span style={{ font: "400 13px/18px var(--font-sans)", color: "var(--mgh-ink-2)" }}>
-                      Closed pay periods are cryptographically archived. Direct timesheet alteration is disabled across all roles. Retroactive hours, commissions or corrections must flow through an auditable Payroll Adjustment.
+                      A period is locked when its payroll run is marked paid. Closed periods are immutable; retroactive hours or corrections go through an auditable Payroll Adjustment.
                     </span>
                   </div>
-                  <DS.Badge tone="neutral" icon="schedule">
-                    Auto-lock: 24h post pay date
-                  </DS.Badge>
                   <DS.Button variant="dark" icon="shield_lock" onClick={v.goAudit}>
                     Open Audit Log
                   </DS.Button>
@@ -1998,17 +2011,18 @@ export default class App extends React.Component {
                           Calendar Year:
                         </span>
                         <span style={{ font: "700 16px/22px var(--font-sans)", color: "var(--mgh-ink)" }}>
-                          2025 (
+                          {v.periodYear}
+                          {" ("}
                           {v.periodCount}
                           {" Pay Cycles)"}
                         </span>
                       </div>
                       <DS.FilterChips options={v.periodFilterOpts} value={v.periodFilter ?? ''} onChange={v.setPeriodFilter} />
                     </div>
-                    <DS.SearchField value={v.pq ?? ''} onChange={v.setPq} placeholder="Filter cycle (e.g. PP-2025-08)" style={v.searchStyle} />
+                    <DS.SearchField value={v.pq ?? ''} onChange={v.setPq} placeholder={"Filter cycle (e.g. PP-" + v.periodYear + "-08)"} style={v.searchStyle} />
                   </div>
                   <div className="mgh-scroll" style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", minWidth: "1180px", borderCollapse: "collapse" }}>
+                    <table style={{ width: "100%", minWidth: "980px", borderCollapse: "collapse" }}>
                       <thead>
                         <tr>
                           {(v.periodCols || []).map((h, _i0) => (
@@ -2052,13 +2066,14 @@ export default class App extends React.Component {
                               <td style={{ padding: "12px 14px", font: "400 13px/18px var(--font-sans)", color: "var(--mgh-ink-2)", whiteSpace: "nowrap" }}>
                                 {p.cutoff}
                               </td>
-                              {(p.dl || []).map((d, _i2) => (
-                                <Fragment key={_i2}>
-                                  <td style={{ padding: "12px 14px", font: d.font, color: d.color, background: d.bg, whiteSpace: "nowrap" }}>
-                                    {d.v}
-                                  </td>
-                                </Fragment>
-                              ))}
+                              <td style={{ padding: "12px 14px", font: "400 13px/18px var(--font-sans)", color: "var(--mgh-ink-2)", whiteSpace: "nowrap" }}>
+                                {p.sheets}
+                              </td>
+                              <td style={{ padding: "12px 14px", whiteSpace: "nowrap" }}>
+                                <DS.Badge tone={p.runTone} size="sm">
+                                  {p.run}
+                                </DS.Badge>
+                              </td>
                               <td style={{ padding: "12px 14px", font: "600 13px/18px var(--font-sans)", color: "var(--mgh-ink)", whiteSpace: "nowrap" }}>
                                 {p.pay}
                               </td>
@@ -2086,7 +2101,7 @@ export default class App extends React.Component {
                       </strong>
                       {" of "}
                       {v.periodCount}
-                      {" pay cycles in 2025 • Standard Bi-Weekly Schedule (Dominicana SRL)"}
+                      {" pay cycles with activity in " + v.periodYear + " (current, next and any with timesheets or a payroll run) • My Global Hub Dominicana SRL"}
                     </span>
                     <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--mgh-ink-3)" }}>
                       {"Numbering: PP-{YYYY}-{NN} • quincenas 1–15 and 16–end of month • pay date +5 days"}
@@ -2126,50 +2141,6 @@ export default class App extends React.Component {
                             <span style={{ font: "600 13px/18px var(--font-sans)", color: "var(--mgh-ink)", textAlign: "right" }}>
                               {s.v}
                             </span>
-                          </div>
-                        </Fragment>
-                      ))}
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "14px", padding: "10px 0", borderBottom: "1px solid var(--mgh-surface-2)" }}>
-                        <span style={{ font: "700 11px/14px var(--font-sans)", letterSpacing: "0.55px", textTransform: "uppercase", color: "var(--mgh-ink-2)" }}>
-                          Default pay date offset
-                        </span>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <DS.IconButton icon="remove" title="Decrease" onClick={v.offDown} />
-                          <span style={{ font: "800 18px/24px var(--font-sans)", color: "var(--mgh-ink)", minWidth: "72px", textAlign: "center" }}>
-                            +
-                            {v.offset}
-                            {" days"}
-                          </span>
-                          <DS.IconButton icon="add" title="Increase" onClick={v.offUp} />
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "14px", padding: "12px 0 0" }}>
-                        <div style={{ display: "flex", flexDirection: "column" }}>
-                          <span style={{ font: "600 13px/18px var(--font-sans)", color: "var(--mgh-ink)" }}>
-                            Automatic period generation
-                          </span>
-                          <span style={{ font: "400 12px/16px var(--font-sans)", color: "var(--mgh-ink-3)" }}>
-                            Creates next year's 26 cycles on Nov 1 as Draft
-                          </span>
-                        </div>
-                        <DS.Toggle checked={v.autoGen ?? false} onChange={v.toggleAuto} />
-                      </div>
-                    </div>
-                  </DS.Card>
-                  <DS.Card icon="notifications_active" title="Automatic Notifications" subtitle="Employees and managers are notified at every milestone">
-                    <div style={{ display: "flex", flexDirection: "column" }}>
-                      {(v.notifRows || []).map((n, _i0) => (
-                        <Fragment key={_i0}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "14px", padding: "10px 0", borderBottom: "1px solid var(--mgh-surface-2)" }}>
-                            <div style={{ display: "flex", flexDirection: "column", minWidth: "0" }}>
-                              <span style={{ font: "600 13px/18px var(--font-sans)", color: "var(--mgh-ink)" }}>
-                                {n.ev}
-                              </span>
-                              <span style={{ font: "400 12px/16px var(--font-sans)", color: "var(--mgh-ink-3)" }}>
-                                {n.meta}
-                              </span>
-                            </div>
-                            <DS.Toggle checked={n.on ?? false} onChange={n.toggle} />
                           </div>
                         </Fragment>
                       ))}

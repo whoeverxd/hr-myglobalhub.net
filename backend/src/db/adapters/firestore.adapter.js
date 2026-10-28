@@ -318,10 +318,12 @@ class FirestoreAdapter {
           })
         );
         this.initialized = true;
+        this.hydratedFromRemote = true; // live data (false = running on the local snapshot only)
         this._persistLocalSnapshot();
         console.log(`[FirestoreAdapter] Hydrated ${this.cache.size} collections from Cloud Firestore.`);
       } catch (err) {
         // Fall back gracefully to local snapshot cache
+        this.hydrationError = err.message;
         this.initialized = true;
       }
     })();

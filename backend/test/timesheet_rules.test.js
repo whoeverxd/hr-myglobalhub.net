@@ -73,3 +73,12 @@ test('My timesheet rules: employee owns Draft, submission locks it, nobody edits
   r = await call(pm, 'POST', `/timesheets/TS-${periodId}-${pm.user.employeeId}/approve`, { role: 'pm' });
   assert.equal(r.status, 403);
 });
+
+test('Pay periods are never created Closed by the calendar (only Open once started, else Draft)', () => {
+  const { buildPeriods } = require('../src/payroll');
+  const today = new Date().toISOString().slice(0, 10);
+  for (const p of buildPeriods(Number(today.slice(0, 4)))) {
+    assert.equal(p.status, p.start <= today ? 'Open' : 'Draft', p.id);
+    assert.equal(p.locked, false, p.id);
+  }
+});

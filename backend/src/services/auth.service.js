@@ -451,18 +451,83 @@ async function changePassword({ userId, currentPassword, newPassword, googleIdTo
  */
 const PM_RESETTABLE_ROLES = ['employee', 'contractor', 'supervisor'];
 
+// System roles, lowest to highest. 'admin' is the top level (shown as Platform Admin): it passes every role check.
+const SYSTEM_ROLES = ['employee', 'contractor', 'supervisor', 'pm', 'hr', 'finance', 'admin'];
+// Which roles each actor may give to someone else (creating an account or changing its role)
+const ASSIGNABLE_ROLES = {
+  admin: SYSTEM_ROLES,
+  hr: ['employee', 'contractor', 'supervisor', 'pm'],
+  pm: ['employee', 'contractor', 'supervisor'],
+};
+function canAssignRole(actorRole, role) {
+  return (ASSIGNABLE_ROLES[actorRole] || []).includes(role);
+}
+
+// The login of an employee: linked by employee_id, else an unlinked account with the employee's email
+function findUserForEmployee(emp) {
+  let user = db.getOne(`SELECT * FROM users WHERE employee_id = ?`, [emp.id]);
+  if (!user && emp.email) {
+    const byEmail = db.getOne(`SELECT * FROM users WHERE LOWER(email) = ?`, [String(emp.email).trim().toLowerCase()]);
+    if (byEmail && (!byEmail.employee_id || byEmail.employee_id === emp.id)) user = byEmail;
+  }
+  return user || null;
+}
+
+function accountForEmployee(employeeId) {
+  const emp = db.getOne(`SELECT id, email, name FROM employees WHERE id = ?`, [employeeId]);
+  if (!emp) { const err = new Error('Employee not found'); err.status = 404; throw err; }
+  const user = findUserForEmployee(emp);
+  if (!user) return { hasAccount: false };
+  return {
+    hasAccount: true,
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    isActive: Boolean(Number(user.is_active)),
+    lastLoginAt: user.last_login_at || null,
+    hasPassword: Boolean(user.password_hash),
+    mustChangePassword: Boolean(Number(user.must_change_password)),
+  };
+}
+
+/**
+ * Change the system role of a login. Admin only. Never your own role (no self-lockout) and never the last active admin.
+ * Takes effect on the user's next request (sessions read the role from users on every request).
+ */
+function setUserRole({ userId, role, actor, ip = '127.0.0.1' }) {
+  const fail = (status, message) => { const err = new Error(message); err.status = status; return err; };
+  if (!actor || actor.role !== 'admin') throw fail(403, 'Only an administrator can change system roles');
+  if (!SYSTEM_ROLES.includes(role)) throw fail(400, 'Unknown role: ' + role + ' (valid: ' + SYSTEM_ROLES.join(', ') + ')');
+  const user = db.getOne(`SELECT * FROM users WHERE id = ?`, [userId]);
+  if (!user) throw fail(404, 'User not found');
+  if (user.id === actor.id) throw fail(400, 'You cannot change your own role');
+  if (user.role === role) return { ok: true, userId: user.id, email: user.email, role, changed: false };
+  if (user.role === 'admin') {
+    const admins = db.query(`SELECT id FROM users WHERE role = 'admin' AND is_active = 1`);
+    if (admins.filter((a) => a.id !== user.id).length === 0) throw fail(409, 'This is the last active administrator');
+  }
+  db.transaction(() => {
+    db.execute(`UPDATE users SET role = ?, updated_at = datetime('now') WHERE id = ?`, [role, user.id]);
+    logAction({ actor: actor.name, action: 'ROLE_CHANGED', entityType: 'user', entityId: user.id, oldValues: { role: user.role }, newValues: { role, email: user.email }, ip });
+  });
+  return { ok: true, userId: user.id, email: user.email, role, previousRole: user.role, changed: true };
+}
+
+function setRoleForEmployee({ employeeId, role, actor, ip }) {
+  const emp = db.getOne(`SELECT id, email, name FROM employees WHERE id = ?`, [employeeId]);
+  if (!emp) { const err = new Error('Employee not found'); err.status = 404; throw err; }
+  const user = findUserForEmployee(emp);
+  if (!user) { const err = new Error('This employee has no login account'); err.status = 404; throw err; }
+  return setUserRole({ userId: user.id, role, actor, ip });
+}
+
 function resetPasswordForEmployee({ employeeId, actor, ip = '127.0.0.1' }) {
   const fail = (status, message) => { const err = new Error(message); err.status = status; return err; };
   if (!actor || !['admin', 'hr', 'pm'].includes(actor.role)) throw fail(403, 'Only HR, a PM or an administrator can reset passwords');
   const emp = db.getOne(`SELECT id, email, name FROM employees WHERE id = ?`, [employeeId]);
   if (!emp) throw fail(404, 'Employee not found');
 
-  let user = db.getOne(`SELECT * FROM users WHERE employee_id = ?`, [emp.id]);
-  if (!user && emp.email) {
-    // Account created by email before it was linked; never touch one that belongs to another employee
-    const byEmail = db.getOne(`SELECT * FROM users WHERE LOWER(email) = ?`, [String(emp.email).trim().toLowerCase()]);
-    if (byEmail && (!byEmail.employee_id || byEmail.employee_id === emp.id)) user = byEmail;
-  }
+  const user = findUserForEmployee(emp); // never one that belongs to another employee
   if (!user) throw fail(404, 'This employee has no login account');
   if (!Number(user.is_active)) throw fail(409, 'This login account is disabled');
   if (user.id === actor.id) throw fail(400, 'Use Change Password to update your own password');
@@ -524,6 +589,7 @@ function ensureUserForEmployee({ email, name, role = 'employee', entity = 'MGH D
     return { ...existing, accountStatus: 'conflict' };
   }
   if (existing) {
+    if (existing.role === 'admin') role = null; // linking an administrator's account never changes its role
     db.execute(
       `UPDATE users SET
          employee_id = COALESCE(?, employee_id),
@@ -570,6 +636,11 @@ module.exports = {
   loginWithGoogle,
   changePassword,
   resetPasswordForEmployee,
+  SYSTEM_ROLES,
+  canAssignRole,
+  accountForEmployee,
+  setUserRole,
+  setRoleForEmployee,
   hasLocalPassword,
   validateSession,
   authenticateUser,
