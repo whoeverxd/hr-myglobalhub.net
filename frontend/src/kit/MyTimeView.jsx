@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { calculateQuincena } from '../lib/periodService.js';
+import { MySheets, MyHistory, EDITABLE, statusLabel, statusTone } from './MyTimesheets.jsx';
 export { calculateQuincena };
+
+// #myentry → daily activity log • #mysheets → my quincena timesheets • #myhistory → approval timeline
+export default function MyTimeView(props) {
+  if (props.tab === 'sheets') return <MySheets {...props} />;
+  if (props.tab === 'history') return <MyHistory {...props} />;
+  return <MyTimeEntry {...props} />;
+}
 
 export const WORK_TYPES = [
   { value: 'Desarrollo', label: 'Desarrollo / Implementación', tone: 'info', icon: 'code', color: '#0094CC', bg: '#EBF6FC' },
@@ -10,7 +18,7 @@ export const WORK_TYPES = [
   { value: 'Soporte', label: 'Soporte / Hotfix', tone: 'danger', icon: 'build', color: '#DC2626', bg: '#FEE2E2' },
 ];
 
-export default function MyTimeView({ user, empId, notify, go }) {
+function MyTimeEntry({ user, empId, notify, go }) {
   const DS = window.MyGlobalHubDesignSystem_2a603d || {};
   const { Button, IconButton, Badge, Card, StatCard, Icon } = DS;
 
@@ -23,8 +31,15 @@ export default function MyTimeView({ user, empId, notify, go }) {
   const employeeName = (user && user.name) || (rbac && rbac.me() ? rbac.me().person : 'User');
   const employeeRole = (user && user.role) ? String(user.role).toUpperCase() : (rbac && rbac.role ? rbac.role.toUpperCase() : 'EMPLOYEE');
 
-  // Current anchor date (defaults to today)
-  const [currentDate, setCurrentDate] = useState(() => new Date());
+  // Current anchor date (defaults to today, or the quincena opened from "Mis hojas")
+  const [currentDate, setCurrentDate] = useState(() => {
+    try {
+      const d = sessionStorage.getItem('mgh-myentry-date');
+      sessionStorage.removeItem('mgh-myentry-date');
+      if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) { const [y, m, dd] = d.split('-').map(Number); return new Date(y, m - 1, dd); }
+    } catch (_) {}
+    return new Date();
+  });
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -80,6 +95,24 @@ export default function MyTimeView({ user, empId, notify, go }) {
   useEffect(() => {
     loadPeriodActivities();
   }, [loadPeriodActivities]);
+
+  // Status of this quincena's timesheet: activities are editable only by their owner while it is Draft/Returned
+  const [sheetStatus, setSheetStatus] = useState(null);
+  useEffect(() => {
+    let cancel = false;
+    setSheetStatus(null);
+    if (!activeEmpId || !window.api || !window.api.timesheets) return;
+    window.api.timesheets({ empId: activeEmpId, periodId: quincena.code })
+      .then(list => { if (!cancel) setSheetStatus((Array.isArray(list) && list[0] && list[0].status) || 'Draft'); })
+      .catch(() => { if (!cancel) setSheetStatus('Draft'); });
+    return () => { cancel = true; };
+  }, [activeEmpId, quincena.code]);
+  const viewingOther = !!(activeEmpId && myEmpId && activeEmpId !== myEmpId);
+  const readOnly = !activeEmpId || viewingOther || (sheetStatus != null && !EDITABLE.includes(sheetStatus));
+  const lockReason = !activeEmpId ? 'Tu usuario no está vinculado a un empleado.'
+    : viewingOther ? 'Estás viendo el registro de otra persona (solo lectura).'
+    : sheetStatus && !EDITABLE.includes(sheetStatus) ? `Esta quincena está "${statusLabel(sheetStatus)}": ya no se puede editar. Si hay un error, pide al PM que te la devuelva.`
+    : '';
 
   // Load Jira issues from database cache
   useEffect(() => {
@@ -172,9 +205,11 @@ export default function MyTimeView({ user, empId, notify, go }) {
     };
   }, [activities, activitiesByDate, quincena.days]);
 
-  // Open modal pre-filled for a date
+  // Open modal pre-filled for a date (today when it falls in the viewed quincena, else its first day)
   const openNewTaskModal = (dateStr) => {
-    const target = dateStr || new Date().toISOString().slice(0, 10);
+    if (readOnly) { if (notify) notify(lockReason); return; }
+    const today = new Date().toISOString().slice(0, 10);
+    const target = dateStr || (today >= quincena.dateFrom && today <= quincena.dateTo ? today : quincena.dateFrom);
     setTaskDate(target);
     setJiraKey('');
     setCustomTicket('');
@@ -230,6 +265,7 @@ export default function MyTimeView({ user, empId, notify, go }) {
 
   // Delete activity
   const handleDeleteTask = async (id, taskName) => {
+    if (readOnly) { if (notify) notify(lockReason); return; }
     if (!window.confirm(`¿Eliminar la tarea "${taskName || id}" de la base de datos?`)) return;
     try {
       if (window.api && window.api.deleteActivity) {
@@ -287,6 +323,7 @@ export default function MyTimeView({ user, empId, notify, go }) {
               <Badge tone={isViewingTodayQuincena ? 'success' : 'warning'} dot={true} size="sm">
                 {isViewingTodayQuincena ? 'Quincena Actual' : 'Historial de Quincena'}
               </Badge>
+              {sheetStatus ? <Badge tone={statusTone(sheetStatus)} size="sm">{'Hoja: ' + statusLabel(sheetStatus)}</Badge> : null}
             </div>
 
             <p style={{ font: '400 13px/18px var(--font-sans)', color: 'var(--mgh-ink-2)', margin: 0 }}>
@@ -296,16 +333,26 @@ export default function MyTimeView({ user, empId, notify, go }) {
 
           {/* Quick Action Button */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {go ? <Button variant="secondary" icon="calendar_view_week" size="md" onClick={() => go('mysheets')}>Mis hojas / Enviar</Button> : null}
             <Button
               variant="primary"
               icon="add_circle"
               size="md"
-              onClick={() => openNewTaskModal(new Date().toISOString().slice(0, 10))}
+              disabled={readOnly}
+              onClick={() => openNewTaskModal()}
             >
-              + Registrar Tarea de Hoy
+              + Registrar Tarea
             </Button>
           </div>
         </div>
+
+        {lockReason ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, background: viewingOther ? 'var(--mgh-surface-1)' : 'var(--mgh-warning-bg)', font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-ink)' }}>
+            <Icon name={viewingOther ? 'visibility' : 'lock'} size={18} color={viewingOther ? 'var(--mgh-ink-3)' : 'var(--mgh-warning)'} />
+            <span style={{ flex: 1 }}>{lockReason}</span>
+            {!viewingOther && activeEmpId && go ? <Button size="sm" variant="ghost" onClick={() => go('mysheets')}>Ver mis hojas</Button> : null}
+          </div>
+        ) : null}
 
         {/* PERIOD SELECTOR & NAVIGATION BAR */}
         <div style={{
@@ -747,12 +794,14 @@ export default function MyTimeView({ user, empId, notify, go }) {
                                   </span>
 
                                   <button
+                                    disabled={readOnly}
                                     onClick={() => handleDeleteTask(act.id, act.jiraSummary || act.jiraKey)}
                                     style={{
                                       background: 'transparent',
                                       border: 'none',
                                       color: 'var(--mgh-ink-3)',
-                                      cursor: 'pointer',
+                                      cursor: readOnly ? 'not-allowed' : 'pointer',
+                          opacity: readOnly ? 0.35 : 1,
                                       padding: '4px',
                                       borderRadius: '4px',
                                       display: 'flex',
@@ -796,7 +845,8 @@ export default function MyTimeView({ user, empId, notify, go }) {
                     {/* Action Column */}
                     <td style={{ padding: '14px 16px', textAlign: 'center', verticalAlign: 'top' }}>
                       <button
-                        onClick={() => openNewTaskModal(day.dateStr)}
+                        disabled={readOnly}
+                                    onClick={() => openNewTaskModal(day.dateStr)}
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -808,7 +858,8 @@ export default function MyTimeView({ user, empId, notify, go }) {
                           color: day.isToday ? 'var(--mgh-primary)' : 'var(--mgh-ink-2)',
                           fontSize: '12px',
                           fontWeight: '600',
-                          cursor: 'pointer',
+                          cursor: readOnly ? 'not-allowed' : 'pointer',
+                          opacity: readOnly ? 0.35 : 1,
                           transition: 'all 0.15s ease'
                         }}
                         title={`Registrar tarea para el ${day.dateStr}`}

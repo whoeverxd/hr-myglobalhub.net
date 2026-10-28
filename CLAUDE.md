@@ -30,6 +30,13 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
 - Company: My Global Hub (Dominicana SRL, RNC 133-474018, Punta Cana) is the single umbrella company and the only
   organization/tenant (`MGH Dominicana SRL` in RBAC). Arawaki (e-commerce), Wokokai (social network) and Treslog
   (shipping app) are PROJECTS inside it — not legal entities, tenants or clients. No "MGH USA Inc." / "MGH UK Ltd.".
+- My time (employee, contractor, PM, supervisor — always their OWN record), `src/kit/MyTimeView.jsx` + `MyTimesheets.jsx`:
+  `#myentry` log daily activities (only while that quincena's sheet is Draft/Returned) • `#mysheets` one row per quincena,
+  live hours while editable, submit • `#myhistory` status timeline of own sheets + leave. Team review stays in
+  `#approvals` / `#queue` / `#timesheets`. Backend rules (`timesheets.controller.js`): hours are computed from activities
+  (+ approved paid leave, paid holidays; OT by org rule) and frozen on submit; 0 worked+leave hours can't be submitted;
+  only sheets under review can be approved/returned/adjusted; nobody but admin approves their own sheet; activities are
+  written only by their owner (admin may correct) and locked once the sheet leaves Draft/Returned.
 - Accounts: never a shared default password. New employee/contractor logins get a random one-time password
   (`initialPassword`, shown once). Google-only accounts have no local password until they set one via
   `POST /api/auth/password` (current password, Google re-verification, or none set yet).

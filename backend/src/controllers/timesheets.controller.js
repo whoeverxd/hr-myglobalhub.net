@@ -1,8 +1,97 @@
 const db = require('../db');
 const { logAction } = require('./audit.controller');
 const { getOrgConfig } = require('./workflows.controller');
+const { buildPeriods } = require('../payroll');
 
-function listTimesheets({ periodId, empId } = {}) {
+// Statuses in which the employee still owns the timesheet (can log activities and submit)
+const EDITABLE = ['Draft', 'Returned'];
+// Statuses that are not "under review" (cannot be approved or returned)
+const NOT_IN_REVIEW = ['Draft', 'Returned', 'Approved', 'Paid', 'Closed', 'Archived'];
+// Used when the organization has no workflow configured: PM review, then owner approval
+const DEFAULT_STEPS = [
+  { key: 'pm', label: 'Supervisión PM', role: 'pm', review: 'Supervisión PM' },
+  { key: 'owner', label: 'Aprobación Dueño & Pago', role: 'admin', review: 'Aprobación Dueño' },
+];
+
+const r2 = (n) => Math.round(n * 100) / 100;
+
+// Quincena id for a YYYY-MM-DD date (1-15 → odd, 16-end → even)
+function periodIdForDate(date) {
+  const [y, m, d] = String(date).slice(0, 10).split('-').map(Number);
+  return `PP-${y}-${String((m - 1) * 2 + (d <= 15 ? 1 : 2)).padStart(2, '0')}`;
+}
+
+// Dates come from the quincena rule (ids are deterministic), not from stored rows that may predate the rule
+function periodRange(periodId) {
+  const p = buildPeriods(Number(String(periodId).slice(3, 7))).find((x) => x.id === periodId);
+  return p ? { start: p.start, end: p.end, payDate: p.payDate, cutoff: p.cutoff } : null;
+}
+
+/**
+ * Hours of a timesheet derived from real records (the "equivalence" rule):
+ *  - worked = sum of the employee's daily activities in the period
+ *  - overtime split by the organization's rule (daily and/or weekly threshold)
+ *  - PTO = approved, paid leave on weekdays; holidays = paid non-working holidays on weekdays (one shift each)
+ */
+function computeHours(empId, periodId) {
+  const range = periodRange(periodId);
+  if (!range) return null;
+  const emp = db.getOne(`SELECT entity FROM employees WHERE id = ?`, [empId]) || {};
+  const ot = (getOrgConfig(emp.entity || 'MGH Dominicana SRL') || {}).ot || {};
+  const rule = ot.rule || 'weekly';
+  const dailyMax = Number(ot.daily) || 8;
+  const weeklyMax = Number(ot.weekly) || 44;
+  const useDaily = ['daily', 'both', 'custom'].includes(rule);
+  const useWeekly = ['weekly', 'both', 'custom'].includes(rule);
+
+  const days = [];
+  for (let d = new Date(range.start + 'T00:00:00Z'); d <= new Date(range.end + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + 1)) {
+    days.push({ date: d.toISOString().slice(0, 10), dow: d.getUTCDay() });
+  }
+  const weekday = (x) => x.dow !== 0 && x.dow !== 6;
+  const weekOf = (x) => { const t = new Date(x.date + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() - ((x.dow + 6) % 7)); return t.toISOString().slice(0, 10); };
+
+  const byDay = {};
+  db.query(`SELECT date, hours FROM daily_activities WHERE employee_id = ? AND date >= ? AND date <= ?`, [empId, range.start, range.end])
+    .forEach((a) => { byDay[a.date] = (byDay[a.date] || 0) + (Number(a.hours) || 0); });
+
+  let reg = 0, otH = 0;
+  const weekReg = {};
+  for (const x of days) {
+    const h = byDay[x.date] || 0;
+    if (!h) continue;
+    let dOt = useDaily ? Math.max(0, h - dailyMax) : 0;
+    let dReg = h - dOt;
+    if (useWeekly) {
+      const wk = weekOf(x), used = weekReg[wk] || 0;
+      const extra = Math.max(0, dReg - Math.max(0, weeklyMax - used));
+      dOt += extra; dReg -= extra; weekReg[wk] = used + dReg;
+    }
+    reg += dReg; otH += dOt;
+  }
+
+  const leaves = db.query(
+    `SELECT from_date, to_date, type FROM leave_requests WHERE employee_id = ? AND status = 'Approved' AND to_date >= ? AND from_date <= ?`,
+    [empId, range.start, range.end]
+  ).filter((l) => l.type !== 'Unpaid');
+  const onLeave = (date) => leaves.some((l) => date >= l.from_date && date <= l.to_date);
+  // Only the employee's organization calendar ('My Global Hub Dominicana SRL' and 'MGH Dominicana SRL' are the same org)
+  const orgKey = (s) => (/dominicana/i.test(s || '') ? 'MGH-DR' : String(s || ''));
+  const myOrg = orgKey(emp.entity || 'MGH Dominicana SRL');
+  const paidHolidays = new Set(
+    db.query(`SELECT date, org_id, is_paid, is_working FROM holidays WHERE date >= ? AND date <= ?`, [range.start, range.end])
+      .filter((h) => h.is_paid && !h.is_working && orgKey(h.org_id) === myOrg).map((h) => h.date)
+  );
+  let pto = 0, hol = 0;
+  for (const x of days.filter(weekday)) {
+    if (paidHolidays.has(x.date)) hol += dailyMax;
+    else if (onLeave(x.date)) pto += dailyMax;
+  }
+  reg = r2(reg); otH = r2(otH);
+  return { reg, ot: otH, pto, hol, total: r2(reg + otH + pto + hol), worked: r2(reg + otH) };
+}
+
+function listTimesheets({ periodId, empId, live = false } = {}) {
   let sql = `SELECT * FROM timesheets WHERE 1=1`;
   const params = [];
 
@@ -24,22 +113,30 @@ function listTimesheets({ periodId, empId } = {}) {
     }
     rows = db.query(sql, params);
   }
-  return rows.map((t) => ({
-    id: t.id,
-    emp: t.employee_id,
-    name: t.employee_name,
-    period: t.period_id,
-    status: t.status,
-    stepIdx: t.step_index,
-    reg: t.regular_hours,
-    ot: t.overtime_hours,
-    pto: t.pto_hours,
-    hol: t.holiday_hours,
-    total: t.total_hours,
-    history: t.history_json ? JSON.parse(t.history_json) : [],
-    submittedAt: t.submitted_at,
-    approvedAt: t.approved_at,
-  }));
+  return rows.map((t) => {
+    const out = {
+      id: t.id,
+      emp: t.employee_id,
+      name: t.employee_name,
+      period: t.period_id,
+      status: t.status,
+      stepIdx: t.step_index,
+      reg: t.regular_hours,
+      ot: t.overtime_hours,
+      pto: t.pto_hours,
+      hol: t.holiday_hours,
+      total: t.total_hours,
+      history: t.history_json ? JSON.parse(t.history_json) : [],
+      submittedAt: t.submitted_at,
+      approvedAt: t.approved_at,
+    };
+    // live=1: still-editable sheets show the hours their activities add up to right now (not persisted until submit)
+    if (live && EDITABLE.includes(t.status)) {
+      const h = computeHours(t.employee_id, t.period_id);
+      if (h) Object.assign(out, { reg: h.reg, ot: h.ot, pto: h.pto, hol: h.hol, total: h.total, liveHours: true });
+    }
+    return out;
+  });
 }
 
 function getTimesheet(id) {
@@ -93,8 +190,17 @@ function submitTimesheet(id, user = 'System', ip = '127.0.0.1') {
     throw err;
   }
 
-  if (current.status !== 'Draft' && current.status !== 'Returned') {
+  if (!EDITABLE.includes(current.status)) {
     const err = new Error(`Cannot submit timesheet in status ${current.status}`);
+    err.status = 400;
+    throw err;
+  }
+
+  // Hours are frozen from the employee's real records at submission time
+  const hours = computeHours(current.employee_id, current.period_id);
+  // Paid holidays alone don't make a submission: there must be worked hours or approved leave
+  if (!hours || hours.worked + hours.pto <= 0) {
+    const err = new Error('No hours recorded in this period: log your activities before submitting');
     err.status = 400;
     throw err;
   }
@@ -102,10 +208,7 @@ function submitTimesheet(id, user = 'System', ip = '127.0.0.1') {
   const history = current.history_json ? JSON.parse(current.history_json) : [];
   const emp = db.getOne(`SELECT entity FROM employees WHERE id = ?`, [current.employee_id]);
   const orgCfg = getOrgConfig(emp ? emp.entity : 'MGH Dominicana SRL');
-  const steps = (orgCfg && orgCfg.steps) || [
-    { key: 'pm', label: 'Supervisión PM (Joshua)', role: 'pm', review: 'Supervisión PM' },
-    { key: 'owner', label: 'Aprobación Dueño & Pago (Edwin)', role: 'admin', review: 'Aprobación Dueño' },
-  ];
+  const steps = (orgCfg && orgCfg.steps && orgCfg.steps.length ? orgCfg.steps : null) || DEFAULT_STEPS;
   const firstStep = steps[0];
   const nextStatus = firstStep ? (firstStep.review || `${firstStep.label} Review` || 'Supervisión PM') : 'Approved';
 
@@ -115,15 +218,16 @@ function submitTimesheet(id, user = 'System', ip = '127.0.0.1') {
     role: 'Employee',
     from: current.status,
     to: nextStatus,
-    comment: 'Jornada sometida para supervisión del PM (Joshua Hernandez)',
+    comment: `Quincena enviada a aprobación • ${hours.total}h (${hours.reg} regulares, ${hours.ot} extra, ${hours.pto} PTO, ${hours.hol} feriado)`,
   });
 
   db.transaction(() => {
     db.execute(
       `UPDATE timesheets
-       SET status = ?, step_index = 0, history_json = ?, submitted_at = datetime('now'), updated_at = datetime('now')
+       SET status = ?, step_index = 0, history_json = ?, submitted_at = datetime('now'), updated_at = datetime('now'),
+           regular_hours = ?, overtime_hours = ?, pto_hours = ?, holiday_hours = ?, total_hours = ?
        WHERE id = ?`,
-      [nextStatus, JSON.stringify(history), id]
+      [nextStatus, JSON.stringify(history), hours.reg, hours.ot, hours.pto, hours.hol, hours.total, id]
     );
 
     logAction({
@@ -131,7 +235,7 @@ function submitTimesheet(id, user = 'System', ip = '127.0.0.1') {
       action: 'SUBMIT_TIMESHEET',
       entityType: 'timesheet',
       entityId: id,
-      newValues: { status: nextStatus, periodId: current.period_id },
+      newValues: { status: nextStatus, periodId: current.period_id, hours },
       ip,
     });
   });
@@ -147,13 +251,16 @@ function approveTimesheet(id, { comment = '', role = 'pm' } = {}, user = 'System
     throw err;
   }
 
+  if (NOT_IN_REVIEW.includes(current.status)) {
+    const err = new Error(`Only a timesheet under review can be approved (current status: ${current.status})`);
+    err.status = 400;
+    throw err;
+  }
+
   // Determine organization workflow steps
   const emp = db.getOne(`SELECT entity FROM employees WHERE id = ?`, [current.employee_id]);
   const orgCfg = getOrgConfig(emp ? emp.entity : 'MGH Dominicana SRL');
-  const steps = (orgCfg && orgCfg.steps) || [
-    { key: 'pm', label: 'Supervisión PM (Joshua)', role: 'pm', review: 'Supervisión PM' },
-    { key: 'owner', label: 'Aprobación Dueño & Pago (Edwin)', role: 'admin', review: 'Aprobación Dueño' },
-  ];
+  const steps = (orgCfg && orgCfg.steps && orgCfg.steps.length ? orgCfg.steps : null) || DEFAULT_STEPS;
 
   const nextStepIdx = Number(current.step_index || 0) + 1;
   let nextStatus;
@@ -211,6 +318,11 @@ function returnTimesheet(id, { comment } = {}, user = 'System', ip = '127.0.0.1'
     err.status = 404;
     throw err;
   }
+  if (NOT_IN_REVIEW.includes(current.status)) {
+    const err = new Error(`Only a timesheet under review can be returned (current status: ${current.status})`);
+    err.status = 400;
+    throw err;
+  }
 
   const history = current.history_json ? JSON.parse(current.history_json) : [];
   history.push({
@@ -243,15 +355,28 @@ function returnTimesheet(id, { comment } = {}, user = 'System', ip = '127.0.0.1'
   return getTimesheet(id);
 }
 
-function saveTimesheetHours(id, { reg = 80, ot = 0, pto = 0, hol = 0 }, user = 'System', ip = '127.0.0.1') {
+// Reviewer adjustment of the submitted hours. Only while under review; omitted fields keep their stored value.
+function saveTimesheetHours(id, body = {}, user = 'System', ip = '127.0.0.1') {
   const current = db.getOne(`SELECT * FROM timesheets WHERE id = ?`, [id]);
   if (!current) {
     const err = new Error('Timesheet not found');
     err.status = 404;
     throw err;
   }
+  if (NOT_IN_REVIEW.includes(current.status)) {
+    const err = new Error(`Hours can only be adjusted while the timesheet is under review (current status: ${current.status})`);
+    err.status = 400;
+    throw err;
+  }
+  const pick = (k, col) => (body[k] != null && body[k] !== '' ? Number(body[k]) : Number(current[col]) || 0);
+  const reg = pick('reg', 'regular_hours'), ot = pick('ot', 'overtime_hours'), pto = pick('pto', 'pto_hours'), hol = pick('hol', 'holiday_hours');
+  if ([reg, ot, pto, hol].some((n) => isNaN(n) || n < 0)) {
+    const err = new Error('Hours must be non-negative numbers');
+    err.status = 400;
+    throw err;
+  }
 
-  const total = Number(reg) + Number(ot) + Number(pto) + Number(hol);
+  const total = reg + ot + pto + hol;
 
   db.transaction(() => {
     db.execute(
@@ -286,9 +411,9 @@ function getTimesheetReconciliation(id) {
   }
 
   // Get period dates
-  const period = db.getOne(`SELECT * FROM pay_periods WHERE id = ?`, [ts.period]);
-  const startDate = period ? period.start_date : '2025-04-01';
-  const endDate = period ? period.end_date : '2025-04-14';
+  const range = periodRange(ts.period) || { start: ts.period, end: ts.period };
+  const startDate = range.start;
+  const endDate = range.end;
 
   // Fetch daily activities in date range
   const activities = db.query(
@@ -381,8 +506,8 @@ function getTimesheetReconciliation(id) {
       id: ts.period,
       startDate,
       endDate,
-      cutoff: period ? period.cutoff : '',
-      payDate: period ? period.pay_date : '',
+      cutoff: range.cutoff || '',
+      payDate: range.payDate || '',
     },
     reconciliation: {
       totalTimesheetHours,
@@ -424,4 +549,7 @@ module.exports = {
   returnTimesheet,
   saveTimesheetHours,
   getTimesheetReconciliation,
+  computeHours,
+  periodIdForDate,
+  EDITABLE,
 };

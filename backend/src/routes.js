@@ -749,11 +749,11 @@ router.post('/workflows/split-ot', authenticate, (req, res, next) => {
 /* ---------- Timesheets State Machine ---------- */
 router.get('/timesheets', authenticate, (req, res, next) => {
   try {
-    let { periodId, empId } = req.query;
+    let { periodId, empId, live } = req.query;
     if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
       empId = req.user.employeeId || req.user.id;
     }
-    res.json(timesheetsController.listTimesheets({ periodId, empId }));
+    res.json(timesheetsController.listTimesheets({ periodId, empId, live: live === '1' || live === 'true' }));
   } catch (err) {
     next(err);
   }
@@ -828,6 +828,11 @@ router.post(
   requireRole('supervisor', 'pm', 'hr', 'finance', 'admin'),
   (req, res, next) => {
     try {
+      // Nobody approves their own timesheet (except the admin/owner, who is the last approver)
+      const target = timesheetsController.getTimesheet(req.params.id);
+      if (target && req.user.role !== 'admin' && req.user.employeeId && target.emp === req.user.employeeId) {
+        return res.status(403).json({ error: 'You cannot approve your own timesheet' });
+      }
       const ts = timesheetsController.approveTimesheet(
         req.params.id,
         req.body || {},
@@ -893,6 +898,23 @@ router.get('/activities', authenticate, (req, res, next) => {
   }
 });
 
+// Activities belong to their employee: only they log/change them (admin may correct), and only while the
+// quincena's timesheet is still Draft/Returned. After submission corrections go through "return" by the reviewer.
+function activityWriteError(user, empId, date) {
+  const myEmpId = user && (user.employeeId || user.id);
+  if (user && user.role !== 'admin' && empId && empId !== myEmpId) {
+    return { status: 403, error: 'You can only log or change your own activities' };
+  }
+  if (empId && date) {
+    const periodId = timesheetsController.periodIdForDate(date);
+    const ts = db.getOne('SELECT status FROM timesheets WHERE employee_id = ? AND period_id = ?', [empId, periodId]);
+    if (ts && !timesheetsController.EDITABLE.includes(ts.status)) {
+      return { status: 409, error: `The ${periodId} timesheet is ${ts.status}; it can no longer be edited` };
+    }
+  }
+  return null;
+}
+
 router.post('/activities', authenticate, (req, res, next) => {
   try {
     const body = { ...(req.body || {}) };
@@ -900,6 +922,13 @@ router.post('/activities', authenticate, (req, res, next) => {
       body.empId = req.user.employeeId || req.user.id;
       body.employeeId = req.user.employeeId || req.user.id;
     }
+    // No employee given → the signed-in user's own record (e.g. a PM logging their own time)
+    if (!body.employeeId && !body.empId && req.user && req.user.employeeId) {
+      body.empId = req.user.employeeId;
+      body.employeeId = req.user.employeeId;
+    }
+    const blocked = activityWriteError(req.user, body.employeeId || body.empId, body.date);
+    if (blocked) return res.status(blocked.status).json({ error: blocked.error });
     const activity = activitiesController.createActivity(
       body,
       getUserName(req),
@@ -913,12 +942,10 @@ router.post('/activities', authenticate, (req, res, next) => {
 
 router.delete('/activities/:id', authenticate, (req, res, next) => {
   try {
-    if (!isPrivileged(req.user) && req.user && (req.user.role === 'employee' || req.user.role === 'contractor')) {
-      const myEmpId = req.user.employeeId || req.user.id;
-      const existing = db.getOne('SELECT employee_id FROM daily_activities WHERE id = ?', [req.params.id]);
-      if (existing && existing.employee_id !== myEmpId) {
-        return res.status(403).json({ error: 'Forbidden: cannot delete other user\'s activities' });
-      }
+    const existing = db.getOne('SELECT employee_id, date FROM daily_activities WHERE id = ?', [req.params.id]);
+    if (existing) {
+      const blocked = activityWriteError(req.user, existing.employee_id, existing.date);
+      if (blocked) return res.status(blocked.status).json({ error: blocked.error });
     }
     const result = activitiesController.deleteActivity(
       req.params.id,

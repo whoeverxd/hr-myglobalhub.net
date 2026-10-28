@@ -29205,6 +29205,21 @@
       "updated_at": "2026-10-27T18:32:02.010Z",
       "submitted_at": "2026-10-27T18:32:02.008Z",
       "approved_at": "case when ? = 'Approved' then datetime('now') else approved_at end"
+    },
+    "TS-PP-2026-20-MGH-1179": {
+      "id": "TS-PP-2026-20-MGH-1179",
+      "employee_id": "MGH-1179",
+      "employee_name": "Carmen Perez De La Matta",
+      "period_id": "PP-2026-20",
+      "status": "Draft",
+      "step_index": 0,
+      "regular_hours": 0,
+      "overtime_hours": 0,
+      "pto_hours": 0,
+      "holiday_hours": 0,
+      "total_hours": 0,
+      "history_json": "[]",
+      "created_at": "2026-10-28T01:01:47.370Z"
     }
   },
   "users": {

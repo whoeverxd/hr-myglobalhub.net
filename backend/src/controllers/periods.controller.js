@@ -8,10 +8,10 @@ function ensurePeriodsForYear(year) {
     // Rows created before the 16th-day rule started the second quincena on the 15th. Fix unlocked ones only:
     // locked periods are immutable (corrections go through Payroll Adjustments).
     const want = Object.fromEntries(buildPeriods(year).map((p) => [p.id, p]));
-    for (const r of db.query('SELECT id, start_date, is_locked FROM pay_periods WHERE year = ?', [year])) {
+    for (const r of db.query('SELECT id, start_date, end_date, is_locked FROM pay_periods WHERE year = ?', [year])) {
       const w = want[r.id];
-      if (w && !r.is_locked && r.start_date !== w.start) {
-        db.execute('UPDATE pay_periods SET start_date = ? WHERE id = ?', [w.start, r.id]);
+      if (w && !r.is_locked && (r.start_date !== w.start || r.end_date !== w.end)) {
+        db.execute('UPDATE pay_periods SET start_date = ?, end_date = ?, pay_date = ?, cutoff = ? WHERE id = ?', [w.start, w.end, w.payDate, w.cutoff, r.id]);
       }
     }
   }

@@ -451,8 +451,8 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
 
   const approve = async adv => {
     const isOwner = ['Org Admin', 'Platform Admin', 'Admin', 'admin'].includes(WF.role) || (window.MGH_RBAC && window.MGH_RBAC.user && window.MGH_RBAC.user.id === 'MGH-1001');
-    const r = WF.approve(rec, '');
-    if (!r.ok) { notify(r.msg); return; }
+    // Local permission check first (no mutation), then the backend decides; the local engine mirrors only on success
+    if (!WF.canAct(rec)) { notify(WF.whyNot(rec) || 'No puedes aprobar este paso'); return; }
     try {
       if (window.api) {
         await window.api.ensureTimesheet(e.id, periodCode, e.name);
@@ -462,8 +462,10 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
         });
       }
     } catch (err) {
-      console.warn('[ApprovalWorkspace] API sync fallback:', err.message);
+      notify('No se pudo aprobar • ' + err.message);
+      return;
     }
+    const r = WF.approve(rec, '');
     notify(`${e.name} aprobado • ${r.next ? 'Enviado a aprobación del Dueño' : 'Listo para pago y dispersión bancaria'}`);
     setStatus(e.id, r.next ? 'Aprobación Dueño' : 'Approved');
     if (adv) next();
@@ -800,16 +802,19 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
     </div>
 
     <Modal open={ret} title={`${mode === 'reject' ? 'Rechazar' : 'Devolver'} la jornada de ${e.name}`} onClose={() => setRet(false)} actions={<><Button variant="outline" onClick={() => setRet(false)}>Cancelar</Button><Button variant="danger" icon={mode === 'reject' ? 'block' : 'undo'} disabled={!reason.trim()} onClick={async () => {
-      const r = mode === 'reject' ? WF.reject(rec, reason) : WF.returnToEmployee(rec, reason);
+      if (!WF.canAct(rec)) { notify(WF.whyNot(rec) || 'No puedes actuar en este paso'); return; }
+      // Backend first: only a sheet under review can be returned. Rejection has no backend state yet → returned too.
       try {
-        if (window.api && r.ok) {
+        if (window.api) {
           const tsId = `TS-${periodCode}-${e.id}`;
           await window.api.ensureTimesheet(e.id, periodCode, e.name);
           await window.api.returnTimesheet(tsId, { comment: reason });
         }
       } catch (err) {
-        console.warn('[ApprovalWorkspace] API return fallback:', err.message);
+        notify('No se pudo devolver • ' + err.message);
+        return;
       }
+      const r = mode === 'reject' ? WF.reject(rec, reason) : WF.returnToEmployee(rec, reason);
       setRet(false);
       setReason('');
       setStatus(e.id, 'Returned');

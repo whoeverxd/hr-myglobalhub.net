@@ -27,9 +27,10 @@
     'employees.edit':             row('Employees', 'Edit employees',                G, O, O, N, N, O, N, N, N),
     'profile.edit':               row('Employees', 'Edit own profile (contact details)', S, S, S, S, S, S, S, S, S),
     'employees.compensation.view':row('Employees', 'View salary & bank data',       G, O, O, O, G, O, N, S, S),
-    'timesheets.self':            row('Timekeeping', 'Use My Time Entry',           N, N, N, N, N, N, N, S, S),
-    'timesheets.edit':            row('Timekeeping', 'Edit own timesheet (Draft/Returned)', N, N, N, N, N, N, N, S, S),
-    'timesheets.submit':          row('Timekeeping', 'Submit own timesheet',        N, N, N, N, N, N, N, S, S),
+    // PMs and supervisors are employees too: they log, see and submit their OWN time (approved by the next step)
+    'timesheets.self':            row('Timekeeping', 'Use My Time Entry',           N, N, N, N, N, S, S, S, S),
+    'timesheets.edit':            row('Timekeeping', 'Edit own timesheet (Draft/Returned)', N, N, N, N, N, S, S, S, S),
+    'timesheets.submit':          row('Timekeeping', 'Submit own timesheet',        N, N, N, N, N, S, S, S, S),
     'timesheets.view':            row('Timekeeping', 'View team timesheets',        G, O, O, O, G, O, T, N, N),
     'timesheets.approve':         row('Approvals', 'Approve timesheets (at assigned step)', G, O, O, O, G, O, T, N, N),
     'timesheets.approve.any':     row('Approvals', 'Override: act on any workflow step', G, O, N, N, N, N, N, N, N),

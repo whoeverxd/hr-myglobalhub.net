@@ -121,7 +121,9 @@
         const k = key(ts.emp || ts.employee_id, ts.period || ts.period_id);
         const st = steps();
         let status = ts.status || 'Draft';
-        if (status === 'Submitted' || status === 'In Review') status = 'Supervisión PM';
+        // Backend review labels depend on the org config; map them onto the local two-step flow
+        if (['Submitted', 'In Review', 'PM Review', 'Supervisor Review'].includes(status)) status = 'Supervisión PM';
+        if (['Owner Approval', 'Owner Approval Review', 'Manager Review'].includes(status)) status = 'Aprobación Dueño';
         let stepIdx = -1;
         if (status === 'Supervisión PM') stepIdx = 0;
         else if (status === 'Aprobación Dueño') stepIdx = 1;

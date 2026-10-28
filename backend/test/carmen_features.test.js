@@ -5,6 +5,7 @@ const workflowsController = require('../src/controllers/workflows.controller');
 const attendanceController = require('../src/controllers/attendance.controller');
 const leaveController = require('../src/controllers/leave.controller');
 const timesheetsController = require('../src/controllers/timesheets.controller');
+const activitiesController = require('../src/controllers/activities.controller');
 
 /* ----------------------------------------------------
    1. Multi-HQ Overtime Engine (splitOT)
@@ -71,8 +72,12 @@ test('Workflow & Tenancy: Organization configuration retrieval and updates', () 
    2. Timesheets State Machine
    ---------------------------------------------------- */
 test('Timesheets State Machine: Draft -> Submit -> Multi-level Approve -> Return', () => {
-  const empId = 'MGH-1042';
-  const periodId = 'PP-2025-10'; // Valid pay period in seed database
+  const empId = 'MGH-TS-TEST'; // own employee id: no leave/activities from other fixtures
+  const periodId = 'PP-2025-10'; // 16–31 May 2025
+  db.execute(
+    `INSERT OR IGNORE INTO employees (id, name, entity, dept, role, type, rate, status) VALUES (?, 'Timesheet Test', 'MGH Dominicana SRL', 'Engineering', 'Developer', 'Full-time', 40, 'Active')`,
+    [empId]
+  );
   db.execute('DELETE FROM timesheets WHERE employee_id = ? AND period_id = ?', [empId, periodId]);
 
   // 1. Ensure/create timesheet
@@ -81,21 +86,28 @@ test('Timesheets State Machine: Draft -> Submit -> Multi-level Approve -> Return
   assert.equal(ts.status, 'Draft');
   assert.equal(ts.emp, empId);
 
-  // 2. Save hours
-  const withHours = timesheetsController.saveTimesheetHours(
-    ts.id,
-    { reg: 80, ot: 8, pto: 0, hol: 0 },
-    'Carlos Mendez'
-  );
-  assert.equal(withHours.reg, 80);
-  assert.equal(withHours.ot, 8);
-  assert.equal(withHours.total, 88);
+  // 2. Rules: nothing to submit without hours; a draft cannot be approved nor have its hours adjusted
+  db.execute('DELETE FROM daily_activities WHERE employee_id = ? AND date >= ? AND date <= ?', [empId, '2025-05-16', '2025-05-31']);
+  assert.throws(() => timesheetsController.submitTimesheet(ts.id, 'Carlos Mendez'), /No hours recorded/);
+  assert.throws(() => timesheetsController.approveTimesheet(ts.id, { role: 'pm' }, 'Joshua Hernandez'), /under review/);
+  assert.throws(() => timesheetsController.saveTimesheetHours(ts.id, { reg: 80 }, 'Joshua Hernandez'), /under review/);
 
-  // 3. Submit for approval
+  // 3. Hours come from the employee's activities: 8h on Mon 19 May + 9h on Tue 20 May 2025
+  activitiesController.createActivity({ empId, date: '2025-05-19', hours: 8, jiraKey: 'TEST-1', description: 'Work' });
+  activitiesController.createActivity({ empId, date: '2025-05-20', hours: 9, jiraKey: 'TEST-1', description: 'Work' });
+  const live = timesheetsController.listTimesheets({ empId, periodId, live: true })[0];
+  assert.equal(live.liveHours, true);
+  assert.equal(live.reg + live.ot, 17, 'live preview sums the activities');
+
   const submitted = timesheetsController.submitTimesheet(ts.id, 'Carlos Mendez');
   assert.equal(submitted.status, 'PM Review');
+  assert.equal(submitted.reg + submitted.ot, 17, 'worked hours frozen at submission');
   assert.ok(submitted.history.length >= 1);
   assert.equal(submitted.history[submitted.history.length - 1].to, 'PM Review');
+
+  // Reviewer may adjust hours while under review
+  const adjusted = timesheetsController.saveTimesheetHours(ts.id, { ot: 2 }, 'Joshua Hernandez');
+  assert.equal(adjusted.ot, 2);
 
   // 4. Return timesheet (e.g. PM requests correction)
   const returned = timesheetsController.returnTimesheet(

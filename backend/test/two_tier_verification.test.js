@@ -9,13 +9,13 @@ const storageService = require('../src/services/storage.service');
 
 test('Protocolo de Doble Verificación: 1. PM audita actividades vs horas -> 2. Dueño/Admin autoriza y ejecuta pago', async () => {
   const empId = 'MGH-1044';
-  const periodId = 'PP-2025-10';
-  const date1 = '2025-05-02';
-  const date2 = '2025-05-06';
+  const periodId = 'PP-2025-13'; // 1–15 July 2025 (no leave/holiday fixtures for this employee)
+  const date1 = '2025-07-01';
+  const date2 = '2025-07-04';
 
   // 0. Limpieza inicial
   db.execute('DELETE FROM timesheets WHERE employee_id = ? AND period_id = ?', [empId, periodId]);
-  db.execute('DELETE FROM daily_activities WHERE employee_id = ? AND date IN (?, ?)', [empId, date1, date2]);
+  db.execute('DELETE FROM daily_activities WHERE employee_id = ? AND date >= ? AND date <= ?', [empId, '2025-07-01', '2025-07-15']);
   db.execute('DELETE FROM payroll_runs WHERE period_id = ?', [periodId]);
 
   // 1. Colaborador registra dos actividades con entregables
@@ -52,9 +52,8 @@ test('Protocolo de Doble Verificación: 1. PM audita actividades vs horas -> 2. 
   assert.ok(act1.id);
   assert.ok(act2.id);
 
-  // 2. Colaborador guarda 8 horas en hoja de tiempo y la envía
+  // 2. Colaborador envía la hoja: sus 8 horas salen de las actividades registradas
   const ts = timesheetsController.ensureTimesheet(empId, periodId, 'Luis Rodriguez');
-  timesheetsController.saveTimesheetHours(ts.id, { reg: 8, ot: 0, pto: 0, hol: 0 });
   const submittedTs = timesheetsController.submitTimesheet(ts.id, 'Luis Rodriguez');
   assert.equal(submittedTs.status, 'PM Review');
   assert.equal(submittedTs.stepIdx, 0);

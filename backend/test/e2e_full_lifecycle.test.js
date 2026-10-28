@@ -11,7 +11,7 @@ const { getAuditLogs } = require('../src/controllers/audit.controller');
 
 test('E2E Flujo 1: Colaborador registra actividad con evidencias -> Hoja de tiempo se totaliza -> Supervisor aprueba', async () => {
   const empId = 'MGH-1044';
-  const periodId = 'PP-2025-10';
+  const periodId = 'PP-2025-09'; // 1–15 May 2025 (contains workDate)
   const workDate = '2025-05-05';
 
   // Limpieza inicial idempotente

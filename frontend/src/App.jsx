@@ -1692,8 +1692,10 @@ export default class App extends React.Component {
           {/* MY WORK & QUINCENA TIME VIEW */}
           {v.isMy ? (
             <MyTimeView
+              key={this.state.myTab || 'entry'}
+              tab={window.MGH_RBAC && window.MGH_RBAC.can('timesheets.self') ? (this.state.myTab || 'entry') : 'entry'}
               user={this.state.currentUser || (window.MGH_RBAC && window.MGH_RBAC.me())}
-              empId={this.state.empId || (this.state.currentUser && (this.state.currentUser.employee_id || this.state.currentUser.employeeId)) || null}
+              empId={(window.MGH_RBAC && window.MGH_RBAC.can('timesheets.self') ? null : this.state.empId) || (this.state.currentUser && (this.state.currentUser.employee_id || this.state.currentUser.employeeId)) || null}
               notify={this.flash}
               go={this.go}
             />
