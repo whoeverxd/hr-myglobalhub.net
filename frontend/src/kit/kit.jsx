@@ -4419,22 +4419,11 @@ const Modal = window.Modal;
 // Real contractors and payments are loaded from the backend; no sample records.
 const CONTRACTORS = [];
 const isWU = c => c.method === 'Western Union';
-const flowOf = c => isWU(c) ? ['Timesheet', 'Manager Approval', 'Calculate Amount', 'Create Payment', 'Approve Payment', 'Send via Western Union', 'Record MTCN', 'Paid'] : FLOW;
-const mtcn = seed => { let x = seed * 7919 + 104729, s = ''; for (let i = 0; i < 10; i++) { x = (x * 48271) % 2147483647; s += x % 10; } return s.slice(0, 3) + '-' + s.slice(3, 6) + '-' + s.slice(6); };
-const HOURS = {};
-const FLOW = ['Timesheet', 'Manager Approval', 'Calculate Amount', 'Create Payment', 'Approve Payment', 'Send via Coinbase', 'Record Tx ID', 'Paid'];
-const PST = ['Calculated', 'Pending Approval', 'Approved', 'Sent', 'Paid'];
-const PTONE = { Calculated: 'neutral', 'Pending Approval': 'warning', Approved: 'info', Sent: 'info', Paid: 'success' };
-const hex = (seed, n) => { let s = '', x = seed; for (let i = 0; i < n; i++) { x = (x * 1103515245 + 12345) % 2147483648; s += (x % 16).toString(16); } return s; };
-// Hourly contractors are owed only for hours actually recorded (no assumed 80h)
-const amountOf = c => c.basis === 'Fixed Monthly' ? c.rate / 2 : (HOURS[c.id] || 0) * c.rate;
-CONTRACTORS.forEach(c => { c.entity = c.entity || 'MGH Dominicana SRL'; });
 const INIT_PAYMENTS = [];
 const fmtUSD = n => (n == null || isNaN(Number(n))) ? '—' : '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-// A payment whose contractor record is missing still renders (the screen reads p.c everywhere)
-const withContractor = p => ({ ...p, c: p.c || { id: p.cid || p.contractorId, name: (p.cid || p.contractorId || 'Unknown') + ' (contractor not found)', country: '—', rate: null, basis: 'Hourly', method: '', st: 'Unknown' } });
-const WU_TRACK = 'https://www.westernunion.com/us/en/track-transfer.html';
-const explorer = (net, h) => ({ Base: 'https://basescan.org/tx/', Ethereum: 'https://etherscan.io/tx/', Polygon: 'https://polygonscan.com/tx/' }[net] || '#') + h;
+// Select options with an explicit empty choice: nothing is preselected for the user
+const selOpts = (list, cur) => [{ value: '', label: 'Seleccione…' }, ...[...list, ...(cur && !list.includes(cur) ? [cur] : [])].map(v => ({ value: v, label: v }))];
+const COUNTRIES = ['Dominican Republic', 'Venezuela', 'Colombia', 'Argentina', 'Peru', 'Mexico', 'Honduras', 'United States'];
 
 function Section({ icon, title, children }) {
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -4447,50 +4436,9 @@ function PersonCell({ c, sub }) {
     <div style={{ minWidth: 0 }}><div style={{ font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-ink)' }}>{c.name}</div><div style={{ font: '400 11px/14px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>{sub}</div></div></div>;
 }
 
-function ReceiptDrop({ pid, notify, label = 'Coinbase' }) {
-  const KEY = 'mgh-contractor-receipts';
-  const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return {}; } };
-  const [all, setAll] = React.useState(load); const [hot, setHot] = React.useState(false); const inp = React.useRef();
-  const f = all[pid];
-  const save = next => { setAll(next); try { localStorage.setItem(KEY, JSON.stringify(next)); } catch (e) { notify('File too large to persist — kept for this session'); } };
-  const attach = file => {
-    if (!file) return;
-    if (!/^(image\/|application\/pdf)/.test(file.type)) { notify('Upload a PDF, PNG or JPG receipt'); return; }
-    if (file.size > 5 * 1024 * 1024) { notify('Max file size is 5 MB'); return; }
-    const r = new FileReader();
-    r.onload = () => { save({ ...all, [pid]: { name: file.name, type: file.type, size: file.size, data: r.result, at: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) } }); notify(label + ' receipt attached • ' + pid); };
-    r.readAsDataURL(file);
-  };
-  const kb = n => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB';
-  return <div>
-    {f ? <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 10, borderRadius: 8, background: 'var(--mgh-surface-1)' }}>
-      {f.type.startsWith('image/') ? <img src={f.data} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }} /> : <span style={{ width: 40, height: 40, borderRadius: 4, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="picture_as_pdf" size={20} color="var(--mgh-danger)" /></span>}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <a href={f.data} target="_blank" download={f.name} style={{ font: '600 12px/16px var(--font-sans)', color: 'var(--mgh-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'none' }}>{f.name}</a>
-        <span style={{ font: '400 11px/14px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>{kb(f.size)} • {f.at}</span>
-      </div>
-      <IconButton icon="swap_horiz" title="Replace" onClick={() => inp.current.click()} />
-      <IconButton icon="delete" title="Remove" onClick={() => { const n = { ...all }; delete n[pid]; save(n); }} />
-    </div>
-    : <div role="button" tabIndex={0} onClick={() => inp.current.click()} onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && inp.current.click()}
-        onDragOver={e => { e.preventDefault(); setHot(true); }} onDragLeave={() => setHot(false)} onDrop={e => { e.preventDefault(); setHot(false); attach(e.dataTransfer.files[0]); }}
-        style={{ padding: '16px 12px', borderRadius: 8, border: '1.5px dashed ' + (hot ? 'var(--mgh-primary)' : 'var(--mgh-surface-4)'), background: hot ? 'var(--mgh-primary-50)' : 'var(--mgh-surface-page)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', textAlign: 'center', transition: 'all 160ms cubic-bezier(.2,0,0,1)' }}>
-      <Icon name="upload_file" size={20} color="var(--mgh-primary)" />
-      <span style={{ font: '600 12px/16px var(--font-sans)', color: 'var(--mgh-ink)' }}>Drop {label} receipt or <span style={{ color: 'var(--mgh-primary)' }}>browse</span></span>
-      <span style={{ font: '400 11px/14px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>PDF, PNG or JPG • Max 5 MB</span>
-    </div>}
-    <input ref={inp} type="file" accept="application/pdf,image/*" style={{ display: 'none' }} onChange={e => { attach(e.target.files[0]); e.target.value = ''; }} />
-  </div>;
-}
-
-const STORAGE_KEY = 'mgh_contractors_v1';
-// Start from what the backend bootstrap loaded (window.__MGH_CTR), never from a browser cache of old/demo rows
+// Start from what the backend bootstrap loaded (window.__MGH_CTR); the old browser cache is dropped
+try { localStorage.removeItem('mgh_contractors_v1'); } catch (_) {}
 const loadContractors = () => (window.__MGH_CTR && window.__MGH_CTR.CONTRACTORS) || CONTRACTORS;
-const saveContractors = l => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(l));
-  } catch (e) {}
-};
 
 function Contractors({ go, notify }) {
   const [list, setList] = React.useState(loadContractors);
@@ -4506,7 +4454,6 @@ function Contractors({ go, notify }) {
       const data = await client.contractors();
       if (Array.isArray(data)) {
         setList(data);
-        saveContractors(data);
         setDbConnected(true);
         if (window.__MGH_CTR) window.__MGH_CTR.CONTRACTORS = data;
         if (showToast) notify('Contractors synchronized with database (' + data.length + ' records)');
@@ -4539,19 +4486,19 @@ function Contractors({ go, notify }) {
   const initialAdd = {
     name: '',
     role: '',
-    country: 'Dominican Republic',
+    country: '',
     email: '',
     phone: '',
     basis: 'Hourly',
-    rate: 50,
-    method: 'Coinbase',
-    network: 'Base',
-    asset: 'USDC',
+    rate: '',
+    method: '',
+    network: '',
+    asset: '',
     wallet: '',
-    delivery: 'Direct Crypto',
+    delivery: '',
     receiver: '',
     city: '',
-    payCur: 'USD',
+    payCur: '',
     password: ''
   };
   const [addForm, setAddForm] = React.useState(initialAdd);
@@ -4573,14 +4520,15 @@ function Contractors({ go, notify }) {
       role: c.role || '',
       email: c.email || '',
       phone: c.phone || '',
-      country: c.country || 'Dominican Republic',
+      country: c.country || '',
       st: c.st || 'Active',
-      delivery: c.delivery || 'Cash Pickup',
+      method: c.method || '',
+      delivery: c.delivery || '',
       receiver: c.receiver || '',
       city: c.city || '',
-      payCur: c.payCur || 'USD',
-      network: c.network || 'Base',
-      asset: c.asset || 'USDC'
+      payCur: c.payCur || '',
+      network: c.network || '',
+      asset: c.asset || ''
     });
     setEditOpen(true);
   };
@@ -4592,6 +4540,14 @@ function Contractors({ go, notify }) {
     }
     if (!(Number(addForm.rate) > 0)) {
       notify('Please enter a rate greater than 0');
+      return;
+    }
+    if (!addForm.country || !addForm.method) {
+      notify('Seleccione el país y el método de pago');
+      return;
+    }
+    if (addForm.method === 'Coinbase' && (!addForm.asset || !addForm.network)) {
+      notify('Seleccione el activo y la red de Coinbase');
       return;
     }
     try {
@@ -4613,7 +4569,7 @@ function Contractors({ go, notify }) {
         delivery: addForm.delivery,
         receiver: addForm.receiver || addForm.name,
         city: addForm.city || '',
-        payCur: addForm.payCur || (addForm.method === 'Western Union' ? 'DOP' : 'USD'),
+        payCur: addForm.payCur || '',
         password: addForm.password || undefined,
         st: 'Active',
         entity: 'MGH Dominicana SRL'
@@ -4627,7 +4583,6 @@ function Contractors({ go, notify }) {
 
       const updated = [nextItem, ...list.filter(x => x.id !== nextItem.id)];
       setList(updated);
-      saveContractors(updated);
       if (window.__MGH_CTR) window.__MGH_CTR.CONTRACTORS = updated;
       setCur(nextItem.id);
       setAddOpen(false);
@@ -4646,12 +4601,12 @@ function Contractors({ go, notify }) {
       const client = window.api || api;
       const patch = {
         name: editForm.name.trim(),
-        role: editForm.role.trim(),
+        role: (editForm.role || '').trim(),
         country: editForm.country,
         email: editForm.email,
         phone: editForm.phone,
         basis: editForm.basis,
-        rate: Number(editForm.rate) || 0,
+        rate: Number(editForm.rate) > 0 ? Number(editForm.rate) : null,
         method: editForm.method,
         wallet: editForm.wallet,
         walletFull: editForm.wallet,
@@ -4668,7 +4623,6 @@ function Contractors({ go, notify }) {
 
       const updated = list.map(x => x.id === editForm.id ? (updatedRecord || { ...x, ...editForm, ...patch }) : x);
       setList(updated);
-      saveContractors(updated);
       if (window.__MGH_CTR) window.__MGH_CTR.CONTRACTORS = updated;
       setEditOpen(false);
       notify(`Contractor ${editForm.name} (${editForm.id}) updated in database`);
@@ -4681,7 +4635,7 @@ function Contractors({ go, notify }) {
     <PageHeader
       breadcrumbs={['Contractors', tab === 'contractors' ? 'Directory' : 'Contracts']}
       title="Contractors"
-      status={<Badge tone={dbConnected ? 'success' : 'warning'} dot>{dbConnected ? 'Database Connected • Real Time' : 'Local Fallback'}</Badge>}
+      status={<Badge tone={dbConnected ? 'success' : 'warning'} dot>{dbConnected ? 'Conectado' : 'Sin conexión'}</Badge>}
       description="Payout profile of contractor-type employees. They log time like everyone else and are paid in the same payroll (#processing) from their approved timesheets — no withholdings or TSS."
       actions={<>
         <Button variant="secondary" icon="refresh" onClick={() => fetchContractors(true)}>Refresh</Button>
@@ -4690,8 +4644,7 @@ function Contractors({ go, notify }) {
     />
     <Grid min={200}>
       <StatCard label="Active contractors" value={active.length} unit={'/ ' + list.length} icon="badge" style={{ minHeight: 0 }} />
-      <StatCard label="Countries" value={new Set(active.map(x => x.country)).size} icon="public" tone="accent" style={{ minHeight: 0 }} />
-      <StatCard label={`Due ${getCurrentPeriod().code}`} value={fmtUSD(active.reduce((s, x) => s + amountOf(x), 0))} unit="USD" icon="request_quote" tone="warning" style={{ minHeight: 0 }} />
+      <StatCard label="Countries" value={new Set(active.map(x => x.country).filter(Boolean)).size} icon="public" tone="accent" style={{ minHeight: 0 }} />
       <StatCard label="Payout rails" value={active.filter(x => !isWU(x)).length + ' / ' + active.filter(isWU).length} unit="Coinbase • WU" icon="currency_exchange" tone="success" style={{ minHeight: 0 }} />
     </Grid>
     <Tabs value={tab} onChange={setTab} tabs={[{ value: 'contractors', label: 'Contractors' }, { value: 'contracts', label: 'Contracts' }]} />
@@ -4699,28 +4652,29 @@ function Contractors({ go, notify }) {
       <Card padding={20} style={{ flex: '1 1 520px', minWidth: 0 }}>
         <TableToolbar search={t.q} onSearch={t.setQ} placeholder="Search name, ID, country…" chips={<FilterChips value={chip} onChange={setChip} options={[{ value: 'all', label: 'All', count: list.length }, { value: 'Active', label: 'Active', count: active.length }, { value: 'Ended', label: 'Ended' }]} />} />
         <DataTable style={{ marginTop: 14 }} rows={t.rows} onRowClick={r => setCur(r.id)} activeRow={cur} columns={tab === 'contractors' ? [
-          { key: 'name', label: 'Contractor', render: r => <PersonCell c={r} sub={r.id + ' • ' + r.role} /> },
-          { key: 'country', label: 'Country' },
+          { key: 'name', label: 'Contractor', render: r => <PersonCell c={r} sub={r.id + ' • ' + (r.role || '—')} /> },
+          { key: 'country', label: 'Country', render: r => r.country || '—' },
           { key: 'rate', label: 'Rate', align: 'right', render: r => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{rateTxt(r)}</span> },
-          { key: 'asset', label: 'Payout', render: r => isWU(r) ? <span style={{ display: 'flex', gap: 4 }}><Badge size="sm" tone="warning">Western Union</Badge><Badge size="sm" tone="neutral">{r.delivery}</Badge></span> : <span style={{ display: 'flex', gap: 4 }}><Badge size="sm" tone="primary">{r.asset}</Badge><Badge size="sm" tone="neutral">{r.network}</Badge></span> },
+          { key: 'asset', label: 'Payout', render: r => isWU(r) ? <span style={{ display: 'flex', gap: 4 }}><Badge size="sm" tone="warning">Western Union</Badge>{r.delivery && <Badge size="sm" tone="neutral">{r.delivery}</Badge>}</span> : r.method ? <span style={{ display: 'flex', gap: 4 }}><Badge size="sm" tone="primary">{r.asset || r.method}</Badge>{r.network && <Badge size="sm" tone="neutral">{r.network}</Badge>}</span> : '—' },
           { key: 'st', label: 'Status', render: r => <Badge size="sm" dot tone={r.st === 'Active' ? 'success' : 'neutral'}>{r.st}</Badge> }] : [
           { key: 'name', label: 'Contractor', render: r => <PersonCell c={r} sub={r.country} /> },
           { key: 'basis', label: 'Basis' },
-          { key: 'start', label: 'Start' },
+          { key: 'start', label: 'Start', render: r => r.start || '—' },
           { key: 'end', label: 'End', render: r => r.end || '—' },
           { key: 'rate', label: 'Rate', align: 'right', render: r => rateTxt(r) },
-          { key: 'cur', label: 'Currency', mono: true }]} />
+          { key: 'cur', label: 'Currency', mono: true, render: r => r.cur || '—' }]} emptyText={list.length ? 'No contractors match these filters.' : 'No hay contratistas registrados.'} />
         <Pagination style={{ marginTop: 14 }} page={t.page} pageSize={t.pageSize} total={t.total} onPage={t.setPage} noun="contractors" />
       </Card>
       <Card padding={20} style={{ flex: '1 1 320px', maxWidth: 400, minWidth: 0 }}>
+        {!c.id ? <div className="mgh-body" style={{ padding: '32px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>No hay contratistas registrados. Los contratistas son colaboradores y se pagan en la misma nómina (#processing).</div> :
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><Avatar name={c.name} size={48} /><div style={{ flex: 1, minWidth: 0 }}><div className="mgh-h3">{c.name}</div><div className="mgh-body">{c.role} • {c.country}</div></div><Badge mono tone="dark">{c.id}</Badge></div>
-          <Section icon="person" title="Personal information"><KeyValue label="Email" value={c.email} /><KeyValue label="Phone" value={c.phone} mono /><KeyValue label="Country" value={c.country} /></Section>
-          <Section icon="contract" title="Contract"><KeyValue label="Start date" value={c.start} /><KeyValue label="End date" value={c.end || 'Open-ended'} /><KeyValue label={c.basis === 'Fixed Monthly' ? 'Fixed monthly fee' : 'Hourly rate'} value={rateTxt(c)} /><KeyValue label="Contract currency" value={c.cur} mono /></Section>
-          {isWU(c) ? <Section icon="currency_exchange" title="Payment"><KeyValue label="Method" value="Western Union" /><KeyValue label="Delivery" value={c.delivery} /><KeyValue label="Receiver name (as on ID)" value={c.receiver} /><KeyValue label="Payout location" value={c.city + ', ' + c.country} />{c.bank && <KeyValue label="Receiver bank" value={c.bank + ' ' + c.acct} mono />}<KeyValue label="Payout currency" value={c.payCur} mono aside={<Badge size="sm" tone="neutral">{'1 USD = ' + c.fx + ' ' + c.payCur}</Badge>} /><KeyValue label="Transfer fee" value={fmtUSD(c.wuFee || 4.99)} aside={<Badge size="sm" tone="neutral">Company-paid</Badge>} /></Section>
-          : <Section icon="account_balance_wallet" title="Payment"><KeyValue label="Method" value={c.method} /><KeyValue label={(c.walletFull || c.wallet || '').includes('@') ? 'Coinbase email' : 'Wallet address'} value={c.wallet} mono /><KeyValue label="Preferred currency" value={c.asset} aside={c.asset === 'USDC' && <Badge size="sm" tone="success">Recommended</Badge>} /><KeyValue label="Network" value={c.network} /></Section>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><Avatar name={c.name} size={48} /><div style={{ flex: 1, minWidth: 0 }}><div className="mgh-h3">{c.name}</div><div className="mgh-body">{c.role || '—'} • {c.country || '—'}</div></div><Badge mono tone="dark">{c.id}</Badge></div>
+          <Section icon="person" title="Personal information"><KeyValue label="Email" value={c.email || '—'} /><KeyValue label="Phone" value={c.phone || '—'} mono /><KeyValue label="Country" value={c.country || '—'} /></Section>
+          <Section icon="contract" title="Contract"><KeyValue label="Start date" value={c.start || '—'} /><KeyValue label="End date" value={c.end || 'Open-ended'} /><KeyValue label={c.basis === 'Fixed Monthly' ? 'Fixed monthly fee' : 'Hourly rate'} value={rateTxt(c)} /><KeyValue label="Contract currency" value={c.cur || '—'} mono /></Section>
+          {isWU(c) ? <Section icon="currency_exchange" title="Payment"><KeyValue label="Method" value="Western Union" /><KeyValue label="Delivery" value={c.delivery || '—'} /><KeyValue label="Receiver name (as on ID)" value={c.receiver || '—'} /><KeyValue label="Payout location" value={[c.city, c.country].filter(Boolean).join(', ') || '—'} />{c.bank && <KeyValue label="Receiver bank" value={c.bank + (c.acct ? ' ' + c.acct : '')} mono />}<KeyValue label="Payout currency" value={c.payCur || '—'} mono aside={c.fx != null && c.payCur ? <Badge size="sm" tone="neutral">{'1 USD = ' + c.fx + ' ' + c.payCur}</Badge> : null} /><KeyValue label="Transfer fee" value={c.wuFee != null ? fmtUSD(c.wuFee) : '—'} /></Section>
+          : <Section icon="account_balance_wallet" title="Payment"><KeyValue label="Method" value={c.method || '—'} /><KeyValue label={(c.walletFull || c.wallet || '').includes('@') ? 'Coinbase email' : 'Wallet address'} value={c.wallet || '—'} mono /><KeyValue label="Preferred currency" value={c.asset || '—'} aside={c.asset === 'USDC' && <Badge size="sm" tone="success">Recommended</Badge>} /><KeyValue label="Network" value={c.network || '—'} /></Section>}
           <div style={{ display: 'flex', gap: 8 }}><Button variant="secondary" icon="edit" style={{ flex: 1 }} onClick={handleOpenEdit}>Edit</Button></div>
-        </div>
+        </div>}
       </Card>
     </div>
 
@@ -4747,25 +4701,25 @@ function Contractors({ go, notify }) {
         </div>
         <TextField label="Contractor Full Name" value={addForm.name} onChange={x => setAddForm(f => ({ ...f, name: typeof x === 'string' ? x : x.target.value }))} placeholder="e.g. Roberto Sánchez" />
         <TextField label="Role / Scope" value={addForm.role} onChange={x => setAddForm(f => ({ ...f, role: typeof x === 'string' ? x : x.target.value }))} placeholder="e.g. Senior Frontend Dev" />
-        <Select label="Country of Residence" value={addForm.country} onChange={x => setAddForm(f => ({ ...f, country: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Dominican Republic', 'Venezuela', 'Colombia', 'Argentina', 'Peru', 'Mexico', 'Honduras', 'United States']} />
+        <Select label="Country of Residence" value={addForm.country} onChange={x => setAddForm(f => ({ ...f, country: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(COUNTRIES)} />
         <TextField label="Email Address (Login Account)" value={addForm.email} onChange={x => setAddForm(f => ({ ...f, email: typeof x === 'string' ? x : x.target.value }))} placeholder="e.g. dev@myglobalhub.net" />
         <TextField label="Contraseña Inicial (Password)" type="password" value={addForm.password || ''} onChange={x => setAddForm(f => ({ ...f, password: typeof x === 'string' ? x : x.target.value }))} placeholder="Vacío = se genera una segura" />
         <TextField label="Phone Number" value={addForm.phone} onChange={x => setAddForm(f => ({ ...f, phone: typeof x === 'string' ? x : x.target.value }))} placeholder="+1 809 ..." />
         <Select label="Compensation Basis" value={addForm.basis} onChange={x => setAddForm(f => ({ ...f, basis: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Hourly', 'Fixed Monthly']} />
-        <TextField label={addForm.basis === 'Hourly' ? 'Hourly Rate (USD)' : 'Monthly Rate (USD)'} type="number" value={String(addForm.rate)} onChange={x => setAddForm(f => ({ ...f, rate: typeof x === 'string' ? x : x.target.value }))} />
-        <Select label="Disbursement Method" value={addForm.method} onChange={x => setAddForm(f => ({ ...f, method: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Coinbase', 'Western Union']} />
+        <TextField label={addForm.basis === 'Hourly' ? 'Hourly Rate (USD)' : 'Monthly Rate (USD)'} type="number" value={String(addForm.rate)} placeholder="0.00" onChange={x => setAddForm(f => ({ ...f, rate: typeof x === 'string' ? x : x.target.value }))} />
+        <Select label="Disbursement Method" value={addForm.method} onChange={x => setAddForm(f => ({ ...f, method: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(['Coinbase', 'Western Union'])} />
         {addForm.method === 'Coinbase' ? <>
-          <Select label="Crypto Asset" value={addForm.asset} onChange={x => setAddForm(f => ({ ...f, asset: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['USDC', 'ETH', 'BTC']} />
-          <Select label="Network Rail" value={addForm.network} onChange={x => setAddForm(f => ({ ...f, network: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Base', 'Polygon', 'Ethereum', 'Solana']} />
+          <Select label="Crypto Asset" value={addForm.asset} onChange={x => setAddForm(f => ({ ...f, asset: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(['USDC', 'ETH', 'BTC'])} />
+          <Select label="Network Rail" value={addForm.network} onChange={x => setAddForm(f => ({ ...f, network: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(['Base', 'Polygon', 'Ethereum', 'Solana'])} />
           <div style={{ gridColumn: 'span 2' }}>
             <TextField label="Wallet Address or Coinbase Email" mono value={addForm.wallet} onChange={x => setAddForm(f => ({ ...f, wallet: typeof x === 'string' ? x : x.target.value }))} placeholder="0x... or user@coinbase" />
           </div>
-        </> : <>
-          <Select label="Delivery Mode" value={addForm.delivery} onChange={x => setAddForm(f => ({ ...f, delivery: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Cash Pickup', 'Bank Deposit']} />
+        </> : addForm.method === 'Western Union' ? <>
+          <Select label="Delivery Mode" value={addForm.delivery} onChange={x => setAddForm(f => ({ ...f, delivery: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(['Cash Pickup', 'Bank Deposit'])} />
           <TextField label="Receiver Full Name (as on ID)" value={addForm.receiver} onChange={x => setAddForm(f => ({ ...f, receiver: typeof x === 'string' ? x : x.target.value }))} placeholder="Legal name" />
           <TextField label="Payout City / State" value={addForm.city} onChange={x => setAddForm(f => ({ ...f, city: typeof x === 'string' ? x : x.target.value }))} placeholder="City, State" />
           <TextField label="Payout Currency" mono value={addForm.payCur} onChange={x => setAddForm(f => ({ ...f, payCur: typeof x === 'string' ? x : x.target.value }))} placeholder="MXN, HNL, USD" />
-        </>}
+        </> : null}
       </div>
     </Modal>
 
@@ -4779,209 +4733,32 @@ function Contractors({ go, notify }) {
         <TextField label="Contractor Full Name" value={editForm.name || ''} onChange={x => setEditForm(f => ({ ...f, name: typeof x === 'string' ? x : x.target.value }))} />
         <TextField label="Role / Scope" value={editForm.role || ''} onChange={x => setEditForm(f => ({ ...f, role: typeof x === 'string' ? x : x.target.value }))} />
         <Select label="Status" value={editForm.st || 'Active'} onChange={x => setEditForm(f => ({ ...f, st: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Active', 'Ended']} />
-        <Select label="Country of Residence" value={editForm.country || ''} onChange={x => setEditForm(f => ({ ...f, country: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Venezuela', 'Colombia', 'Argentina', 'Peru', 'Mexico', 'Honduras', 'Dominican Republic', 'United States']} />
+        <Select label="Country of Residence" value={editForm.country || ''} onChange={x => setEditForm(f => ({ ...f, country: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(COUNTRIES, editForm.country)} />
         <TextField label="Email Address" value={editForm.email || ''} onChange={x => setEditForm(f => ({ ...f, email: typeof x === 'string' ? x : x.target.value }))} />
         <TextField label="Phone Number" value={editForm.phone || ''} onChange={x => setEditForm(f => ({ ...f, phone: typeof x === 'string' ? x : x.target.value }))} />
         <Select label="Compensation Basis" value={editForm.basis || 'Hourly'} onChange={x => setEditForm(f => ({ ...f, basis: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Hourly', 'Fixed Monthly']} />
         <TextField label={editForm.basis === 'Hourly' ? 'Hourly Rate (USD)' : 'Monthly Rate (USD)'} type="number" value={String(editForm.rate || '')} onChange={x => setEditForm(f => ({ ...f, rate: typeof x === 'string' ? x : x.target.value }))} />
-        <Select label="Disbursement Method" value={editForm.method || 'Coinbase'} onChange={x => setEditForm(f => ({ ...f, method: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Coinbase', 'Western Union']} />
+        <Select label="Disbursement Method" value={editForm.method || ''} onChange={x => setEditForm(f => ({ ...f, method: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(['Coinbase', 'Western Union'], editForm.method)} />
         {editForm.method === 'Coinbase' ? <>
-          <Select label="Crypto Asset" value={editForm.asset || 'USDC'} onChange={x => setEditForm(f => ({ ...f, asset: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['USDC', 'ETH', 'BTC']} />
-          <Select label="Network Rail" value={editForm.network || 'Base'} onChange={x => setEditForm(f => ({ ...f, network: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Base', 'Polygon', 'Ethereum', 'Solana']} />
+          <Select label="Crypto Asset" value={editForm.asset || ''} onChange={x => setEditForm(f => ({ ...f, asset: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(['USDC', 'ETH', 'BTC'], editForm.asset)} />
+          <Select label="Network Rail" value={editForm.network || ''} onChange={x => setEditForm(f => ({ ...f, network: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(['Base', 'Polygon', 'Ethereum', 'Solana'], editForm.network)} />
           <div style={{ gridColumn: 'span 2' }}>
             <TextField label="Wallet Address or Coinbase Email" mono value={editForm.wallet || ''} onChange={x => setEditForm(f => ({ ...f, wallet: typeof x === 'string' ? x : x.target.value }))} />
           </div>
-        </> : <>
-          <Select label="Delivery Mode" value={editForm.delivery || 'Cash Pickup'} onChange={x => setEditForm(f => ({ ...f, delivery: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Cash Pickup', 'Bank Deposit']} />
+        </> : editForm.method === 'Western Union' ? <>
+          <Select label="Delivery Mode" value={editForm.delivery || ''} onChange={x => setEditForm(f => ({ ...f, delivery: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={selOpts(['Cash Pickup', 'Bank Deposit'], editForm.delivery)} />
           <TextField label="Receiver Full Name" value={editForm.receiver || ''} onChange={x => setEditForm(f => ({ ...f, receiver: typeof x === 'string' ? x : x.target.value }))} />
           <TextField label="Payout City / State" value={editForm.city || ''} onChange={x => setEditForm(f => ({ ...f, city: typeof x === 'string' ? x : x.target.value }))} />
-          <TextField label="Payout Currency" mono value={editForm.payCur || 'USD'} onChange={x => setEditForm(f => ({ ...f, payCur: typeof x === 'string' ? x : x.target.value }))} />
-        </>}
+          <TextField label="Payout Currency" mono value={editForm.payCur || ''} onChange={x => setEditForm(f => ({ ...f, payCur: typeof x === 'string' ? x : x.target.value }))} />
+        </> : null}
       </div>
     </Modal>
   </Page>;
 }
 
-// The route itself is permission-guarded; the list starts with what the backend bootstrap loaded.
-function ContractorPayments(props) { return <ContractorPaymentsInner {...props} />; }
-function ContractorPaymentsInner({ notify }) {
-  const [pays, setPays] = React.useState(() => ((window.__MGH_CTR && window.__MGH_CTR.INIT_PAYMENTS) || INIT_PAYMENTS).map(withContractor).filter(p => MGH_RBAC.can('contractors.view', p.c)));
-  const [chip, setChip] = React.useState('all');
-  const [dbConnected, setDbConnected] = React.useState(false);
-
-  const fetchPayments = React.useCallback(async (showToast = false) => {
-    try {
-      const client = window.api || api;
-      const data = await client.contractorPayments({ periodId: getCurrentPeriod().code });
-      if (Array.isArray(data)) {
-        setPays(data.map(withContractor));
-        setDbConnected(true);
-        if (window.__MGH_CTR) window.__MGH_CTR.INIT_PAYMENTS = data;
-        if (showToast) notify('Payments synchronized with database (' + data.length + ' records)');
-      }
-    } catch (e) {
-      console.warn('[payments API error]', e);
-      setDbConnected(false);
-      if (showToast) notify('Failed to fetch payments: ' + e.message);
-    }
-  }, [notify]);
-
-  React.useEffect(() => {
-    fetchPayments(false);
-  }, [fetchPayments]);
-
-  const [cur, setCur] = React.useState((pays[0] || {}).id);
-  const [txDraft, setTxDraft] = React.useState({ cb: '', hash: '', mtcn: '' });
-  const [via, setVia] = React.useState('all');
-  const t = useTable(pays.filter(p => (chip === 'all' || p.status === chip) && (via === 'all' || (via === 'wu') === isWU(p.c))), { search: ['id', 'cid'], pageSize: 10 });
-  const p = pays.find(x => x.id === cur) || pays[0] || {};
-  const c = p.c || {};
-  // No payments yet: the detail panel needs a real payment, so show an empty state instead
-  if (!pays.length) return <Page>
-    <PageHeader breadcrumbs={['Payroll & Finance', 'Contractor Payments']} title="Contractor Payments" description={'Payments for ' + getCurrentPeriod().code} actions={<Button variant="secondary" icon="sync" onClick={() => fetchPayments(true)}>Refresh</Button>} />
-    <Card padding={24}><div className="mgh-body" style={{ color: 'var(--mgh-ink-3)' }}>No contractor payments for this period yet. They are created from approved contractor timesheets.</div></Card>
-  </Page>;
-  const wu = isWU(c);
-
-  // Optimistic update, rolled back (with an error toast that replaces the success one) if the backend rejects it
-  const upd = async (id, patch) => {
-    const before = pays.find(x => x.id === id);
-    setPays(ps => ps.map(x => x.id === id ? { ...x, ...patch } : x));
-    try {
-      const client = window.api || api;
-      await client.updateContractorPayment(id, patch);
-    } catch (e) {
-      setPays(ps => ps.map(x => x.id === id ? before : x));
-      notify('Payment ' + id + ' was NOT saved • ' + e.message);
-    }
-  };
-  const todayLabel = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const stepIdx = { Calculated: 3, 'Pending Approval': 4, Approved: 5, Sent: 6, Paid: 8 }[p.status];
-  const steps = flowOf(c).map((l, i) => ({ label: l, state: i < stepIdx ? 'done' : i === stepIdx ? 'current' : 'todo' }));
-  const action = {
-    Calculated: { label: 'Create Payment', icon: 'add_card', run: () => { upd(p.id, { status: 'Pending Approval' }); notify('Payment created • awaiting approval'); } },
-    'Pending Approval': { label: 'Approve Payment', icon: 'task_alt', run: () => { upd(p.id, { status: 'Approved' }); notify('Payment approved • ' + fmtUSD(p.amount)); } },
-    Approved: wu ? { label: 'Send via Western Union', icon: 'send_money', run: () => { upd(p.id, { status: 'Sent', date: todayLabel }); setTxDraft({ cb: '', hash: '', mtcn: '' }); notify('Sent ' + fmtUSD(p.amount) + ' via Western Union • ' + c.delivery + ' in ' + c.country); } }
-      : { label: 'Send via Coinbase', icon: 'send_money', run: () => { upd(p.id, { status: 'Sent', date: todayLabel }); setTxDraft({ cb: '', hash: '', mtcn: '' }); notify('Sent ' + fmtUSD(p.amount) + ' ' + c.asset + ' on ' + c.network); } },
-    Sent: wu ? { label: 'Record MTCN & Mark Paid', icon: 'verified', run: () => { const m = p.mtcn || txDraft.mtcn; if (!/^\d{3}-?\d{3}-?\d{4}$/.test(m.trim())) { notify('Enter the 10-digit MTCN'); return; } const d = m.replace(/\D/g, ''); upd(p.id, { status: 'Paid', mtcn: d.slice(0, 3) + '-' + d.slice(3, 6) + '-' + d.slice(6) }); notify('Western Union payment recorded as Paid in database'); } }
-      : { label: 'Record Transaction & Mark Paid', icon: 'verified', run: () => { const cb = p.cbId || txDraft.cb, hash = p.hash || txDraft.hash; if (!cb || !hash) { notify('Enter the Coinbase transaction ID and hash'); return; } upd(p.id, { status: 'Paid', cbId: cb, hash }); notify('Payment recorded as Paid in database'); } },
-  }[p.status];
-  const tot = s => pays.filter(x => !s || s.includes(x.status)).reduce((a, x) => a + x.amount, 0);
-
-  const handleExportPayments = () => {
-    const headers = ['Payment ID', 'Contractor ID', 'Contractor Name', 'Country', 'Role', 'Basis', 'Hours', 'Rate', 'Amount USD', 'Method', 'Status', 'Date', 'TxID_MTCN'];
-    const rows = pays.map(item => [
-      item.id,
-      item.cid,
-      `"${(item.c.name || '').replace(/"/g, '""')}"`,
-      `"${(item.c.country || '').replace(/"/g, '""')}"`,
-      `"${(item.c.role || '').replace(/"/g, '""')}"`,
-      item.c.basis,
-      item.hours == null ? 'Fixed' : item.hours,
-      item.c.rate,
-      item.amount,
-      isWU(item.c) ? 'Western Union' : 'Coinbase',
-      item.status,
-      item.date || '—',
-      `"${(isWU(item.c) ? item.mtcn : (item.cbId || item.hash || ''))}"`
-    ]);
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `contractor-payments-${getCurrentPeriod().code}-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    notify('Contractor payment register exported to CSV');
-  };
-
-  return <Page>
-    <PageHeader
-      breadcrumbs={['Contractors', 'Payments']}
-      title="Contractor Payments"
-      status={<Badge tone={dbConnected ? 'success' : 'info'} dot>{dbConnected ? `Database Connected • ${getCurrentPeriod().code}` : 'Local Fallback'}</Badge>}
-      actions={<>
-        <Button variant="secondary" icon="refresh" onClick={() => fetchPayments(true)}>Refresh</Button>
-        <Button variant="secondary" icon="download" onClick={handleExportPayments}>Export CSV</Button>
-      </>}
-    />
-    <Grid min={200}>
-      <StatCard label="Total due" value={fmtUSD(tot())} unit="USD" icon="request_quote" style={{ minHeight: 0 }} />
-      <StatCard label="Awaiting approval" value={pays.filter(x => x.status === 'Pending Approval').length} icon="hourglass_top" tone="warning" style={{ minHeight: 0 }} />
-      <StatCard label="In flight" value={fmtUSD(tot(['Approved', 'Sent']))} icon="send_money" tone="accent" style={{ minHeight: 0 }} />
-      <StatCard label="Paid" value={fmtUSD(tot(['Paid']))} icon="task_alt" tone="success" style={{ minHeight: 0 }} />
-    </Grid>
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'flex-start' }}>
-      <Card padding={20} style={{ flex: '1 1 520px', minWidth: 0 }}>
-        <TableToolbar search={t.q} onSearch={t.setQ} placeholder="Search payment or contractor ID…" chips={<FilterChips value={chip} onChange={setChip} options={[{ value: 'all', label: 'All', count: pays.length }, ...PST.filter(s => s !== 'Calculated').map(s => ({ value: s, label: s, count: pays.filter(x => x.status === s).length }))]} />} />
-        <div style={{ marginTop: 10 }}><FilterChips value={via} onChange={setVia} options={[{ value: 'all', label: 'All rails' }, { value: 'cb', label: 'Coinbase', count: pays.filter(x => !isWU(x.c)).length }, { value: 'wu', label: 'Western Union', count: pays.filter(x => isWU(x.c)).length }]} /></div>
-        <DataTable style={{ marginTop: 14 }} rows={t.rows} onRowClick={r => setCur(r.id)} activeRow={cur} columns={[
-          { key: 'cid', label: 'Contractor', render: r => <PersonCell c={r.c} sub={r.id} /> },
-          { key: 'country', label: 'Country', render: r => r.c.country },
-          { key: 'hours', label: 'Hours', align: 'right', render: r => r.hours == null ? 'Fixed' : r.hours.toFixed(1) },
-          { key: 'rate', label: 'Rate', align: 'right', render: r => r.c.basis === 'Fixed Monthly' ? fmtUSD(r.c.rate) + '/mo' : fmtUSD(r.c.rate) },
-          { key: 'amount', label: 'Amount', align: 'right', weight: 700, render: r => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtUSD(r.amount)}</span> },
-          { key: 'via', label: 'Paid via', render: r => isWU(r.c) ? 'Western Union' : 'Coinbase' },
-          { key: 'status', label: 'Status', render: r => <Badge size="sm" dot tone={PTONE[r.status]}>{r.status}</Badge> }]} />
-        <Pagination style={{ marginTop: 14 }} page={t.page} pageSize={t.pageSize} total={t.total} onPage={t.setPage} noun="payments" />
-      </Card>
-      <Card padding={20} style={{ flex: '1 1 320px', maxWidth: 400, minWidth: 0 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-            <PersonCell c={c} sub={c.country + ' • ' + c.role} />
-            <Badge dot tone={PTONE[p.status]}>{p.status}</Badge>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: 14, borderRadius: 8, background: 'var(--mgh-navy)', color: '#fff' }}>
-            <div><div className="mgh-overline" style={{ color: 'var(--mgh-nav-text)' }}>Amount sent</div><div style={{ font: '600 11px/14px var(--font-mono)', color: 'var(--mgh-nav-text)', marginTop: 2 }}>{p.id}</div></div>
-            <div style={{ textAlign: 'right' }}><div style={{ font: '800 26px/30px var(--font-sans)', letterSpacing: '-0.5px' }}>{fmtUSD(p.amount)}</div><div style={{ font: '600 11px/14px var(--font-sans)', color: 'var(--mgh-nav-text)' }}>{wu ? (Number(p.amount || 0) * Number(c.fx || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + c.payCur + ' • ' + c.delivery : Number(p.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' ' + c.asset + ' • ' + c.network}</div></div>
-          </div>
-          <div style={{ overflowX: 'auto' }}><Stepper steps={steps} style={{ minWidth: 560 }} /></div>
-          {wu ? <Section icon="receipt_long" title="Transaction">
-            <KeyValue label="Payment date" value={p.date || '—'} />
-            <KeyValue label="MTCN (tracking number)" value={p.mtcn || '—'} mono aside={p.mtcn && <a href={WU_TRACK} target="_blank" style={{ display: 'flex' }}><Icon name="open_in_new" size={16} color="var(--mgh-primary)" /></a>} />
-            <KeyValue label="Receiver (as on ID)" value={c.receiver} />
-            <KeyValue label="Delivery" value={c.delivery + (c.bank ? ' • ' + c.bank + ' ' + c.acct : '')} />
-            <KeyValue label="Payout location" value={c.city + ', ' + c.country} />
-            <KeyValue label="Exchange rate" value={'1 USD = ' + c.fx + ' ' + c.payCur} mono />
-            <KeyValue label="Transfer fee" value={fmtUSD(p.fee)} aside={<Badge size="sm" tone="neutral">Company-paid</Badge>} />
-          </Section> : <Section icon="receipt_long" title="Transaction">
-            <KeyValue label="Payment date" value={p.date || '—'} />
-            <KeyValue label="Coinbase transaction ID" value={p.cbId || '—'} mono />
-            <KeyValue label="Blockchain tx hash" value={p.hash ? p.hash.slice(0, 10) + '…' + p.hash.slice(-6) : '—'} mono aside={p.hash && <a href={explorer(c.network, p.hash)} target="_blank" style={{ display: 'flex' }}><Icon name="open_in_new" size={16} color="var(--mgh-primary)" /></a>} />
-            <KeyValue label="Wallet address" value={c.wallet} mono />
-            <KeyValue label="Network" value={c.network} />
-            <KeyValue label="Network fee" value={fmtUSD(p.fee)} aside={<Badge size="sm" tone="neutral">Company-paid</Badge>} />
-          </Section>}
-          {wu && p.status === 'Sent' && !p.mtcn && <TextField label="MTCN from Western Union receipt" mono value={txDraft.mtcn} onChange={v => setTxDraft(d => ({ ...d, mtcn: typeof v === 'string' ? v : v.target.value }))} placeholder="000-000-0000" />}
-          {!wu && p.status === 'Sent' && !p.hash && <div style={{ display: 'grid', gap: 10 }}>
-            <TextField label="Coinbase transaction ID" mono value={txDraft.cb} onChange={v => setTxDraft(d => ({ ...d, cb: typeof v === 'string' ? v : v.target.value }))} placeholder="CB-…" />
-            <TextField label="Blockchain transaction hash" mono value={txDraft.hash} onChange={v => setTxDraft(d => ({ ...d, hash: typeof v === 'string' ? v : v.target.value }))} placeholder="0x…" />
-          </div>}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icon name="attach_file" size={16} color="var(--mgh-primary)" /><span className="mgh-overline">Supporting document</span></div>
-            <ReceiptDrop key={p.id} pid={p.id} notify={notify} label={wu ? 'Western Union' : 'Coinbase'} />
-          </div>
-          <Section icon="menu_book" title="Accounting entry">
-            <KeyValue label="Debit • Contractor Expense" value={fmtUSD(p.amount)} />
-            <KeyValue label={wu ? 'Credit • Western Union Business Solutions' : 'Credit • Coinbase USDC Wallet'} value={fmtUSD(p.amount)} />
-            <KeyValue label={wu ? 'Debit • Transfer Fees' : 'Debit • Network Fees'} value={fmtUSD(p.fee)} />
-          </Section>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span className="mgh-overline">Notes</span>
-            <textarea value={p.notes} onChange={e => upd(p.id, { notes: e.target.value })} rows={3} placeholder="Add a note for the payment record…" style={{ font: '400 13px/18px var(--font-sans)', color: 'var(--mgh-ink)', padding: 10, borderRadius: 8, border: 'none', boxShadow: 'inset 0 0 0 1px var(--mgh-surface-3)', resize: 'vertical', outline: 'none' }} />
-          </label>
-          {action && <Button icon={action.icon} onClick={action.run} style={{ width: '100%' }}>{action.label}</Button>}
-        </div>
-      </Card>
-    </div>
-  </Page>;
-}
-
-window.__MGH_CTR = { CONTRACTORS, INIT_PAYMENTS, amountOf };
-window.__MGH_KIT = Object.assign(window.__MGH_KIT || {}, { contractors: Contractors, contractorPayments: ContractorPayments });
+// App.loadFromApi writes the backend contractors/payments here
+window.__MGH_CTR = { CONTRACTORS, INIT_PAYMENTS };
+window.__MGH_KIT = Object.assign(window.__MGH_KIT || {}, { contractors: Contractors });
 
 })();
 
