@@ -4671,7 +4671,6 @@ function Contractors({ go, notify }) {
       description="Independent contractors paid against invoices and approved timesheets — no employee payroll, withholdings or TSS."
       actions={<>
         <Button variant="secondary" icon="refresh" onClick={() => fetchContractors(true)}>Refresh</Button>
-        <Button variant="secondary" icon="payments" onClick={() => go('contractorPayments')}>Payments</Button>
         <Button icon="person_add" onClick={handleOpenAdd}>Add Contractor</Button>
       </>}
     />
@@ -4706,7 +4705,7 @@ function Contractors({ go, notify }) {
           <Section icon="contract" title="Contract"><KeyValue label="Start date" value={c.start} /><KeyValue label="End date" value={c.end || 'Open-ended'} /><KeyValue label={c.basis === 'Fixed Monthly' ? 'Fixed monthly fee' : 'Hourly rate'} value={rateTxt(c)} /><KeyValue label="Contract currency" value={c.cur} mono /></Section>
           {isWU(c) ? <Section icon="currency_exchange" title="Payment"><KeyValue label="Method" value="Western Union" /><KeyValue label="Delivery" value={c.delivery} /><KeyValue label="Receiver name (as on ID)" value={c.receiver} /><KeyValue label="Payout location" value={c.city + ', ' + c.country} />{c.bank && <KeyValue label="Receiver bank" value={c.bank + ' ' + c.acct} mono />}<KeyValue label="Payout currency" value={c.payCur} mono aside={<Badge size="sm" tone="neutral">{'1 USD = ' + c.fx + ' ' + c.payCur}</Badge>} /><KeyValue label="Transfer fee" value={fmtUSD(c.wuFee || 4.99)} aside={<Badge size="sm" tone="neutral">Company-paid</Badge>} /></Section>
           : <Section icon="account_balance_wallet" title="Payment"><KeyValue label="Method" value={c.method} /><KeyValue label={(c.walletFull || c.wallet || '').includes('@') ? 'Coinbase email' : 'Wallet address'} value={c.wallet} mono /><KeyValue label="Preferred currency" value={c.asset} aside={c.asset === 'USDC' && <Badge size="sm" tone="success">Recommended</Badge>} /><KeyValue label="Network" value={c.network} /></Section>}
-          <div style={{ display: 'flex', gap: 8 }}><Button variant="secondary" icon="edit" style={{ flex: 1 }} onClick={handleOpenEdit}>Edit</Button><Button icon="receipt_long" style={{ flex: 1 }} onClick={() => go('contractorPayments')}>Payment History</Button></div>
+          <div style={{ display: 'flex', gap: 8 }}><Button variant="secondary" icon="edit" style={{ flex: 1 }} onClick={handleOpenEdit}>Edit</Button></div>
         </div>
       </Card>
     </div>

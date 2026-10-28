@@ -29,7 +29,7 @@ const NAV=[
    {key:'attRules',label:'Attendance Rules',icon:'rule'}
  ]},
  {label:'Payroll & Finance',items:[{key:'periods',label:'Pay Periods',icon:'event_repeat'},{key:'adjustments',label:'Adjustments',icon:'tune'},{key:'processing',label:'Payroll Processing',icon:'payments'},{key:'paystub',label:'Pay Stubs',icon:'receipt_long'},{key:'banking',label:'Banking & Allocations',icon:'account_balance'},{key:'reports',label:'Reports & Register',icon:'bar_chart'}]},
- {label:'Contractors',items:[{key:'contractors',label:'Contractors',icon:'handshake'},{key:'contractorPayments',label:'Contractor Payments',icon:'currency_exchange'}]},
+ {label:'Contractors',items:[{key:'contractors',label:'Contractors',icon:'handshake'}]},
  {label:'Integrations',items:[{key:'jira',label:'Jira Cloud Sync',icon:'sync_alt',badgeTone:'onDarkSuccess'},{key:'projects',label:'Projects',icon:'folder_open'}]},
  {label:'System / Administration',items:[{key:'admin',label:'Organization & Multi-HQ',icon:'hub'},{key:'workflows',label:'Approval Workflows',icon:'account_tree'},{key:'audit',label:'Audit Logs',icon:'shield_lock'},{key:'permissions',label:'Roles & Permissions',icon:'admin_panel_settings'},{key:'languages',label:'Languages',icon:'translate'},{key:'settings',label:'Settings',icon:'settings'}]}];
 const STAGE_INFO={
