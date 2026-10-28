@@ -78,6 +78,14 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   `POST /api/auth/password` (current password, Google re-verification, or none set yet).
 - Payouts: bank, Coinbase (USDC/BTC/ETH on Base/Ethereum/Polygon/Solana) or split; must total 100%.
   Coinbase requires KYC + W-8BEN.
+- Contractors are employees: `employees.type` (Full-time / Contractor) is only a profile field — hours, tasks and payroll
+  ignore it, and it never sets the login role (`ensureUserForEmployee({ keepExistingRole: true })`; new logins = employee).
+  `#contractors` is the payout profile of Contractor-type employees; one payroll for everyone (#processing):
+  `POST /contractor-payments` answers 410. Never fill missing payout/contact data with sample values
+  (`scripts/clear-placeholder-contractor-data.js` cleans old ones).
+- Payout files (`banking-rails.service.js`) never invent a wallet, account, NID or demo line: missing/masked data → 409
+  naming the employees, nothing generated. Crypto share goes only to the USDC batch, the rest only to bank files.
+  Company identifiers come from env: `MGH_ACH_COMPANY_ID`, `MGH_BHD_COMPANY_ACCOUNT` (`MGH_BHD_COMPANY_RNC` defaults to 133474018).
 
 ## Gotchas
 - Check `src/kit/kit.jsx` and `NAV` in `src/lib/payroll.js` before adding a screen; contractor screens exist.
