@@ -313,6 +313,11 @@ class FirestoreAdapter {
 
         let fetchedCollections = 0;
         let fetchedDocs = 0;
+        // Remote data is read into FRESH maps and only swapped in once the whole hydration succeeded.
+        // Merging into the local snapshot used to resurrect documents deleted in Cloud Firestore.
+        const fresh = new Map();
+        // Local writes made while hydrating are journaled and replayed on top of the fresh data.
+        this._hydrationJournal = [];
 
         try {
           await Promise.race([
@@ -323,11 +328,8 @@ class FirestoreAdapter {
                   const colName = col.id;
                   if (colName.startsWith('_system')) return;
 
-                  let colMap = this.cache.get(colName);
-                  if (!colMap) {
-                    colMap = new Map();
-                    this.cache.set(colName, colMap);
-                  }
+                  const colMap = new Map();
+                  fresh.set(colName, colMap);
 
                   const snapshot = await col.get();
                   snapshot.forEach((doc) => {
@@ -343,6 +345,9 @@ class FirestoreAdapter {
         } finally {
           if (timer) clearTimeout(timer);
         }
+
+        this._applyHydration(fresh, this._hydrationJournal || []);
+        this._hydrationJournal = null;
 
         this.initialized = true;
         this.hydratedFromRemote = true; // live data (false = running on the local snapshot only)
@@ -365,6 +370,7 @@ class FirestoreAdapter {
         // Serving the local snapshot is the graceful fallback, but it is NOT a
         // successful boot: swallowing this silently made a stale-data boot look
         // identical to a healthy one.
+        this._hydrationJournal = null; // local writes already live in the cache
         this.hydrationError = err.message;
         this.initialized = true;
         this.hydration = {
@@ -383,6 +389,25 @@ class FirestoreAdapter {
     })();
 
     return this.initPromise;
+  }
+
+  /**
+   * Replaces the cache with what Cloud Firestore returned: every remote collection starts from its fresh map,
+   * and local-snapshot collections that no longer exist remotely are dropped. Writes made locally while the
+   * hydration was running (journal) are replayed on top so they are not lost.
+   */
+  _applyHydration(fresh, journal = []) {
+    for (const colName of Array.from(this.cache.keys())) {
+      if (!fresh.has(colName)) this.cache.delete(colName);
+    }
+    for (const [colName, colMap] of fresh.entries()) {
+      this.cache.set(colName, colMap);
+    }
+    for (const entry of journal) {
+      const colMap = this._getCollectionMap(entry.col);
+      if (entry.doc === null) colMap.delete(entry.id);
+      else colMap.set(entry.id, entry.doc);
+    }
   }
 
   _getCollectionMap(collectionName) {
@@ -422,6 +447,7 @@ class FirestoreAdapter {
     const existing = colMap.get(docIdStr) || {};
     const merged = options && options.merge ? { ...existing, ...data, id: docIdStr } : { ...data, id: docIdStr };
     colMap.set(docIdStr, merged);
+    if (this._hydrationJournal) this._hydrationJournal.push({ col: colName, id: docIdStr, doc: merged });
 
     const db = this.getFirestore();
     if (db) {
@@ -443,6 +469,7 @@ class FirestoreAdapter {
     const docIdStr = String(docId);
 
     colMap.delete(docIdStr);
+    if (this._hydrationJournal) this._hydrationJournal.push({ col: colName, id: docIdStr, doc: null });
 
     const db = this.getFirestore();
     if (db) {
