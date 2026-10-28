@@ -5,8 +5,17 @@ let postgresAdapter = null;
 
 const DB_PATH = process.env.DB_FILE || path.join(__dirname, '..', '..', 'data', 'payroll.db');
 
+// Any test process (node --test sets NODE_TEST_CONTEXT; the runner sets NODE_ENV=test) is pinned to local SQLite,
+// whatever DATABASE_CLIENT / .env say. Production Firestore must never receive test data (see CLAUDE.md).
+const IS_TEST = Boolean(process.env.NODE_TEST_CONTEXT) || process.env.NODE_ENV === 'test';
+
 function getAdapter() {
-  const client = (process.env.DATABASE_CLIENT || 'firestore').toLowerCase();
+  return adapterFor(IS_TEST ? 'sqlite' : process.env.DATABASE_CLIENT || 'firestore');
+}
+
+// Pure name → adapter mapping (no environment involved)
+function adapterFor(name) {
+  const client = String(name || 'firestore').toLowerCase();
   if (client === 'postgres' || client === 'pg' || client === 'postgresql') {
     if (!postgresAdapter) postgresAdapter = require('./adapters/postgres.adapter');
     return postgresAdapter;
@@ -87,6 +96,7 @@ module.exports = {
   reset,
   flushPendingWrites,
   getAdapter,
+  adapterFor,
   getDialect,
   DB_PATH,
 };

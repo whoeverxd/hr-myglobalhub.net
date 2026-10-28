@@ -4732,6 +4732,8 @@ const SUBS = [['attendance', 'Dashboard', 'how_to_reg'], ['attDaily', 'Registro 
 const LOC = () => window.MGH_I18N ? window.MGH_I18N.locale() : 'en-US';
 const fmtD = d => { const t = new Date(d + 'T00:00:00Z'); return t.toLocaleDateString(LOC(), { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }); };
 const v = x => typeof x === 'string' ? x : x && x.target ? x.target.value : x;
+// Leave requests change from other accounts: refresh them from the backend whenever a screen that lists them opens
+function useLeaveSync() { React.useEffect(() => { if (window.api && window.api.leaveRequests) window.api.leaveRequests().then(l => A.setLeave(Array.isArray(l) ? l : [])).catch(() => {}); }, []); }
 function useATT() { const [, f] = React.useState(0); React.useEffect(() => { const h = () => f(x => x + 1); window.addEventListener('mgh-att', h); window.addEventListener('mgh-wf', h); return () => { window.removeEventListener('mgh-att', h); window.removeEventListener('mgh-wf', h); }; }, []); }
 function Pill({ status }) { const c = A.STATUS_COLOR[status] || ['#EAEDFF', '#43474D']; return <span style={{ display: 'inline-flex', padding: '2px 8px', borderRadius: 9999, font: '700 11px/16px var(--font-sans)', background: c[0], color: c[1], whiteSpace: 'nowrap', boxShadow: c[0] === 'transparent' ? 'inset 0 0 0 1px var(--mgh-surface-3)' : 'none' }}>{status}</span>; }
 function Dlg({ open, title, onClose, children, actions }) { if (!open) return null; return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(19,27,46,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}><div onClick={e => e.stopPropagation()} style={{ width: 520, maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', background: '#fff', borderRadius: 16, boxShadow: 'var(--shadow-lg)', padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span className="mgh-h3">{title}</span><IconButton icon="close" onClick={onClose} title="Close" /></div>{children}<div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>{actions}</div></div></div>; }
@@ -4756,6 +4758,7 @@ const match = f => e => MGH_RBAC.can('attendance.view', e) && (f.org === 'All' |
 const lunchTxt = p => p.lo && p.li ? p.lo + '–' + p.li : p.lo ? p.lo + '–…' : '—';
 
 function Dashboard({ f, setF, go }) {
+  useLeaveSync();
   const s = A.summary(f.d, match(f));
   const k = [['Employees Present', s.present, 'how_to_reg', 'success'], ['No Record', s.noRecord, 'person_off', 'neutral'], ['Late Arrivals', s.late, 'schedule', 'warning'], ['Early Departures', s.early, 'logout', 'warning'], ['Missing Clock-Out', s.missingOut, 'timer_off', 'danger'], ['Missing Clock-In', s.missingIn, 'login', 'danger'], ['On Leave', s.onLeave, 'beach_access', 'accent'], ['Remote', s.remote, 'home_work', 'primary'], ['Field Work', s.field, 'directions_car', 'primary'], ['Attendance %', s.pct == null ? '—' : s.pct + '%', 'percent', s.pct == null ? 'neutral' : s.pct >= 90 ? 'success' : 'warning']];
   const days = []; for (let d = f.d, i = 0; days.length < 10 && i < 30; i++, d = A.addD(d, -1)) if (A.dow(d) % 6) days.unshift(d);
@@ -4897,6 +4900,7 @@ function Exceptions({ f, notify }) {
   </Card>;
 }
 function Leave({ notify }) {
+  useLeaveSync();
   const [form, setForm] = React.useState(() => ({ emp: (MGH_RBAC.visible(EMPLOYEES, 'leave.request')[0] || {}).id || '', type: 'Vacation', from: A.TODAY, to: A.TODAY, reason: '' }));
   const [rej, setRej] = React.useState(null); const [why, setWhy] = React.useState(''); const [chip, setChip] = React.useState('All');
   const L = A.leave().filter(l => chip === 'All' || (chip === 'Pending' ? /Pending/.test(l.status) : l.status === chip));
@@ -5119,6 +5123,7 @@ function Permissions() {
   </Page>;
 }
 function Operations({ go, notify }) {
+  useLeaveSync();
   useATT();
   const R = MGH_RBAC, W = window.MGH_WF, [tick, setTick] = React.useState(Date.now());
   React.useEffect(() => { const t = setInterval(() => setTick(Date.now()), 15000); return () => clearInterval(t); }, []);

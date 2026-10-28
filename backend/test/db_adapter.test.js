@@ -42,23 +42,17 @@ test('PostgreSQL Adapter: Parameter normalization (? to $1, $2, ...)', () => {
   assert.equal(transformed2, 'INSERT INTO worklogs (id, hrs, desc) VALUES ($1, $2, $3)');
 });
 
-test('Database Adapter: Dynamic adapter resolution via DATABASE_CLIENT env var', () => {
-  const originalEnv = process.env.DATABASE_CLIENT;
-
+test('Database Adapter: client name resolves to the right adapter; tests are always pinned to SQLite', () => {
+  const { adapterFor, getAdapter } = require('../src/db/connection');
+  assert.equal(adapterFor('postgres').dialect, 'postgres');
+  assert.equal(adapterFor('firestore').dialect, 'firestore');
+  assert.equal(adapterFor('sqlite').dialect, 'sqlite');
+  const original = process.env.DATABASE_CLIENT;
   try {
-    process.env.DATABASE_CLIENT = 'postgres';
-    const adapter = db.getAdapter();
-    assert.equal(adapter.dialect, 'postgres');
-
     process.env.DATABASE_CLIENT = 'firestore';
-    const adapterFirestore = db.getAdapter();
-    assert.equal(adapterFirestore.dialect, 'firestore');
-
-    process.env.DATABASE_CLIENT = 'sqlite';
-    const adapterSqlite = db.getAdapter();
-    assert.equal(adapterSqlite.dialect, 'sqlite');
+    assert.equal(getAdapter().dialect, 'sqlite', 'a test process never resolves to production Firestore');
   } finally {
-    process.env.DATABASE_CLIENT = originalEnv;
+    process.env.DATABASE_CLIENT = original;
   }
 });
 

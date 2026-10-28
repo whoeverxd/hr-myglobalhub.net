@@ -41,10 +41,9 @@ test('Firebase Service: testConnection reports connection status safely without 
   }
 });
 
-test('Firebase Auth: getAuth provides Admin Auth and getPublicConfig returns web client settings', () => {
-  const auth = firebaseService.getAuth();
-  assert.ok(auth, 'Auth instance should be available');
-  assert.equal(typeof auth.verifyIdToken, 'function');
+test('Firebase Auth: Admin SDK stays offline in tests; getPublicConfig returns web client settings', () => {
+  // The Admin SDK (production project) must never initialize inside a test process
+  assert.equal(firebaseService.getAuth(), null);
 
   const config = firebaseService.getPublicConfig();
   assert.ok(config);
@@ -59,6 +58,7 @@ test('Auth Service: loginWithGoogle rejects missing or invalid tokens', async ()
   );
   await assert.rejects(
     () => authService.loginWithGoogle({ idToken: 'invalid.token.signature' }),
-    /Invalid Google Token/
+    // Rejected either by Google or, in tests (Admin SDK offline), before any network call
+    /Invalid Google Token|not initialized/
   );
 });

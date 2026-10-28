@@ -5,7 +5,11 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const firebaseService = require('../src/services/firebase.service');
 const firestoreAdapter = require('../src/db/adapters/firestore.adapter');
 
-test('Firestore Pure: Verify Cloud Firestore credentials and connection', async () => {
+// These tests hit the PRODUCTION Firestore project (hr-myglobalhub-net) and its local cache file. They never run
+// in the normal suite; run them by hand only with ALLOW_FIRESTORE_IN_TESTS=true (see CLAUDE.md).
+const LIVE = { skip: process.env.ALLOW_FIRESTORE_IN_TESTS === 'true' ? false : 'production Firestore test (set ALLOW_FIRESTORE_IN_TESTS=true to run)' };
+
+test('Firestore Pure: Verify Cloud Firestore credentials and connection', LIVE, async () => {
   assert.ok(firebaseService.isConfigured(), 'Firebase credentials must be configured');
   const conn = await firebaseService.testConnection();
   assert.equal(conn.configured, true, 'Firebase credentials must be properly configured');
@@ -15,7 +19,7 @@ test('Firestore Pure: Verify Cloud Firestore credentials and connection', async 
   }
 });
 
-test('Firestore Pure: Native Collection API (set, get, update, delete)', async () => {
+test('Firestore Pure: Native Collection API (set, get, update, delete)', LIVE, async () => {
   const testCol = firestoreAdapter.collection('test_sandbox');
   const testId = 'test_item_' + Date.now();
 
@@ -44,7 +48,7 @@ test('Firestore Pure: Native Collection API (set, get, update, delete)', async (
   assert.equal(delRes.deleted, true);
 });
 
-test('Firestore Pure: SQL-to-Firestore Query Translation & Filters', async () => {
+test('Firestore Pure: SQL-to-Firestore Query Translation & Filters', LIVE, async () => {
   await firestoreAdapter.init();
 
   // Query employees collection
@@ -70,7 +74,7 @@ test('Firestore Pure: SQL-to-Firestore Query Translation & Filters', async () =>
   assert.ok(countRow.total >= employees.length);
 });
 
-test('Firestore Pure: Mutation execution (INSERT, UPDATE, DELETE)', async () => {
+test('Firestore Pure: Mutation execution (INSERT, UPDATE, DELETE)', LIVE, async () => {
   const testId = 'audit_test_' + Date.now();
 
   // Execute INSERT

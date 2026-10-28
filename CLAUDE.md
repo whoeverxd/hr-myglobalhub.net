@@ -47,4 +47,8 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
 - Check `src/kit/kit.jsx` and `NAV` in `src/lib/payroll.js` before adding a screen; contractor screens exist.
 - When scripting edits, never use `String.replace` with replacement text containing `$'`, `$&` or `` $` ``.
 - Backend stores masked `acct`/`nid` only. Swap `src/db.js` for a real database before production use.
+- Enforced in code: any test process (`NODE_TEST_CONTEXT` / `NODE_ENV=test`) is pinned to SQLite in
+  `src/db/connection.js` and the Firebase Admin SDK stays offline (`firebase.service.js`), even with `node --test`
+  run directly. `firestore_pure.test.js` only runs with `ALLOW_FIRESTORE_IN_TESTS=true`. Guard: `test/test_isolation.test.js`.
+  Old test leftovers in production: `node scripts/cleanup-test-artifacts.js` (dry run) / `--apply`.
 - **CRITICAL FIREBASE RULE:** NEVER run automated tests against live production Firebase (`hr-myglobalhub-net`). The project is on the Free Spark Plan (50k reads/day limit). All automated tests MUST run strictly against local SQLite (`DATABASE_CLIENT=sqlite`, `DISABLE_REMOTE_FIREBASE=true`). Production Firebase is reserved exclusively for live app execution with real users.

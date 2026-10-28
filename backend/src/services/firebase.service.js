@@ -91,6 +91,12 @@ function resolveCredentials() {
  * Initializes Firebase Admin SDK singleton
  */
 function initializeFirebase() {
+  // Test processes never talk to the production project (hr-myglobalhub-net). Opt in explicitly with
+  // ALLOW_FIRESTORE_IN_TESTS=true only for a deliberate, manual connectivity check.
+  const isTest = Boolean(process.env.NODE_TEST_CONTEXT) || process.env.NODE_ENV === 'test';
+  if ((isTest || process.env.DISABLE_REMOTE_FIREBASE === 'true') && process.env.ALLOW_FIRESTORE_IN_TESTS !== 'true') {
+    return null;
+  }
   if (firebaseApp) {
     return firebaseApp;
   }
