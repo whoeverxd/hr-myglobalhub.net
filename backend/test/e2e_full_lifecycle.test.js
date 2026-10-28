@@ -99,13 +99,36 @@ test('E2E Flujo 1: Colaborador registra actividad con evidencias -> Hoja de tiem
   db.execute('DELETE FROM timesheets WHERE id = ?', [ts.id]);
 });
 
-test('E2E Flujo 2: Hojas aprobadas -> calculo de nomina -> aprobacion del dueño -> dispersion NACHA/BHD/USDC -> pagada', async () => {
+test('E2E Flujo 2: Hojas aprobadas -> calculo de nomina -> aprobacion del dueño -> dispersion NACHA/BHD/USDC -> pagada', async (t) => {
   const periodId = 'PP-2025-18'; // 16–30 September 2025: own period for this flow
   db.execute('DELETE FROM payroll_run_items WHERE run_id = ?', [`PR-${periodId}`]);
   db.execute('DELETE FROM payroll_runs WHERE id = ?', [`PR-${periodId}`]);
   db.execute('DELETE FROM timesheets WHERE period_id = ?', [periodId]);
   // Hours that went through PM + owner review (only these are paid); one employee stays in review
-  const emps = db.query(`SELECT id, name FROM employees WHERE status != 'Terminated' ORDER BY id`);
+  const emps = db.query(`SELECT * FROM employees WHERE status != 'Terminated' ORDER BY id`);
+
+  // Real payment data for everyone in the run (payment files never invent an account, cédula or wallet);
+  // restored when the test ends. emps[1] is paid by US direct deposit, emps[2] takes 20% in USDC.
+  const PAY_COLS = ['nid', 'acct', 'routing', 'crypto_wallet', 'crypto_alloc', 'crypto_asset', 'crypto_network', 'entity', 'loc', 'tax'];
+  const setEmp = (id, fields) => db.execute(
+    `UPDATE employees SET ${Object.keys(fields).map((c) => `${c} = ?`).join(', ')} WHERE id = ?`,
+    [...Object.values(fields), id]
+  );
+  const saved = emps.map((e) => [e.id, Object.fromEntries(PAY_COLS.map((c) => [c, e[c] ?? null]))]);
+  t.after(() => saved.forEach(([id, row]) => setEmp(id, row)));
+  emps.forEach((e, i) => setEmp(e.id, {
+    nid: `402${String(2000000 + i).padStart(8, '0')}`,
+    acct: `81${String(20000000 + i).padStart(8, '0')}`,
+    routing: '021000021',
+    crypto_wallet: null,
+    crypto_alloc: 0,
+    entity: 'MGH Dominicana SRL',
+    loc: 'Punta Cana, DR',
+  }));
+  setEmp(emps[1].id, { entity: '', loc: 'Miami, FL', tax: null });
+  const wallet = '0xabcdef0123456789abcdef0123456789abcdef01';
+  setEmp(emps[2].id, { crypto_alloc: 20, crypto_asset: 'USDC', crypto_network: 'Base', crypto_wallet: wallet });
+  const companyBank = { companyId: '9133474018', companyAccount: '7001234567' };
   emps.forEach((e, i) => db.execute(
     `INSERT INTO timesheets (id, employee_id, employee_name, period_id, status, step_index, regular_hours, overtime_hours, pto_hours, holiday_hours, total_hours, history_json)
      VALUES (?, ?, ?, ?, ?, ?, 80, 0, 0, 0, 80, '[]')`,
@@ -145,22 +168,25 @@ test('E2E Flujo 2: Hojas aprobadas -> calculo de nomina -> aprobacion del dueño
   assert.equal(approvedRun.status, 'Approved');
 
   // 5. Generar archivo de dispersion electronica NACHA ACH para empleados de EE. UU.
-  const nacha = bankingRailsService.generateNachaFile({ periodId });
+  const nacha = bankingRailsService.generateNachaFile({ periodId, companyId: companyBank.companyId });
   assert.equal(nacha.format, 'NACHA-ACH');
-  assert.ok(nacha.totalEntries >= 1);
+  assert.equal(nacha.totalEntries, 1);
+  assert.ok(nacha.content.includes(`81${String(20000001).padStart(8, '0')}`), 'the US payee real account');
   assert.equal(nacha.recordsCount % 10, 0);
 
   // 6. Generar archivo de dispersion Banco BHD Leon para empleados de Rep. Dominicana
-  const bhd = bankingRailsService.generateBhdFile({ periodId, currency: 'DOP' });
+  const bhd = bankingRailsService.generateBhdFile({ periodId, currency: 'DOP', companyAccount: companyBank.companyAccount });
   assert.equal(bhd.format, 'BANCO-BHD-LEON');
-  assert.ok(bhd.totalEntries >= 1);
+  assert.equal(bhd.totalEntries, emps.length - 2, 'everyone paid except the sheet in review and the US payee');
   assert.ok(bhd.totalAmount > 0);
 
   // 7. Generar lote de liquidacion Base USDC en criptoactivos
   const usdcBatch = bankingRailsService.generateUsdcPayoutBatch({ periodId });
   assert.equal(usdcBatch.format, 'BASE-USDC-BATCH');
   assert.equal(usdcBatch.batchPayload.chainId, 8453);
-  assert.ok(usdcBatch.batchPayload.transactions.length >= 1);
+  assert.equal(usdcBatch.batchPayload.transactions.length, 1);
+  assert.equal(usdcBatch.batchPayload.transactions[0].meta.wallet, wallet);
+  assert.equal(usdcBatch.batchPayload.transactions[0].meta.employeeId, emps[2].id);
 
   // 8. Generar comprobante de pago oficial verifiable (Paystub) de alguien incluido en la corrida
   const paidEmp = emps[1].id;

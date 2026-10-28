@@ -118,3 +118,20 @@ test('Contractors DB: Contractor Payments lifecycle & status transitions', () =>
   assert.equal(p1.amount, 4000);
   assert.equal(p1.hours, 80);
 });
+
+test('Contractors DB: empty payment fields stay empty (no displayed Coinbase / Cash Pickup / 4.99 defaults)', () => {
+  const id = 'CTR-TEST-EMPTY-PAY';
+  db.execute('DELETE FROM contractors WHERE id = ?', [id]);
+  db.execute(
+    `INSERT INTO contractors (id, name, role, country, method, delivery, wu_fee) VALUES (?, 'Empty Pay Test', 'Tester', 'Dominican Republic', '', NULL, NULL)`,
+    [id]
+  );
+  try {
+    const c = contractorsController.getContractor(id);
+    assert.equal(c.method, '');
+    assert.equal(c.delivery, '');
+    assert.equal(c.wuFee, 0);
+  } finally {
+    db.execute('DELETE FROM contractors WHERE id = ?', [id]);
+  }
+});

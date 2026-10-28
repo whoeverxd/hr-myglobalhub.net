@@ -18,6 +18,71 @@ function approvedRunOrThrow(periodId) {
 const padRight = (str, len, char = ' ') => String(str || '').slice(0, len).padEnd(len, char);
 const padLeft = (str, len, char = '0') => String(str || '').slice(0, len).padStart(len, char);
 
+// ---- Payment data guards: a payment file carries real data or is not generated (never a placeholder) ----
+const WALLET_RE = /^0x[0-9a-fA-F]{40}$/;
+
+function conflict(message) {
+  const err = new Error(message);
+  err.status = 409;
+  return err;
+}
+
+// Employees of the run (terminated ones included: the approved run, not the current status, decides who is paid)
+function employeeMap() {
+  return new Map(db.query('SELECT * FROM employees').map((e) => [e.id, e]));
+}
+
+const isCryptoPayout = (p) => Boolean(p) && (p.target === 'USDC' || String(p.rail || '').includes('Coinbase'));
+
+// Amount of an item on each rail; the crypto share is never also dispersed by bank
+function railAmounts(item) {
+  const dist = Array.isArray(item.payoutDistribution) ? item.payoutDistribution : [];
+  if (!dist.length) return { bank: round2(Number(item.net_pay ?? item.netPay) || 0), crypto: 0 };
+  let bank = 0;
+  let cryptoAmt = 0;
+  for (const p of dist) {
+    const amt = Number(p.amount) || 0;
+    if (isCryptoPayout(p)) cryptoAmt += amt;
+    else bank += amt;
+  }
+  return { bank: round2(bank), crypto: round2(cryptoAmt) };
+}
+
+// Full number only: masked ("••••1234"), empty or non-numeric values are not usable for a payment
+function fullDigits(value, { min, max }) {
+  const s = String(value ?? '').trim();
+  if (!s || !/^[0-9][0-9 -]*$/.test(s)) return '';
+  const digits = s.replace(/\D/g, '');
+  return digits.length >= min && digits.length <= max ? digits : '';
+}
+
+function validAbaRouting(value) {
+  const r = fullDigits(value, { min: 9, max: 9 });
+  if (!r) return '';
+  const d = r.split('').map(Number);
+  const sum = 3 * (d[0] + d[3] + d[6]) + 7 * (d[1] + d[4] + d[7]) + (d[2] + d[5] + d[8]);
+  return sum % 10 === 0 ? r : '';
+}
+
+const who = (m) => `${m.name || 'Empleado sin nombre'} (${m.id})`;
+
+function throwIfMissingBankData(fileLabel, missing) {
+  if (!missing.length) return;
+  const list = missing.map((m) => `${who(m)}: ${m.fields.join(', ')}`).join('; ');
+  throw conflict(
+    `No se puede generar el archivo ${fileLabel}: faltan datos bancarios completos para ${list}. ` +
+    'Registre los datos completos (no enmascarados) en el método de pago del empleado o cambie el reparto.'
+  );
+}
+
+function requiredSetting(value, envName, fileLabel, label) {
+  const v = String(value ?? '').trim();
+  if (!v) {
+    throw conflict(`No se puede generar el archivo ${fileLabel}: falta configurar ${label} de la empresa (${envName}).`);
+  }
+  return v;
+}
+
 /**
  * Banking Rails & Payment Settlement Service
  */
@@ -28,49 +93,56 @@ const bankingRailsService = {
   generateNachaFile({
     periodId = 'PP-2025-08',
     companyName = 'MY GLOBAL HUB',
-    companyId = '1234567890',
+    companyId = process.env.MGH_ACH_COMPANY_ID,
     originDfi = '02100002',
     destDfi = '02100002',
     effectiveDate = null,
   } = {}) {
-    // 1. Get or calculate payroll run
+    // 1. Only the owner-approved run
     const run = approvedRunOrThrow(periodId);
+    companyId = requiredSetting(companyId, 'MGH_ACH_COMPANY_ID', 'NACHA', 'el identificador ACH');
 
     const payDate = run.payDate || new Date().toISOString().slice(0, 10);
     const effDateFormatted = (effectiveDate || payDate).replace(/-/g, '').slice(2); // YYMMDD
     const todayFormatted = new Date().toISOString().slice(2, 10).replace(/-/g, ''); // YYMMDD
     const nowTimeFormatted = new Date().toTimeString().slice(0, 5).replace(/:/g, ''); // HHMM
 
-    // Filter US employees or employees receiving direct deposit (non-crypto or main alloc)
-    const employees = db.query(`SELECT * FROM employees WHERE status != 'Terminated'`);
-    const empMap = new Map(employees.map((e) => [e.id, e]));
+    // US direct-deposit payees of the run (bank share only; the crypto share goes in the USDC batch)
+    const empMap = employeeMap();
 
     const entries = [];
+    const missing = [];
     let totalCreditCents = 0;
     let entryHashSum = 0;
 
     run.items.forEach((item, index) => {
       const empId = item.employee_id || item.employeeId;
       const emp = empMap.get(empId) || {};
+      const empName = item.employee_name || item.name || emp.name;
       const isUS = (emp.entity && emp.entity.includes('US')) ||
                    (emp.loc && (emp.loc.includes('US') || emp.loc.includes('NY') || emp.loc.includes('Miami'))) ||
                    (emp.cur === 'USD' && !emp.entity?.includes('Dominicana') && !emp.entity?.includes('UK'));
 
       if (!isUS) return;
 
-      // Calculate US direct deposit amount (primary bank amount)
-      const primaryPayout = item.payoutDistribution?.[0];
-      const payoutAmount = primaryPayout ? primaryPayout.amount : (item.net_pay ?? item.netPay);
-      if (payoutAmount <= 0) return;
+      const payoutAmount = railAmounts(item).bank;
+      if (!(payoutAmount > 0)) return;
+
+      const routing = validAbaRouting(emp.routing);
+      const accountNumber = fullDigits(emp.acct, { min: 4, max: 17 });
+      const fields = [];
+      if (!routing) fields.push('número de ruta ABA');
+      if (!accountNumber) fields.push('cuenta');
+      if (fields.length) {
+        missing.push({ id: empId, name: empName, fields });
+        return;
+      }
 
       const cents = Math.round(payoutAmount * 100);
       totalCreditCents += cents;
 
-      const routingRaw = (emp.routing || '021000021').replace(/\D/g, '').padEnd(9, '0');
-      const routing8 = routingRaw.slice(0, 8);
-      const checkDigit = routingRaw.slice(8, 9) || '0';
-      const accountNumber = (emp.acct || `100200${index}`).replace(/\D/g, '');
-
+      const routing8 = routing.slice(0, 8);
+      const checkDigit = routing.slice(8, 9);
       entryHashSum += Number(routing8);
 
       entries.push({
@@ -79,26 +151,12 @@ const bankingRailsService = {
         checkDigit,
         accountNumber,
         cents,
-        employeeId: item.employeeId,
-        name: (item.name || 'EMPLOYEE').toUpperCase(),
+        employeeId: empId,
+        name: String(empName || '').toUpperCase(),
       });
     });
 
-    if (entries.length === 0) {
-      // Fallback sample entry for compliance test / demo if all sample employees are international
-      const fallbackCents = 250000;
-      totalCreditCents += fallbackCents;
-      entryHashSum += 2100002;
-      entries.push({
-        seq: 1,
-        routing8: '02100002',
-        checkDigit: '1',
-        accountNumber: '987654321',
-        cents: fallbackCents,
-        employeeId: 'MGH-1042',
-        name: 'CARLOS MENDEZ',
-      });
-    }
+    throwIfMissingBankData('NACHA', missing);
 
     const records = [];
 
@@ -209,42 +267,51 @@ const bankingRailsService = {
    */
   generateBhdFile({
     periodId = 'PP-2025-08',
-    companyRnc = '131987654',
-    companyAccount = '0123456789',
+    companyRnc = process.env.MGH_BHD_COMPANY_RNC || '133474018', // My Global Hub Dominicana SRL
+    companyAccount = process.env.MGH_BHD_COMPANY_ACCOUNT,
     currency = 'DOP',
   } = {}) {
     const run = approvedRunOrThrow(periodId);
+    companyAccount = requiredSetting(companyAccount, 'MGH_BHD_COMPANY_ACCOUNT', 'BHD', 'la cuenta de débito');
 
     const payDate = run.payDate || new Date().toISOString().slice(0, 10);
     const dateFormatted = payDate.replace(/-/g, '');
 
-    const employees = db.query(`SELECT * FROM employees WHERE status != 'Terminated'`);
-    const empMap = new Map(employees.map((e) => [e.id, e]));
+    const empMap = employeeMap();
 
     const entries = [];
+    const missing = [];
     let totalAmount = 0;
 
     run.items.forEach((item) => {
       const empId = item.employee_id || item.employeeId;
-      const empName = item.employee_name || item.name;
       const emp = empMap.get(empId) || {};
+      const empName = item.employee_name || item.name || emp.name;
       const isDR = (emp.entity && emp.entity.includes('Dominicana')) ||
                    (emp.loc && emp.loc.includes('DR')) ||
                    (emp.tax && emp.tax.includes('DGII'));
 
       if (!isDR) return;
 
-      const primaryPayout = item.payoutDistribution?.[0];
-      const payoutAmount = primaryPayout ? primaryPayout.amount : (item.net_pay ?? item.netPay);
-      if (payoutAmount <= 0) return;
+      // Bank share only: the crypto share of a split goes in the USDC batch
+      const payoutAmount = railAmounts(item).bank;
+      if (!(payoutAmount > 0)) return;
+
+      // The file declares the document as Cédula (11 digits) and needs the full account number
+      const nidClean = fullDigits(emp.nid, { min: 11, max: 11 });
+      const acctClean = fullDigits(emp.acct, { min: 6, max: 20 });
+      const fields = [];
+      if (!acctClean) fields.push('cuenta');
+      if (!nidClean) fields.push('cédula');
+      if (fields.length) {
+        missing.push({ id: empId, name: empName, fields });
+        return;
+      }
 
       // In Dominican Republic contracts, convert USD rate to DOP at official rate (e.g. 60.50) if currency is DOP
       const fxRate = currency === 'DOP' ? 60.50 : 1.0;
       const amountLocal = round2(payoutAmount * fxRate);
       totalAmount = round2(totalAmount + amountLocal);
-
-      const nidClean = (emp.nid || '00100000000').replace(/\D/g, '');
-      const acctClean = (emp.acct || '1234567890').replace(/\D/g, '').padEnd(10, '0');
 
       entries.push({
         empId,
@@ -258,21 +325,7 @@ const bankingRailsService = {
       });
     });
 
-    if (entries.length === 0) {
-      // Fallback sample for tests / demo
-      const sampleAmt = 75000.00;
-      totalAmount = sampleAmt;
-      entries.push({
-        empId: 'MGH-1042',
-        name: 'Carlos Mendez',
-        docType: 'C',
-        docNumber: '00118945621',
-        accountType: 'CTE',
-        accountNumber: '0987654321',
-        amount: sampleAmt,
-        concept: `NOMINA MGH ${periodId}`,
-      });
-    }
+    throwIfMissingBankData('BHD', missing);
 
     const lines = [];
 
@@ -282,7 +335,7 @@ const bankingRailsService = {
     // Detail records
     entries.forEach((e) => {
       lines.push(
-        `D|${e.docType}|${e.docNumber}|${e.name.toUpperCase()}|${e.accountType}|${e.accountNumber}|${e.amount.toFixed(2)}|${e.empId}|${e.concept}`
+        `D|${e.docType}|${e.docNumber}|${String(e.name || '').toUpperCase()}|${e.accountType}|${e.accountNumber}|${e.amount.toFixed(2)}|${e.empId}|${e.concept}`
       );
     });
 
@@ -312,24 +365,27 @@ const bankingRailsService = {
   } = {}) {
     const run = approvedRunOrThrow(periodId);
 
-    const employees = db.query(`SELECT * FROM employees WHERE status != 'Terminated'`);
-    const empMap = new Map(employees.map((e) => [e.id, e]));
+    const empMap = employeeMap();
 
     const batchPayouts = [];
+    const missing = [];
     let totalUsdc = 0;
 
     run.items.forEach((item) => {
       const empId = item.employee_id || item.employeeId;
-      const empName = item.employee_name || item.name;
       const emp = empMap.get(empId) || {};
-      const cryptoPayout = item.payoutDistribution?.find((p) => p.target === 'USDC' || p.rail?.includes('Coinbase'));
+      const empName = item.employee_name || item.name || emp.name;
 
-      if (!cryptoPayout || cryptoPayout.amount <= 0) return;
+      const usdcAmt = railAmounts(item).crypto;
+      if (!(usdcAmt > 0)) return;
 
-      const usdcAmt = round2(cryptoPayout.amount);
+      // Never substitute an address: a transfer to an unknown wallet is lost for good
+      const wallet = String(emp.crypto_wallet ?? '').trim();
+      if (!WALLET_RE.test(wallet)) {
+        missing.push({ id: empId, name: empName });
+        return;
+      }
       totalUsdc = round2(totalUsdc + usdcAmt);
-
-      const wallet = emp.crypto_wallet || '0x71C836eB6F960a5D262F6C7741d7f6bEc5841094';
       const usdcUnits = Math.round(usdcAmt * 1e6); // USDC has 6 decimals
 
       batchPayouts.push({
@@ -343,19 +399,11 @@ const bankingRailsService = {
       });
     });
 
-    if (batchPayouts.length === 0) {
-      // Demo fallback entry for crypto payout
-      const sampleAmt = 850.00;
-      totalUsdc = sampleAmt;
-      batchPayouts.push({
-        employeeId: 'MGH-1042',
-        name: 'Carlos Mendez',
-        wallet: '0x71C836eB6F960a5D262F6C7741d7f6bEc5841094',
-        amountUsdc: sampleAmt,
-        units: (sampleAmt * 1e6).toString(),
-        token: 'USDC',
-        network,
-      });
+    if (missing.length) {
+      throw conflict(
+        `No se puede generar el archivo USDC: falta billetera válida para ${missing.map(who).join(', ')}. ` +
+        'Configure el método de pago o cambie el reparto a banco.'
+      );
     }
 
     const batchPayload = {
