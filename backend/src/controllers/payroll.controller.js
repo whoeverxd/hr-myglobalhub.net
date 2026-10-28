@@ -4,12 +4,13 @@ const employeesController = require('./employees.controller');
 
 const getClientIp = (req) => req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
 const { getUserName } = require('../utils/actor');
+const { requirePeriodId } = require('../utils/period');
 
 function calculateRun(req, res, next) {
   try {
-    const { periodId = 'PP-2025-08', entity = 'All', saveAsRun = false } = req.body || {};
+    const { periodId, entity = 'All', saveAsRun = false } = req.body || {};
     const result = payrollEngine.calculatePeriodPayroll({
-      periodId,
+      periodId: requirePeriodId(periodId),
       entity,
       saveAsRun: Boolean(saveAsRun),
       user: getUserName(req),
@@ -68,31 +69,45 @@ function approveRun(req, res, next) {
   }
 }
 
+const PAYROLL_STAFF = ['hr', 'finance', 'pm', 'admin'];
+
+// What-if calculation for one employee. Nothing is invented: the employee must exist (and be your own record
+// unless you are payroll staff), or the caller gives the rate; hours are always explicit.
 function previewEmployee(req, res, next) {
   try {
-    const { employeeId, rate, freq, tax, entity, loc, hours = 80, ot = 0 } = req.body || {};
+    const { employeeId, rate, freq, tax, entity, loc, hours, ot = 0 } = req.body || {};
+    const bad = (message, status = 400) => res.status(status).json({ error: message });
+
+    const regHours = Number(hours);
+    if (hours === undefined || hours === null || hours === '' || !Number.isFinite(regHours) || regHours < 0) {
+      return bad('hours requerido');
+    }
 
     let employee = null;
     if (employeeId) {
+      const user = req.user || {};
+      const own = String(employeeId) === String(user.employeeId || '');
+      if (!own && !PAYROLL_STAFF.includes(user.role)) return bad('Forbidden', 403);
       employee = employeesController.getEmployeeById(employeeId);
-    }
-
-    if (!employee) {
+      if (!employee) return bad(`Employee ${employeeId} not found`, 404);
+    } else {
+      const numRate = Number(rate);
+      if (!Number.isFinite(numRate) || numRate <= 0) return bad('employeeId o rate requerido');
       employee = {
-        id: employeeId || 'PREVIEW-01',
-        name: 'Preview Contributor',
-        role: 'Engineering',
-        dept: 'Engineering',
-        entity: entity || 'My Global Hub Dominicana SRL',
-        rate: Number(rate) || 50,
+        id: null,
+        name: '',
+        role: '',
+        dept: '',
+        entity: entity || 'MGH Dominicana SRL',
+        rate: numRate,
         freq: freq || 'Bi-Weekly',
-        tax: tax || 'DGII ISR + TSS (Dominican Republic)',
-        loc: loc || 'Punta Cana, DR',
+        tax: tax || null,
+        loc: loc || null,
       };
     }
 
     const result = payrollEngine.calculateEmployeePeriodPayroll(employee, {
-      regHours: Number(hours) || 80,
+      regHours,
       otHours: Number(ot) || 0,
     });
 
@@ -104,9 +119,9 @@ function previewEmployee(req, res, next) {
 
 function reconcileParallel(req, res, next) {
   try {
-    const { periodId = 'PP-2025-08', runId = null, legacyItems = [] } = req.body || {};
+    const { periodId, runId = null, legacyItems = [] } = req.body || {};
     const report = reconciliationService.reconcileParallelRun({
-      periodId,
+      periodId: requirePeriodId(periodId),
       runId,
       legacyItems,
       user: getUserName(req),
@@ -120,7 +135,7 @@ function reconcileParallel(req, res, next) {
 
 function getReconciliationAudit(req, res, next) {
   try {
-    const periodId = req.params.periodId || 'PP-2025-08';
+    const periodId = requirePeriodId(req.params.periodId);
     const history = reconciliationService.getReconciliationHistory(periodId);
     res.json(history);
   } catch (err) {

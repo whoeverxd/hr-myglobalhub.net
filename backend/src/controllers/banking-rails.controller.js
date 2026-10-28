@@ -4,11 +4,12 @@ const db = require('../db');
 
 const getClientIp = (req) => req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
 const { getUserName } = require('../utils/actor');
+const { requirePeriodId } = require('../utils/period');
 
 function exportNacha(req, res, next) {
   try {
-    const { periodId = 'PP-2025-08', download = 'false' } = req.query;
-    const result = bankingRailsService.generateNachaFile({ periodId });
+    const { periodId, download = 'false' } = req.query;
+    const result = bankingRailsService.generateNachaFile({ periodId: requirePeriodId(periodId) });
 
     if (download === 'true') {
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -24,8 +25,8 @@ function exportNacha(req, res, next) {
 
 function exportBhd(req, res, next) {
   try {
-    const { periodId = 'PP-2025-08', currency = 'DOP', download = 'false' } = req.query;
-    const result = bankingRailsService.generateBhdFile({ periodId, currency });
+    const { periodId, currency = 'DOP', download = 'false' } = req.query;
+    const result = bankingRailsService.generateBhdFile({ periodId: requirePeriodId(periodId), currency });
 
     if (download === 'true') {
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -41,8 +42,8 @@ function exportBhd(req, res, next) {
 
 function exportUsdcBatch(req, res, next) {
   try {
-    const { periodId = 'PP-2025-08', network = 'Base', download = 'false' } = req.query;
-    const result = bankingRailsService.generateUsdcPayoutBatch({ periodId, network });
+    const { periodId, network = 'Base', download = 'false' } = req.query;
+    const result = bankingRailsService.generateUsdcPayoutBatch({ periodId: requirePeriodId(periodId), network });
 
     if (download === 'true') {
       res.setHeader('Content-Type', 'application/json');
@@ -101,8 +102,8 @@ function confirmUsdcTransaction(req, res, next) {
 
 function getPaystub(req, res, next) {
   try {
-    const { employeeId, periodId = 'PP-2025-08' } = req.params;
-    const paystub = bankingRailsService.generatePaystub({ employeeId, periodId });
+    const { employeeId, periodId } = req.params;
+    const paystub = bankingRailsService.generatePaystub({ employeeId, periodId: requirePeriodId(periodId) });
     res.json(paystub);
   } catch (err) {
     next(err);
@@ -111,8 +112,8 @@ function getPaystub(req, res, next) {
 
 function renderPaystubHtml(req, res, next) {
   try {
-    const { employeeId, periodId = 'PP-2025-08' } = req.params;
-    const stub = bankingRailsService.generatePaystub({ employeeId, periodId });
+    const { employeeId, periodId } = req.params;
+    const stub = bankingRailsService.generatePaystub({ employeeId, periodId: requirePeriodId(periodId) });
 
     const html = `<!DOCTYPE html>
 <html lang="es">

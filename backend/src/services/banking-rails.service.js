@@ -2,9 +2,11 @@ const crypto = require('crypto');
 const db = require('../db');
 const { round2 } = require('../utils/money');
 const payrollEngine = require('./payroll-engine.service');
+const { requirePeriodId } = require('../utils/period');
 
 // Payment files are only produced from the payroll run the owner approved (never computed on the fly)
 function approvedRunOrThrow(periodId) {
+  requirePeriodId(periodId);
   const run = payrollEngine.getPayrollRunDetails(`PR-${periodId}`);
   if (!run || !Array.isArray(run.items) || !run.items.length || !['Approved', 'Paid'].includes(run.status)) {
     const err = new Error(`No approved payroll run for ${periodId}: calculate and approve it before generating payment files`);
@@ -91,7 +93,7 @@ const bankingRailsService = {
    * Generates a fully compliant 94-character NACHA ACH file for US payroll distribution
    */
   generateNachaFile({
-    periodId = 'PP-2025-08',
+    periodId,
     companyName = 'MY GLOBAL HUB',
     companyId = process.env.MGH_ACH_COMPANY_ID,
     originDfi = '02100002',
@@ -266,7 +268,7 @@ const bankingRailsService = {
    * Generates Banco BHD León Electronic Payroll Dispersion format (Dominican Republic)
    */
   generateBhdFile({
-    periodId = 'PP-2025-08',
+    periodId,
     companyRnc = process.env.MGH_BHD_COMPANY_RNC || '133474018', // My Global Hub Dominicana SRL
     companyAccount = process.env.MGH_BHD_COMPANY_ACCOUNT,
     currency = 'DOP',
@@ -359,7 +361,7 @@ const bankingRailsService = {
    * Generates Base USDC Crypto Payout Batch (Coinbase / Web3 multisig standard)
    */
   generateUsdcPayoutBatch({
-    periodId = 'PP-2025-08',
+    periodId,
     network = 'Base',
     tokenAddress = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // Official Base USDC contract
   } = {}) {
@@ -443,7 +445,8 @@ const bankingRailsService = {
   /**
    * Generates a formal, printable and verifiable paystub (Comprobante de Pago)
    */
-  generatePaystub({ employeeId, periodId = 'PP-2025-08' }) {
+  generatePaystub({ employeeId, periodId }) {
+    requirePeriodId(periodId);
     const employee = db.getOne(`SELECT * FROM employees WHERE id = ?`, [employeeId]);
     if (!employee) {
       const err = new Error(`Employee ${employeeId} not found`);
@@ -451,37 +454,30 @@ const bankingRailsService = {
       throw err;
     }
 
-    const period = db.getOne(`SELECT * FROM pay_periods WHERE id = ?`, [periodId]) || {
-      id: periodId,
-      start_date: '2025-04-16',
-      end_date: '2025-04-30',
-      pay_date: '2025-05-02',
+    // A pay stub only exists for a real period with a stub saved by an actual payroll run. Hours, amounts and
+    // dates are never estimated or borrowed from another period.
+    const period = db.getOne(`SELECT * FROM pay_periods WHERE id = ?`, [periodId]);
+    const saved = period
+      ? payrollEngine.listEmployeePaystubs(employee.id, { issuedOnly: false }).find((s) => s.periodId === period.id)
+      : null;
+    if (!saved) {
+      const err = new Error('No hay recibo para ese período');
+      err.status = 404;
+      throw err;
+    }
+    const calc = {
+      hours: { regular: saved.regHours, overtime: saved.otHours, pto: saved.ptoHours, total: saved.regHours + saved.otHours + saved.ptoHours },
+      earnings: {
+        regular: +(saved.regHours * saved.rate).toFixed(2),
+        overtime: +(saved.otHours * saved.rate * 1.5).toFixed(2),
+        pto: +(saved.ptoHours * saved.rate).toFixed(2),
+        adjustments: +saved.adjustments.reduce((sum, a) => sum + (a.amount > 0 ? a.amount : 0), 0).toFixed(2),
+        grossPay: saved.grossPay,
+      },
+      deductions: { lines: saved.deductions, total: saved.totalDeductions },
+      netPay: saved.netPay,
+      payoutDistribution: saved.payoutDistribution,
     };
-
-    // Prefer the stub saved by an actual payroll run; fall back to an estimate when none exists
-    const saved = payrollEngine
-      .listEmployeePaystubs(employee.id, { issuedOnly: false })
-      .find((s) => s.periodId === period.id);
-    const calc = saved
-      ? {
-          hours: { regular: saved.regHours, overtime: saved.otHours, pto: saved.ptoHours, total: saved.regHours + saved.otHours + saved.ptoHours },
-          earnings: {
-            regular: +(saved.regHours * saved.rate).toFixed(2),
-            overtime: +(saved.otHours * saved.rate * 1.5).toFixed(2),
-            pto: +(saved.ptoHours * saved.rate).toFixed(2),
-            adjustments: +saved.adjustments.reduce((sum, a) => sum + (a.amount > 0 ? a.amount : 0), 0).toFixed(2),
-            grossPay: saved.grossPay,
-          },
-          deductions: { lines: saved.deductions, total: saved.totalDeductions },
-          netPay: saved.netPay,
-          payoutDistribution: saved.payoutDistribution,
-        }
-      : payrollEngine.calculateEmployeePeriodPayroll(employee, {
-          regHours: employee.type?.includes('Part-time') ? 40 : 80,
-          otHours: 4.5,
-          ptoHours: 0,
-          adjustments: [],
-        });
     const entity = (saved && saved.entity) || employee.entity || 'My Global Hub';
     const isDR = /dominicana/i.test(entity);
 

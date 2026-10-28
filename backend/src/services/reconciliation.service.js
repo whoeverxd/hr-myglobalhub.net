@@ -1,6 +1,7 @@
 const db = require('../db');
 const { round2 } = require('../utils/money');
 const payrollEngine = require('./payroll-engine.service');
+const { requirePeriodId } = require('../utils/period');
 const { logAction } = require('../controllers/audit.controller');
 
 /**
@@ -12,12 +13,13 @@ const reconciliationService = {
    * Reconcile parallel pilot cycle against baseline legacy data
    */
   reconcileParallelRun({
-    periodId = 'PP-2025-08',
+    periodId,
     runId = null,
     legacyItems = [],
     user = 'System',
     ip = '127.0.0.1',
   } = {}) {
+    requirePeriodId(periodId);
     const targetRunId = runId || `PR-${periodId}`;
     let run = payrollEngine.getPayrollRunDetails(targetRunId);
     if (!run || !run.items) {
@@ -122,7 +124,7 @@ const reconciliationService = {
   /**
    * Retrieve historical audit trail for parallel reconciliation
    */
-  getReconciliationHistory(periodId = 'PP-2025-08') {
+  getReconciliationHistory() {
     const rows = db.query(
       `SELECT * FROM audit_logs
        WHERE action = 'PAYROLL_PARALLEL_RECONCILIATION'

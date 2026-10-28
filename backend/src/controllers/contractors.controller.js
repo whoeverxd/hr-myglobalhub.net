@@ -2,6 +2,7 @@ const db = require('../db');
 const { logAction } = require('./audit.controller');
 const { ensureUserForEmployee } = require('../services/auth.service');
 const { passwordProblem } = require('../utils/crypto');
+const { requirePeriodId } = require('../utils/period');
 
 function formatContractor(c) {
   if (!c) return null;
@@ -466,7 +467,7 @@ function createContractorPayment(data, user = 'System', ip = '127.0.0.1') {
     throw err;
   }
   const contractorId = data.contractorId || data.cid;
-  const periodId = data.periodId || data.period || 'PP-2025-08';
+  const periodId = requirePeriodId(data.periodId || data.period);
   
   // Generate payment ID
   const rows = db.query(`SELECT id FROM contractor_payments WHERE period_id = ?`, [periodId]);

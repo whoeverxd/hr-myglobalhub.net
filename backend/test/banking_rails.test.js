@@ -74,30 +74,20 @@ after(() => {
   if (fixture.createdNoCryptoPeriod) db.execute('DELETE FROM pay_periods WHERE id = ?', [NO_CRYPTO_PERIOD]);
 });
 
-test('Banking Rails: Paystub generation and verifiable fingerprint', () => {
-  // Test contractor exempt employee
-  const contractorStub = bankingRailsService.generatePaystub({
-    employeeId: 'MGH-1043',
-    periodId: 'PP-2025-08',
-  });
-
-  assert.ok(contractorStub.paystubId.startsWith('PS-PP-2025-08-MGH-1043'));
-  assert.ok(contractorStub.fingerprint);
-  assert.equal(contractorStub.employee.id, 'MGH-1043');
-  assert.ok(contractorStub.earnings.grossPay > 0);
-  assert.equal(contractorStub.netPay, contractorStub.earnings.grossPay); // Contractor has 0 statutory deductions
-
-  // Test full-time employee with statutory tax/social security deductions
-  const fulltimeStub = bankingRailsService.generatePaystub({
-    employeeId: 'MGH-1042',
-    periodId: 'PP-2025-08',
-  });
-
-  assert.ok(fulltimeStub.paystubId.startsWith('PS-PP-2025-08-MGH-1042'));
-  assert.ok(fulltimeStub.earnings.grossPay > 0);
-  assert.ok(fulltimeStub.deductions.lines.length >= 1, 'Full-time employee must have statutory deduction lines');
-  assert.ok(fulltimeStub.deductions.total > 0);
-  assert.ok(fulltimeStub.netPay < fulltimeStub.earnings.grossPay);
+test('Banking Rails: no payroll run for the period → 404 "No hay recibo", never an estimated stub', () => {
+  // PP-2025-08 has no saved run line: the old code estimated 80h + 4.5h OT and borrowed April 2025 dates
+  db.execute('DELETE FROM payroll_run_items WHERE run_id = ?', ['PR-PP-2025-08']);
+  db.execute('DELETE FROM payroll_runs WHERE id = ?', ['PR-PP-2025-08']);
+  for (const employeeId of ['MGH-1043', 'MGH-1042']) {
+    assert.throws(
+      () => bankingRailsService.generatePaystub({ employeeId, periodId: 'PP-2025-08' }),
+      (err) => err.status === 404 && /No hay recibo para ese período/.test(err.message)
+    );
+  }
+  // Unknown period → same 404 (no invented dates)
+  assert.throws(() => bankingRailsService.generatePaystub({ employeeId: 'MGH-1042', periodId: 'PP-1999-01' }), (err) => err.status === 404);
+  // Missing period → 400
+  assert.throws(() => bankingRailsService.generatePaystub({ employeeId: 'MGH-1042' }), (err) => err.status === 400 && /periodId requerido/.test(err.message));
 });
 
 test('Banking Rails: setup — real payment data → approved timesheets → calculated → approved run; no files before approval', () => {
@@ -138,6 +128,19 @@ test('Banking Rails: setup — real payment data → approved timesheets → cal
   assert.ok(run.items.length >= 3);
   assert.throws(() => bankingRailsService.generateNachaFile({ periodId: PERIOD }), /No approved payroll run/, 'calculated is not enough');
   payrollEngine.approvePayrollRun(`PR-${PERIOD}`, 'Owner');
+});
+
+test('Banking Rails: paystub comes from the saved run line, with masked accounts and fingerprint', () => {
+  const stub = bankingRailsService.generatePaystub({ employeeId: fixture.us.id, periodId: PERIOD });
+  assert.ok(stub.paystubId.startsWith(`PS-${PERIOD}-${fixture.us.id}`));
+  assert.ok(stub.fingerprint);
+  assert.equal(stub.issued, true);
+  assert.equal(stub.hours.regular, 80, 'hours of the approved timesheet');
+  assert.equal(stub.hours.overtime, 0, 'no invented overtime');
+  assert.ok(stub.netPay > 0);
+  const bank = stub.payoutDistribution[0];
+  assert.equal(bank.accountMasked, '••••1122', 'full account is shown masked to the last 4');
+  assert.ok(!JSON.stringify(stub).includes('••••0000'));
 });
 
 test('Banking Rails: NACHA ACH file format specification compliance with the real account', () => {

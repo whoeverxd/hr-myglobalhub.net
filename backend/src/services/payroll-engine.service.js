@@ -3,6 +3,24 @@ const { round2 } = require('../utils/money');
 const { calculateTaxDeductions, DEFAULT_CONFIG } = require('./tax-rules.service');
 const { logAction } = require('../controllers/audit.controller');
 
+const NO_ACCOUNT_LABEL = 'Sin cuenta registrada';
+
+// '••••' + last 4 of a bank account; an already masked value is kept, an empty one stays ''
+function maskAccount(acct) {
+  const v = String(acct ?? '').trim();
+  if (!v) return '';
+  if (v.startsWith('••••')) return v;
+  const digits = v.replace(/[^0-9A-Za-z]/g, '');
+  return '••••' + digits.slice(-4);
+}
+
+function maskWallet(wallet) {
+  const v = String(wallet ?? '').trim();
+  if (!v) return '';
+  if (v.includes('…') || v.length <= 10) return v;
+  return `${v.slice(0, 6)}…${v.slice(-4)}`;
+}
+
 /**
  * Calculates payroll for an individual employee for a single cycle
  */
@@ -71,21 +89,23 @@ function calculateEmployeePeriodPayroll(employee, {
   const mainAmount = round2(netPay * (mainAlloc / 100));
   const secondaryAmount = round2(netPay - mainAmount); // Exact remainder to balance 100%
 
+  // Real payout data only: an empty account stays empty, and a full number is never exposed (masked to the last 4)
   const payoutDistribution = [
     {
       rail: employee.pmethod || 'Bank Deposit',
-      target: employee.bank || 'Primary Bank Account',
-      accountMasked: employee.acct || '••••0000',
+      target: employee.bank || NO_ACCOUNT_LABEL,
+      accountMasked: maskAccount(employee.acct),
       percentage: mainAlloc,
       amount: mainAmount,
     },
   ];
 
   if (cryptoAlloc > 0) {
+    // The crypto share is always the Coinbase rail; asset and wallet are only what the employee registered
     payoutDistribution.push({
-      rail: employee.crypto_network ? `Coinbase (${employee.crypto_network})` : 'Secondary Account',
-      target: employee.crypto_asset || 'USDC',
-      accountMasked: employee.crypto_wallet ? `${employee.crypto_wallet.slice(0, 6)}…${employee.crypto_wallet.slice(-4)}` : 'Wallet',
+      rail: employee.crypto_network ? `Coinbase (${employee.crypto_network})` : 'Coinbase',
+      target: employee.crypto_asset || '',
+      accountMasked: maskWallet(employee.crypto_wallet),
       percentage: cryptoAlloc,
       amount: secondaryAmount,
     });
