@@ -106,6 +106,7 @@ export const api = {
   deactivateEmployee: (employeeId) => request('POST', `/employees/${encodeURIComponent(employeeId)}/deactivate`),
   employeeAccount: (employeeId) => request('GET', `/employees/${encodeURIComponent(employeeId)}/account`),
   setEmployeeRole: (employeeId, role) => request('PUT', `/employees/${encodeURIComponent(employeeId)}/account/role`, { role }),
+  setUserRole: (userId, role) => request('PUT', `/users/${encodeURIComponent(userId)}/role`, { role }),
   resetEmployeePassword: (employeeId) => request('POST', `/employees/${encodeURIComponent(employeeId)}/reset-password`),
   logout: async () => {
     try {

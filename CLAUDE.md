@@ -67,7 +67,9 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   System roles (one per login): employee, contractor, supervisor, pm, hr, finance, admin (= Platform Admin, top level,
   passes every `requireRole`). Who may give which role on creation: `ASSIGNABLE_ROLES` in `auth.service.js` (PM →
   employee/contractor/supervisor; a job title never escalates beyond that). Admin changes roles on the profile card
-  "Acceso al sistema" (`PUT /employees/:id/account/role`; not own role, not the last admin). Bootstrap admins:
+  "Acceso al sistema" (`PUT /employees/:id/account/role`) or for every login at once in `#admin` → "Usuarios y roles"
+  (`PUT /users/:id/role`, also accounts without an employee); never own role, never the last active admin. No "super admin":
+  `admin` is the top level. Bootstrap admins:
   `node scripts/set-user-role.js --role admin <email…>` (dry run) / `--apply` (reads live Firestore, then asks CAMBIAR).
 - Removing an employee ("Eliminar empleado" on the profile; PM for team accounts, admin for any; never yourself or the
   last admin): `GET /employees/:id/removal` previews, `DELETE /employees/:id` cascades over operational data

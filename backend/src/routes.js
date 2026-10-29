@@ -425,6 +425,10 @@ router.post('/employees/:id/deactivate', authenticate, requireRole('pm', 'admin'
 router.get('/employees/:id/account', authenticate, requireRole('pm', 'hr', 'admin'), (req, res, next) => {
   try { res.json(authService.accountForEmployee(req.params.id)); } catch (err) { next(err); }
 });
+// #admin "Users & roles": by login id, so accounts without an employee (or duplicates) can be managed too
+router.put('/users/:id/role', authenticate, requireRole('admin'), (req, res, next) => {
+  try { res.json(authService.setUserRole({ userId: req.params.id, role: (req.body || {}).role, actor: req.user, ip: getClientIp(req) })); } catch (err) { next(err); }
+});
 router.put('/employees/:id/account/role', authenticate, requireRole('admin'), (req, res, next) => {
   try { res.json(authService.setRoleForEmployee({ employeeId: req.params.id, role: (req.body || {}).role, actor: req.user, ip: getClientIp(req) })); } catch (err) { next(err); }
 });

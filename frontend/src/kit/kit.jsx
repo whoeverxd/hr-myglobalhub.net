@@ -189,6 +189,8 @@ const inReview = s => !!s && !NOT_IN_REVIEW.includes(s);
 // Backend role of the signed-in user ('admin', 'finance', 'pm'…); payroll endpoints check this, not the UI role.
 const backendRole = () => { const u = window.MGH_RBAC && window.MGH_RBAC.user; return String((u && u.role) || '').toLowerCase(); };
 const isAdminUser = () => backendRole() === 'admin';
+// System roles (one per login) — same list as SYSTEM_ROLES in backend auth.service.js; 'admin' is the top level
+const SYSTEM_ROLE_LABELS = { employee: 'Empleado', contractor: 'Contratista', supervisor: 'Supervisor', pm: 'Project Manager', hr: 'Recursos Humanos', finance: 'Finanzas', admin: 'Administrador (acceso total)' };
 // Mirrors routes.js: GET /payroll/runs → pm, finance, admin; payout files (/payroll/export/*) → finance, admin.
 // Anyone else gets 403, so screens skip the call instead of failing silently.
 const canPayrollRuns = () => ['admin', 'finance', 'pm'].includes(backendRole());
@@ -244,7 +246,7 @@ function WFPill({ status, size }) { const c = WF ? WF.statusColor(status) : ['#E
 function useWF() { const [, f] = React.useState(0); React.useEffect(() => { const h = () => f(x => x + 1); window.addEventListener('mgh-wf', h); return () => window.removeEventListener('mgh-wf', h); }, []); }
 const fmtAt = iso => { const t = new Date(iso); return isNaN(t) ? iso : t.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); };
 window.__mghPrevPeriods = (cur, n) => { const out = []; let c = cur; for (let i = 0; i < n; i++) { const d = new Date(c.startDate + 'T12:00:00'); d.setDate(d.getDate() - 1); c = getQuincenaForDate(d); out.push({ code: c.code, label: c.code + ' (' + c.rangeShort + ', ' + c.year + ')', phase: 'Histórico', start: c.startDate, end: c.endDate, startDate: c.startDate, endDate: c.endDate, daysRemaining: 0 }); } return out; };
-window.__MGH_DATA = { LOC, ALL_EMP, EMPLOYEES, DEDUCT, STATUS_TONE, NAV, buildDays, fmt$, fmtH, useTable, AVATARS: A, WF, WFPill, useWF, recOf, liveStatus, inReview, isAdminUser, canPayrollRuns, canPayoutFiles, downloadApi, openApiHtml, fmtAt, PERIOD, hasMatch, lowMatch, matchTxt };
+window.__MGH_DATA = { LOC, SYSTEM_ROLE_LABELS, ALL_EMP, EMPLOYEES, DEDUCT, STATUS_TONE, NAV, buildDays, fmt$, fmtH, useTable, AVATARS: A, WF, WFPill, useWF, recOf, liveStatus, inReview, isAdminUser, canPayrollRuns, canPayoutFiles, downloadApi, openApiHtml, fmtAt, PERIOD, hasMatch, lowMatch, matchTxt };
 Object.assign(window, window.__MGH_DATA);
 
 })();
@@ -1327,7 +1329,7 @@ function EmployeeProfileInner({ empId, go, notify }) {
     }
     return () => { cancel = true; };
   }, [e.id, canSeeAccount]);
-  const ROLE_LABELS = { employee: 'Empleado', contractor: 'Contratista', supervisor: 'Supervisor', pm: 'Project Manager', hr: 'Recursos Humanos', finance: 'Finanzas', admin: 'Administrador (acceso total)' };
+  const ROLE_LABELS = SYSTEM_ROLE_LABELS;
   const saveRole = async () => {
     if (roleDraft === 'admin' && !window.confirm('¿Dar acceso total de administrador a ' + e.name + '? Podrá aprobar nóminas, ejecutar pagos y cambiar roles.')) return;
     setRoleBusy(true);
@@ -4319,15 +4321,53 @@ function Administration({ notify, go }) {
   }, []);
   try { localStorage.removeItem('mgh-admin-users'); } catch (_) {}
 
-  const rows = (users || []).map(u => ({ id: u.id, e: { name: u.name || '—', role: u.email, avatar: u.avatar }, r: u.role || '—', active: u.is_active, last: u.last_login_at ? new Date(u.last_login_at.replace(' ', 'T') + (u.last_login_at.endsWith('Z') ? '' : 'Z')).toLocaleString(LOC()) : 'Never' }));
+  // Only an admin changes roles (backend: PUT /users/:id/role → not your own role, never the last active admin)
+  const canEdit = isAdminUser();
+  const me = (window.MGH_RBAC && window.MGH_RBAC.user) || {};
+  const isMe = u => (me.id && u.id === me.id) || (me.email && String(u.email || '').toLowerCase() === String(me.email).toLowerCase());
+  const [drafts, setDrafts] = React.useState({});
+  const [busy, setBusy] = React.useState(null);
+  const [q, setQ] = React.useState('');
+  const roleOptions = Object.entries(SYSTEM_ROLE_LABELS).map(([value, label]) => ({ value, label }));
+  const saveRole = async u => {
+    const role = drafts[u.id];
+    if (!role || role === u.role) return;
+    if (role === 'admin' && !window.confirm('¿Dar acceso total de administrador a ' + (u.name || u.email) + '? Podrá aprobar nóminas, ejecutar pagos y cambiar roles.')) return;
+    setBusy(u.id);
+    try {
+      const r = await window.api.setUserRole(u.id, role);
+      setUsers(list => list.map(x => x.id === u.id ? { ...x, role: r.role } : x));
+      setDrafts(d => { const n = { ...d }; delete n[u.id]; return n; });
+      notify(r.changed ? `Rol de ${u.name || u.email}: ${SYSTEM_ROLE_LABELS[r.previousRole] || r.previousRole} → ${SYSTEM_ROLE_LABELS[r.role] || r.role}. Se aplica en su próxima acción.` : 'Sin cambios');
+    } catch (err) { notify('No se pudo cambiar el rol • ' + err.message); }
+    finally { setBusy(null); }
+  };
+
+  const term = q.trim().toLowerCase();
+  const shown = (users || []).filter(u => !term || `${u.name || ''} ${u.email || ''} ${u.employee_id || ''} ${SYSTEM_ROLE_LABELS[u.role] || u.role || ''}`.toLowerCase().includes(term));
+  const rows = shown.map(u => ({ id: u.id, u, e: { name: u.name || '—', role: u.email, avatar: u.avatar }, emp: u.employee_id || '—', active: u.is_active, last: u.last_login_at ? new Date(u.last_login_at.replace(' ', 'T') + (u.last_login_at.endsWith('Z') ? '' : 'Z')).toLocaleString(LOC()) : 'Nunca' }));
+  const roleCell = r => {
+    const u = r.u, label = SYSTEM_ROLE_LABELS[u.role] || u.role || '—';
+    if (!canEdit) return <Badge size="sm" tone="primary">{label}</Badge>;
+    if (isMe(u)) return <span title="No puedes cambiar tu propio rol" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><Badge size="sm" tone="primary">{label}</Badge><span style={{ font: '500 11px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>(tú)</span></span>;
+    const draft = drafts[u.id] || u.role || '';
+    return <div style={{ display: 'flex', gap: 6, alignItems: 'center', minWidth: 260 }}>
+      <Select size="sm" value={draft} onChange={x => { const v = typeof x === 'string' ? x : x.target.value; setDrafts(d => ({ ...d, [u.id]: v })); }} options={roleOptions} />
+      <Button size="sm" icon="save" disabled={busy === u.id || draft === u.role} onClick={() => saveRole(u)}>{busy === u.id ? 'Guardando…' : 'Guardar'}</Button>
+    </div>;
+  };
 
   return <Page>
-    <PageHeader breadcrumbs={['System', 'Administration']} title="Administration" description="Users and roles of My Global Hub (Dominicana SRL)." />
-    <Card icon="group" title="Users & roles" subtitle={users ? rows.length + ' user account' + (rows.length === 1 ? '' : 's') : 'Loading…'} bodyStyle={{ paddingTop: 14 }}>
-      {users && !rows.length ? <div className="mgh-body" style={{ padding: '32px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>No user accounts yet.</div> :
+    <PageHeader breadcrumbs={['System', 'Administration']} title="Administration" description="Usuarios y roles de My Global Hub (Dominicana SRL)." />
+    <Card icon="group" title="Usuarios y roles" subtitle={users ? (canEdit ? 'Cambia el rol de acceso de cada cuenta. Administrador = acceso total.' : 'Solo un administrador puede cambiar roles.') + ' • ' + rows.length + ' de ' + users.length + ' cuenta' + (users.length === 1 ? '' : 's') : 'Cargando…'} bodyStyle={{ paddingTop: 14 }}
+      actions={users && users.length > 0 ? <div style={{ width: 240 }}><TextField placeholder="Buscar nombre, email o rol…" value={q} onChange={x => setQ(typeof x === 'string' ? x : x.target.value)} /></div> : null}>
+      {users && !users.length ? <div className="mgh-body" style={{ padding: '32px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>Todavía no hay cuentas.</div> :
+      users && !rows.length ? <div className="mgh-body" style={{ padding: '32px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>Ninguna cuenta coincide con “{q}”.</div> :
       <DataTable rows={rows} columns={[
-        { key: 'e', label: 'User', render: r => <EmployeeCell e={r.e} /> }, { key: 'r', label: 'Role', render: r => <Badge size="sm" tone="primary">{r.r}</Badge> },
-        { key: 'active', label: 'Status', render: r => <Badge size="sm" dot tone={r.active ? 'success' : 'neutral'}>{r.active ? 'Active' : 'Inactive'}</Badge> }, { key: 'last', label: 'Last login' }]} />}
+        { key: 'e', label: 'Usuario', render: r => <EmployeeCell e={r.e} /> },
+        { key: 'emp', label: 'Empleado', render: r => <span style={{ fontFamily: 'var(--font-mono)' }}>{r.emp}</span> },
+        { key: 'r', label: 'Rol', render: roleCell },
+        { key: 'active', label: 'Estado', render: r => <Badge size="sm" dot tone={r.active ? 'success' : 'neutral'}>{r.active ? 'Activa' : 'Desactivada'}</Badge> }, { key: 'last', label: 'Último acceso' }]} />}
     </Card>
     <Card icon="account_tree" title="Approval workflow policy" subtitle="Configured in Approval Workflows" actions={<Button size="sm" variant="ghost" iconRight="arrow_forward" onClick={() => go('workflows')}>Open Approval Workflows</Button>} />
   </Page>;
