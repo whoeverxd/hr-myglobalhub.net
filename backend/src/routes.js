@@ -35,6 +35,13 @@ const { getUserName } = require('./utils/actor');
 const { devResetAllowed } = require('./utils/runtime');
 const isPrivileged = (user) => user && (user.role === 'admin' || user.role === 'pm');
 
+// Nobody but the admin acts on their own record -- the rule timesheets already follow (reviewStepError, below),
+// applied wherever an actor could otherwise decide about their own money or their own leave. Posting and approving
+// are split by role, but that split is worth nothing when both sides can be the same person deciding about himself.
+const actsOnSelf = (user, employeeId) =>
+  Boolean(user && user.role !== 'admin' && user.employeeId && employeeId
+    && String(employeeId) === String(user.employeeId));
+
 /* ---------- Health ---------- */
 router.get('/health', (req, res) => {
   res.json({
@@ -204,6 +211,10 @@ router.post(
   requireRole('supervisor', 'pm', 'hr', 'finance', 'admin'),
   (req, res, next) => {
     try {
+      const target = String((req.body && (req.body.employeeId || req.body.empId)) || '').trim();
+      if (actsOnSelf(req.user, target)) {
+        return res.status(403).json({ error: 'Forbidden: you cannot post a payroll adjustment on your own record' });
+      }
       const adj = adjustmentsController.createAdjustment(
         req.body || {},
         getUserName(req),
@@ -223,6 +234,10 @@ router.patch(
   requireRole('pm', 'hr', 'finance', 'admin'),
   (req, res, next) => {
     try {
+      const owner = db.getOne('SELECT employee_id FROM payroll_adjustments WHERE id = ?', [req.params.id]);
+      if (owner && actsOnSelf(req.user, owner.employee_id)) {
+        return res.status(403).json({ error: 'Forbidden: you cannot approve a payroll adjustment on your own record' });
+      }
       const updated = adjustmentsController.updateAdjustment(
         req.params.id,
         req.body || {},
@@ -715,12 +730,16 @@ router.patch(
     try {
       // Reviewers approve/reject; an employee may only cancel their own request
       const reviewer = req.user && ['supervisor', 'pm', 'hr', 'finance', 'admin'].includes(req.user.role);
+      const own = db.getOne('SELECT employee_id FROM leave_requests WHERE id = ?', [req.params.id]);
+      const action = req.body && req.body.action;
       if (!reviewer) {
-        const own = db.getOne('SELECT employee_id FROM leave_requests WHERE id = ?', [req.params.id]);
         const myEmpId = req.user && (req.user.employeeId || req.user.id);
-        if (!(req.body && req.body.action === 'cancel' && own && own.employee_id === myEmpId)) {
+        if (!(action === 'cancel' && own && own.employee_id === myEmpId)) {
           return res.status(403).json({ error: 'Forbidden: only reviewers can approve or reject; employees can cancel their own requests' });
         }
+      } else if (action !== 'cancel' && own && actsOnSelf(req.user, own.employee_id)) {
+        // Cancelling your own request is always yours to do; approving or rejecting it is not.
+        return res.status(403).json({ error: 'Forbidden: you cannot approve or reject your own leave request' });
       }
       const updated = leaveController.reviewLeaveRequest(
         req.params.id,
