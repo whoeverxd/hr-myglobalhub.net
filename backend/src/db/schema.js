@@ -108,10 +108,10 @@ function initSchema() {
       thumb TEXT,
       type TEXT,
       created_when TEXT,
+      emp_id TEXT,
+      period_id TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
-
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_proofs_transfer ON payment_proofs (transfer);
 
     CREATE TABLE IF NOT EXISTS audit_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -593,6 +593,11 @@ function initSchema() {
   try { exec(`ALTER TABLE daily_activities ADD COLUMN reviewed_by TEXT;`); } catch (_) {}
   try { exec(`ALTER TABLE daily_activities ADD COLUMN reviewed_at TEXT;`); } catch (_) {}
   // Meeting logged by a PM/supervisor for several attendees: shared id + who logged it (null = the owner)
+  // Proofs belong to one payslip line: transfer + employee + period (it used to be one proof per transfer for everybody)
+  try { exec(`ALTER TABLE payment_proofs ADD COLUMN emp_id TEXT;`); } catch (_) {}
+  try { exec(`ALTER TABLE payment_proofs ADD COLUMN period_id TEXT;`); } catch (_) {}
+  try { exec(`DROP INDEX IF EXISTS idx_proofs_transfer;`); } catch (_) {}
+  try { exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_proofs_line ON payment_proofs (transfer, emp_id, period_id);`); } catch (_) {}
   try { exec(`ALTER TABLE daily_activities ADD COLUMN meeting_id TEXT;`); } catch (_) {}
   try { exec(`ALTER TABLE daily_activities ADD COLUMN logged_by TEXT;`); } catch (_) {}
   try { exec(`ALTER TABLE payroll_runs ADD COLUMN paid_by TEXT;`); } catch (_) {}

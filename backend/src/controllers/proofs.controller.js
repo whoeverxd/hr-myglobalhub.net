@@ -16,12 +16,22 @@ function listProofs() {
     thumb: p.thumb,
     type: p.type,
     when: p.created_when,
+    emp: p.emp_id || null,
+    period: p.period_id || null,
   }));
 }
 
 function saveProof(data, user = 'System', ip = '127.0.0.1') {
   if (!['bhd', 'chase', 'coinbase'].includes(data.transfer)) {
     const err = new Error('Unknown transfer');
+    err.status = 400;
+    throw err;
+  }
+
+  const empId = String(data.emp || data.empId || '').trim();
+  const periodId = String(data.period || data.periodId || '').trim();
+  if (!empId || !periodId) {
+    const err = new Error('emp and period are required: a proof belongs to one payslip');
     err.status = 400;
     throw err;
   }
@@ -49,18 +59,23 @@ function saveProof(data, user = 'System', ip = '127.0.0.1') {
     thumb: data.thumb || null,
     type: data.type || 'upload',
     created_when: data.when || new Date().toLocaleString('en-US', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+    emp_id: empId,
+    period_id: periodId,
   };
 
   db.transaction(() => {
-    // One proof per transfer (replace if exists)
-    const existing = db.getOne(`SELECT id FROM payment_proofs WHERE transfer = ?`, [proof.transfer]);
+    // One proof per payslip line (transfer + employee + period); replace it if it exists
+    const existing = db.getOne(
+      `SELECT id FROM payment_proofs WHERE transfer = ? AND emp_id = ? AND period_id = ?`,
+      [proof.transfer, empId, periodId]
+    );
     if (existing) {
-      db.execute(`DELETE FROM payment_proofs WHERE transfer = ?`, [proof.transfer]);
+      db.execute(`DELETE FROM payment_proofs WHERE id = ?`, [existing.id]);
     }
 
     db.execute(
-      `INSERT INTO payment_proofs (id, transfer, bank, amount, ref, date, file, thumb, type, created_when)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO payment_proofs (id, transfer, bank, amount, ref, date, file, thumb, type, created_when, emp_id, period_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         proof.id,
         proof.transfer,
@@ -72,6 +87,8 @@ function saveProof(data, user = 'System', ip = '127.0.0.1') {
         proof.thumb,
         proof.type,
         proof.created_when,
+        empId,
+        periodId,
       ]
     );
 
@@ -80,12 +97,12 @@ function saveProof(data, user = 'System', ip = '127.0.0.1') {
       action: 'SAVE_PAYMENT_PROOF',
       entityType: 'payment_proof',
       entityId: proof.id,
-      newValues: { transfer: proof.transfer, bank: proof.bank, ref: proof.ref },
+      newValues: { transfer: proof.transfer, bank: proof.bank, ref: proof.ref, empId, periodId },
       ip,
     });
   });
 
-  return proof;
+  return { ...proof, emp: empId, period: periodId };
 }
 
 function deleteProof(id, user = 'System', ip = '127.0.0.1') {
