@@ -426,11 +426,14 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
       const punchReg = Math.max(0, punchHours - punchOt);
       const reg = ts ? Number(ts.reg) : punchReg;
       const ot = ts ? Number(ts.ot) : punchOt;
-      const pto = ts ? Number(ts.pto) : 0.0;
-      const total = ts ? Number(ts.total) : (reg + ot + pto);
-      const status = ts ? ts.status : (emp.status || 'Draft');
+      const pto = ts ? Number(ts.pto) || 0 : 0.0;
+      // Paid holidays are paid at the regular rate, like PTO (backend payroll engine: (pto + holiday) × rate)
+      const hol = ts ? Number(ts.hol) || 0 : 0.0;
+      const total = ts ? Number(ts.total) : (reg + ot + pto + hol);
+      // No sheet → Draft. The employee profile status ('Active', 'Ready'…) is not a timesheet status.
+      const status = ts ? ts.status : 'Draft';
       const rate = Number(emp.rate) || 0;
-      const gross = +(reg * rate + ot * rate * 1.5 + pto * rate).toFixed(2);
+      const gross = +(reg * rate + ot * rate * 1.5 + (pto + hol) * rate).toFixed(2);
       // Only the backend reconciliation (activities vs punches) gives a match %; otherwise it is not measured
       const mp = reconcil && reconcil.reconciliation && reconcil.reconciliation.matchPercentage;
       const match = ts && total > 0 && empActivities.length > 0 && emp.id === empId && typeof mp === 'number' ? mp : null;
@@ -441,6 +444,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
         reg,
         ot,
         pto,
+        hol,
         total,
         gross,
         status,
@@ -531,7 +535,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
   };
 
   const steps = WF.timeline(rec).map(t => ({ label: t.label, state: t.done ? 'done' : t.current ? 'current' : 'pending', status: t.meta ? fmtAt(t.meta) : t.current ? 'Current step' : '', meta: t.who || '' }));
-  const otPay = e.ot * e.rate * 1.5, regPay = e.reg * e.rate, ptoPay = e.pto * e.rate;
+  const otPay = e.ot * e.rate * 1.5, regPay = e.reg * e.rate, ptoPay = e.pto * e.rate, holPay = (Number(e.hol) || 0) * e.rate;
   const calc = DEDUCT(e), ded = calc.exempt ? [['Tax deductions — Exempt', 0]] : calc.lines;
   const net = calc.net;
 
@@ -750,7 +754,9 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
             <MetricTile tone="white" label="Regular (Ponches)" value={fmtH(e.reg)} />
             <MetricTile tone={e.ot ? 'warning' : 'white'} label="Overtime (Ponches)" value={fmtH(e.ot)} />
             <MetricTile tone="white" label="PTO / Leave" value={fmtH(e.pto)} />
-            <MetricTile tone="white" label="Feriados" value={fmtH((() => { const A = window.MGH_ATT; if (!A || !e || !curPeriod.startDate) return 0; return A.range(curPeriod.startDate, curPeriod.endDate).filter(d => A.dow(d) % 6 && A.holidays(e.entity).some(h => h.date === d && !h.working)).length * A.rulesFor(e.entity).shift; })())} />
+            {/* Backend counts only paid, non-working weekday holidays at the org daily hours (ot.daily, default 8),
+                which this screen does not receive → estimate with 8h unless the sheet already carries holiday hours. */}
+            <MetricTile tone="white" label="Feriados (estimado)" value={fmtH((() => { if (Number(e && e.hol) > 0) return Number(e.hol); const A = window.MGH_ATT; if (!A || !e || !curPeriod.startDate) return 0; return A.range(curPeriod.startDate, curPeriod.endDate).filter(d => A.dow(d) % 6 && A.holidays(e.entity).some(h => h.date === d && h.paid !== false && !h.working)).length * 8; })())} />
             <MetricTile tone="success" label="Horas Tareas" value={fmtH(jiraTotal)} />
             <MetricTile tone="white" label="Tiempo no facturable" value={fmtH(Math.max(0, clockTotal - jiraTotal))} />
             <MetricTile tone="white" label="Total Quincena" value={fmtH(e.total)} />
@@ -843,7 +849,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
             <div style={{ flex: '1 1 300px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
               <Card padding={20} icon="payments" title="Resumen de Nómina" subtitle={`Estimado para ${periodCode}`}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, font: '500 13px/18px var(--font-sans)' }}>
-                  {[['Regular ' + fmtH(e.reg) + ' × ' + fmt$(e.rate), regPay], ['Overtime ' + fmtH(e.ot) + ' × 1.5', otPay], ['PTO ' + fmtH(e.pto), ptoPay]].map(([l, v]) => <div key={l} style={{ display: 'flex', justifyContent: 'space-between' }}><span>{l}</span><b style={{ color: 'var(--mgh-ink)' }}>{fmt$(v)}</b></div>)}
+                  {[['Regular ' + fmtH(e.reg) + ' × ' + fmt$(e.rate), regPay], ['Overtime ' + fmtH(e.ot) + ' × 1.5', otPay], ['PTO ' + fmtH(e.pto), ptoPay], ...((Number(e.hol) || 0) > 0 ? [['Feriados ' + fmtH(e.hol), holPay]] : [])].map(([l, v]) => <div key={l} style={{ display: 'flex', justifyContent: 'space-between' }}><span>{l}</span><b style={{ color: 'var(--mgh-ink)' }}>{fmt$(v)}</b></div>)}
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '1px solid var(--mgh-surface-2)', font: '700 14px var(--font-sans)', color: 'var(--mgh-ink)' }}><span>Salario Bruto (Gross)</span><span>{fmt$(e.gross)}</span></div>
                   {ded.map(([l, v]) => <div key={l} style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--mgh-ink-3)' }}><span>{l}</span><span>−{fmt$(v)}</span></div>)}
                   <div style={{ marginTop: 6, padding: 12, borderRadius: 8, background: 'var(--mgh-navy)', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span className="mgh-overline" style={{ color: 'var(--mgh-nav-text)' }}>Neto Estimado</span><span style={{ font: '800 20px var(--font-sans)' }}>{fmt$(net)}</span></div>
@@ -995,11 +1001,14 @@ function TeamApprovalQueue({ go, notify }) {
       const punchReg = Math.max(0, punchHours - punchOt);
       const reg = ts ? Number(ts.reg) : punchReg;
       const ot = ts ? Number(ts.ot) : punchOt;
-      const pto = ts ? Number(ts.pto) : 0.0;
-      const total = ts ? Number(ts.total) : (reg + ot + pto);
-      const status = ts ? ts.status : (emp.status || 'Draft');
+      const pto = ts ? Number(ts.pto) || 0 : 0.0;
+      // Paid holidays are paid at the regular rate, like PTO (backend payroll engine: (pto + holiday) × rate)
+      const hol = ts ? Number(ts.hol) || 0 : 0.0;
+      const total = ts ? Number(ts.total) : (reg + ot + pto + hol);
+      // No sheet → Draft. The employee profile status ('Active', 'Ready'…) is not a timesheet status.
+      const status = ts ? ts.status : 'Draft';
       const rate = Number(emp.rate) || 0;
-      const gross = +(reg * rate + ot * rate * 1.5 + pto * rate).toFixed(2);
+      const gross = +(reg * rate + ot * rate * 1.5 + (pto + hol) * rate).toFixed(2);
       const match = hasMatch(emp) ? emp.match : null;
       const rec = WF ? WF.get(emp.id, periodCode) || { emp: emp.id, status, stepIdx: -1 } : { emp: emp.id, status, stepIdx: -1 };
 
@@ -1008,6 +1017,7 @@ function TeamApprovalQueue({ go, notify }) {
         reg,
         ot,
         pto,
+        hol,
         total,
         gross,
         status,
@@ -1156,7 +1166,7 @@ function Dashboard({ go }) {
   const [runs, setRuns] = React.useState([]);
   React.useEffect(() => {
     let cancel = false;
-    if (window.api && window.api.payrollRuns) window.api.payrollRuns().then(r => { if (!cancel && Array.isArray(r)) setRuns(r); }).catch(() => {});
+    if (window.api && window.api.payrollRuns && canPayrollRuns()) window.api.payrollRuns().then(r => { if (!cancel && Array.isArray(r)) setRuns(r); }).catch(() => {});
     return () => { cancel = true; };
   }, []);
   const byPeriod = {}; runs.forEach(r => { byPeriod[r.period_id] = (byPeriod[r.period_id] || 0) + (Number(r.total_gross) || 0); });
@@ -1355,8 +1365,8 @@ function EmployeeProfileInner({ empId, go, notify }) {
         return;
       }
       Object.assign(e, payload, payload.rate != null ? { rate: Number(payload.rate) || e.rate } : {});
-      e.total = e.reg + e.ot + e.pto;
-      e.gross = +(e.reg * e.rate + e.ot * e.rate * 1.5 + e.pto * e.rate).toFixed(2);
+      e.total = e.reg + e.ot + e.pto + (Number(e.hol) || 0);
+      e.gross = +(e.reg * e.rate + e.ot * e.rate * 1.5 + (e.pto + (Number(e.hol) || 0)) * e.rate).toFixed(2);
       const allMatch = (window.ALL_EMP || []).find(x => x.id === e.id);
       if (allMatch) Object.assign(allMatch, payload, payload.rate != null ? { rate: Number(payload.rate) || e.rate } : {});
       notify(`Employee ${e.name} updated successfully`);
@@ -1536,7 +1546,7 @@ function PayrollDashboard({ go }) {
   const [openEx, setOpenEx] = React.useState(null);
   React.useEffect(() => {
     let cancel = false;
-    if (window.api && window.api.payrollRuns) window.api.payrollRuns().then(r => { if (!cancel && Array.isArray(r)) setRuns(r); }).catch(() => {});
+    if (window.api && window.api.payrollRuns && canPayrollRuns()) window.api.payrollRuns().then(r => { if (!cancel && Array.isArray(r)) setRuns(r); }).catch(() => {});
     if (window.api && window.api.exceptions) window.api.exceptions().then(r => { if (!cancel && Array.isArray(r)) setOpenEx(r.filter(x => !/resolved|closed/i.test(x.status || '')).length); }).catch(() => {});
     return () => { cancel = true; };
   }, []);
@@ -1552,7 +1562,7 @@ function PayrollDashboard({ go }) {
   const upcomingRows = [curPeriod, nextP, nextP2].map(p => ({ id: p.code, range: p.rangeShort, pay: p.payDate }));
   const empty = txt => <div className="mgh-body" style={{ padding: '40px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>{txt}</div>;
   return <Page>
-    <PageHeader breadcrumbs={['Payroll & Finance', 'Overview']} title="Payroll Dashboard" status={<Badge tone="neutral" dot>{`Cycle ${curPeriod.code} • closes in ${curPeriod.daysRemaining}d`}</Badge>} actions={<><Button variant="secondary" icon="calendar_month" onClick={() => window.__mghGo ? window.__mghGo('periods') : go('periods')}>Pay calendar</Button><Button icon="play_arrow" onClick={() => go('processing')}>Start Payroll Run</Button></>} />
+    <PageHeader breadcrumbs={['Payroll & Finance', 'Overview']} title="Payroll Dashboard" status={<Badge tone="neutral" dot>{`Cycle ${curPeriod.code} • closes in ${curPeriod.daysRemaining}d`}</Badge>} actions={<><Button variant="secondary" icon="calendar_month" onClick={() => window.__mghGo ? window.__mghGo('periods') : go('periods')}>Pay calendar</Button>{MGH_RBAC.can('payroll.process') && <Button icon="play_arrow" onClick={() => go('processing')}>Start Payroll Run</Button>}</>} />
     <Grid min={220}>
       <StatCard label="Estimated gross" value={fmt$(gross)} unit="USD" icon="payments" footer={withHours + ' of ' + E.length + ' with timesheet hours'} />
       <StatCard label="Estimated deductions" value={fmt$(ded)} unit="USD" icon="account_balance_wallet" tone="accent" footer="Employee withholdings" />
@@ -1584,7 +1594,7 @@ function PayrollProcessing({ notify }) {
   React.useEffect(() => {
     let cancel = false;
     Promise.all([
-      window.api.payrollRuns().catch(() => []),
+      canPayrollRuns() ? window.api.payrollRuns().catch(() => []) : Promise.resolve([]),
       window.api.timesheets({ periodId: periodCode }).catch(() => []),
     ]).then(([runs, ts]) => {
       if (cancel) return;
@@ -1660,10 +1670,10 @@ function PayrollProcessing({ notify }) {
           <span style={{ flex: 1 }} />
           {!runLocked && <Button size="sm" variant="secondary" icon="calculate" disabled={busy || !approvedSheets.length} onClick={calculateRun}>{run ? 'Recalcular' : 'Calcular corrida'}</Button>}
           {run && /^(Calculated|PM_Approved)$/.test(run.status) && <Button size="sm" icon="verified" disabled={busy} onClick={approveRun}>Aprobar corrida</Button>}
-          {run && run.status === 'Approved' && <Button size="sm" icon="paid" disabled={busy} onClick={markPaid}>Marcar pagada</Button>}
+          {run && run.status === 'Approved' && isAdminUser() && <Button size="sm" icon="paid" disabled={busy} onClick={markPaid}>Marcar pagada</Button>}
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {[['nacha', 'NACHA (.ach)'], ['bhd', 'Banco BHD (.txt)'], ['usdc', 'USDC Base (.json)']].map(([k, l]) => <Button key={k} size="sm" variant="outline" icon="download" disabled={!runLocked} onClick={() => window.open(`/api/payroll/export/${k}?periodId=${periodCode}&download=true`, '_blank')}>{l}</Button>)}
+          {canPayoutFiles() && [['nacha', 'NACHA (.ach)', 'ach'], ['bhd', 'Banco BHD (.txt)', 'txt'], ['usdc', 'USDC Base (.json)', 'json']].map(([k, l, ext]) => <Button key={k} size="sm" variant="outline" icon="download" disabled={!runLocked} onClick={() => downloadApi(`/payroll/export/${k}?periodId=${encodeURIComponent(periodCode)}&download=true`, `${k}-${periodCode}.${ext}`, notify)}>{l}</Button>)}
           {!runLocked && <span style={{ font: '500 12px var(--font-sans)', color: 'var(--mgh-ink-3)', alignSelf: 'center' }}>Los archivos se habilitan al aprobar la corrida.</span>}
         </div>
         <div style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{approvedSheets.length} hojas aprobadas para pago{pendingSheets.length ? ` • ${pendingSheets.length} todavía en revisión (no se pagan en esta corrida)` : ''}</div>
@@ -1695,7 +1705,7 @@ function PayrollProcessing({ notify }) {
                 
                 
                 <div style={{ marginTop: 12 }}>
-                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => window.open(`/api/payroll/export/bhd?periodId=${curPeriod.code}&download=true`, '_blank')}>Download BHD File</Button>
+                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => downloadApi(`/payroll/export/bhd?periodId=${encodeURIComponent(curPeriod.code)}&download=true`, `bhd-${curPeriod.code}.txt`, notify)}>Download BHD File</Button>
                 </div>
               </div>
               <div style={{ padding: 16, borderRadius: 10, border: '1px solid var(--mgh-surface-2)', background: 'var(--mgh-surface-1)' }}>
@@ -1703,7 +1713,7 @@ function PayrollProcessing({ notify }) {
                 
                 
                 <div style={{ marginTop: 12 }}>
-                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => window.open(`/api/payroll/export/nacha?periodId=${curPeriod.code}&download=true`, '_blank')}>Download NACHA (.ach)</Button>
+                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => downloadApi(`/payroll/export/nacha?periodId=${encodeURIComponent(curPeriod.code)}&download=true`, `nacha-${curPeriod.code}.ach`, notify)}>Download NACHA (.ach)</Button>
                 </div>
               </div>
               <div style={{ padding: 16, borderRadius: 10, border: '1px solid var(--mgh-surface-2)', background: 'var(--mgh-surface-1)' }}>
@@ -1711,7 +1721,7 @@ function PayrollProcessing({ notify }) {
                 
                 
                 <div style={{ marginTop: 12 }}>
-                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => window.open(`/api/payroll/export/usdc?periodId=${curPeriod.code}&download=true`, '_blank')}>Download USDC Batch</Button>
+                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => downloadApi(`/payroll/export/usdc?periodId=${encodeURIComponent(curPeriod.code)}&download=true`, `usdc-${curPeriod.code}.json`, notify)}>Download USDC Batch</Button>
                 </div>
               </div>
             </div>
@@ -1757,15 +1767,15 @@ function PayrollProcessing({ notify }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--mgh-surface-1)', borderRadius: 8 }}>
             <span>NACHA FedWire ACH (US)</span>
-            <Button size="sm" variant="secondary" icon="download" onClick={() => window.open(`/api/payroll/export/nacha?periodId=${curPeriod.code}&download=true`, '_blank')}>Download .ach</Button>
+            <Button size="sm" variant="secondary" icon="download" onClick={() => downloadApi(`/payroll/export/nacha?periodId=${encodeURIComponent(curPeriod.code)}&download=true`, `nacha-${curPeriod.code}.ach`, notify)}>Download .ach</Button>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--mgh-surface-1)', borderRadius: 8 }}>
             <span>Banco BHD León Format (DR)</span>
-            <Button size="sm" variant="secondary" icon="download" onClick={() => window.open(`/api/payroll/export/bhd?periodId=${curPeriod.code}&download=true`, '_blank')}>Download .txt</Button>
+            <Button size="sm" variant="secondary" icon="download" onClick={() => downloadApi(`/payroll/export/bhd?periodId=${encodeURIComponent(curPeriod.code)}&download=true`, `bhd-${curPeriod.code}.txt`, notify)}>Download .txt</Button>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--mgh-surface-1)', borderRadius: 8 }}>
             <span>Crypto USDC Batch (Base)</span>
-            <Button size="sm" variant="secondary" icon="download" onClick={() => window.open(`/api/payroll/export/usdc?periodId=${curPeriod.code}&download=true`, '_blank')}>Download .json</Button>
+            <Button size="sm" variant="secondary" icon="download" onClick={() => downloadApi(`/payroll/export/usdc?periodId=${encodeURIComponent(curPeriod.code)}&download=true`, `usdc-${curPeriod.code}.json`, notify)}>Download .json</Button>
           </div>
         </div>
       </div>
@@ -1808,9 +1818,9 @@ function PayStubPreview({ notify, empId }) {
   const COLORS = ['var(--mgh-primary)', 'var(--mgh-navy)', 'var(--mgh-accent)'];
 
   const handleDownloadPdf = () => {
-    const w = window.open(`/api/payroll/paystub/${s.employeeId}/${s.periodId}/html`, '_blank');
-    if (w) notify(`Opening official statement for ${s.employeeName} (${s.periodId})`);
-    else window.print();
+    // Authenticated fetch (window.open on /api would carry no token → 401), shown through a Blob URL
+    openApiHtml(`/payroll/paystub/${encodeURIComponent(s.employeeId)}/${encodeURIComponent(s.periodId)}/html`, notify)
+      .then(w => { if (w) notify(`Opening official statement for ${s.employeeName} (${s.periodId})`); });
   };
 
   return <Page>
