@@ -77,6 +77,15 @@ function reviewLeaveRequest(id, { action, comment = '', role = 'Supervisor' } = 
     throw err;
   }
 
+  // Only a pending request can be approved or rejected; a decided one can at most be cancelled (Approved → Cancelled)
+  const pending = /^pending/i.test(String(current.status || ''));
+  const allowed = action === 'cancel' ? pending || current.status === 'Approved' : pending;
+  if (['approve', 'reject', 'cancel'].includes(action) && !allowed) {
+    const err = new Error(`Leave request is ${current.status}; it can no longer be ${action === 'cancel' ? 'cancelled' : action + 'd'}`);
+    err.status = 409;
+    throw err;
+  }
+
   let nextStatus;
   if (action === 'reject') {
     nextStatus = 'Rejected';

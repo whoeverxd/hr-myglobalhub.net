@@ -15,6 +15,13 @@ const DEFAULT_STEPS = [
 
 const r2 = (n) => Math.round(n * 100) / 100;
 
+// Approval chain of an organization: steps switched off in Workflows (enabled: false) are skipped, as in the frontend
+function workflowSteps(entity) {
+  const orgCfg = getOrgConfig(entity || 'MGH Dominicana SRL');
+  const steps = ((orgCfg && orgCfg.steps) || []).filter((s) => s && s.enabled !== false);
+  return steps.length ? steps : DEFAULT_STEPS;
+}
+
 // Quincena id for a YYYY-MM-DD date (1-15 → odd, 16-end → even)
 function periodIdForDate(date) {
   const [y, m, d] = String(date).slice(0, 10).split('-').map(Number);
@@ -32,8 +39,10 @@ function periodRange(periodId) {
  *  - worked = sum of the employee's daily activities in the period
  *  - overtime split by the organization's rule (daily and/or weekly threshold)
  *  - PTO = approved, paid leave on weekdays; holidays = paid non-working holidays on weekdays (one shift each)
+ * ignoreReview: count every logged hour, ignoring reviewer decisions. That is what a (re)submission freezes, so an
+ * editable sheet (Draft/Returned) shows it live even while the earlier per-activity decisions are still stored.
  */
-function computeHours(empId, periodId) {
+function computeHours(empId, periodId, { ignoreReview = false } = {}) {
   const range = periodRange(periodId);
   if (!range) return null;
   const emp = db.getOne(`SELECT entity FROM employees WHERE id = ?`, [empId]) || {};
@@ -57,7 +66,7 @@ function computeHours(empId, periodId) {
   db.query(`SELECT date, hours, approved_hours FROM daily_activities WHERE employee_id = ? AND date >= ? AND date <= ?`, [empId, range.start, range.end])
     .forEach((a) => {
       const logged = Number(a.hours) || 0;
-      const counted = a.approved_hours == null ? logged : Math.min(logged, Math.max(0, Number(a.approved_hours) || 0));
+      const counted = ignoreReview || a.approved_hours == null ? logged : Math.min(logged, Math.max(0, Number(a.approved_hours) || 0));
       rejected += logged - counted;
       byDay[a.date] = (byDay[a.date] || 0) + counted;
     });
@@ -198,7 +207,8 @@ function listTimesheets({ periodId, empId, live = false } = {}) {
   sql += ` ORDER BY period_id DESC, employee_id ASC`;
   let rows = db.query(sql, params);
   if (rows.length === 0 && periodId && !empId) {
-    const employees = db.query(`SELECT id, name FROM employees WHERE status != 'Inactive'`);
+    // Terminated (deactivated) and Inactive employees no longer get a sheet
+    const employees = db.query(`SELECT id, name FROM employees WHERE status NOT IN ('Terminated', 'Inactive')`);
     for (const emp of employees) {
       ensureTimesheet(emp.id, periodId, emp.name);
     }
@@ -221,9 +231,10 @@ function listTimesheets({ periodId, empId, live = false } = {}) {
       submittedAt: t.submitted_at,
       approvedAt: t.approved_at,
     };
-    // live=1: still-editable sheets show the hours their activities add up to right now (not persisted until submit)
+    // live=1: still-editable sheets show the hours their activities add up to right now (not persisted until submit),
+    // exactly as a submission will freeze them: a Returned sheet's earlier review cuts don't count any more
     if (live && EDITABLE.includes(t.status)) {
-      const h = computeHours(t.employee_id, t.period_id);
+      const h = computeHours(t.employee_id, t.period_id, { ignoreReview: true });
       if (h) Object.assign(out, { reg: h.reg, ot: h.ot, pto: h.pto, hol: h.hol, total: h.total, liveHours: true });
     }
     return out;
@@ -297,7 +308,7 @@ function submitTimesheet(id, user = 'System', ip = '127.0.0.1') {
     );
   }
   // Hours are frozen from the employee's real records at submission time
-  const hours = computeHours(current.employee_id, current.period_id);
+  const hours = computeHours(current.employee_id, current.period_id, { ignoreReview: true });
   // Paid holidays alone don't make a submission: there must be worked hours or approved leave
   if (!hours || hours.worked + hours.pto <= 0) {
     const err = new Error('No hours recorded in this period: log your activities before submitting');
@@ -307,8 +318,7 @@ function submitTimesheet(id, user = 'System', ip = '127.0.0.1') {
 
   const history = current.history_json ? JSON.parse(current.history_json) : [];
   const emp = db.getOne(`SELECT entity FROM employees WHERE id = ?`, [current.employee_id]);
-  const orgCfg = getOrgConfig(emp ? emp.entity : 'MGH Dominicana SRL');
-  const steps = (orgCfg && orgCfg.steps && orgCfg.steps.length ? orgCfg.steps : null) || DEFAULT_STEPS;
+  const steps = workflowSteps(emp && emp.entity);
   const firstStep = steps[0];
   const nextStatus = firstStep ? (firstStep.review || `${firstStep.label} Review` || 'Supervisión PM') : 'Approved';
 
@@ -359,8 +369,7 @@ function approveTimesheet(id, { comment = '', role = 'pm' } = {}, user = 'System
 
   // Determine organization workflow steps
   const emp = db.getOne(`SELECT entity FROM employees WHERE id = ?`, [current.employee_id]);
-  const orgCfg = getOrgConfig(emp ? emp.entity : 'MGH Dominicana SRL');
-  const steps = (orgCfg && orgCfg.steps && orgCfg.steps.length ? orgCfg.steps : null) || DEFAULT_STEPS;
+  const steps = workflowSteps(emp && emp.entity);
 
   const nextStepIdx = Number(current.step_index || 0) + 1;
   let nextStatus;
@@ -371,13 +380,10 @@ function approveTimesheet(id, { comment = '', role = 'pm' } = {}, user = 'System
     nextStatus = nextStep.review || `${nextStep.label} Review` || `${nextStep.label}`;
   }
 
-  // If the reviewer decided on individual activities, the sheet's hours become the approved ones
-  const range = periodRange(current.period_id);
-  const reviewed = range && db.query(
-    `SELECT id FROM daily_activities WHERE employee_id = ? AND date >= ? AND date <= ? AND approved_hours IS NOT NULL`,
-    [current.employee_id, range.start, range.end]
-  ).length > 0;
-  const hours = reviewed ? computeHours(current.employee_id, current.period_id) : null;
+  // Every approval step recomputes the hours from the records: per-activity decisions + approved paid leave + paid
+  // holidays (leave approved after the submission is paid too). Only an explicit reviewer adjustment of the hours
+  // (saveTimesheetHours) made since the last submission wins over the recompute.
+  const hours = manuallyAdjusted(current) ? null : computeHours(current.employee_id, current.period_id);
 
   const history = current.history_json ? JSON.parse(current.history_json) : [];
   history.push({
@@ -417,6 +423,17 @@ function approveTimesheet(id, { comment = '', role = 'pm' } = {}, user = 'System
   });
 
   return getTimesheet(id);
+}
+
+// A reviewer set the hours by hand (saveTimesheetHours) after the latest submission
+function manuallyAdjusted(row) {
+  const history = row.history_json ? JSON.parse(row.history_json) : [];
+  for (let i = history.length - 1; i >= 0; i--) {
+    const h = history[i];
+    if (h.type === 'hours_adjust') return true;
+    if (EDITABLE.includes(h.from) && h.to !== h.from) return false; // the submission that started this review
+  }
+  return false;
 }
 
 function returnTimesheet(id, { comment } = {}, user = 'System', ip = '127.0.0.1') {
@@ -493,6 +510,8 @@ function saveTimesheetHours(id, body = {}, user = 'System', ip = '127.0.0.1') {
   const total = reg + ot + pto + hol;
 
   db.transaction(() => {
+    // Kept in the history: approval then keeps these hours instead of recomputing them
+    pushHistory(current, { actor: user, type: 'hours_adjust', comment: `Horas ajustadas por el revisor: ${total}h (${reg} regulares, ${ot} extra, ${pto} PTO, ${hol} feriado)` });
     db.execute(
       `UPDATE timesheets
        SET regular_hours = ?, overtime_hours = ?, pto_hours = ?, holiday_hours = ?, total_hours = ?, updated_at = datetime('now')

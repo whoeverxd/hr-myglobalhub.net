@@ -157,7 +157,7 @@ function createMeeting(data, attendeeIds, user = 'System', ip = '127.0.0.1') {
   const ids = [...new Set((attendeeIds || []).map(String))].filter((id) => id && id !== organizer.empId);
 
   const attendees = ids.map((id) => ({ id, emp: db.getOne('SELECT id, name, status FROM employees WHERE id = ?', [id]) }));
-  const invalid = attendees.filter((x) => !x.emp || x.emp.status === 'Terminated').map((x) => x.id);
+  const invalid = attendees.filter((x) => !x.emp || ['Terminated', 'Inactive'].includes(x.emp.status)).map((x) => x.id);
   if (invalid.length) {
     const err = new Error(`Unknown or inactive attendees: ${invalid.join(', ')}`);
     err.status = 400;
