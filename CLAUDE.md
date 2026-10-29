@@ -86,6 +86,12 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
 - Payout files (`banking-rails.service.js`) never invent a wallet, account, NID or demo line: missing/masked data → 409
   naming the employees, nothing generated. Crypto share goes only to the USDC batch, the rest only to bank files.
   Company identifiers come from env: `MGH_ACH_COMPANY_ID`, `MGH_BHD_COMPANY_ACCOUNT` (`MGH_BHD_COMPANY_RNC` defaults to 133474018).
+- Production safety (no env var needed): a request without a session token is 401; the token-less dev fallback and the
+  `x-user-email` / `x-user` headers only work in tests or with `ALLOW_DEV_AUTH=true` (never in production). `/dev/reset`
+  only on SQLite with `ALLOW_DEV_RESET=true`. The seeder never runs on Firestore and never rewrites a password. Audit actor
+  = `req.user.name` or 'System'. A successful Firestore hydration replaces the local snapshot (deleted docs stay deleted).
+- Pre-launch data cleanup: `node scripts/prod-cleanup.js` (dry run) / `--apply` (live data, asks `LIMPIAR PRODUCCION`;
+  `--confirmar` also applies the items marked confirmar). Payment proofs are one per transfer + employee + period.
 
 ## Gotchas
 - Check `src/kit/kit.jsx` and `NAV` in `src/lib/payroll.js` before adding a screen; contractor screens exist.
