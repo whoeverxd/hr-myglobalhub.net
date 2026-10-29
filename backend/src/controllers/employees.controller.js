@@ -477,6 +477,19 @@ function removalContext(employeeId, actor) {
   return { emp, user };
 }
 
+// An adjustment links to its employee by employee_id. Rows created before that column existed carry only the
+// free-text `name`, and listAdjustments() still shows those to whoever matches that name
+// (adjustments.controller.js), so a legacy row left behind by a delete turns up in the payroll view of the next
+// hire called the same. The payroll engine already refuses to pay them, but an approved one is still this
+// employee's payroll history and has to block the delete like any other.
+// Read the link exactly as listAdjustments reads it: by id where there is one, by name only for the rows
+// that never got one.
+function adjustmentsFor(emp) {
+  return db
+    .query('SELECT * FROM payroll_adjustments')
+    .filter((a) => (a.employee_id ? a.employee_id === emp.id : Boolean(emp.name) && a.name === emp.name));
+}
+
 // What a delete would remove, and what (if anything) prevents it
 function employeeRemovalPreview(employeeId, actor) {
   const { emp, user } = removalContext(employeeId, actor);
@@ -484,7 +497,7 @@ function employeeRemovalPreview(employeeId, actor) {
   const sheets = by('timesheets');
   const contractorRows = by('contractors');
   const contractorPays = contractorRows.flatMap((c) => db.query('SELECT * FROM contractor_payments WHERE contractor_id = ?', [c.id]));
-  const adjustments = db.query('SELECT * FROM payroll_adjustments WHERE employee_id = ?', [emp.id]);
+  const adjustments = adjustmentsFor(emp);
   const blockers = [];
   const paidSheets = sheets.filter((t) => ['Approved', 'Paid'].includes(t.status));
   if (paidSheets.length) blockers.push(`${paidSheets.length} approved/paid timesheet(s)`);
@@ -528,7 +541,7 @@ function deleteEmployee(employeeId, actor, ip = '127.0.0.1') {
     }
     db.execute('DELETE FROM project_members WHERE user_id = ?', [emp.id]);
     db.execute(`UPDATE project_tasks SET assignee_id = NULL, assignee_name = NULL, assignee_avatar = NULL WHERE assignee_id = ?`, [emp.id]);
-    db.execute('DELETE FROM payroll_adjustments WHERE employee_id = ?', [emp.id]);
+    for (const a of adjustmentsFor(emp)) db.execute('DELETE FROM payroll_adjustments WHERE id = ?', [a.id]);
     for (const c of db.query('SELECT id FROM contractors WHERE employee_id = ?', [emp.id])) {
       db.execute('DELETE FROM contractor_payments WHERE contractor_id = ?', [c.id]);
       db.execute('DELETE FROM contractors WHERE id = ?', [c.id]);

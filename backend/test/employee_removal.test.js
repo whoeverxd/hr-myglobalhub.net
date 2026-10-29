@@ -61,3 +61,36 @@ test('Who may remove: PM only team accounts, never yourself; employees cannot', 
   employees.deleteEmployee(hr.emp.id, ADMIN);
   employees.deleteEmployee(emp.id, ADMIN);
 });
+
+test('A legacy adjustment, linked only by name, blocks the delete and goes with the employee', () => {
+  const who = 'Rm Legacy ' + uniq();
+  const { emp } = make({ name: who, fullName: who });
+  // Written before payroll_adjustments had an employee_id: the free-text name is the only link.
+  const approvedId = 'ADJ-legacy-ok-' + uniq();
+  db.execute(`INSERT INTO payroll_adjustments (id, name, type, kind, amt, status) VALUES (?, ?, 'Old bonus', 'bonus', 999, 'Approved')`, [approvedId, who]);
+  const blocked = employees.employeeRemovalPreview(emp.id, ADMIN);
+  assert.equal(blocked.canDelete, false, 'an approved adjustment is payroll history whichever way it is linked');
+  assert.match(blocked.blockers.join(' '), /adjustment/);
+  assert.throws(() => employees.deleteEmployee(emp.id, ADMIN), (e) => e.status === 409);
+  db.execute('DELETE FROM payroll_adjustments WHERE id = ?', [approvedId]);
+
+  // A namesake whose row IS linked: the delete must not reach into it, so the name fallback
+  // may only ever claim rows that have no employee_id of their own.
+  const other = make({ name: who, fullName: who }).emp;
+  const othersId = 'ADJ-linked-' + uniq();
+  db.execute(`INSERT INTO payroll_adjustments (id, employee_id, name, type, kind, amt, status) VALUES (?, ?, ?, 'Bonus', 'bonus', 50, 'Pending')`, [othersId, other.id, who]);
+
+  const pendingId = 'ADJ-legacy-open-' + uniq();
+  db.execute(`INSERT INTO payroll_adjustments (id, name, type, kind, amt, status) VALUES (?, ?, 'Old deduction', 'deduction', -20, 'Pending')`, [pendingId, who]);
+  const open = employees.employeeRemovalPreview(emp.id, ADMIN);
+  assert.equal(open.canDelete, true, 'a pending adjustment is not payroll history');
+  assert.equal(open.willDelete.pendingAdjustments, 1, 'the preview sees the legacy row, and only that one');
+
+  employees.deleteEmployee(emp.id, ADMIN);
+  assert.equal(db.getOne('SELECT id FROM payroll_adjustments WHERE id = ?', [pendingId]) || null, null,
+    'no orphan row left for the next hire with the same name to find in their own payroll view');
+  assert.ok(db.getOne('SELECT id FROM payroll_adjustments WHERE id = ?', [othersId]), "the namesake's own adjustment is untouched");
+
+  db.execute('DELETE FROM payroll_adjustments WHERE id = ?', [othersId]);
+  employees.deleteEmployee(other.id, ADMIN);
+});
