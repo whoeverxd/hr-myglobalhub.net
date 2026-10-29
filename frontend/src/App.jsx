@@ -518,8 +518,10 @@ export default class App extends React.Component {
       return;
     }
     try {
+      // No id from here: six digits of Date.now() cycle every ~16.6 minutes, and an INSERT on an id that already
+      // exists is a silent merge in Firestore (setDocSync merges), so one adjustment would overwrite another.
+      // The backend mints `ADJ-<ms>-<random>`.
       await api.createAdjustment({
-        id: `ADJ-${Date.now().toString().slice(-6)}`,
         employeeId: newAdj.employeeId,
         periodId,
         name: newAdj.name,
@@ -550,7 +552,6 @@ export default class App extends React.Component {
     const periodId = getCurrentPeriod().code;
     try {
       await api.createAdjustment({
-        id: `ADJ-${Date.now().toString().slice(-6)}`,
         employeeId: sevEmp.id,
         periodId,
         name: sevEmp.name,
