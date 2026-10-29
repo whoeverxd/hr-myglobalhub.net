@@ -300,6 +300,17 @@ class FirestoreAdapter {
       try {
         const firestore = this.getFirestore();
         if (!firestore) {
+          // No instance: the credential is missing, or the project gate in firebase.service.js
+          // rejected it. The cache still holds whatever the local snapshot had, so /api/health
+          // has to say that -- it used to report 0 collections / 0 docs / no error, which reads
+          // as "nothing loaded, nothing wrong" while stale data was being served.
+          this.hydration = {
+            source: 'local-snapshot',
+            collections: this.cache.size,
+            docs: Array.from(this.cache.values()).reduce((n, m) => n + m.size, 0),
+            error: 'Cloud Firestore is not initialized (credential missing or rejected)',
+            at: new Date().toISOString(),
+          };
           this.initialized = true;
           return;
         }
@@ -350,7 +361,6 @@ class FirestoreAdapter {
         this._hydrationJournal = null;
 
         this.initialized = true;
-        this.hydratedFromRemote = true; // live data (false = running on the local snapshot only)
         this._persistLocalSnapshot();
         this.hydration = {
           source: 'cloud-firestore',
@@ -371,7 +381,6 @@ class FirestoreAdapter {
         // successful boot: swallowing this silently made a stale-data boot look
         // identical to a healthy one.
         this._hydrationJournal = null; // local writes already live in the cache
-        this.hydrationError = err.message;
         this.initialized = true;
         this.hydration = {
           source: 'local-snapshot',
