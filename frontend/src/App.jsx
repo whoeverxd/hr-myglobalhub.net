@@ -41,6 +41,7 @@ export default class App extends React.Component {
       tax: 'DGII Taxable ISR',
       taxTone: 'info',
       target: '',
+      periodId: '',
       status: 'Pending Approval'
     },
     apiOnline: null,
@@ -482,16 +483,34 @@ export default class App extends React.Component {
         tax: 'DGII Taxable ISR',
         taxTone: 'info',
         target: first.bank || '',
+        periodId: getCurrentPeriod().code,
         status: 'Pending Approval'
       }
     });
   };
 
+  // An adjustment is paid only in its employee's payroll run for its period: the current or the next quincena
+  adjPeriodOpts() {
+    const cur = getCurrentPeriod();
+    const nextStart = new Date(cur.endDate + 'T12:00:00');
+    nextStart.setDate(nextStart.getDate() + 1);
+    const next = getQuincenaForDate(nextStart);
+    return [
+      { value: cur.code, label: cur.code + ' • ' + cur.rangeShort + ' (actual)' },
+      { value: next.code, label: next.code + ' • ' + next.rangeShort + ' (siguiente)' }
+    ];
+  }
+
   async submitNewAdjustment() {
     const { newAdj } = this.state;
     const numAmt = parseFloat(newAdj.amt);
-    if (!newAdj.name || !newAdj.type || isNaN(numAmt)) {
+    if (!newAdj.employeeId || !newAdj.name || !newAdj.type || isNaN(numAmt)) {
       this.flash('Please provide valid employee, type and numeric amount');
+      return;
+    }
+    const periodId = newAdj.periodId || getCurrentPeriod().code;
+    if (!this.adjPeriodOpts().some(o => o.value === periodId)) {
+      this.flash('Selecciona la quincena actual o la siguiente para el ajuste');
       return;
     }
     if (!String(newAdj.target || '').trim()) {
@@ -501,6 +520,8 @@ export default class App extends React.Component {
     try {
       await api.createAdjustment({
         id: `ADJ-${Date.now().toString().slice(-6)}`,
+        employeeId: newAdj.employeeId,
+        periodId,
         name: newAdj.name,
         role: newAdj.role,
         avatar: newAdj.avatar,
@@ -514,7 +535,7 @@ export default class App extends React.Component {
         status: newAdj.status
       });
       this.setState({ showAdjModal: false });
-      this.flash(`Adjustment saved for ${newAdj.name} • saved to SQLite & audit log`);
+      this.flash(`Adjustment saved for ${newAdj.name} • ${periodId}`);
       await this.loadFromApi();
     } catch(err) {
       this.flash('Creation blocked: ' + err.message);
@@ -525,9 +546,13 @@ export default class App extends React.Component {
     if (!sevEmp || !sevEmp.id) { this.flash('No hay empleados para liquidar'); return; }
     if (calc && calc.blocked) { this.flash(calc.blocked); return; }
     if (!sevEmp.bank) { this.flash('El empleado no tiene banco registrado • complete el perfil antes de encolar la liquidación'); return; }
+    // Paid in the employee's run of the current quincena
+    const periodId = getCurrentPeriod().code;
     try {
       await api.createAdjustment({
         id: `ADJ-${Date.now().toString().slice(-6)}`,
+        employeeId: sevEmp.id,
+        periodId,
         name: sevEmp.name,
         role: sevEmp.role,
         avatar: sevEmp.avatar,
@@ -540,7 +565,7 @@ export default class App extends React.Component {
         target: sevEmp.bank,
         status: 'Pending Approval'
       });
-      this.flash(`Liquidación de ${totalSeverance.toLocaleString('en-US', { minimumFractionDigits: 2 })} ${sevEmp.cur || ''} encolada en ajustes para ${sevEmp.name}`);
+      this.flash(`Liquidación de ${totalSeverance.toLocaleString('en-US', { minimumFractionDigits: 2 })} ${sevEmp.cur || ''} encolada en ajustes para ${sevEmp.name} • ${periodId}`);
       await this.loadFromApi();
     } catch(e) {
       this.flash('Error encolando ajuste: ' + (e.message || 'Error'));
@@ -2332,6 +2357,9 @@ export default class App extends React.Component {
                                   <span style={{ font: "400 12px/16px var(--font-sans)", color: "var(--mgh-ink-3)" }}>
                                     {a.cat}
                                   </span>
+                                  <span style={{ font: "700 11px/14px var(--font-mono)", color: "var(--mgh-ink-3)" }}>
+                                    {'Quincena: ' + (a.periodId || a.period_id || a.period || '—')}
+                                  </span>
                                 </div>
                               </td>
                               <td style={{ padding: "12px 14px", textAlign: "right", font: "700 13px/18px var(--font-sans)", color: a.amtColor, whiteSpace: "nowrap" }}>
@@ -2923,6 +2951,20 @@ export default class App extends React.Component {
                       <option key={emp.id} value={emp.id}>{emp.id} — {emp.name} ({emp.role})</option>
                     ))}
                   </select>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", font: "600 12px/16px var(--font-sans)", color: "var(--mgh-ink-2)", marginBottom: "6px" }}>Pay period (quincena)</label>
+                  <select
+                    value={this.state.newAdj.periodId}
+                    onChange={e => { const periodId = e.target.value; this.setState(s => ({ newAdj: { ...s.newAdj, periodId } })); }}
+                    style={{ width: "100%", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--mgh-surface-3)", font: "500 14px var(--font-sans)", color: "var(--mgh-ink)", background: "var(--surface-app)" }}
+                  >
+                    {this.adjPeriodOpts().map(o => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                  <span style={{ display: "block", marginTop: "4px", font: "400 12px/16px var(--font-sans)", color: "var(--mgh-ink-3)" }}>Se paga solo en la nómina de este empleado para esa quincena.</span>
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
