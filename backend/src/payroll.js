@@ -1,6 +1,8 @@
 // Pay-period rules shared with the frontend (see frontend/src/lib/payroll.js).
 // Quincenas PP-{YYYY}-{NN}: 1-15 and 16-end of month, 24 per year (same rule as frontend/src/lib/periodService.js).
 
+const { todayLocal } = require('./utils/today');
+
 const STATUSES = [
   'Draft', 'Open', 'Awaiting Employee Submission', 'Awaiting Supervisor Approval',
   'Awaiting Project Manager Approval', 'Awaiting HR Approval', 'Awaiting Finance Approval',
@@ -17,7 +19,7 @@ function periodId(year, n) {
 function buildPeriods(year, overrides = {}, payOffsetDays = 6) {
   // Quincenal calendar (24 periods per year: 1-15 and 16-end of month)
   const out = [];
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = todayLocal();
   const pad = (v) => String(v).padStart(2, '0');
 
   for (let m = 0; m < 12; m++) {

@@ -1,6 +1,7 @@
 const db = require('../db');
 const { STATUSES, SEALED, LOCKED, buildPeriods } = require('../payroll');
 const { logAction } = require('./audit.controller');
+const { todayLocal, currentYearLocal } = require('../utils/today');
 
 function ensurePeriodsForYear(year) {
   const existing = db.getOne('SELECT COUNT(*) as c FROM pay_periods WHERE year = ?', [year]);
@@ -31,7 +32,7 @@ function ensurePeriodsForYear(year) {
   }
 }
 
-function listPeriods(year = new Date().getFullYear()) {
+function listPeriods(year = currentYearLocal()) {
   ensurePeriodsForYear(year);
   const rows = db.query(
     `SELECT * FROM pay_periods WHERE year = ? ORDER BY period_number ASC`,
@@ -50,9 +51,8 @@ function listPeriods(year = new Date().getFullYear()) {
 }
 
 function getCurrentPeriod() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const todayStr = now.toISOString().slice(0, 10);
+  const todayStr = todayLocal();
+  const year = Number(todayStr.slice(0, 4));
   ensurePeriodsForYear(year);
 
   // Look for the period containing today
@@ -95,7 +95,7 @@ function getCurrentPeriod() {
 }
 
 // Stored status of every period of the current year (the frontend shows these instead of date-derived defaults)
-function getPeriodOverrides(year = new Date().getFullYear()) {
+function getPeriodOverrides(year = currentYearLocal()) {
   const rows = db.query(`SELECT id, status FROM pay_periods WHERE year = ?`, [year]);
   const overrides = {};
   for (const r of rows) overrides[r.id] = r.status;

@@ -3,6 +3,7 @@ const authController = require('./controllers/auth.controller');
 const authService = require('./services/auth.service');
 const periodsController = require('./controllers/periods.controller');
 const adjustmentsController = require('./controllers/adjustments.controller');
+const { currentYearLocal } = require('./utils/today');
 const worklogsController = require('./controllers/worklogs.controller');
 const proofsController = require('./controllers/proofs.controller');
 const employeesController = require('./controllers/employees.controller');
@@ -157,7 +158,7 @@ router.get('/periods/current', authenticate, (req, res, next) => {
 
 router.get('/periods', authenticate, (req, res, next) => {
   try {
-    const year = req.query.year ? Number(req.query.year) : new Date().getFullYear();
+    const year = req.query.year ? Number(req.query.year) : currentYearLocal();
     const periods = periodsController.listPeriods(year);
     res.json(periods);
   } catch (err) {

@@ -1,5 +1,6 @@
 const db = require('../db');
 const { logAction } = require('./audit.controller');
+const { todayLocal } = require('../utils/today');
 
 const TX_HASH = /^0x[a-fA-F0-9]{64}$/;
 
@@ -54,7 +55,7 @@ function saveProof(data, user = 'System', ip = '127.0.0.1') {
     bank: data.bank || '',
     amount: data.amount || '—',
     ref: data.ref || '',
-    date: data.date || new Date().toISOString().slice(0, 10),
+    date: data.date || todayLocal(),
     file: data.file || 'Confirmation document',
     thumb: data.thumb || null,
     type: data.type || 'upload',

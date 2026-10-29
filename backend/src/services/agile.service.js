@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const db = require('../db');
 const { logAction } = require('../controllers/audit.controller');
 const jiraService = require('./jira.service');
+const { todayLocal } = require('../utils/today');
 
 const DEFAULT_STATUS_TEMPLATES = [
   { name: 'To Do', category: 'todo', color: '#64748b', is_default: 1, is_done: 0 },
@@ -294,7 +295,7 @@ class AgileService {
     const existing = db.getOne('SELECT * FROM sprints WHERE id = ?', [sprintId]);
     if (!existing) throw new Error('Sprint no encontrado.');
 
-    const startDate = data.startDate || data.start_date || new Date().toISOString().slice(0, 10);
+    const startDate = data.startDate || data.start_date || todayLocal();
     const endDate = data.endDate || data.end_date || existing.end_date;
 
     db.execute(

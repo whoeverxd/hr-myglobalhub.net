@@ -2,6 +2,7 @@ const db = require('../db');
 const { logAction } = require('./audit.controller');
 const { ensureUserForEmployee, canAssignRole } = require('../services/auth.service');
 const { passwordProblem } = require('../utils/crypto');
+const { todayLocal } = require('../utils/today');
 
 const EMAIL_REGEX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -177,7 +178,7 @@ function createEmployee(data, user = 'System', ip = '127.0.0.1', actorRole = nul
     role: data.title || data.role || '',
     mgr: data.mgr || null,
     type: data.etype || data.type || 'Full-time',
-    start_date: data.start || new Date().toISOString().slice(0, 10),
+    start_date: data.start || todayLocal(),
     loc: data.loc || null,
     freq: data.freq || 'Bi-Weekly',
     rate: Number(data.rate) || 0,

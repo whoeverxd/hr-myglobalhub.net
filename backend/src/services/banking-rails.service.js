@@ -3,6 +3,7 @@ const db = require('../db');
 const { round2 } = require('../utils/money');
 const payrollEngine = require('./payroll-engine.service');
 const { requirePeriodId } = require('../utils/period');
+const { todayLocal } = require('../utils/today');
 
 // Payment files are only produced from the payroll run the owner approved (never computed on the fly)
 function approvedRunOrThrow(periodId) {
@@ -104,9 +105,9 @@ const bankingRailsService = {
     const run = approvedRunOrThrow(periodId);
     companyId = requiredSetting(companyId, 'MGH_ACH_COMPANY_ID', 'NACHA', 'el identificador ACH');
 
-    const payDate = run.payDate || new Date().toISOString().slice(0, 10);
+    const payDate = run.payDate || todayLocal();
     const effDateFormatted = (effectiveDate || payDate).replace(/-/g, '').slice(2); // YYMMDD
-    const todayFormatted = new Date().toISOString().slice(2, 10).replace(/-/g, ''); // YYMMDD
+    const todayFormatted = todayLocal().slice(2).replace(/-/g, ''); // YYMMDD
     const nowTimeFormatted = new Date().toTimeString().slice(0, 5).replace(/:/g, ''); // HHMM
 
     // US direct-deposit payees of the run (bank share only; the crypto share goes in the USDC batch)
@@ -276,7 +277,7 @@ const bankingRailsService = {
     const run = approvedRunOrThrow(periodId);
     companyAccount = requiredSetting(companyAccount, 'MGH_BHD_COMPANY_ACCOUNT', 'BHD', 'la cuenta de débito');
 
-    const payDate = run.payDate || new Date().toISOString().slice(0, 10);
+    const payDate = run.payDate || todayLocal();
     const dateFormatted = payDate.replace(/-/g, '');
 
     const empMap = employeeMap();
