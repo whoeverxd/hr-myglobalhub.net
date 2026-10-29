@@ -39,9 +39,11 @@
     'attendance.exceptions.manage': row('Attendance', 'Review / correct exceptions', G, O, O, O, N, O, T, N, N),
     'attendance.rules.manage':    row('Attendance', 'Manage attendance rules',      G, O, O, N, N, N, N, N, N),
     'holidays.manage':            row('Attendance', 'Manage holidays',              G, O, O, N, N, O, N, N, N),
-    'leave.request':              row('Leave', 'Request leave',                     G, O, O, N, N, N, N, S, S),
-    'leave.approve.supervisor':   row('Leave', 'Approve leave (supervisor step)',   N, N, N, N, N, O, T, N, N),
-    'leave.approve.hr':           row('Leave', 'Approve leave (HR step)',           N, N, O, N, N, N, N, N, N),
+    // PMs, supervisors and finance are employees too: they request their OWN leave
+    'leave.request':              row('Leave', 'Request leave',                     G, O, O, S, S, S, S, S, S),
+    // Mirrors PATCH /leave/:id/review: supervisor, pm, hr, finance and admin may approve/reject at any step
+    'leave.approve.supervisor':   row('Leave', 'Approve leave (supervisor step)',   G, O, O, O, G, O, O, N, N),
+    'leave.approve.hr':           row('Leave', 'Approve leave (HR step)',           G, O, O, O, G, O, O, N, N),
     'leave.cancel':               row('Leave', 'Cancel pending leave',              G, O, O, N, N, N, N, S, S),
     'payroll.view':               row('Payroll', 'View pay periods & register',     G, O, N, O, G, O, N, N, N),
     'payroll.process':            row('Payroll', 'Run payroll processing',          G, O, N, O, N, N, N, N, N),
@@ -70,7 +72,7 @@
     approvals: ['timesheets.approve', 'payroll.generate'], queue: ['timesheets.approve', 'timesheets.view'], timesheets: ['timesheets.view'],
     employees: ['employees.view'], profile: ['employees.view'],
     attendance: ['attendance.dashboard.view'], attWorkday: ['attendance.view'], attDaily: ['attendance.view'], actDaily: ['attendance.view'], attCalendar: ['attendance.view'], attExceptions: ['attendance.exceptions.manage'],
-    attLeave: ['leave.request'], attHolidays: ['attendance.view'], attReports: ['reports.view'], attRules: ['attendance.rules.manage'],
+    attLeave: ['leave.request', 'leave.approve.supervisor', 'leave.approve.hr'], attHolidays: ['attendance.view'], attReports: ['reports.view'], attRules: ['attendance.rules.manage'],
     periods: ['payroll.view'], adjustments: ['adjustments.manage'], processing: ['payroll.process'], paystub: ['payslips.view'], banking: ['banking.view'], reports: ['reports.view'],
     contractors: ['contractors.view'], contractorPayments: ['contractors.pay'],
     jira: ['jira.view'], projects: ['projects.view'],
@@ -108,14 +110,16 @@
       const matchedOrg = (typeof API !== 'undefined' && API.orgSettings) ? API.orgSettings(activeUser.entity) : null;
       const uOrg = matchedOrg ? matchedOrg.id : (activeUser.entity || org || DR);
       const uRole = mapRole(activeUser.role);
+      const uEmp = activeUser.employeeId || activeUser.employee_id || null;
       return {
         id: activeUser.id,
         person: activeUser.name || 'User',
         title: activeUser.role || 'Employee',
-        emp: activeUser.employeeId || activeUser.employee_id || null,
+        emp: uEmp,
         email: activeUser.email || '',
         avatar: activeUser.avatar || null,
-        memberships: { [uOrg]: uRole }
+        memberships: { [uOrg]: uRole },
+        team: teamOf(activeUser.name, uEmp)
       };
     }
     return {
@@ -133,15 +137,25 @@
     return null;
   };
 
-  // Workflow steps assign an approver role per organization (config); resolved here so screens only call can().
-  const stepRole = key => { const W = window.MGH_WF; const s = W && W.config.steps.find(x => x.key === key && x.enabled); return s ? s.role : null; };
+  // Position of a workflow step among the enabled steps (-1 = unknown / disabled)
+  const stepIndex = key => { const W = window.MGH_WF; if (!W) return -1; return W.steps().findIndex(x => x.key === key); };
   const me = () => ({ ...P(), role: roleNow(), org: (activeUser && activeUser.entity) || org });
+  // Mirrors the backend (routes.js REVIEWER_ROLES / reviewStepError): the first step can be reviewed by
+  // supervisor, PM, HR, finance and admin ('timesheets.approve'); later steps (owner approval) only by the admin.
   const scopeOf = perm => {
     const role = roleNow(); if (!role) return false;
-    if (/^timesheets\.approve\./.test(perm)) { const k = perm.split('.')[2]; if (stepRole(k) === role) return MATRIX['timesheets.approve'].grants[role] || 'organization'; return MATRIX['timesheets.approve.any'].grants[role] || false; }
+    if (/^timesheets\.approve\./.test(perm)) { const k = perm.split('.')[2]; if (stepIndex(k) === 0) return MATRIX['timesheets.approve'].grants[role] || false; return MATRIX['timesheets.approve.any'].grants[role] || false; }
     const m = MATRIX[perm]; return m ? m.grants[role] : false;
   };
   const DATA = () => (window.__MGH_DATA && (window.__MGH_DATA.ALL_EMP || window.__MGH_DATA.EMPLOYEES)) || [];
+  // A supervisor's team: employees whose manager (employees.mgr, stored as a name or an employee id) is them
+  function teamOf(name, emp) {
+    const n = String(name || '').toLowerCase().trim();
+    return DATA().filter(e => {
+      const m = String(e.mgr || '').toLowerCase().trim();
+      return m && e.id !== emp && ((n && m === n) || (emp && m === String(emp).toLowerCase()));
+    }).map(e => e.id);
+  }
   function inScope(scope, t) {
     if (!scope) return false;
     if (t == null) return true;
@@ -165,7 +179,8 @@
     );
     if (isSelf) return true;
     if (scope === 'self') return false;
-    if (scope === 'team') return (u.team || []).includes(e.id);
+    // No team can be derived (nobody reports to them by name / id) → everyone the backend returned to them
+    if (scope === 'team') return !(u.team || []).length || u.team.includes(e.id);
     if (scope === 'department') return (u.depts || []).includes(e.dept) || (u.team || []).includes(e.id);
     if (scope === 'project') return (u.projects || []).includes(e.project);
     return false;

@@ -155,14 +155,18 @@
     pendingStep(rec) { const st = routeOf(rec); return rec && rec.stepIdx >= 0 && rec.stepIdx < st.length ? st[rec.stepIdx] : null; },
     editable(rec) { return !!rec && ['Draft', 'Returned'].includes(rec.status); },
     canEdit(rec) { return API.editable(rec) && !!RB() && RB().can('timesheets.edit', rec.emp); },
-    canAct(rec) { const p = API.pendingStep(rec); return !!p && !!RB() && RB().can('timesheets.approve.' + p.key, rec.emp) && !['Returned', 'Rejected', 'Cancelled', 'Paid'].includes(rec.status); },
+    // Backend rule: nobody but the admin approves / returns their own sheet
+    isOwnSheet(rec) { const m = RB() && RB().me(); return !!(rec && m && m.emp && rec.emp === m.emp && RB().role !== 'Platform Admin'); },
+    canAct(rec) { const p = API.pendingStep(rec); return !!p && !!RB() && !API.isOwnSheet(rec) && RB().can('timesheets.approve.' + p.key, rec.emp) && !['Returned', 'Rejected', 'Cancelled', 'Paid'].includes(rec.status); },
     canPay(rec) { return !!rec && rec.status === 'Approved' && !!RB() && RB().can('payroll.generate', rec.emp); },
     whyNot(rec) {
       if (!rec) return 'No timesheet';
       if (['Paid', 'Rejected', 'Cancelled'].includes(rec.status)) return 'Read-only • ' + rec.status;
       if (rec.status === 'Approved') return RB() && RB().can('payroll.generate', rec.emp) ? '' : 'Only Payroll can generate the pay stub';
       if (API.editable(rec)) return 'Waiting for the employee to submit';
-      const p = API.pendingStep(rec); return p ? 'Waiting for ' + p.label + ' (' + roleLabel(p.role) + ')' : '';
+      const p = API.pendingStep(rec);
+      if (p && API.isOwnSheet(rec) && RB().scopeOf('timesheets.approve.' + p.key)) return 'No puedes aprobar tu propia hoja';
+      return p ? 'Waiting for ' + p.label + ' (' + roleLabel(p.role) + ')' : '';
     },
     transition(rec, to, comment, opts) {
       const from = rec.status, by = (opts && opts.actor) || actorFor(curRole()), r = (opts && opts.role) || curRole();
