@@ -551,8 +551,10 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
   };
   const REVIEW_TONE = { approved: 'success', partial: 'warning', rejected: 'danger' };
   const REVIEW_LABEL = { approved: 'Aprobada', partial: 'Parcial', rejected: 'Rechazada' };
-  const reviewedActs = empActivities.filter(a => a.reviewStatus);
-  const approvedActHours = empActivities.reduce((s, a) => s + (a.reviewStatus ? Number(a.approvedHours) || 0 : Number(a.hours) || 0), 0);
+  // Only a real PM decision counts as reviewed; the API sends 'pending' for activities nobody has reviewed yet
+  const isReviewed = a => !!REVIEW_LABEL[a.reviewStatus];
+  const reviewedActs = empActivities.filter(isReviewed);
+  const approvedActHours = empActivities.reduce((s, a) => s + (isReviewed(a) ? Number(a.approvedHours) || 0 : Number(a.hours) || 0), 0);
 
   return <Page>
     <PageHeader
@@ -729,17 +731,17 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
                           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                             {a.jiraKey && <Badge mono size="sm" tone="primary">{a.jiraKey}</Badge>}
                             <span style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{a.jiraSummary || a.workType || 'Actividad'}</span>
-                            {a.reviewStatus && <Badge size="sm" tone={REVIEW_TONE[a.reviewStatus]}>{REVIEW_LABEL[a.reviewStatus]}</Badge>}
+                            {isReviewed(a) && <Badge size="sm" tone={REVIEW_TONE[a.reviewStatus]}>{REVIEW_LABEL[a.reviewStatus]}</Badge>}
                           </div>
                           {a.description && <div style={{ font: '400 12px/16px var(--font-sans)', color: 'var(--mgh-ink-2)', marginTop: 2 }}>{a.description}</div>}
                           {a.reviewComment && <div style={{ font: '500 12px/16px var(--font-sans)', color: 'var(--mgh-ink-2)', marginTop: 4, display: 'flex', gap: 4 }}><Icon name="comment" size={14} />{a.reviewComment}{a.reviewedBy ? ' — ' + a.reviewedBy : ''}</div>}
                         </div>
                         <div style={{ textAlign: 'right', font: '700 13px var(--font-sans)', color: 'var(--mgh-ink)', minWidth: 70 }}>
-                          {a.reviewStatus && Number(a.approvedHours) !== Number(a.hours) ? <><s style={{ color: 'var(--mgh-ink-4)', fontWeight: 500 }}>{fmtH(a.hours)}</s> {fmtH(a.approvedHours)}</> : fmtH(a.hours)}
+                          {isReviewed(a) && Number(a.approvedHours) !== Number(a.hours) ? <><s style={{ color: 'var(--mgh-ink-4)', fontWeight: 500 }}>{fmtH(a.hours)}</s> {fmtH(a.approvedHours)}</> : fmtH(a.hours)}
                         </div>
                         {reviewOpen && <div style={{ display: 'flex', gap: 4 }}>
                           <IconButton icon="check" size={28} title="Aprobar todas las horas" onClick={() => saveActivityReview(a, Number(a.hours), '')} />
-                          <IconButton icon="rule" size={28} title="Aprobar parcialmente" onClick={() => setRevAct({ act: a, hours: String(a.reviewStatus ? a.approvedHours : a.hours), comment: a.reviewComment || '' })} />
+                          <IconButton icon="rule" size={28} title="Aprobar parcialmente" onClick={() => setRevAct({ act: a, hours: String(isReviewed(a) ? a.approvedHours : a.hours), comment: a.reviewComment || '' })} />
                           <IconButton icon="block" size={28} title="Rechazar las horas" onClick={() => setRevAct({ act: a, hours: '0', comment: a.reviewComment || '' })} />
                         </div>}
                       </div>

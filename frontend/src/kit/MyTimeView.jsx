@@ -835,7 +835,8 @@ function MyTimeEntry({ user, empId, notify, go }) {
                                         Registrada por {act.loggedByName || act.loggedBy}
                                       </span>
                                     )}
-                                    {act.reviewStatus && (
+                                    {/* Only a real PM decision gets a badge; unreviewed activities come back as 'pending' */}
+                                    {['approved', 'partial', 'rejected'].includes(act.reviewStatus) && (
                                       <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', font: '500 11px/15px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>
                                         <Badge size="sm" tone={act.reviewStatus === 'approved' ? 'success' : act.reviewStatus === 'partial' ? 'warning' : 'danger'}>
                                           {act.reviewStatus === 'approved' ? 'Aprobada' : act.reviewStatus === 'partial' ? `Aprobadas ${act.approvedHours}h de ${act.hours}h` : 'Horas rechazadas'}
