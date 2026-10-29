@@ -12,7 +12,7 @@ import { getCurrentPeriod, getQuincenaForDate, getPeriodsForYear } from '../lib/
 // Sample data for the My Global Hub enterprise kit (names/values follow the Figma file's sample content)
 const A = 'assets/avatars/';
 // Real employees are loaded from the backend (App.loadFromApi); no sample records.
-// UI locale for dates (shared by every screen in this file)
+// UI locale for dates (shared with the other screen blocks through window.__MGH_DATA)
 const LOC = () => window.MGH_I18N ? window.MGH_I18N.locale() : 'en-US';
 const EMPLOYEES = [];
 // Payroll deduction engine — reads each employee's tax profile; Exempt short-circuits all withholdings.
@@ -186,7 +186,7 @@ function WFPill({ status, size }) { const c = WF ? WF.statusColor(status) : ['#E
 function useWF() { const [, f] = React.useState(0); React.useEffect(() => { const h = () => f(x => x + 1); window.addEventListener('mgh-wf', h); return () => window.removeEventListener('mgh-wf', h); }, []); }
 const fmtAt = iso => { const t = new Date(iso); return isNaN(t) ? iso : t.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); };
 window.__mghPrevPeriods = (cur, n) => { const out = []; let c = cur; for (let i = 0; i < n; i++) { const d = new Date(c.startDate + 'T12:00:00'); d.setDate(d.getDate() - 1); c = getQuincenaForDate(d); out.push({ code: c.code, label: c.code + ' (' + c.rangeShort + ', ' + c.year + ')', phase: 'Histórico', start: c.startDate, end: c.endDate, startDate: c.startDate, endDate: c.endDate, daysRemaining: 0 }); } return out; };
-window.__MGH_DATA = { ALL_EMP, EMPLOYEES, DEDUCT, STATUS_TONE, NAV, buildDays, fmt$, fmtH, useTable, AVATARS: A, WF, WFPill, useWF, recOf, liveStatus, fmtAt, PERIOD, hasMatch, lowMatch, matchTxt };
+window.__MGH_DATA = { LOC, ALL_EMP, EMPLOYEES, DEDUCT, STATUS_TONE, NAV, buildDays, fmt$, fmtH, useTable, AVATARS: A, WF, WFPill, useWF, recOf, liveStatus, fmtAt, PERIOD, hasMatch, lowMatch, matchTxt };
 Object.assign(window, window.__MGH_DATA);
 
 })();
