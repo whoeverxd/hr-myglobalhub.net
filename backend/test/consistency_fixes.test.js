@@ -272,3 +272,15 @@ test('8. Disabled workflow steps are skipped by submit and approve', (t) => {
   assert.equal(timesheets.approveTimesheet(sheet.id, { role: 'admin' }, 'Owner').status, 'Approved');
   resetPeriod(P);
 });
+
+test('A new adjustment is always born pending, whatever status the body sends', () => {
+  const adjustments = require('../src/controllers/adjustments.controller');
+  const P = 'PP-2024-07';
+  resetPeriod(P);
+  const adj = adjustments.createAdjustment({ employeeId: LUIS, periodId: P, type: 'Bono', amt: 100, status: 'Approved & Queued' });
+  try {
+    assert.equal(adj.status, 'Pending Approval');
+  } finally {
+    db.execute(`DELETE FROM payroll_adjustments WHERE id = ?`, [adj.id]);
+  }
+});

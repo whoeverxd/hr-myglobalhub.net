@@ -68,7 +68,8 @@ function createAdjustment(data, user = 'System', ip = '127.0.0.1') {
     taxTone: data.taxTone || 'info',
     target: data.target || null,
     by_user: data.by || `${user} • just now`,
-    status: data.status || 'Pending Approval',
+    // Always born pending: approval goes through PATCH, which a supervisor (who may create) cannot call
+    status: 'Pending Approval',
   };
 
   db.transaction(() => {
