@@ -10,7 +10,15 @@ const fs = require('fs');
 const path = require('path');
 const firebaseService = require('../../services/firebase.service');
 
-const HYDRATION_TIMEOUT_MS = Number(process.env.FIRESTORE_HYDRATION_TIMEOUT_MS || 2500);
+// Measured against production (2026-10-29): listCollections() 779 ms, full hydration 1934 ms for
+// 20 collections / 2467 docs. The old 2500 ms default left a 566 ms margin -- 23% -- and it was
+// already timing out on boot, serving the local snapshot instead of live data.
+//
+// The margin does not just happen to be thin, it is shrinking: audit_logs alone is 2048 of those
+// 2467 docs (1155 ms) and an audit log only ever grows, so every boot walks closer to the wall.
+// Raising the deadline buys time; the real fix is to stop hydrating audit_logs at boot (nothing
+// reads it there) once the adapter can fall back to Firestore for a collection it did not cache.
+const HYDRATION_TIMEOUT_MS = Number(process.env.FIRESTORE_HYDRATION_TIMEOUT_MS || 15000);
 const CACHE_FILE = path.join(__dirname, '..', '..', '..', 'data', 'firestore_cache.json');
 
 // Table to Firestore collection mapping
