@@ -6,9 +6,9 @@
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   const WF = () => window.MGH_WF;
-  // Real local date/time (was frozen at 2025-04-15 09:15 for the prototype)
-  const _now = new Date();
-  const TODAY = _now.getFullYear() + '-' + String(_now.getMonth() + 1).padStart(2, '0') + '-' + String(_now.getDate()).padStart(2, '0');
+  // Real LOCAL date (not the UTC day of toISOString), recomputed on every read so a tab left open past midnight
+  // moves to the new day
+  const todayStr = () => { const n = new Date(); return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0'); };
   const nowMin = () => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); };
   const tm = s => { if (!s || !/^\d{1,2}:\d{2}$/.test(s)) return null; const [h, m] = s.split(':').map(Number); return h * 60 + m; };
   const hm = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(Math.round(m % 60)).padStart(2, '0');
@@ -50,7 +50,7 @@
   function day(e, d) {
     const rules = rulesFor(e.entity);
     const st0 = startOf(e), notStarted = !!(st0 && d < st0);
-    const wk = dow(d), weekend = wk === 0 || wk === 6 || notStarted, future = d > TODAY, today = d === TODAY;
+    const wk = dow(d), weekend = wk === 0 || wk === 6 || notStarted, TODAY = todayStr(), future = d > TODAY, today = d === TODAY;
     const h = holidayOn(e, d), lv = leaveOn(e.id, d), key = e.id + '|' + d;
     const base = weekend || future ? { in: '', lo: '', li: '', out: '', mode: 'office' } : genPunch(e, d);
     const p = { ...base, ...(ovr[key] || {}) };
@@ -103,7 +103,7 @@
   const LEAVE_TONE = { 'Pending Supervisor': 'warning', 'Pending HR': 'warning', Approved: 'success', Rejected: 'danger', Cancelled: 'neutral' };
 
   const API = {
-    TODAY, ORGS, LEAVE_TYPES, STATUS_COLOR, LEAVE_TONE,
+    get TODAY() { return todayStr(); }, ORGS, LEAVE_TYPES, STATUS_COLOR, LEAVE_TONE,
     STATUSES: ['Present', 'Late', 'No Record', 'Holiday', 'Vacation', 'Sick', 'Remote', 'Training', 'Business Trip', 'Pending Review'],
     setRoster(list) { roster = list; if (!load(LS.alerted, false)) { save(LS.alerted, true); API.alertToday(); } },
     // Backend data (from /bootstrap) replaces whatever the browser had cached
@@ -214,7 +214,7 @@
     removeHoliday(id) { if (!can('holidays.manage')) return; const h = hol.find(x => x.id === id); hol = hol.filter(x => x.id !== id); persist(); audit('holiday.deleted', h.org + ' • ' + h.date + ' • ' + h.desc, 'warning'); fire(); },
     /* ---------- notifications ---------- */
     alertToday() {
-      const prev = addD(TODAY, -1), L = roster.map(e => day(e, prev)).concat(roster.map(e => day(e, TODAY)));
+      const TODAY = todayStr(), prev = addD(TODAY, -1), L = roster.map(e => day(e, prev)).concat(roster.map(e => day(e, TODAY)));
       const mo = L.flatMap(x => x.exceptions).filter(x => x.type === 'missing_out'), late = roster.map(e => day(e, TODAY)).filter(x => x.status === 'Late'), abs = roster.map(e => day(e, TODAY)).filter(x => x.status === 'Absent');
       if (mo.length) alert(['Supervisor'], mo.length + ' missing clock-out(s) on ' + prev, 'Attendance');
       if (late.length) alert(['Supervisor'], late.length + ' late arrival(s) today', 'Attendance');

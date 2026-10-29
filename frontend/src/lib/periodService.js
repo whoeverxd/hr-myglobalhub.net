@@ -30,7 +30,8 @@ export function localDateStr(d = new Date()) {
  * If day > 15: 16 al fin de mes (e.g. 16 al 31 de octubre).
  */
 export function getQuincenaForDate(dateInput = new Date()) {
-  const d = new Date(dateInput);
+  // A bare 'YYYY-MM-DD' would be parsed as UTC midnight (= the previous day in Santo Domingo): read it as local noon
+  const d = typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput) ? new Date(`${dateInput}T12:00:00`) : new Date(dateInput);
   const year = d.getFullYear();
   const month = d.getMonth(); // 0 = Jan, 9 = Oct, 10 = Nov
   const day = d.getDate();
