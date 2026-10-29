@@ -27,7 +27,8 @@ const DEDUCT = e => {
   return { exempt: false, lines, total, net: g - total };
 };
 
-const STATUS_TONE = { 'Awaiting PM': 'warning', 'Awaiting Supervisor': 'warning', 'Flagged OT': 'danger', 'Jira Mismatch': 'danger', 'Ready': 'success', 'Approved': 'success', 'Returned': 'danger', 'Draft': 'neutral' };
+const STATUS_TONE = { 'Awaiting PM': 'warning', 'Awaiting Supervisor': 'warning', 'Flagged OT': 'danger', 'Jira Mismatch': 'danger', 'Ready': 'success', 'Approved': 'success', 'Returned': 'danger', 'Draft': 'neutral',
+  'PM Review': 'warning', 'Supervisión PM': 'warning', 'Owner Approval': 'warning', 'Aprobación Dueño': 'warning', 'Paid': 'success' };
 
 const NAV = [
   { label: 'Overview', items: [{ key: 'dashboard', label: 'Dashboard', icon: 'space_dashboard' }] },
@@ -172,12 +173,69 @@ if (window.MGH_ATT) window.MGH_ATT.setRoster(EMPLOYEES);
 window.addEventListener('mgh-att', () => { window.dispatchEvent(new Event('mgh-wf')); });
 window.addEventListener('mgh-rbac', () => { scopeTenant(); if (window.MGH_ATT) window.MGH_ATT.setRoster(EMPLOYEES); });
 const PERIOD = getCurrentPeriod().code;
-const recOf = id => {
+// Workflow record of an employee for a period (default: the current quincena). Screens with a period
+// selector must pass the selected code, or they act on the wrong sheet.
+const recOf = (id, period) => {
   if (!WF) return null;
-  const curP = getCurrentPeriod().code;
-  return WF.get(id, curP) || WF.ensure(id, (EMPLOYEES.find(x => x.id === id) || {}).name || id, curP, 'Draft');
+  const p = period || getCurrentPeriod().code;
+  return WF.get(id, p) || WF.ensure(id, (EMPLOYEES.find(x => x.id === id) || {}).name || id, p, 'Draft');
 };
-const liveStatus = e => { const r = recOf(e.id); return r ? r.status : (e.status || 'Draft'); };
+const liveStatus = (e, period) => { const r = recOf(e.id, period); return r ? r.status : (e.status || 'Draft'); };
+// One "under review" predicate for every screen. Mirrors the backend: anything that is not an editable,
+// finished or archived state is in review (PM Review, Owner Approval, Supervisión PM, Aprobación Dueño…).
+// No status (no sheet) is never pending.
+const NOT_IN_REVIEW = ['Draft', 'Returned', 'Approved', 'Paid', 'Closed', 'Archived', 'Rejected', 'Open'];
+const inReview = s => !!s && !NOT_IN_REVIEW.includes(s);
+// Backend role of the signed-in user ('admin', 'finance', 'pm'…); payroll endpoints check this, not the UI role.
+const backendRole = () => { const u = window.MGH_RBAC && window.MGH_RBAC.user; return String((u && u.role) || '').toLowerCase(); };
+const isAdminUser = () => backendRole() === 'admin';
+// Mirrors routes.js: GET /payroll/runs → pm, finance, admin; payout files (/payroll/export/*) → finance, admin.
+// Anyone else gets 403, so screens skip the call instead of failing silently.
+const canPayrollRuns = () => ['admin', 'finance', 'pm'].includes(backendRole());
+const canPayoutFiles = () => ['admin', 'finance'].includes(backendRole());
+// Authenticated downloads: window.open() sends no Authorization header, so files are fetched with the session
+// token (same storage + base URL as lib/api.js) and saved through a Blob URL. Backend errors (e.g. 409 with a
+// Spanish message naming the employees missing data) are surfaced through notify.
+const apiUrl = path => {
+  const raw = (import.meta.env && import.meta.env.VITE_API_URL) || '/api';
+  const base = /\/api\/?$/.test(raw) ? raw.replace(/\/$/, '') : raw.replace(/\/$/, '') + '/api';
+  return base + path;
+};
+async function apiFetchBlob(path) {
+  const token = api.getToken();
+  const res = await fetch(apiUrl(path), { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+  if (!res.ok) {
+    let msg = res.statusText || ('HTTP ' + res.status);
+    try { const j = await res.json(); msg = j.error || j.message || msg; } catch (_) { /* not JSON */ }
+    const err = new Error(msg); err.status = res.status; throw err;
+  }
+  return { blob: await res.blob(), disposition: res.headers.get('Content-Disposition') || '' };
+}
+async function downloadApi(path, fallbackName, notify) {
+  const say = notify || window.__mghNotify || (m => window.alert(m));
+  try {
+    const { blob, disposition } = await apiFetchBlob(path);
+    const m = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(disposition);
+    const name = m ? decodeURIComponent(m[1] || m[2]) : fallbackName;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return true;
+  } catch (err) { say('No se pudo descargar el archivo • ' + err.message); return false; }
+}
+// Opens an authenticated HTML document (e.g. a paystub) in a new tab. The tab is opened synchronously so the
+// pop-up blocker allows it, then filled once the fetch resolves.
+async function openApiHtml(path, notify) {
+  const say = notify || window.__mghNotify || (m => window.alert(m));
+  const w = window.open('', '_blank');
+  try {
+    const { blob } = await apiFetchBlob(path);
+    const url = URL.createObjectURL(new Blob([blob], { type: 'text/html' }));
+    if (w) w.location.href = url; else window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return w;
+  } catch (err) { if (w) w.close(); say('No se pudo abrir el documento • ' + err.message); return null; }
+}
 // Jira match is null until real reconciliation data exists — never treat "not measured" as a mismatch.
 const hasMatch = e => typeof e.match === 'number';
 const lowMatch = e => hasMatch(e) && e.match < 95;
@@ -186,7 +244,7 @@ function WFPill({ status, size }) { const c = WF ? WF.statusColor(status) : ['#E
 function useWF() { const [, f] = React.useState(0); React.useEffect(() => { const h = () => f(x => x + 1); window.addEventListener('mgh-wf', h); return () => window.removeEventListener('mgh-wf', h); }, []); }
 const fmtAt = iso => { const t = new Date(iso); return isNaN(t) ? iso : t.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); };
 window.__mghPrevPeriods = (cur, n) => { const out = []; let c = cur; for (let i = 0; i < n; i++) { const d = new Date(c.startDate + 'T12:00:00'); d.setDate(d.getDate() - 1); c = getQuincenaForDate(d); out.push({ code: c.code, label: c.code + ' (' + c.rangeShort + ', ' + c.year + ')', phase: 'Histórico', start: c.startDate, end: c.endDate, startDate: c.startDate, endDate: c.endDate, daysRemaining: 0 }); } return out; };
-window.__MGH_DATA = { LOC, ALL_EMP, EMPLOYEES, DEDUCT, STATUS_TONE, NAV, buildDays, fmt$, fmtH, useTable, AVATARS: A, WF, WFPill, useWF, recOf, liveStatus, fmtAt, PERIOD, hasMatch, lowMatch, matchTxt };
+window.__MGH_DATA = { LOC, ALL_EMP, EMPLOYEES, DEDUCT, STATUS_TONE, NAV, buildDays, fmt$, fmtH, useTable, AVATARS: A, WF, WFPill, useWF, recOf, liveStatus, inReview, isAdminUser, canPayrollRuns, canPayoutFiles, downloadApi, openApiHtml, fmtAt, PERIOD, hasMatch, lowMatch, matchTxt };
 Object.assign(window, window.__MGH_DATA);
 
 })();
@@ -332,7 +390,6 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
   const [comment, setComment] = React.useState('');
   const [detailsTick, setDetailsTick] = React.useState(0); // bump to reload reconciliation + activities
   const [revAct, setRevAct] = React.useState(null); // { act, hours, comment } — per-activity review dialog
-  const [mode, setMode] = React.useState('return');
   useWF();
 
   // Merge scoped employees with timesheet from DB & #attDaily punch calculations
@@ -369,11 +426,14 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
       const punchReg = Math.max(0, punchHours - punchOt);
       const reg = ts ? Number(ts.reg) : punchReg;
       const ot = ts ? Number(ts.ot) : punchOt;
-      const pto = ts ? Number(ts.pto) : 0.0;
-      const total = ts ? Number(ts.total) : (reg + ot + pto);
-      const status = ts ? ts.status : (emp.status || 'Draft');
+      const pto = ts ? Number(ts.pto) || 0 : 0.0;
+      // Paid holidays are paid at the regular rate, like PTO (backend payroll engine: (pto + holiday) × rate)
+      const hol = ts ? Number(ts.hol) || 0 : 0.0;
+      const total = ts ? Number(ts.total) : (reg + ot + pto + hol);
+      // No sheet → Draft. The employee profile status ('Active', 'Ready'…) is not a timesheet status.
+      const status = ts ? ts.status : 'Draft';
       const rate = Number(emp.rate) || 0;
-      const gross = +(reg * rate + ot * rate * 1.5 + pto * rate).toFixed(2);
+      const gross = +(reg * rate + ot * rate * 1.5 + (pto + hol) * rate).toFixed(2);
       // Only the backend reconciliation (activities vs punches) gives a match %; otherwise it is not measured
       const mp = reconcil && reconcil.reconciliation && reconcil.reconciliation.matchPercentage;
       const match = ts && total > 0 && empActivities.length > 0 && emp.id === empId && typeof mp === 'number' ? mp : null;
@@ -384,6 +444,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
         reg,
         ot,
         pto,
+        hol,
         total,
         gross,
         status,
@@ -432,7 +493,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
 
   if (!e) return <div style={{ padding: 28 }}><PageHeader breadcrumbs={['Approvals', 'Approval Workspace']} title="Approval Workspace" description="No timesheets in your scope for this organization." /></div>;
 
-  const rec = recOf(e.id), can = WF.canAct(rec), canPay = WF.canPay(rec), why = WF.whyNot(rec);
+  const rec = recOf(e.id, periodCode), can = WF.canAct(rec), canPay = WF.canPay(rec), why = WF.whyNot(rec);
   const shown = days.filter(d => week === 'all' || d.week === +week);
   const filtered = list.filter(x => (filter === 'all' || (filter === 'ot' && x.ot > 0) || (filter === 'jira' && lowMatch(x)) || (filter === 'ready' && ['Ready', 'Approved'].includes(x.status))) && (!q || (x.name + x.id + x.project).toLowerCase().includes(q.toLowerCase())));
   const jiraTotal = days.reduce((s, d) => s + (Number(d.jira) || 0), 0);
@@ -474,7 +535,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
   };
 
   const steps = WF.timeline(rec).map(t => ({ label: t.label, state: t.done ? 'done' : t.current ? 'current' : 'pending', status: t.meta ? fmtAt(t.meta) : t.current ? 'Current step' : '', meta: t.who || '' }));
-  const otPay = e.ot * e.rate * 1.5, regPay = e.reg * e.rate, ptoPay = e.pto * e.rate;
+  const otPay = e.ot * e.rate * 1.5, regPay = e.reg * e.rate, ptoPay = e.pto * e.rate, holPay = (Number(e.hol) || 0) * e.rate;
   const calc = DEDUCT(e), ded = calc.exempt ? [['Tax deductions — Exempt', 0]] : calc.lines;
   const net = calc.net;
 
@@ -497,7 +558,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
   })();
 
   // Dynamic header metrics (no placeholders)
-  const isUnderReview = s => ['Submitted', 'Supervisión PM', 'Aprobación Dueño', 'In Review', 'Under Review', 'Ready'].includes(s);
+  const isUnderReview = inReview;
   const pendingCount = list.filter(x => isUnderReview(x.status)).length;
   const approvedCount = list.filter(x => x.status === 'Approved' || x.status === 'Paid').length;
   const onTrackPct = list.length > 0 ? Math.round((approvedCount / list.length) * 100) : 0;
@@ -635,7 +696,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
               try {
                 await window.api.ensureTimesheet(id, periodCode, empObj ? empObj.name : id);
                 await window.api.approveTimesheet(`TS-${periodCode}-${id}`, { comment: '', role: WF.role });
-                WF.approve(recOf(id), '');
+                WF.approve(recOf(id, periodCode), '');
                 ok++;
               } catch (err) { failed.push(id + ': ' + err.message); }
             }
@@ -644,7 +705,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
           }}>Bulk Approve</Button>}
         </div>
         <div className="mgh-scroll" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, padding: 2, margin: -2 }}>
-          {filtered.map(x => <QueueCard key={x.id} e={{ ...x, status: liveStatus(x) }} active={x.id === e.id} checked={sel.includes(x.id)} onCheck={() => setSel(s => s.includes(x.id) ? s.filter(i => i !== x.id) : [...s, x.id])} onClick={() => setCur(x.id)} />)}
+          {filtered.map(x => <QueueCard key={x.id} e={{ ...x, status: liveStatus(x, periodCode) }} active={x.id === e.id} checked={sel.includes(x.id)} onCheck={() => setSel(s => s.includes(x.id) ? s.filter(i => i !== x.id) : [...s, x.id])} onClick={() => setCur(x.id)} />)}
           {!filtered.length && <div style={{ padding: 28, textAlign: 'center', font: '500 13px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>No hay empleados en este filtro.</div>}
         </div>
         <div style={{ font: '600 12px var(--font-sans)', color: 'var(--mgh-ink-2)', padding: '0 4px' }}>Mostrando {filtered.length} de {list.length} empleados</div>
@@ -693,7 +754,9 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
             <MetricTile tone="white" label="Regular (Ponches)" value={fmtH(e.reg)} />
             <MetricTile tone={e.ot ? 'warning' : 'white'} label="Overtime (Ponches)" value={fmtH(e.ot)} />
             <MetricTile tone="white" label="PTO / Leave" value={fmtH(e.pto)} />
-            <MetricTile tone="white" label="Feriados" value={fmtH((() => { const A = window.MGH_ATT; if (!A || !e || !curPeriod.startDate) return 0; return A.range(curPeriod.startDate, curPeriod.endDate).filter(d => A.dow(d) % 6 && A.holidays(e.entity).some(h => h.date === d && !h.working)).length * A.rulesFor(e.entity).shift; })())} />
+            {/* Backend counts only paid, non-working weekday holidays at the org daily hours (ot.daily, default 8),
+                which this screen does not receive → estimate with 8h unless the sheet already carries holiday hours. */}
+            <MetricTile tone="white" label="Feriados (estimado)" value={fmtH((() => { if (Number(e && e.hol) > 0) return Number(e.hol); const A = window.MGH_ATT; if (!A || !e || !curPeriod.startDate) return 0; return A.range(curPeriod.startDate, curPeriod.endDate).filter(d => A.dow(d) % 6 && A.holidays(e.entity).some(h => h.date === d && h.paid !== false && !h.working)).length * 8; })())} />
             <MetricTile tone="success" label="Horas Tareas" value={fmtH(jiraTotal)} />
             <MetricTile tone="white" label="Tiempo no facturable" value={fmtH(Math.max(0, clockTotal - jiraTotal))} />
             <MetricTile tone="white" label="Total Quincena" value={fmtH(e.total)} />
@@ -786,7 +849,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
             <div style={{ flex: '1 1 300px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
               <Card padding={20} icon="payments" title="Resumen de Nómina" subtitle={`Estimado para ${periodCode}`}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, font: '500 13px/18px var(--font-sans)' }}>
-                  {[['Regular ' + fmtH(e.reg) + ' × ' + fmt$(e.rate), regPay], ['Overtime ' + fmtH(e.ot) + ' × 1.5', otPay], ['PTO ' + fmtH(e.pto), ptoPay]].map(([l, v]) => <div key={l} style={{ display: 'flex', justifyContent: 'space-between' }}><span>{l}</span><b style={{ color: 'var(--mgh-ink)' }}>{fmt$(v)}</b></div>)}
+                  {[['Regular ' + fmtH(e.reg) + ' × ' + fmt$(e.rate), regPay], ['Overtime ' + fmtH(e.ot) + ' × 1.5', otPay], ['PTO ' + fmtH(e.pto), ptoPay], ...((Number(e.hol) || 0) > 0 ? [['Feriados ' + fmtH(e.hol), holPay]] : [])].map(([l, v]) => <div key={l} style={{ display: 'flex', justifyContent: 'space-between' }}><span>{l}</span><b style={{ color: 'var(--mgh-ink)' }}>{fmt$(v)}</b></div>)}
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '1px solid var(--mgh-surface-2)', font: '700 14px var(--font-sans)', color: 'var(--mgh-ink)' }}><span>Salario Bruto (Gross)</span><span>{fmt$(e.gross)}</span></div>
                   {ded.map(([l, v]) => <div key={l} style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--mgh-ink-3)' }}><span>{l}</span><span>−{fmt$(v)}</span></div>)}
                   <div style={{ marginTop: 6, padding: 12, borderRadius: 8, background: 'var(--mgh-navy)', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span className="mgh-overline" style={{ color: 'var(--mgh-nav-text)' }}>Neto Estimado</span><span style={{ font: '800 20px var(--font-sans)' }}>{fmt$(net)}</span></div>
@@ -840,17 +903,16 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
           <span style={{ flex: 1 }} />
           <Button variant="outline" size="sm" icon="picture_as_pdf" onClick={() => window.print()}>Imprimir / PDF</Button>
           {!can && !canPay ? null : canPay ? <Button size="lg" icon="paid" iconRight="arrow_forward" onClick={() => window.__mghGo('processing')}>Pagar desde la corrida de nómina</Button> : <>
-          <Button variant="outline" icon="block" onClick={() => { setMode('reject'); setRet(true); }}>Rechazar</Button>
-          <Button variant="danger" icon="undo" onClick={() => { setMode('return'); setRet(true); }}>Devolver para Correcciones</Button>
+          <Button variant="danger" icon="undo" onClick={() => setRet(true)}>Devolver para Correcciones</Button>
           <Button variant="outline" icon="check" disabled={!sign || !can} onClick={() => approve(false)}>Solo Aprobar</Button>
           <Button size="lg" icon="task_alt" iconRight="arrow_forward" disabled={!sign || !can} onClick={() => approve(true)}>{rec.stepIdx === 0 ? 'Aprobar Actividades y Pasar a Dueño' : 'Aprobación Final de Dueño & Autorizar Nómina'}</Button></>}
         </div>
       </div>
     </div>
 
-    <Modal open={ret} title={`${mode === 'reject' ? 'Rechazar' : 'Devolver'} la jornada de ${e.name}`} onClose={() => setRet(false)} actions={<><Button variant="outline" onClick={() => setRet(false)}>Cancelar</Button><Button variant="danger" icon={mode === 'reject' ? 'block' : 'undo'} disabled={!reason.trim()} onClick={async () => {
+    <Modal open={ret} title={`Devolver la jornada de ${e.name}`} onClose={() => setRet(false)} actions={<><Button variant="outline" onClick={() => setRet(false)}>Cancelar</Button><Button variant="danger" icon="undo" disabled={!reason.trim()} onClick={async () => {
       if (!WF.canAct(rec)) { notify(WF.whyNot(rec) || 'No puedes actuar en este paso'); return; }
-      // Backend first: only a sheet under review can be returned. Rejection has no backend state yet → returned too.
+      // Backend first: only a sheet under review can be returned (there is no permanent rejection state).
       try {
         if (window.api) {
           const tsId = `TS-${periodCode}-${e.id}`;
@@ -861,13 +923,13 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
         notify('No se pudo devolver • ' + err.message);
         return;
       }
-      const r = mode === 'reject' ? WF.reject(rec, reason) : WF.returnToEmployee(rec, reason);
+      const r = WF.returnToEmployee(rec, reason);
       setRet(false);
       setReason('');
       setStatus(e.id, 'Returned');
-      notify(r.ok ? (mode === 'reject' ? 'Timesheet rechazada' : 'Devuelta al empleado para correcciones • edición reabierta') : r.msg);
-    }}>{mode === 'reject' ? 'Rechazar Jornada' : 'Devolver Jornada'}</Button></>}>
-      <p className="mgh-body" style={{ margin: 0 }}>{mode === 'reject' ? 'Las hojas rechazadas quedan cerradas permanentemente.' : <>El empleado recibirá una notificación para ajustar sus horas o actividades de jornada y reenviar para revisión.</>}</p>
+      notify(r.ok ? 'Devuelta al empleado para correcciones • edición reabierta' : r.msg);
+    }}>Devolver Jornada</Button></>}>
+      <p className="mgh-body" style={{ margin: 0 }}>El empleado recibirá una notificación para ajustar sus horas o actividades de jornada y reenviar para revisión.</p>
       <textarea value={reason} onChange={x => setReason(x.target.value)} placeholder="Motivo de devolución (requerido): qué debe corregir el colaborador." rows={4} style={{ border: 'none', outline: 'none', borderRadius: 8, padding: 12, background: 'var(--mgh-surface-1)', font: '400 13px/18px var(--font-sans)', resize: 'vertical' }} />
     </Modal>
 
@@ -939,11 +1001,14 @@ function TeamApprovalQueue({ go, notify }) {
       const punchReg = Math.max(0, punchHours - punchOt);
       const reg = ts ? Number(ts.reg) : punchReg;
       const ot = ts ? Number(ts.ot) : punchOt;
-      const pto = ts ? Number(ts.pto) : 0.0;
-      const total = ts ? Number(ts.total) : (reg + ot + pto);
-      const status = ts ? ts.status : (emp.status || 'Draft');
+      const pto = ts ? Number(ts.pto) || 0 : 0.0;
+      // Paid holidays are paid at the regular rate, like PTO (backend payroll engine: (pto + holiday) × rate)
+      const hol = ts ? Number(ts.hol) || 0 : 0.0;
+      const total = ts ? Number(ts.total) : (reg + ot + pto + hol);
+      // No sheet → Draft. The employee profile status ('Active', 'Ready'…) is not a timesheet status.
+      const status = ts ? ts.status : 'Draft';
       const rate = Number(emp.rate) || 0;
-      const gross = +(reg * rate + ot * rate * 1.5 + pto * rate).toFixed(2);
+      const gross = +(reg * rate + ot * rate * 1.5 + (pto + hol) * rate).toFixed(2);
       const match = hasMatch(emp) ? emp.match : null;
       const rec = WF ? WF.get(emp.id, periodCode) || { emp: emp.id, status, stepIdx: -1 } : { emp: emp.id, status, stepIdx: -1 };
 
@@ -952,6 +1017,7 @@ function TeamApprovalQueue({ go, notify }) {
         reg,
         ot,
         pto,
+        hol,
         total,
         gross,
         status,
@@ -962,7 +1028,7 @@ function TeamApprovalQueue({ go, notify }) {
     });
   }, [backendTimesheets, backendPunches, periodCode]);
 
-  const isPend = s => /Review|Submitted|Supervisión|Aprobación/.test(s);
+  const isPend = inReview;
   const [chip, setChip] = React.useState('all');
   const [dept, setDept] = React.useState('All departments');
 
@@ -1086,7 +1152,7 @@ function Dashboard({ go }) {
   const E = EMPLOYEES.filter(e => R.can('dashboard.executive.view', e));
   const gross = E.reduce((s, e) => s + (e.gross || 0), 0), gk = gross / 1000;
   const pend = E.filter(e => WF && WF.canAct(recOf(e.id))).length;
-  const inReview = E.filter(e => /Review|Submitted/.test(liveStatus(e))).length;
+  const inReviewCount = E.filter(e => e.hasTimesheet && inReview(liveStatus(e))).length;
   const alerts = E.filter(e => lowMatch(e) || e.ot > 8).length;
   const measured = E.filter(hasMatch);
   const util = measured.length ? measured.reduce((s, e) => s + e.match, 0) / measured.length : null;
@@ -1100,7 +1166,7 @@ function Dashboard({ go }) {
   const [runs, setRuns] = React.useState([]);
   React.useEffect(() => {
     let cancel = false;
-    if (window.api && window.api.payrollRuns) window.api.payrollRuns().then(r => { if (!cancel && Array.isArray(r)) setRuns(r); }).catch(() => {});
+    if (window.api && window.api.payrollRuns && canPayrollRuns()) window.api.payrollRuns().then(r => { if (!cancel && Array.isArray(r)) setRuns(r); }).catch(() => {});
     return () => { cancel = true; };
   }, []);
   const byPeriod = {}; runs.forEach(r => { byPeriod[r.period_id] = (byPeriod[r.period_id] || 0) + (Number(r.total_gross) || 0); });
@@ -1120,7 +1186,7 @@ function Dashboard({ go }) {
   const greet = hr < 12 ? 'Buenos días' : hr < 19 ? 'Buenas tardes' : 'Buenas noches';
   const PERIOD_STATUS_ES = { Draft: 'Borrador', Open: 'Abierto', Processing: 'En procesamiento', Approved: 'Aprobado', Paid: 'Pagado', Closed: 'Cerrado', Archived: 'Archivado' };
   const periodStatus = storedPeriod && storedPeriod.status ? (PERIOD_STATUS_ES[storedPeriod.status] || storedPeriod.status) : null;
-  const reviewMeta = (periodStatus ? 'Estado del período: ' + periodStatus : 'Estado del período no disponible') + ' • ' + inReview + ' en revisión';
+  const reviewMeta = (periodStatus ? 'Estado del período: ' + periodStatus : 'Estado del período no disponible') + ' • ' + inReviewCount + ' en revisión';
   return <Page>
     <PageHeader breadcrumbs={['Overview']} title={greet + (first ? ', ' + first : '')} description={periodDesc} actions={<><Button variant="secondary" icon="calendar_month" onClick={() => (window.__mghGo ? window.__mghGo('periods') : go('periods'))}>{curPeriod.rangeShort}</Button>{R.canRoute('approvals') && <Button icon="assignment_turned_in" onClick={() => go('approvals')}>{pend ? 'Review ' + pend + ' Approval' + (pend === 1 ? '' : 's') : 'Open Approvals'}</Button>}</>} />
     <Grid min={220}>
@@ -1299,8 +1365,8 @@ function EmployeeProfileInner({ empId, go, notify }) {
         return;
       }
       Object.assign(e, payload, payload.rate != null ? { rate: Number(payload.rate) || e.rate } : {});
-      e.total = e.reg + e.ot + e.pto;
-      e.gross = +(e.reg * e.rate + e.ot * e.rate * 1.5 + e.pto * e.rate).toFixed(2);
+      e.total = e.reg + e.ot + e.pto + (Number(e.hol) || 0);
+      e.gross = +(e.reg * e.rate + e.ot * e.rate * 1.5 + (e.pto + (Number(e.hol) || 0)) * e.rate).toFixed(2);
       const allMatch = (window.ALL_EMP || []).find(x => x.id === e.id);
       if (allMatch) Object.assign(allMatch, payload, payload.rate != null ? { rate: Number(payload.rate) || e.rate } : {});
       notify(`Employee ${e.name} updated successfully`);
@@ -1480,7 +1546,7 @@ function PayrollDashboard({ go }) {
   const [openEx, setOpenEx] = React.useState(null);
   React.useEffect(() => {
     let cancel = false;
-    if (window.api && window.api.payrollRuns) window.api.payrollRuns().then(r => { if (!cancel && Array.isArray(r)) setRuns(r); }).catch(() => {});
+    if (window.api && window.api.payrollRuns && canPayrollRuns()) window.api.payrollRuns().then(r => { if (!cancel && Array.isArray(r)) setRuns(r); }).catch(() => {});
     if (window.api && window.api.exceptions) window.api.exceptions().then(r => { if (!cancel && Array.isArray(r)) setOpenEx(r.filter(x => !/resolved|closed/i.test(x.status || '')).length); }).catch(() => {});
     return () => { cancel = true; };
   }, []);
@@ -1496,7 +1562,7 @@ function PayrollDashboard({ go }) {
   const upcomingRows = [curPeriod, nextP, nextP2].map(p => ({ id: p.code, range: p.rangeShort, pay: p.payDate }));
   const empty = txt => <div className="mgh-body" style={{ padding: '40px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>{txt}</div>;
   return <Page>
-    <PageHeader breadcrumbs={['Payroll & Finance', 'Overview']} title="Payroll Dashboard" status={<Badge tone="neutral" dot>{`Cycle ${curPeriod.code} • closes in ${curPeriod.daysRemaining}d`}</Badge>} actions={<><Button variant="secondary" icon="calendar_month" onClick={() => window.__mghGo ? window.__mghGo('periods') : go('periods')}>Pay calendar</Button><Button icon="play_arrow" onClick={() => go('processing')}>Start Payroll Run</Button></>} />
+    <PageHeader breadcrumbs={['Payroll & Finance', 'Overview']} title="Payroll Dashboard" status={<Badge tone="neutral" dot>{`Cycle ${curPeriod.code} • closes in ${curPeriod.daysRemaining}d`}</Badge>} actions={<><Button variant="secondary" icon="calendar_month" onClick={() => window.__mghGo ? window.__mghGo('periods') : go('periods')}>Pay calendar</Button>{MGH_RBAC.can('payroll.process') && <Button icon="play_arrow" onClick={() => go('processing')}>Start Payroll Run</Button>}</>} />
     <Grid min={220}>
       <StatCard label="Estimated gross" value={fmt$(gross)} unit="USD" icon="payments" footer={withHours + ' of ' + E.length + ' with timesheet hours'} />
       <StatCard label="Estimated deductions" value={fmt$(ded)} unit="USD" icon="account_balance_wallet" tone="accent" footer="Employee withholdings" />
@@ -1528,7 +1594,7 @@ function PayrollProcessing({ notify }) {
   React.useEffect(() => {
     let cancel = false;
     Promise.all([
-      window.api.payrollRuns().catch(() => []),
+      canPayrollRuns() ? window.api.payrollRuns().catch(() => []) : Promise.resolve([]),
       window.api.timesheets({ periodId: periodCode }).catch(() => []),
     ]).then(([runs, ts]) => {
       if (cancel) return;
@@ -1604,10 +1670,10 @@ function PayrollProcessing({ notify }) {
           <span style={{ flex: 1 }} />
           {!runLocked && <Button size="sm" variant="secondary" icon="calculate" disabled={busy || !approvedSheets.length} onClick={calculateRun}>{run ? 'Recalcular' : 'Calcular corrida'}</Button>}
           {run && /^(Calculated|PM_Approved)$/.test(run.status) && <Button size="sm" icon="verified" disabled={busy} onClick={approveRun}>Aprobar corrida</Button>}
-          {run && run.status === 'Approved' && <Button size="sm" icon="paid" disabled={busy} onClick={markPaid}>Marcar pagada</Button>}
+          {run && run.status === 'Approved' && isAdminUser() && <Button size="sm" icon="paid" disabled={busy} onClick={markPaid}>Marcar pagada</Button>}
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {[['nacha', 'NACHA (.ach)'], ['bhd', 'Banco BHD (.txt)'], ['usdc', 'USDC Base (.json)']].map(([k, l]) => <Button key={k} size="sm" variant="outline" icon="download" disabled={!runLocked} onClick={() => window.open(`/api/payroll/export/${k}?periodId=${periodCode}&download=true`, '_blank')}>{l}</Button>)}
+          {canPayoutFiles() && [['nacha', 'NACHA (.ach)', 'ach'], ['bhd', 'Banco BHD (.txt)', 'txt'], ['usdc', 'USDC Base (.json)', 'json']].map(([k, l, ext]) => <Button key={k} size="sm" variant="outline" icon="download" disabled={!runLocked} onClick={() => downloadApi(`/payroll/export/${k}?periodId=${encodeURIComponent(periodCode)}&download=true`, `${k}-${periodCode}.${ext}`, notify)}>{l}</Button>)}
           {!runLocked && <span style={{ font: '500 12px var(--font-sans)', color: 'var(--mgh-ink-3)', alignSelf: 'center' }}>Los archivos se habilitan al aprobar la corrida.</span>}
         </div>
         <div style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{approvedSheets.length} hojas aprobadas para pago{pendingSheets.length ? ` • ${pendingSheets.length} todavía en revisión (no se pagan en esta corrida)` : ''}</div>
@@ -1639,7 +1705,7 @@ function PayrollProcessing({ notify }) {
                 
                 
                 <div style={{ marginTop: 12 }}>
-                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => window.open(`/api/payroll/export/bhd?periodId=${curPeriod.code}&download=true`, '_blank')}>Download BHD File</Button>
+                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => downloadApi(`/payroll/export/bhd?periodId=${encodeURIComponent(curPeriod.code)}&download=true`, `bhd-${curPeriod.code}.txt`, notify)}>Download BHD File</Button>
                 </div>
               </div>
               <div style={{ padding: 16, borderRadius: 10, border: '1px solid var(--mgh-surface-2)', background: 'var(--mgh-surface-1)' }}>
@@ -1647,7 +1713,7 @@ function PayrollProcessing({ notify }) {
                 
                 
                 <div style={{ marginTop: 12 }}>
-                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => window.open(`/api/payroll/export/nacha?periodId=${curPeriod.code}&download=true`, '_blank')}>Download NACHA (.ach)</Button>
+                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => downloadApi(`/payroll/export/nacha?periodId=${encodeURIComponent(curPeriod.code)}&download=true`, `nacha-${curPeriod.code}.ach`, notify)}>Download NACHA (.ach)</Button>
                 </div>
               </div>
               <div style={{ padding: 16, borderRadius: 10, border: '1px solid var(--mgh-surface-2)', background: 'var(--mgh-surface-1)' }}>
@@ -1655,7 +1721,7 @@ function PayrollProcessing({ notify }) {
                 
                 
                 <div style={{ marginTop: 12 }}>
-                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => window.open(`/api/payroll/export/usdc?periodId=${curPeriod.code}&download=true`, '_blank')}>Download USDC Batch</Button>
+                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => downloadApi(`/payroll/export/usdc?periodId=${encodeURIComponent(curPeriod.code)}&download=true`, `usdc-${curPeriod.code}.json`, notify)}>Download USDC Batch</Button>
                 </div>
               </div>
             </div>
@@ -1701,15 +1767,15 @@ function PayrollProcessing({ notify }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--mgh-surface-1)', borderRadius: 8 }}>
             <span>NACHA FedWire ACH (US)</span>
-            <Button size="sm" variant="secondary" icon="download" onClick={() => window.open(`/api/payroll/export/nacha?periodId=${curPeriod.code}&download=true`, '_blank')}>Download .ach</Button>
+            <Button size="sm" variant="secondary" icon="download" onClick={() => downloadApi(`/payroll/export/nacha?periodId=${encodeURIComponent(curPeriod.code)}&download=true`, `nacha-${curPeriod.code}.ach`, notify)}>Download .ach</Button>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--mgh-surface-1)', borderRadius: 8 }}>
             <span>Banco BHD León Format (DR)</span>
-            <Button size="sm" variant="secondary" icon="download" onClick={() => window.open(`/api/payroll/export/bhd?periodId=${curPeriod.code}&download=true`, '_blank')}>Download .txt</Button>
+            <Button size="sm" variant="secondary" icon="download" onClick={() => downloadApi(`/payroll/export/bhd?periodId=${encodeURIComponent(curPeriod.code)}&download=true`, `bhd-${curPeriod.code}.txt`, notify)}>Download .txt</Button>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--mgh-surface-1)', borderRadius: 8 }}>
             <span>Crypto USDC Batch (Base)</span>
-            <Button size="sm" variant="secondary" icon="download" onClick={() => window.open(`/api/payroll/export/usdc?periodId=${curPeriod.code}&download=true`, '_blank')}>Download .json</Button>
+            <Button size="sm" variant="secondary" icon="download" onClick={() => downloadApi(`/payroll/export/usdc?periodId=${encodeURIComponent(curPeriod.code)}&download=true`, `usdc-${curPeriod.code}.json`, notify)}>Download .json</Button>
           </div>
         </div>
       </div>
@@ -1752,9 +1818,9 @@ function PayStubPreview({ notify, empId }) {
   const COLORS = ['var(--mgh-primary)', 'var(--mgh-navy)', 'var(--mgh-accent)'];
 
   const handleDownloadPdf = () => {
-    const w = window.open(`/api/payroll/paystub/${s.employeeId}/${s.periodId}/html`, '_blank');
-    if (w) notify(`Opening official statement for ${s.employeeName} (${s.periodId})`);
-    else window.print();
+    // Authenticated fetch (window.open on /api would carry no token → 401), shown through a Blob URL
+    openApiHtml(`/payroll/paystub/${encodeURIComponent(s.employeeId)}/${encodeURIComponent(s.periodId)}/html`, notify)
+      .then(w => { if (w) notify(`Opening official statement for ${s.employeeName} (${s.periodId})`); });
   };
 
   return <Page>
@@ -4150,7 +4216,7 @@ function buildReport(id, E, per) {
   if (id === 'summary') { const G = grp('dept', e => e.dept || '—'); return { cols: [['Department'], ['Employees', 'num'], ['Hours', 'num'], ['Gross', 'num'], ['Deductions', 'num'], ['Net', 'num']], rows: G.map(g => [g.k, String(g.list.length), n1(sum(g.list, e => e.total)), m2(sum(g.list, e => e.gross)), m2(sum(g.list, ded)), m2(sum(g.list, e => e.gross - ded(e)))]), total: ['Total', String(E.length), n1(sum(E, e => e.total)), m2(sum(E, e => e.gross)), m2(sum(E, ded)), m2(sum(E, e => e.gross - ded(e)))] }; }
   if (id === 'labor') { const G = grp('project', e => e.project || '—'); return { cols: [['Project'], ['People', 'num'], ['Hours', 'num'], ['Labor cost', 'num'], ['Jira match', 'num']], rows: G.map(g => [g.k, String(g.list.length), n1(sum(g.list, e => e.total)), m2(sum(g.list, e => e.gross)), (g.list.some(hasMatch) ? n1(sum(g.list.filter(hasMatch), e => e.match) / g.list.filter(hasMatch).length) + '%' : '—')]), total: ['Total', String(E.length), n1(sum(E, e => e.total)), m2(sum(E, e => e.gross)), ''] }; }
   if (id === 'pto') { const yr = String(new Date().getFullYear()), holN = e => window.MGH_ATT ? window.MGH_ATT.holidays(e.entity).filter(h => String(h.date).startsWith(yr)).length : 0; return { cols: [['ID', 'mono'], ['Employee'], ['Department'], ['PTO used (h)', 'num'], ['Holidays (' + yr + ')', 'num']], rows: E.map(e => [e.id, e.name, e.dept, n1(e.pto), String(holN(e))]), total: ['', 'Total', '', n1(sum(E, e => e.pto)), ''] }; }
-  if (id === 'org') { const G = E.length ? [{ k: COMPANY, list: E }] : []; return { cols: [['Organization'], ['Employees', 'num'], ['Hours', 'num'], ['Overtime', 'num'], ['Labor cost', 'num'], ['Pending timesheets', 'num']], rows: G.map(g => [g.k, String(g.list.length), n1(sum(g.list, e => e.total)), n1(sum(g.list, e => e.ot)), m2(sum(g.list, e => e.gross)), String(g.list.filter(e => /Review|Submitted/.test(liveStatus(e))).length)]), total: ['Total', String(E.length), n1(sum(E, e => e.total)), n1(sum(E, e => e.ot)), m2(sum(E, e => e.gross)), String(E.filter(e => /Review|Submitted/.test(liveStatus(e))).length)] }; }
+  if (id === 'org') { const G = E.length ? [{ k: COMPANY, list: E }] : []; return { cols: [['Organization'], ['Employees', 'num'], ['Hours', 'num'], ['Overtime', 'num'], ['Labor cost', 'num'], ['Pending timesheets', 'num']], rows: G.map(g => [g.k, String(g.list.length), n1(sum(g.list, e => e.total)), n1(sum(g.list, e => e.ot)), m2(sum(g.list, e => e.gross)), String(g.list.filter(e => inReview(liveStatus(e))).length)]), total: ['Total', String(E.length), n1(sum(E, e => e.total)), n1(sum(E, e => e.ot)), m2(sum(E, e => e.gross)), String(E.filter(e => inReview(liveStatus(e))).length)] }; }
   return { cols: [], rows: [] };
 }
 function exportReport(kind, title, sub, rep) {
@@ -4192,7 +4258,7 @@ function Reports({ notify }) {
   const sub = f.period + ' • ' + COMPANY + (active ? ' • ' + active + ' filter(s)' : '') + ' • USD';
   const hist = WF ? WF.all().flatMap(r => { const s = r.history.find(h => h.to === 'Submitted'), a2 = r.history.find(h => h.to === 'Approved'); return s && a2 ? [(new Date(a2.at) - new Date(s.at)) / 864e5] : []; }) : [];
   const avg = hist.length ? hist.reduce((s, x) => s + x, 0) / hist.length : null;
-  const pendingTs = E.filter(e => /Review|Submitted/.test(liveStatus(e))).length, approvedNotPaid = E.filter(e => liveStatus(e) === 'Approved');
+  const pendingTs = E.filter(e => inReview(liveStatus(e))).length, approvedNotPaid = E.filter(e => liveStatus(e) === 'Approved');
   const ex = kind => notify(exportReport(kind, meta.label, sub, R));
   const fsel = (k, label, list, icon) => <Select size="sm" icon={icon} value={f[k]} onChange={set(k)} options={opts(list).map(v => ({ value: v, label: v === ALL ? 'All ' + label : v }))} />;
   const num = x => Number(x) || 0;
@@ -5200,14 +5266,14 @@ function Operations({ go, notify }) {
   }, []);
   const E = EMPLOYEES.filter(e => R.canAny(['timesheets.view', 'timesheets.approve', 'payroll.generate'], e));
   const recs = W ? W.all().filter(r => E.some(e => e.id === r.emp)) : [];
-  const inReview = recs.filter(r => /Review|Submitted/.test(r.status)), toPay = recs.filter(r => r.status === 'Approved'), returned = recs.filter(r => r.status === 'Returned');
+  const inReviewRecs = recs.filter(r => inReview(r.status)), toPay = recs.filter(r => r.status === 'Approved'), returned = recs.filter(r => r.status === 'Returned');
   const age = r => { const h = r.history.slice(-1)[0]; return h ? (Date.now() - new Date(h.at)) / 36e5 : 0; };
-  const stale = inReview.filter(r => age(r) > 48);
+  const stale = inReviewRecs.filter(r => age(r) > 48);
   const y = A.addD(A.TODAY, -1), ex = A.exceptions(y, A.TODAY).filter(x => E.some(e => e.id === x.emp) && !['Approved', 'Corrected', 'Closed'].includes(x.status));
   const missOut = ex.filter(x => x.type === 'missing_out'), today = A.summary(A.TODAY, e => E.some(x => x.id === e.id));
   const noSup = E.filter(e => !e.mgr || e.mgr === '—'), leavePend = A.leave().filter(l => /Pending/.test(l.status) && E.some(e => e.id === l.emp));
   const kp = [
-    ['Timesheets in review', inReview.length, 'pending_actions', 'warning', 'queue'], ['Ready for payroll', toPay.length, 'payments', 'primary', 'approvals'],
+    ['Timesheets in review', inReviewRecs.length, 'pending_actions', 'warning', 'queue'], ['Ready for payroll', toPay.length, 'payments', 'primary', 'approvals'],
     ['Attendance exceptions', ex.length, 'report', ex.length ? 'danger' : 'success', 'attExceptions'], ['Missing clock-out', missOut.length, 'timer_off', missOut.length ? 'danger' : 'success', 'attExceptions'],
     ['Blocked approvals', stale.length + returned.length, 'block', stale.length + returned.length ? 'danger' : 'success', 'queue'], ['Attendance today', today.pct == null ? '—' : today.pct + '%', 'how_to_reg', today.pct == null ? 'neutral' : today.pct >= 90 ? 'success' : 'warning', 'attendance']];
   const alerts = [
