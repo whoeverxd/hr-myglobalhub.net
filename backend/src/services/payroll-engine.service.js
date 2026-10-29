@@ -2,6 +2,7 @@ const db = require('../db');
 const { round2 } = require('../utils/money');
 const { calculateTaxDeductions, DEFAULT_CONFIG } = require('./tax-rules.service');
 const { logAction } = require('../controllers/audit.controller');
+const { SEALED } = require('../payroll');
 
 const NO_ACCOUNT_LABEL = 'Sin cuenta registrada';
 
@@ -179,8 +180,18 @@ function calculatePeriodPayroll({
   const sheets = {};
   db.query(`SELECT * FROM timesheets WHERE period_id = ?`, [periodId]).forEach((t) => { sheets[t.employee_id] = t; });
 
-  // Only approved adjustments are paid
-  const adjustments = db.query(`SELECT * FROM payroll_adjustments`).filter((a) => /^approved/i.test(String(a.status || '')));
+  // Only approved, not yet paid adjustments of THIS period are paid, each to its own employee (by id, never by name).
+  // Legacy rows without employee/period are not paid automatically: they are reported in adjustmentsNotApplied.
+  const adjustments = [];
+  const adjustmentsNotApplied = [];
+  for (const a of db.query(`SELECT * FROM payroll_adjustments`)) {
+    if (!/^approved/i.test(String(a.status || '')) || a.paid_run_id) continue;
+    if (!a.employee_id || !a.period_id) {
+      adjustmentsNotApplied.push({ id: a.id, name: a.name, amt: Number(a.amt) || 0, reason: 'No employee/period: legacy adjustment, re-create it for an employee and period' });
+    } else if (a.period_id === periodId) {
+      adjustments.push(a);
+    }
+  }
 
   const items = [];
   const notIncluded = [];
@@ -191,11 +202,14 @@ function calculatePeriodPayroll({
 
   for (const emp of employees) {
     const ts = sheets[emp.id];
+    const empAdjs = adjustments.filter((a) => a.employee_id === emp.id);
     if (!ts || !['Approved', 'Paid'].includes(ts.status)) {
       notIncluded.push({ employeeId: emp.id, name: emp.name, status: ts ? ts.status : 'No timesheet' });
+      for (const a of empAdjs) {
+        adjustmentsNotApplied.push({ id: a.id, name: a.name, amt: Number(a.amt) || 0, employeeId: emp.id, reason: 'Timesheet not approved' });
+      }
       continue;
     }
-    const empAdjs = adjustments.filter((a) => a.id === emp.id || a.name === emp.name);
 
     const calc = calculateEmployeePeriodPayroll(emp, {
       regHours: Number(ts.regular_hours) || 0,
@@ -234,6 +248,8 @@ function calculatePeriodPayroll({
     items,
     // employees left out because their timesheet is not approved yet (shown to the owner before approving)
     notIncluded,
+    // approved adjustments this run does not pay (legacy rows without employee/period, or sheet not approved)
+    adjustmentsNotApplied,
   };
 
   if (saveAsRun) {
@@ -387,13 +403,8 @@ function approvePayrollRun(runId, user = 'System', ip = '127.0.0.1') {
       [user, user, runId]
     );
 
-    // Update period status to Approved
-    db.execute(
-      `UPDATE pay_periods
-       SET status = 'Approved', is_locked = 1, updated_at = datetime('now')
-       WHERE id = ?`,
-      [run.period_id]
-    );
+    // Update period status to Approved (a sealed Closed/Archived period keeps its status)
+    lockPeriod(run.period_id, 'Approved');
 
     logAction({
       actor: user,
@@ -409,6 +420,22 @@ function approvePayrollRun(runId, user = 'System', ip = '127.0.0.1') {
   return { id: runId, status: 'Approved', approvedBy: user, ownerApprovedBy: user };
 }
 
+// Moves the period forward and locks it, but never downgrades a sealed (Closed / Archived) period
+function lockPeriod(periodId, status) {
+  const period = db.getOne(`SELECT status FROM pay_periods WHERE id = ?`, [periodId]);
+  if (period && SEALED.includes(period.status)) return;
+  db.execute(`UPDATE pay_periods SET status = ?, is_locked = 1, updated_at = datetime('now') WHERE id = ?`, [status, periodId]);
+}
+
+// Ids of the adjustments stored on the run's lines
+function paidAdjustmentIds(runId) {
+  const ids = new Set();
+  for (const i of db.query(`SELECT adjustments_json FROM payroll_run_items WHERE run_id = ?`, [runId])) {
+    try { JSON.parse(i.adjustments_json || '[]').forEach((a) => a && a.id && ids.add(a.id)); } catch (_) {}
+  }
+  return [...ids];
+}
+
 /**
  * Owner confirms the money left the bank: run → Paid, its timesheets → Paid, period → Paid.
  * Only an approved run can be paid; paid runs and sheets are final.
@@ -420,8 +447,12 @@ function markPayrollRunPaid(runId, user = 'System', ip = '127.0.0.1') {
   let sheets = 0;
   db.transaction(() => {
     db.execute(`UPDATE payroll_runs SET status = 'Paid', paid_at = datetime('now'), paid_by = ?, updated_at = datetime('now') WHERE id = ?`, [user, runId]);
-    db.execute(`UPDATE pay_periods SET status = 'Paid', is_locked = 1, updated_at = datetime('now') WHERE id = ?`, [run.period_id]);
+    lockPeriod(run.period_id, 'Paid');
     sheets = timesheetsController.markPeriodPaid(run.period_id, empIds, user, runId);
+    // The adjustments this run paid are consumed: no later run pays them again
+    for (const adjId of paidAdjustmentIds(runId)) {
+      db.execute(`UPDATE payroll_adjustments SET paid_run_id = ?, updated_at = datetime('now') WHERE id = ?`, [runId, adjId]);
+    }
     logAction({ actor: user, action: 'PAYROLL_RUN_PAID', entityType: 'payroll_run', entityId: runId, oldValues: { status: run.status }, newValues: { status: 'Paid', employees: empIds.length, timesheets: sheets }, ip });
   });
   return { id: runId, status: 'Paid', paidBy: user, employees: empIds.length, timesheetsPaid: sheets };

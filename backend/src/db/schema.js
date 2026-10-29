@@ -603,6 +603,11 @@ function initSchema() {
   try { exec(`ALTER TABLE payroll_runs ADD COLUMN paid_by TEXT;`); } catch (_) {}
   // 1 = the password was set by an administrator; the user must replace it on next sign-in
   try { exec(`ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0;`); } catch (_) {}
+  // An adjustment belongs to one employee and one period; paid_run_id = the run that paid it (never paid twice)
+  try { exec(`ALTER TABLE payroll_adjustments ADD COLUMN employee_id TEXT;`); } catch (_) {}
+  try { exec(`ALTER TABLE payroll_adjustments ADD COLUMN period_id TEXT;`); } catch (_) {}
+  try { exec(`ALTER TABLE payroll_adjustments ADD COLUMN paid_run_id TEXT;`); } catch (_) {}
+  try { exec(`CREATE INDEX IF NOT EXISTS idx_adjustments_emp_period ON payroll_adjustments (employee_id, period_id);`); } catch (_) {}
 }
 
 module.exports = { initSchema };

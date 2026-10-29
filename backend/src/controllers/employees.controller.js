@@ -484,7 +484,7 @@ function employeeRemovalPreview(employeeId, actor) {
   const sheets = by('timesheets');
   const contractorRows = by('contractors');
   const contractorPays = contractorRows.flatMap((c) => db.query('SELECT * FROM contractor_payments WHERE contractor_id = ?', [c.id]));
-  const adjustments = db.query('SELECT * FROM payroll_adjustments WHERE id = ?', [emp.id]);
+  const adjustments = db.query('SELECT * FROM payroll_adjustments WHERE employee_id = ?', [emp.id]);
   const blockers = [];
   const paidSheets = sheets.filter((t) => ['Approved', 'Paid'].includes(t.status));
   if (paidSheets.length) blockers.push(`${paidSheets.length} approved/paid timesheet(s)`);
@@ -528,7 +528,7 @@ function deleteEmployee(employeeId, actor, ip = '127.0.0.1') {
     }
     db.execute('DELETE FROM project_members WHERE user_id = ?', [emp.id]);
     db.execute(`UPDATE project_tasks SET assignee_id = NULL, assignee_name = NULL, assignee_avatar = NULL WHERE assignee_id = ?`, [emp.id]);
-    db.execute('DELETE FROM payroll_adjustments WHERE id = ?', [emp.id]);
+    db.execute('DELETE FROM payroll_adjustments WHERE employee_id = ?', [emp.id]);
     for (const c of db.query('SELECT id FROM contractors WHERE employee_id = ?', [emp.id])) {
       db.execute('DELETE FROM contractor_payments WHERE contractor_id = ?', [c.id]);
       db.execute('DELETE FROM contractors WHERE id = ?', [c.id]);
