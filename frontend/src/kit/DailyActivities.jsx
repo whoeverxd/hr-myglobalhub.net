@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { getQuincenaForDate } from '../lib/periodService.js';
+import { EDITABLE, statusLabel } from './MyTimesheets.jsx';
 
 export const WORK_TYPES = [
   { value: 'Desarrollo', label: 'Desarrollo / Implementación', tone: 'info', icon: 'code' },
@@ -61,6 +63,32 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
       .finally(() => { if (!cancel) setLoadingActivities(false); });
     return () => { cancel = true; };
   }, [activeEmpId, activeDate]);
+
+  // Same rule as the backend (routes.js activityWriteError) and MyTimeView: activities are written only by their owner
+  // (admin may correct) and only while that quincena's sheet is Draft/Returned. Unknown status = locked.
+  const isAdmin = !!rbac && rbac.role === 'Platform Admin';
+  const ownRecord = !!activeEmpId && (activeEmpId === myEmpId || isAdmin);
+  const periodCode = useMemo(() => getQuincenaForDate(activeDate).code, [activeDate]);
+  const [sheetStatus, setSheetStatus] = useState(null);
+  const [sheetErr, setSheetErr] = useState(false);
+  useEffect(() => {
+    let cancel = false;
+    setSheetStatus(null); setSheetErr(false);
+    if (!activeEmpId || !window.api || !window.api.timesheets) return;
+    window.api.timesheets({ empId: activeEmpId, periodId: periodCode })
+      // No sheet yet for this quincena = it will be created as Draft on first save
+      .then(list => { if (!cancel) setSheetStatus((Array.isArray(list) && list[0] && list[0].status) || 'Draft'); })
+      .catch(() => { if (!cancel) { setSheetStatus(null); setSheetErr(true); } });
+    return () => { cancel = true; };
+  }, [activeEmpId, periodCode]);
+  const canWrite = ownRecord && sheetStatus != null && EDITABLE.includes(sheetStatus);
+  const lockReason = !activeEmpId ? 'Tu usuario no está vinculado a un empleado.'
+    : !ownRecord ? 'Estás viendo las actividades de otra persona (solo lectura).'
+    : sheetStatus == null ? (sheetErr ? 'No se pudo consultar el estado de la hoja de esta quincena; la edición queda bloqueada.' : 'Consultando el estado de la hoja…')
+    : !EDITABLE.includes(sheetStatus) ? `La hoja ${periodCode} está "${statusLabel(sheetStatus)}": ya no se puede editar.`
+    : '';
+  // Meeting copies keep meeting_id / logged_by; editing (delete + create) would drop them, so they can only be deleted
+  const isMeetingCopy = act => !!(act && (act.meetingId || act.loggedBy));
 
   // Filtrar actividades por fecha y empleado activo
   const dayActivities = useMemo(() => {
@@ -276,6 +304,7 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
 
   // Abrir Drawer para crear o editar
   const openNewActivity = () => {
+    if (!canWrite) { if (notify) notify(lockReason); return; }
     setEditingActivity(null);
     setSelectedJira(null);
     setJiraSearch('');
@@ -289,6 +318,8 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
   };
 
   const openEditActivity = (act) => {
+    if (!canWrite) { if (notify) notify(lockReason); return; }
+    if (isMeetingCopy(act)) { if (notify) notify('Las actividades de una reunión no se editan: elimínala y regístrala de nuevo si hace falta.'); return; }
     setEditingActivity(act);
     setSelectedJira({ key: act.jiraKey, summary: act.jiraSummary });
     setJiraSearch(act.jiraKey);
@@ -304,6 +335,7 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
   // Guardar actividad
   const handleSaveActivity = async (e) => {
     e.preventDefault();
+    if (!canWrite) { if (notify) notify(lockReason); return; }
     if (!activeEmpId || !window.api) {
       if (notify) notify('Tu usuario no tiene un empleado asociado; no se puede registrar la actividad');
       return;
@@ -355,6 +387,7 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
 
   // Eliminar actividad
   const handleDeleteActivity = async (id, key) => {
+    if (!canWrite) { if (notify) notify(lockReason); return; }
     if (!window.confirm(`¿Eliminar la actividad ${key}? Se recalcularán las horas del día.`)) return;
     try {
       await window.api.deleteActivity(id);
@@ -414,7 +447,7 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
               <Icon name="schedule" size={16} /> Ver en registro por horas
             </span>
           </Button>
-          <Button size="sm" variant="primary" onClick={openNewActivity}>
+          <Button size="sm" variant="primary" onClick={openNewActivity} disabled={!canWrite} title={lockReason || undefined}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Icon name="add_task" size={16} /> Registrar Actividad
             </span>
@@ -497,10 +530,15 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
             </span>
             <Badge size="sm" tone="neutral">{dayActivities.length} registradas</Badge>
           </div>
-          <Button size="sm" variant="primary" onClick={openNewActivity}>
+          <Button size="sm" variant="primary" onClick={openNewActivity} disabled={!canWrite} title={lockReason || undefined}>
             + Nueva Actividad
           </Button>
         </div>
+        {lockReason ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '8px 12px', borderRadius: 8, background: 'var(--mgh-surface-1)', font: '500 12px/16px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>
+            <Icon name="lock" size={16} /> {lockReason}
+          </div>
+        ) : null}
 
         {dayActivities.length === 0 ? (
           <div style={{
@@ -531,11 +569,13 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
             <div style={{ font: '400 13px/18px var(--font-sans)', color: 'var(--mgh-ink-3)', maxWidth: 440 }}>
               Registra los tickets de Jira, tiempo dedicado y evidencias en las que trabajaste hoy para completar tu jornada.
             </div>
-            <Button size="sm" variant="primary" onClick={openNewActivity}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Icon name="add" size={16} /> Registrar primera actividad
-              </span>
-            </Button>
+            {canWrite ? (
+              <Button size="sm" variant="primary" onClick={openNewActivity}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Icon name="add" size={16} /> Registrar primera actividad
+                </span>
+              </Button>
+            ) : null}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -582,8 +622,14 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
                     }}>
                       {Number(act.hours).toFixed(1)}h
                     </div>
-                    <IconButton icon="edit" title="Editar actividad" onClick={() => openEditActivity(act)} />
-                    <IconButton icon="delete" title="Eliminar actividad" onClick={() => handleDeleteActivity(act.id, act.jiraKey)} />
+                    {canWrite && (isMeetingCopy(act) ? (
+                      <span title="Actividad de una reunión: no se puede editar (se perdería el vínculo con la reunión). Solo puedes eliminarla." style={{ display: 'inline-flex', width: 36, height: 36, alignItems: 'center', justifyContent: 'center', color: 'var(--mgh-ink-3)', cursor: 'not-allowed' }}>
+                        <Icon name="edit_off" size={18} />
+                      </span>
+                    ) : (
+                      <IconButton icon="edit" title="Editar actividad" onClick={() => openEditActivity(act)} />
+                    ))}
+                    {canWrite && <IconButton icon="delete" title="Eliminar actividad" onClick={() => handleDeleteActivity(act.id, act.jiraKey)} />}
                   </div>
                 </div>
 

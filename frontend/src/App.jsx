@@ -41,6 +41,7 @@ export default class App extends React.Component {
       tax: 'DGII Taxable ISR',
       taxTone: 'info',
       target: '',
+      periodId: '',
       status: 'Pending Approval'
     },
     apiOnline: null,
@@ -53,6 +54,8 @@ export default class App extends React.Component {
   scroller=React.createRef();
   async componentDidMount(){
     window.api = api;
+    // #workflows changes are saved to the backend org config (PATCH /organizations/:id), never only in the browser
+    if (window.MGH_WF && window.MGH_WF.setRemoteSaver) window.MGH_WF.setRemoteSaver((id, patch) => api.updateOrgConfig(id, patch));
     window.__mghLogout = this.handleLogout;
     window.__mghNavigate = this.go;
     window.__mghOpenLangMenu = () => this.setState(s => ({ langMenu: !s.langMenu, orgMenu: false }));
@@ -135,6 +138,12 @@ export default class App extends React.Component {
       this.setState({ currentUser: null, authChecking: false });
     }
   }
+  // The organization row of the active RBAC organization ('MGH Dominicana SRL'), exact id first
+  activeOrgConfig(orgs){
+    const list = (orgs || []).filter(o => o && o.id);
+    const R = window.MGH_RBAC, want = R ? R.orgSettings(R.org).id : 'MGH Dominicana SRL';
+    return list.find(o => o.id === want) || list.find(o => /dominicana/i.test(o.id)) || list[0] || null;
+  }
   // Load persisted data from the backend. If the API is down the screens show empty states (there is no demo data).
   async loadFromApi(){
     if (this.mustChangePassword()) return; // the server refuses data until the temporary password is replaced
@@ -216,7 +225,12 @@ export default class App extends React.Component {
       if (window.MGH_ATT && window.MGH_ATT.setLeave) window.MGH_ATT.setLeave(Array.isArray(d.leaveRequests) ? d.leaveRequests : []);
       if (d.organizations && Array.isArray(d.organizations)) {
         try { localStorage.setItem('mgh-wf-tenants', JSON.stringify(d.organizations)); } catch(e){}
+        // Workflow steps + overtime rule come from the backend org config (what submit / approve / computeHours use)
+        const org = this.activeOrgConfig(d.organizations);
+        if (org && window.MGH_WF && window.MGH_WF.applyOrgConfig) window.MGH_WF.applyOrgConfig(org);
       }
+      // The workflow engine mirrors the backend sheets (dashboards and approvals count from it), not old browser copies
+      if (window.MGH_WF && window.MGH_WF.syncFromBackend) window.MGH_WF.syncFromBackend(Array.isArray(d.timesheets) ? d.timesheets : [], { replace: true });
       window.dispatchEvent(new Event('mgh-att'));
       window.dispatchEvent(new Event('mgh-wf'));
 
@@ -469,16 +483,34 @@ export default class App extends React.Component {
         tax: 'DGII Taxable ISR',
         taxTone: 'info',
         target: first.bank || '',
+        periodId: getCurrentPeriod().code,
         status: 'Pending Approval'
       }
     });
   };
 
+  // An adjustment is paid only in its employee's payroll run for its period: the current or the next quincena
+  adjPeriodOpts() {
+    const cur = getCurrentPeriod();
+    const nextStart = new Date(cur.endDate + 'T12:00:00');
+    nextStart.setDate(nextStart.getDate() + 1);
+    const next = getQuincenaForDate(nextStart);
+    return [
+      { value: cur.code, label: cur.code + ' • ' + cur.rangeShort + ' (actual)' },
+      { value: next.code, label: next.code + ' • ' + next.rangeShort + ' (siguiente)' }
+    ];
+  }
+
   async submitNewAdjustment() {
     const { newAdj } = this.state;
     const numAmt = parseFloat(newAdj.amt);
-    if (!newAdj.name || !newAdj.type || isNaN(numAmt)) {
+    if (!newAdj.employeeId || !newAdj.name || !newAdj.type || isNaN(numAmt)) {
       this.flash('Please provide valid employee, type and numeric amount');
+      return;
+    }
+    const periodId = newAdj.periodId || getCurrentPeriod().code;
+    if (!this.adjPeriodOpts().some(o => o.value === periodId)) {
+      this.flash('Selecciona la quincena actual o la siguiente para el ajuste');
       return;
     }
     if (!String(newAdj.target || '').trim()) {
@@ -488,6 +520,8 @@ export default class App extends React.Component {
     try {
       await api.createAdjustment({
         id: `ADJ-${Date.now().toString().slice(-6)}`,
+        employeeId: newAdj.employeeId,
+        periodId,
         name: newAdj.name,
         role: newAdj.role,
         avatar: newAdj.avatar,
@@ -501,7 +535,7 @@ export default class App extends React.Component {
         status: newAdj.status
       });
       this.setState({ showAdjModal: false });
-      this.flash(`Adjustment saved for ${newAdj.name} • saved to SQLite & audit log`);
+      this.flash(`Adjustment saved for ${newAdj.name} • ${periodId}`);
       await this.loadFromApi();
     } catch(err) {
       this.flash('Creation blocked: ' + err.message);
@@ -512,9 +546,13 @@ export default class App extends React.Component {
     if (!sevEmp || !sevEmp.id) { this.flash('No hay empleados para liquidar'); return; }
     if (calc && calc.blocked) { this.flash(calc.blocked); return; }
     if (!sevEmp.bank) { this.flash('El empleado no tiene banco registrado • complete el perfil antes de encolar la liquidación'); return; }
+    // Paid in the employee's run of the current quincena
+    const periodId = getCurrentPeriod().code;
     try {
       await api.createAdjustment({
         id: `ADJ-${Date.now().toString().slice(-6)}`,
+        employeeId: sevEmp.id,
+        periodId,
         name: sevEmp.name,
         role: sevEmp.role,
         avatar: sevEmp.avatar,
@@ -527,7 +565,7 @@ export default class App extends React.Component {
         target: sevEmp.bank,
         status: 'Pending Approval'
       });
-      this.flash(`Liquidación de ${totalSeverance.toLocaleString('en-US', { minimumFractionDigits: 2 })} ${sevEmp.cur || ''} encolada en ajustes para ${sevEmp.name}`);
+      this.flash(`Liquidación de ${totalSeverance.toLocaleString('en-US', { minimumFractionDigits: 2 })} ${sevEmp.cur || ''} encolada en ajustes para ${sevEmp.name} • ${periodId}`);
       await this.loadFromApi();
     } catch(e) {
       this.flash('Error encolando ajuste: ' + (e.message || 'Error'));
@@ -822,20 +860,30 @@ export default class App extends React.Component {
     };
   }
   wfCfgVals(){
-    const WF=window.MGH_WF,R=window.MGH_RBAC;if(!WF||!R)return {wfCfgRows:[],wfAddOpts:[],otRule:'weekly'};
+    const WF=window.MGH_WF,R=window.MGH_RBAC;if(!WF||!R)return {wfCfgRows:[],wfAddOpts:[],otRule:'weekly',wfCanEdit:false};
     const c=WF.config,roles=R.ROLE_IDS.filter(r=>R.MATRIX['timesheets.approve'].grants[r]);
-    const ok=(r,m)=>{if(r===false)this.flash('At least one approver must stay enabled');else this.flash(m)};
+    // Only the admin changes the org workflow; every change is PATCHed to the backend and reverted if it fails
+    const canEdit=R.can('workflows.manage')&&WF.remoteReady;
+    const save=(res,okMsg)=>{
+      if(res===false){this.flash('At least one approver must stay enabled');return;}
+      Promise.resolve(res).then(r=>this.flash(r&&r.ok?okMsg():'No se pudo guardar el flujo en el servidor • '+((r&&r.msg)||'error')));
+    };
+    const val=v=>typeof v==='string'?v:v.target.value;
     return {
-      wfCfgRows:c.steps.map((x,i)=>({n:'Step '+(i+2),label:x.label,role:x.role,roleOpts:roles.map(r=>({value:r,label:r+' • '+WF.person(r)})),on:x.enabled,opacity:x.enabled?'1':'0.5',
-        toggle:()=>ok(WF.toggleStep(i),x.label+(x.enabled?' disabled':' enabled')),setRole:v=>{WF.setStepRole(i,typeof v==='string'?v:v.target.value);this.flash(x.label+' → '+(typeof v==='string'?v:v.target.value))},
-        up:()=>WF.moveStep(i,-1),down:()=>WF.moveStep(i,1),remove:()=>{if(WF.removeStep(i))this.flash(x.label+' removed');else this.flash('At least one approver is required')}})),
+      wfCanEdit:canEdit,
+      wfCfgRows:c.steps.map((x,i)=>({n:'Step '+(i+2),label:x.label,role:x.role,
+        // Backend: the first step is reviewed by supervisor/PM/HR/finance/admin; later steps only by the admin
+        roleOpts:(i===0?roles:['Platform Admin']).map(r=>({value:r,label:r+' • '+WF.person(r)})),on:x.enabled,opacity:x.enabled?'1':'0.5',
+        toggle:()=>save(WF.toggleStep(i),()=>x.label+(x.enabled?' disabled':' enabled')),setRole:v=>{const r=val(v);save(WF.setStepRole(i,r),()=>x.label+' → '+r)},
+        up:()=>save(WF.moveStep(i,-1),()=>'Workflow updated'),down:()=>save(WF.moveStep(i,1),()=>'Workflow updated'),remove:()=>save(WF.removeStep(i),()=>x.label+' removed')})),
       wfFlowText:['Employee',...WF.steps().map(x=>x.label),'Paid'].join(' → '),
-      wfAddOpts:Object.keys(WF.CATALOG).filter(k=>!c.steps.some(x=>x.key===k)).map(k=>({label:'Add '+WF.CATALOG[k].label,run:()=>{WF.addStep(k);this.flash(WF.CATALOG[k].label+' step added before Payroll')}})),
-      wfReset:()=>{WF.resetConfig();this.flash('Workflow reset • '+['Empleado',...WF.steps().map(x=>x.label),'Pagado'].join(' → '))},
+      wfAddOpts:Object.keys(WF.CATALOG).filter(k=>!c.steps.some(x=>x.key===k)).map(k=>({label:'Add '+WF.CATALOG[k].label,run:()=>save(WF.addStep(k),()=>WF.CATALOG[k].label+' step added before Payroll')})),
+      wfReset:()=>save(WF.resetConfig(),()=>'Workflow reset • '+['Empleado',...WF.steps().map(x=>x.label),'Pagado'].join(' → ')),
       otRule:c.ot.rule,otOpts:[{value:'weekly',label:'Weekly (44h)'},{value:'daily',label:'Daily (8h)'},{value:'both',label:'Daily + Weekly'},{value:'custom',label:'Custom'}],
-      setOtRule:v=>{const r=typeof v==='string'?v:v.target.value;WF.setOT(r==='weekly'?{rule:r,weekly:44}:r==='daily'?{rule:r,daily:8}:r==='both'?{rule:r,daily:8,weekly:44}:{rule:r});this.flash('Overtime rule • '+WF.otLabel())},
+      setOtRule:v=>{const r=val(v);save(WF.setOT(r==='weekly'?{rule:r,weekly:44}:r==='daily'?{rule:r,daily:8}:r==='both'?{rule:r,daily:8,weekly:44}:{rule:r}),()=>'Overtime rule • '+WF.otLabel())},
       otCustom:c.ot.rule==='custom',otDaily:String(c.ot.daily),otWeekly:String(c.ot.weekly),otLabel:WF.otLabel(),
-      setOtDaily:v=>{const n=parseFloat(typeof v==='string'?v:v.target.value);if(n>0&&n<=24)WF.setOT({daily:n})},setOtWeekly:v=>{const n=parseFloat(typeof v==='string'?v:v.target.value);if(n>0&&n<=80)WF.setOT({weekly:n})}};
+      setOtDaily:v=>{const n=parseFloat(val(v));if(n>0&&n<=24&&n!==c.ot.daily)save(WF.setOT({daily:n}),()=>'Overtime rule • '+WF.otLabel());else if(!(n>0&&n<=24))this.flash('Daily threshold must be between 0 and 24 h')},
+      setOtWeekly:v=>{const n=parseFloat(val(v));if(n>0&&n<=80&&n!==c.ot.weekly)save(WF.setOT({weekly:n}),()=>'Overtime rule • '+WF.otLabel());else if(!(n>0&&n<=80))this.flash('Weekly threshold must be between 0 and 80 h')}};
   }
   setNE(k,v){this.setState(s=>({ne:{...s.ne,[k]:v}}))}
   go=(r,id)=>{
@@ -2309,6 +2357,9 @@ export default class App extends React.Component {
                                   <span style={{ font: "400 12px/16px var(--font-sans)", color: "var(--mgh-ink-3)" }}>
                                     {a.cat}
                                   </span>
+                                  <span style={{ font: "700 11px/14px var(--font-mono)", color: "var(--mgh-ink-3)" }}>
+                                    {'Quincena: ' + (a.periodId || a.period_id || a.period || '—')}
+                                  </span>
                                 </div>
                               </td>
                               <td style={{ padding: "12px 14px", textAlign: "right", font: "700 13px/18px var(--font-sans)", color: a.amtColor, whiteSpace: "nowrap" }}>
@@ -2592,6 +2643,36 @@ export default class App extends React.Component {
                     ))}
                   </div>
                 </DS.Card>
+                <DS.Card title="Configuración del flujo y horas extra" subtitle={v.wfCanEdit ? "Se guarda en el servidor: lo usan el envío, la aprobación y el cálculo de horas" : "Solo lectura • solo el administrador puede cambiarlo"} icon="tune">
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                    <span style={{ font: "500 13px/18px var(--font-sans)", color: "var(--mgh-ink-2)" }}>{v.wfFlowText}</span>
+                    {(v.wfCfgRows || []).map((r, _i0) => (
+                      <Fragment key={_i0}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", padding: "10px 0", borderTop: "1px solid var(--mgh-surface-2)", opacity: r.opacity }}>
+                          <span style={{ font: "700 11px/14px var(--font-sans)", textTransform: "uppercase", color: "var(--mgh-ink-3)", minWidth: "56px" }}>{r.n}</span>
+                          <span style={{ font: "600 14px/20px var(--font-sans)", color: "var(--mgh-ink)", flex: "1 1 180px" }}>{r.label}</span>
+                          {v.wfCanEdit ? <DS.Select size="sm" value={r.role} options={r.roleOpts} onChange={r.setRole} style={{ minWidth: "220px" }} /> : <span style={{ font: "500 13px/18px var(--font-sans)", color: "var(--mgh-ink-2)" }}>{r.role}</span>}
+                          <DS.Toggle checked={r.on ?? false} onChange={r.toggle} disabled={!v.wfCanEdit} />
+                        </div>
+                      </Fragment>
+                    ))}
+                    <div style={{ display: "flex", alignItems: "flex-end", gap: "12px", flexWrap: "wrap", paddingTop: "10px", borderTop: "1px solid var(--mgh-surface-2)" }}>
+                      {v.wfCanEdit ? <DS.Select label="Regla de horas extra" value={v.otRule} options={v.otOpts} onChange={v.setOtRule} style={{ minWidth: "200px" }} /> : <span style={{ font: "600 13px/18px var(--font-sans)", color: "var(--mgh-ink)" }}>{v.otLabel}</span>}
+                      {v.wfCanEdit && v.otRule !== "weekly" ? (
+                        <label style={{ display: "flex", flexDirection: "column", gap: "6px", font: "700 11px/14px var(--font-sans)", textTransform: "uppercase", color: "var(--mgh-ink-2)" }}>
+                          Diario (h)
+                          <input key={"d" + v.otDaily} type="number" min="1" max="24" step="0.5" defaultValue={v.otDaily} onBlur={v.setOtDaily} style={{ width: "100px", height: "40px", padding: "0 10px", borderRadius: "8px", border: "1px solid var(--mgh-surface-3)", font: "500 14px var(--font-sans)" }} />
+                        </label>
+                      ) : null}
+                      {v.wfCanEdit && v.otRule !== "daily" ? (
+                        <label style={{ display: "flex", flexDirection: "column", gap: "6px", font: "700 11px/14px var(--font-sans)", textTransform: "uppercase", color: "var(--mgh-ink-2)" }}>
+                          Semanal (h)
+                          <input key={"w" + v.otWeekly} type="number" min="1" max="80" step="1" defaultValue={v.otWeekly} onBlur={v.setOtWeekly} style={{ width: "100px", height: "40px", padding: "0 10px", borderRadius: "8px", border: "1px solid var(--mgh-surface-3)", font: "500 14px var(--font-sans)" }} />
+                        </label>
+                      ) : null}
+                    </div>
+                  </div>
+                </DS.Card>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,420px),1fr))", gap: "20px", alignItems: "start" }}>
                   <DS.Card title={"Threshold & Trigger Rules Matrix"} subtitle="Reference policy • not enforced automatically yet" icon="rule" padding={0}>
                     <div className="mgh-scroll" style={{ overflowX: "auto" }}>
@@ -2870,6 +2951,20 @@ export default class App extends React.Component {
                       <option key={emp.id} value={emp.id}>{emp.id} — {emp.name} ({emp.role})</option>
                     ))}
                   </select>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", font: "600 12px/16px var(--font-sans)", color: "var(--mgh-ink-2)", marginBottom: "6px" }}>Pay period (quincena)</label>
+                  <select
+                    value={this.state.newAdj.periodId}
+                    onChange={e => { const periodId = e.target.value; this.setState(s => ({ newAdj: { ...s.newAdj, periodId } })); }}
+                    style={{ width: "100%", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--mgh-surface-3)", font: "500 14px var(--font-sans)", color: "var(--mgh-ink)", background: "var(--surface-app)" }}
+                  >
+                    {this.adjPeriodOpts().map(o => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                  <span style={{ display: "block", marginTop: "4px", font: "400 12px/16px var(--font-sans)", color: "var(--mgh-ink-3)" }}>Se paga solo en la nómina de este empleado para esa quincena.</span>
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>

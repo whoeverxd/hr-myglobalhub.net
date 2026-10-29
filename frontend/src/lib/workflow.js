@@ -75,6 +75,34 @@
     return [];
   }
 
+  /* ---------- backend organization config ---------- */
+  let remote = null; // { id, steps } as last returned by the backend
+  let saver = null;  // (orgId, patch) => Promise<updated org config>
+  const FE_ROLE = { pm: 'Manager', manager: 'Manager', supervisor: 'Supervisor', hr: 'HR', finance: 'Payroll', cfo: 'Payroll', admin: 'Platform Admin', owner: 'Platform Admin' };
+  const BE_ROLE = { Manager: 'pm', PM: 'pm', Supervisor: 'supervisor', HR: 'hr', Payroll: 'finance', CFO: 'finance', 'Platform Admin': 'admin', 'Org Admin': 'admin', Owner: 'admin', Admin: 'admin' };
+  // The backend walks every step it stores (it has no "enabled" flag), so only enabled steps are sent.
+  // Label / review of a step the backend already has are kept: they are the status names of sheets under review.
+  function toBackendSteps(list) {
+    return list.filter(s => s.enabled).map(s => {
+      const b = remote && remote.steps.find(x => x.key === s.key), c = CATALOG[s.key] || {};
+      const role = BE_ROLE[s.role] || String(s.role || '').toLowerCase();
+      return { ...(b || {}), key: s.key, label: b && b.label ? b.label : s.label, role, review: (b && b.review) || c.review || s.label, enabled: true };
+    });
+  }
+  // Apply a change locally, PATCH it, and roll back if the backend refuses it
+  function commit(apply, patchOf, onSaved) {
+    const k = ORGK(), before = JSON.parse(JSON.stringify(cfgGet()));
+    const rollback = msg => { cfgMap[k] = before; persist(); fire(); return { ok: false, msg }; };
+    apply(); persist(); fire();
+    if (!remote || !saver) return Promise.resolve(rollback('La configuración de la organización no se ha cargado del servidor'));
+    return Promise.resolve().then(() => saver(remote.id, patchOf())).then(updated => {
+      if (updated && updated.id) API.applyOrgConfig(updated);
+      if (onSaved) onSaved();
+      fire();
+      return { ok: true };
+    }).catch(err => rollback((err && err.message) || 'Error al guardar'));
+  }
+
   const API = {
     ROLES, CATALOG, STATUS_TONE, STATUS_COLOR,
     get config() { return JSON.parse(JSON.stringify(cfgGet())); },
@@ -84,15 +112,42 @@
     steps,
     statusColor(st) { return STATUS_COLOR[STATUS_TONE[st] || 'neutral']; },
 
-    /* ---------- config ---------- */
-    setSteps(list) { if (RB() && !RB().can('workflows.manage')) return false; cfgGet().steps = list.map(s => ({ key: s.key, label: s.label, role: s.role, enabled: !!s.enabled })); persist(); API.log('workflow.config.updated', 'Workflow', steps().map(s => s.label).join(' → '), 'warning'); fire(); },
-    moveStep(i, d) { const l = cfgGet().steps.slice(), j = i + d; if (j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; API.setSteps(l); },
-    toggleStep(i) { const l = cfgGet().steps.slice(); if (l[i].enabled && steps().length === 1) return false; l[i] = { ...l[i], enabled: !l[i].enabled }; API.setSteps(l); return true; },
-    setStepRole(i, r) { const l = cfgGet().steps.slice(); l[i] = { ...l[i], role: r }; API.setSteps(l); },
-    addStep(k) { if (!CATALOG[k] || cfgGet().steps.some(s => s.key === k)) return false; const c = CATALOG[k], l = cfgGet().steps.slice(); const pi = l.findIndex(s => s.key === 'payroll'); l.splice(pi < 0 ? l.length : pi, 0, { key: c.key, label: c.label, role: c.role, enabled: true }); API.setSteps(l); return true; },
-    removeStep(i) { const l = cfgGet().steps.slice(); if (l.length <= 1) return false; l.splice(i, 1); API.setSteps(l); return true; },
-    resetConfig() { cfgMap[ORGK()] = { ...JSON.parse(JSON.stringify(DEFAULT_CFG)), ot: cfgGet().ot }; persist(); API.log('workflow.config.reset', 'Workflow', 'Default 2-stage verification flow', 'warning'); fire(); },
-    setOT(o) { if (RB() && !RB().can('workflows.manage')) return false; cfgGet().ot = { ...cfgGet().ot, ...o }; persist(); API.log('overtime.rule.updated', 'Organization', API.otLabel(), 'warning'); fire(); },
+    /* ---------- config ----------
+       The organization config lives in the backend (GET/PATCH /organizations/:id): computeHours reads its OT rule and
+       submit/approve read its steps. applyOrgConfig() loads it; every change is PATCHed through the saver registered
+       by the app (setRemoteSaver) and reverted locally if the server refuses it. Changes return a Promise
+       resolving to { ok, msg } (or false synchronously when the change itself is invalid). */
+    applyOrgConfig(o) {
+      if (!o || !o.id) return;
+      remote = { id: o.id, steps: Array.isArray(o.steps) ? o.steps.map(s => ({ ...s })) : [] };
+      const c = cfgGet();
+      if (o.ot && o.ot.rule) c.ot = { rule: o.ot.rule, daily: Number(o.ot.daily) || c.ot.daily, weekly: Number(o.ot.weekly) || c.ot.weekly };
+      const known = remote.steps.filter(s => DEFAULT_CFG.steps.some(d => d.key === s.key));
+      if (known.length) {
+        c.steps = DEFAULT_CFG.steps.map(d => {
+          const b = known.find(s => s.key === d.key);
+          return { ...d, enabled: !!b && b.enabled !== false, role: b ? (FE_ROLE[String(b.role || '').toLowerCase()] || d.role) : d.role };
+        });
+      }
+      persist(); fire();
+    },
+    get remoteReady() { return !!(remote && saver); },
+    setRemoteSaver(fn) { saver = typeof fn === 'function' ? fn : null; },
+    setSteps(list) {
+      if (RB() && !RB().can('workflows.manage')) return false;
+      return commit(() => { cfgGet().steps = list.map(s => ({ key: s.key, label: s.label, role: s.role, enabled: !!s.enabled })); },
+        () => ({ steps: toBackendSteps(cfgGet().steps) }), () => API.log('workflow.config.updated', 'Workflow', steps().map(s => s.label).join(' → '), 'warning'));
+    },
+    moveStep(i, d) { const l = cfgGet().steps.slice(), j = i + d; if (j < 0 || j >= l.length) return false; [l[i], l[j]] = [l[j], l[i]]; return API.setSteps(l); },
+    toggleStep(i) { const l = cfgGet().steps.slice(); if (l[i].enabled && steps().length === 1) return false; l[i] = { ...l[i], enabled: !l[i].enabled }; return API.setSteps(l); },
+    setStepRole(i, r) { const l = cfgGet().steps.slice(); l[i] = { ...l[i], role: r }; return API.setSteps(l); },
+    addStep(k) { if (!CATALOG[k] || cfgGet().steps.some(s => s.key === k)) return false; const c = CATALOG[k], l = cfgGet().steps.slice(); const pi = l.findIndex(s => s.key === 'payroll'); l.splice(pi < 0 ? l.length : pi, 0, { key: c.key, label: c.label, role: c.role, enabled: true }); return API.setSteps(l); },
+    removeStep(i) { const l = cfgGet().steps.slice(); if (l.length <= 1) return false; l.splice(i, 1); return API.setSteps(l); },
+    resetConfig() { return API.setSteps(JSON.parse(JSON.stringify(DEFAULT_CFG.steps))); },
+    setOT(o) {
+      if (RB() && !RB().can('workflows.manage')) return false;
+      return commit(() => { cfgGet().ot = { ...cfgGet().ot, ...o }; }, () => ({ ot: { ...cfgGet().ot } }), () => API.log('overtime.rule.updated', 'Organization', API.otLabel(), 'warning'));
+    },
     otLabel() { const o = cfgGet().ot; return o.rule === 'weekly' ? 'Weekly > ' + o.weekly + 'h' : o.rule === 'daily' ? 'Daily > ' + o.daily + 'h' : o.rule === 'both' ? 'Daily > ' + o.daily + 'h + Weekly > ' + o.weekly + 'h' : 'Custom • daily ' + o.daily + 'h / weekly ' + o.weekly + 'h'; },
     /* Splits a week of daily hours into regular/overtime per the org rule. Returns per-day OT array. */
     splitOT(dayHours) {
@@ -118,8 +173,11 @@
       }
       sheets[k] = { ...rec, status, stepIdx, history, flags: [], route: st.map(s => ({ ...s })) }; save(LS.ts, sheets); return sheets[k];
     },
-    syncFromBackend(backendList) {
+    // opts.replace: the list is the complete set the backend returns to this user → sheets cached in the browser
+    // that the backend doesn't have any more are dropped (they made dashboards count stale records)
+    syncFromBackend(backendList, opts) {
       if (!Array.isArray(backendList)) return;
+      if (opts && opts.replace) sheets = {};
       backendList.forEach(ts => {
         const k = key(ts.emp || ts.employee_id, ts.period || ts.period_id);
         const st = steps();
@@ -155,14 +213,18 @@
     pendingStep(rec) { const st = routeOf(rec); return rec && rec.stepIdx >= 0 && rec.stepIdx < st.length ? st[rec.stepIdx] : null; },
     editable(rec) { return !!rec && ['Draft', 'Returned'].includes(rec.status); },
     canEdit(rec) { return API.editable(rec) && !!RB() && RB().can('timesheets.edit', rec.emp); },
-    canAct(rec) { const p = API.pendingStep(rec); return !!p && !!RB() && RB().can('timesheets.approve.' + p.key, rec.emp) && !['Returned', 'Rejected', 'Cancelled', 'Paid'].includes(rec.status); },
+    // Backend rule: nobody but the admin approves / returns their own sheet
+    isOwnSheet(rec) { const m = RB() && RB().me(); return !!(rec && m && m.emp && rec.emp === m.emp && RB().role !== 'Platform Admin'); },
+    canAct(rec) { const p = API.pendingStep(rec); return !!p && !!RB() && !API.isOwnSheet(rec) && RB().can('timesheets.approve.' + p.key, rec.emp) && !['Returned', 'Rejected', 'Cancelled', 'Paid'].includes(rec.status); },
     canPay(rec) { return !!rec && rec.status === 'Approved' && !!RB() && RB().can('payroll.generate', rec.emp); },
     whyNot(rec) {
       if (!rec) return 'No timesheet';
       if (['Paid', 'Rejected', 'Cancelled'].includes(rec.status)) return 'Read-only • ' + rec.status;
       if (rec.status === 'Approved') return RB() && RB().can('payroll.generate', rec.emp) ? '' : 'Only Payroll can generate the pay stub';
       if (API.editable(rec)) return 'Waiting for the employee to submit';
-      const p = API.pendingStep(rec); return p ? 'Waiting for ' + p.label + ' (' + roleLabel(p.role) + ')' : '';
+      const p = API.pendingStep(rec);
+      if (p && API.isOwnSheet(rec) && RB().scopeOf('timesheets.approve.' + p.key)) return 'No puedes aprobar tu propia hoja';
+      return p ? 'Waiting for ' + p.label + ' (' + roleLabel(p.role) + ')' : '';
     },
     transition(rec, to, comment, opts) {
       const from = rec.status, by = (opts && opts.actor) || actorFor(curRole()), r = (opts && opts.role) || curRole();
