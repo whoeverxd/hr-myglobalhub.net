@@ -151,19 +151,40 @@ test('2. A returned sheet shows the hours a resubmission will freeze (PM cuts ig
   const before = reviewsIn();
   assert.equal(timesheets.reviewActivity(sheet.id, a2.id, { approvedHours: 3, comment: 'Solo 3h justificadas' }, 'PM').unchanged, true);
   assert.equal(reviewsIn(), before);
+  timesheets.reviewActivity(sheet.id, a1.id, { approvedHours: 8 }, 'PM');
   timesheets.returnTimesheet(sheet.id, { comment: 'Corrige el martes' }, 'PM');
 
   const live = timesheets.listTimesheets({ empId: LUIS, periodId: P, live: true })[0];
   assert.equal(live.status, 'Returned');
   assert.equal(live.total, 14, 'live hours = what submit will freeze');
+  // Weekdays without activities are listed so the employee is warned before submitting
+  assert.equal(live.submittableFrom, '2024-04-15');
+  assert.ok(live.missingDays.includes('2024-04-03') && !live.missingDays.includes('2024-04-01') && !live.missingDays.includes('2024-04-06'));
   // the PM's decision is still visible to the employee
   assert.equal(Number(db.getOne('SELECT approved_hours FROM daily_activities WHERE id = ?', [a2.id]).approved_hours), 3);
   assert.equal(timesheets.computeHours(LUIS, P).total, 11, 'reviewed hours by default');
   assert.equal(timesheets.computeHours(LUIS, P, { ignoreReview: true }).total, 14);
 
   assert.equal(timesheets.submitTimesheet(sheet.id, 'Luis').total, live.total);
-  assert.ok(a1.id);
+  // The resubmission keeps what was approved in full; the partial cut goes back to review
+  const reviewOf = (id) => db.getOne('SELECT review_status, approved_hours FROM daily_activities WHERE id = ?', [id]);
+  assert.equal(reviewOf(a1.id).review_status, 'approved');
+  assert.equal(Number(reviewOf(a1.id).approved_hours), 8);
+  assert.equal(reviewOf(a2.id).review_status, null);
+  assert.equal(reviewOf(a2.id).approved_hours, null);
   resetPeriod(P);
+});
+
+test('2b. A quincena can only be submitted from its last day on (one submission with all its days)', () => {
+  const P = 'PP-2099-01'; // 1–15 January 2099: not over yet
+  db.execute(`INSERT OR IGNORE INTO pay_periods (id, year, period_number, start_date, end_date, pay_date, cutoff, status, is_locked)
+    VALUES (?, 2099, 1, '2099-01-01', '2099-01-15', '2099-01-20', '2099-01-15T23:59', 'Draft', 0)`, [P]);
+  resetPeriod(P);
+  const sheet = timesheets.ensureTimesheet(LUIS, P, 'Luis');
+  assert.throws(() => timesheets.submitTimesheet(sheet.id, 'Luis'), (e) => e.status === 409 && e.code === 'PERIOD_NOT_ENDED' && e.message.includes('15/01/2099'));
+  assert.equal(db.getOne('SELECT status FROM timesheets WHERE id = ?', [sheet.id]).status, 'Draft');
+  resetPeriod(P);
+  db.execute('DELETE FROM pay_periods WHERE id = ?', [P]);
 });
 
 test('3. Terminated and Inactive employees get no auto-created sheets', () => {

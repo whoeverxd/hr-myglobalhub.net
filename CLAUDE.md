@@ -41,6 +41,9 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   `#actDaily` on someone else's day is read-only (admin may correct). Team review stays in
   `#approvals` / `#queue` / `#timesheets`. Backend rules (`timesheets.controller.js`): hours are computed from activities
   (+ approved paid leave, paid holidays; OT by org rule) and frozen on submit; 0 worked+leave hours can't be submitted;
+  a quincena is submitted once, with all its days, from its last day on (earlier → 409 `PERIOD_NOT_ENDED`; live sheets
+  carry `submittableFrom` + `missingDays` for the confirm warning); a resubmission keeps fully approved activities,
+  the rest goes back to review;
   only sheets under review can be approved/returned/adjusted; nobody but admin approves their own sheet; activities are
   written only by their owner (admin may correct) and locked once the sheet leaves Draft/Returned.
 - Meeting attendees: a pm/supervisor/admin logging a `Reunión` activity may send `attendees: [empId]` to

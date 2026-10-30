@@ -2,6 +2,7 @@ const db = require('../db');
 const { logAction } = require('./audit.controller');
 const { getOrgConfig } = require('./workflows.controller');
 const { buildPeriods } = require('../payroll');
+const { todayLocal } = require('../utils/today');
 
 // Statuses in which the employee still owns the timesheet (can log activities and submit)
 const EDITABLE = ['Draft', 'Returned'];
@@ -62,10 +63,12 @@ function computeHours(empId, periodId, { ignoreReview = false } = {}) {
 
   // A reviewed activity counts its approved hours (partial approval); an unreviewed one counts what was logged
   const byDay = {};
+  const loggedDays = new Set();
   let rejected = 0;
   db.query(`SELECT date, hours, approved_hours FROM daily_activities WHERE employee_id = ? AND date >= ? AND date <= ?`, [empId, range.start, range.end])
     .forEach((a) => {
       const logged = Number(a.hours) || 0;
+      if (logged > 0) loggedDays.add(a.date);
       const counted = ignoreReview || a.approved_hours == null ? logged : Math.min(logged, Math.max(0, Number(a.approved_hours) || 0));
       rejected += logged - counted;
       byDay[a.date] = (byDay[a.date] || 0) + counted;
@@ -99,12 +102,18 @@ function computeHours(empId, periodId, { ignoreReview = false } = {}) {
       .filter((h) => h.is_paid && !h.is_working && orgKey(h.org_id) === myOrg).map((h) => h.date)
   );
   let pto = 0, hol = 0;
+  // Weekdays with nothing logged and no paid holiday/leave: what a submission would freeze at 0h
+  const missingDays = [];
   for (const x of days.filter(weekday)) {
     if (paidHolidays.has(x.date)) hol += dailyMax;
     else if (onLeave(x.date)) pto += dailyMax;
+    else if (!loggedDays.has(x.date)) missingDays.push(x.date);
   }
   reg = r2(reg); otH = r2(otH);
-  return { reg, ot: otH, pto, hol, total: r2(reg + otH + pto + hol), worked: r2(reg + otH), rejected: r2(rejected) };
+  return {
+    reg, ot: otH, pto, hol, total: r2(reg + otH + pto + hol), worked: r2(reg + otH), rejected: r2(rejected),
+    workdays: days.filter(weekday).length, missingDays,
+  };
 }
 
 function sheetRow(id) {
@@ -239,7 +248,10 @@ function listTimesheets({ periodId, empId, live = false } = {}) {
     // exactly as a submission will freeze them: a Returned sheet's earlier review cuts don't count any more
     if (live && EDITABLE.includes(t.status)) {
       const h = computeHours(t.employee_id, t.period_id, { ignoreReview: true });
-      if (h) Object.assign(out, { reg: h.reg, ot: h.ot, pto: h.pto, hol: h.hol, total: h.total, liveHours: true });
+      if (h) Object.assign(out, { reg: h.reg, ot: h.ot, pto: h.pto, hol: h.hol, total: h.total, liveHours: true, workdays: h.workdays, missingDays: h.missingDays });
+      // A quincena is submitted once, with all its days: from its last day on
+      const range = periodRange(t.period_id);
+      if (range) out.submittableFrom = range.end;
     }
     return out;
   });
@@ -302,12 +314,22 @@ function submitTimesheet(id, user = 'System', ip = '127.0.0.1') {
     throw err;
   }
 
-  // A (re)submission gets a fresh review: earlier decisions stay in the sheet history
+  // One submission per quincena, with all its days: an early submit used to lock the rest of the quincena
   const subRange = periodRange(current.period_id);
+  if (subRange && todayLocal() < subRange.end) {
+    const [y, m, d] = subRange.end.split('-');
+    const err = new Error(`La quincena se envía una sola vez, con todos sus días: podrás enviarla a partir del ${d}/${m}/${y}. Mientras tanto sigue registrando tus actividades.`);
+    err.status = 409;
+    err.code = 'PERIOD_NOT_ENDED';
+    throw err;
+  }
+
+  // A resubmission keeps the activities the reviewer approved in full; new, edited (PUT clears the decision),
+  // partially approved and rejected ones go back to review. Earlier decisions stay in the sheet history.
   if (subRange) {
     db.execute(
       `UPDATE daily_activities SET review_status = NULL, approved_hours = NULL, review_comment = NULL, reviewed_by = NULL, reviewed_at = NULL
-       WHERE employee_id = ? AND date >= ? AND date <= ?`,
+       WHERE employee_id = ? AND date >= ? AND date <= ? AND COALESCE(review_status, '') <> 'approved'`,
       [current.employee_id, subRange.start, subRange.end]
     );
   }

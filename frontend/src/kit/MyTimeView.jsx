@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { calculateQuincena } from '../lib/periodService.js';
+import { calculateQuincena, localDateStr } from '../lib/periodService.js';
 import { MySheets, MyHistory, EDITABLE, statusLabel, statusTone } from './MyTimesheets.jsx';
 import ActivityFormModal, { WORK_TYPES, isMeetingCopy } from './ActivityFormModal.jsx';
 export { calculateQuincena };
@@ -99,6 +99,8 @@ function MyTimeEntry({ user, empId, notify, go }) {
     : sheetStatus == null ? (sheetErr ? 'No se pudo consultar el estado de tu hoja de esta quincena; la edición queda bloqueada hasta poder verificarlo. Recarga la página.' : 'Consultando el estado de tu hoja…')
     : !EDITABLE.includes(sheetStatus) ? `Esta quincena está "${statusLabel(sheetStatus)}": ya no se puede editar. Si hay un error, pide al PM que te la devuelva.`
     : '';
+  // The quincena is submitted once, from its last day on: remind the owner when that moment has come
+  const submitDue = !readOnly && localDateStr() >= quincena.endDate;
 
 
   // Navigation handlers
@@ -289,6 +291,12 @@ function MyTimeEntry({ user, empId, notify, go }) {
             <Icon name={viewingOther ? 'visibility' : 'lock'} size={18} color={viewingOther ? 'var(--mgh-ink-3)' : 'var(--mgh-warning)'} />
             <span style={{ flex: 1 }}>{lockReason}</span>
             {!viewingOther && activeEmpId && go ? <Button size="sm" variant="ghost" onClick={() => go('mysheets')}>Ver mis hojas</Button> : null}
+          </div>
+        ) : submitDue ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, background: 'var(--mgh-primary-50)', font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-ink)' }}>
+            <Icon name="send" size={18} color="var(--mgh-primary)" />
+            <span style={{ flex: 1 }}>{localDateStr() > quincena.endDate ? 'Esta quincena ya terminó y no la has enviado.' : 'Hoy termina esta quincena.'} Revisa que estén todos tus días y envíala a aprobación.</span>
+            {go ? <Button size="sm" icon="send" onClick={() => go('mysheets')}>Ir a enviar</Button> : null}
           </div>
         ) : null}
 
