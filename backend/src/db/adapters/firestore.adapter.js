@@ -470,7 +470,10 @@ class FirestoreAdapter {
 
     const db = this.getFirestore();
     if (db) {
-      const cleanData = this._cleanData(merged);
+      // A merge sends only the fields given. Sending the whole cached doc let any instance with an older copy
+      // (another server, a local dev boot) overwrite fields it never touched, e.g. put back an old role.
+      const remote = options && options.merge ? { ...data, id: docIdStr } : merged;
+      const cleanData = this._cleanData(remote);
       const writePromise = db.collection(colName).doc(docIdStr).set(cleanData, options);
       this.activeWrites.add(writePromise);
       writePromise.finally(() => this.activeWrites.delete(writePromise)).catch((err) => {
@@ -907,7 +910,8 @@ class FirestoreAdapter {
           }
         }
 
-        this.setDocSync(colName, target.id, { ...target, ...updateData }, { merge: true });
+        // Only the SET columns go to Firestore (setDocSync merges them into the cached doc locally)
+        this.setDocSync(colName, target.id, updateData, { merge: true });
         changes++;
       }
 
