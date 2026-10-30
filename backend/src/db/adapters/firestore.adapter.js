@@ -369,6 +369,8 @@ class FirestoreAdapter {
         this._hydrationJournal = null;
 
         this.initialized = true;
+        // Live data (false = running on the local snapshot only); the production scripts refuse to write without it
+        this.hydratedFromRemote = true;
         this._persistLocalSnapshot();
         this.hydration = {
           source: 'cloud-firestore',
