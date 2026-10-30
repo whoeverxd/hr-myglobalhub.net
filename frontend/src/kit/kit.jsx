@@ -5165,11 +5165,16 @@ function Leave({ notify }) {
   const L = A.leave().filter(l => chip === 'All' || (chip === 'Pending' ? /Pending/.test(l.status) : l.status === chip));
   const selfOnly = MGH_RBAC.scopeOf('leave.request') === 'self', meId = (MGH_RBAC.me() || {}).emp, canReq = MGH_RBAC.can('leave.request');
   const emp = selfOnly ? meId : form.emp;
+  // The backend roster lives on window.EMPLOYEES (App.jsx); the module-level EMPLOYEES is never filled from it.
+  // Everyone still working here can get leave: employees and contractors alike (contractors are employees).
+  const roster = ((window.EMPLOYEES && window.EMPLOYEES.length) ? window.EMPLOYEES : EMPLOYEES)
+    .filter(e => !['Terminated', 'Inactive'].includes(e.status))
+    .slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
   // Backend first (field names match leave.controller: empId/fromDate/toDate); the local engine only mirrors
   // what the server accepted, so a failed save is reported instead of silently living in this browser.
   const submit = async () => {
     if (!emp) { notify(selfOnly ? 'Your account is not linked to an employee record' : 'Selecciona un empleado'); return; }
-    const e = EMPLOYEES.find(x => x.id === emp);
+    const e = roster.find(x => x.id === emp);
     const name = e ? e.name : emp;
     if (!form.from || !form.to || form.to < form.from) { notify('End date must be on or after start date'); return; }
     let saved;
@@ -5202,7 +5207,7 @@ function Leave({ notify }) {
   return <>
     <Card icon="route" title="Leave workflow" subtitle="Employee → Supervisor → HR → Approved → Calendar → Payroll">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,160px),1fr))', gap: 10, alignItems: 'end' }}>
-        {!canReq ? null : selfOnly ? <KeyValue label="Employee" value={MGH_RBAC.me().person + ' • ' + meId} /> : <Select label="Employee" value={form.emp} onChange={x => setForm(p => ({ ...p, emp: v(x) }))} options={[{ value: '', label: 'Selecciona…' }, ...MGH_RBAC.visible(EMPLOYEES, 'leave.request').map(e => ({ value: e.id, label: e.name + ' • ' + e.id }))]} />}
+        {!canReq ? null : selfOnly ? <KeyValue label="Employee" value={MGH_RBAC.me().person + ' • ' + meId} /> : <Select label="Employee" value={form.emp} onChange={x => setForm(p => ({ ...p, emp: v(x) }))} options={[{ value: '', label: 'Selecciona…' }, ...MGH_RBAC.visible(roster, 'leave.request').map(e => ({ value: e.id, label: e.name + ' • ' + e.id + (/contract/i.test(e.type || '') ? ' (contratista)' : '') }))]} />}
         {canReq && <Select label="Type" value={form.type} onChange={x => setForm(p => ({ ...p, type: v(x) }))} options={A.LEAVE_TYPES.map(t => ({ value: t, label: LEAVE_LABEL[t] || t }))} />}
         {canReq && <TextField label="From" type="date" value={form.from} onChange={x => setForm(p => ({ ...p, from: v(x) }))} />}
         {canReq && <TextField label="To" type="date" value={form.to} onChange={x => setForm(p => ({ ...p, to: v(x) }))} />}
