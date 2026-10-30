@@ -500,6 +500,26 @@ function setUserRole({ userId, role, actor, ip = '127.0.0.1' }) {
   return { ok: true, userId: user.id, email: user.email, role, previousRole: user.role, changed: true };
 }
 
+// Deletes a login and its sessions (#admin "Usuarios y roles"). The employee record, its timesheets and payroll
+// history are untouched — to remove a person use "Eliminar empleado" on the profile.
+function deleteUser({ userId, actor, ip = '127.0.0.1' }) {
+  const fail = (status, message) => { const err = new Error(message); err.status = status; return err; };
+  if (!actor || actor.role !== 'admin') throw fail(403, 'Only an administrator can delete user accounts');
+  const user = db.getOne(`SELECT * FROM users WHERE id = ?`, [userId]);
+  if (!user) throw fail(404, 'User not found');
+  if (user.id === actor.id) throw fail(400, 'You cannot delete your own account');
+  if (user.role === 'admin' && Number(user.is_active)) {
+    const admins = db.query(`SELECT id FROM users WHERE role = 'admin' AND is_active = 1`);
+    if (admins.filter((a) => a.id !== user.id).length === 0) throw fail(409, 'This is the last active administrator');
+  }
+  db.transaction(() => {
+    db.execute(`DELETE FROM sessions WHERE user_id = ?`, [user.id]);
+    db.execute(`DELETE FROM users WHERE id = ?`, [user.id]);
+    logAction({ actor: actor.name, action: 'USER_DELETED', entityType: 'user', entityId: user.id, oldValues: { email: user.email, role: user.role, employeeId: user.employee_id || null }, ip });
+  });
+  return { ok: true, userId: user.id, email: user.email, employeeId: user.employee_id || null };
+}
+
 function setRoleForEmployee({ employeeId, role, actor, ip }) {
   const emp = db.getOne(`SELECT id, email, name FROM employees WHERE id = ?`, [employeeId]);
   if (!emp) { const err = new Error('Employee not found'); err.status = 404; throw err; }
@@ -628,6 +648,7 @@ module.exports = {
   canAssignRole,
   accountForEmployee,
   setUserRole,
+  deleteUser,
   setRoleForEmployee,
   hasLocalPassword,
   validateSession,

@@ -4342,6 +4342,21 @@ function Administration({ notify, go }) {
     } catch (err) { notify('No se pudo cambiar el rol • ' + err.message); }
     finally { setBusy(null); }
   };
+  // Deletes only the login (+ its sessions); the employee record and its history stay (backend DELETE /users/:id)
+  const removeUser = async u => {
+    const who = u.name || u.email;
+    const msg = '¿Eliminar la cuenta ' + u.email + ' (' + who + ')?\n\nSe borran el acceso y sus sesiones abiertas; no podrá iniciar sesión con esta cuenta.'
+      + (u.employee_id ? '\nLa ficha del empleado ' + u.employee_id + ', sus hojas y su historial de nómina se conservan.' : '')
+      + '\n\nEsta acción no se puede deshacer.';
+    if (!window.confirm(msg)) return;
+    setBusy(u.id);
+    try {
+      await window.api.deleteUser(u.id);
+      setUsers(list => list.filter(x => x.id !== u.id));
+      notify('Cuenta eliminada: ' + u.email);
+    } catch (err) { notify('No se pudo eliminar la cuenta • ' + err.message); }
+    finally { setBusy(null); }
+  };
 
   const term = q.trim().toLowerCase();
   const shown = (users || []).filter(u => !term || `${u.name || ''} ${u.email || ''} ${u.employee_id || ''} ${SYSTEM_ROLE_LABELS[u.role] || u.role || ''}`.toLowerCase().includes(term));
@@ -4359,7 +4374,7 @@ function Administration({ notify, go }) {
 
   return <Page>
     <PageHeader breadcrumbs={['System', 'Administration']} title="Administration" description="Usuarios y roles de My Global Hub (Dominicana SRL)." />
-    <Card icon="group" title="Usuarios y roles" subtitle={users ? (canEdit ? 'Cambia el rol de acceso de cada cuenta. Administrador = acceso total.' : 'Solo un administrador puede cambiar roles.') + ' • ' + rows.length + ' de ' + users.length + ' cuenta' + (users.length === 1 ? '' : 's') : 'Cargando…'} bodyStyle={{ paddingTop: 14 }}
+    <Card icon="group" title="Usuarios y roles" subtitle={users ? (canEdit ? 'Cambia el rol de acceso de cada cuenta o elimínala. Administrador = acceso total.' : 'Solo un administrador puede cambiar roles o eliminar cuentas.') + ' • ' + rows.length + ' de ' + users.length + ' cuenta' + (users.length === 1 ? '' : 's') : 'Cargando…'} bodyStyle={{ paddingTop: 14 }}
       actions={users && users.length > 0 ? <div style={{ width: 240 }}><TextField placeholder="Buscar nombre, email o rol…" value={q} onChange={x => setQ(typeof x === 'string' ? x : x.target.value)} /></div> : null}>
       {users && !users.length ? <div className="mgh-body" style={{ padding: '32px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>Todavía no hay cuentas.</div> :
       users && !rows.length ? <div className="mgh-body" style={{ padding: '32px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>Ninguna cuenta coincide con “{q}”.</div> :
@@ -4367,7 +4382,8 @@ function Administration({ notify, go }) {
         { key: 'e', label: 'Usuario', render: r => <EmployeeCell e={r.e} /> },
         { key: 'emp', label: 'Empleado', render: r => <span style={{ fontFamily: 'var(--font-mono)' }}>{r.emp}</span> },
         { key: 'r', label: 'Rol', render: roleCell },
-        { key: 'active', label: 'Estado', render: r => <Badge size="sm" dot tone={r.active ? 'success' : 'neutral'}>{r.active ? 'Activa' : 'Desactivada'}</Badge> }, { key: 'last', label: 'Último acceso' }]} />}
+        { key: 'active', label: 'Estado', render: r => <Badge size="sm" dot tone={r.active ? 'success' : 'neutral'}>{r.active ? 'Activa' : 'Desactivada'}</Badge> }, { key: 'last', label: 'Último acceso' },
+        ...(canEdit ? [{ key: 'del', label: '', align: 'right', render: r => isMe(r.u) ? null : <IconButton icon="delete" size={28} title={'Eliminar la cuenta ' + r.u.email} onClick={() => { if (!busy) removeUser(r.u); }} /> }] : [])]} />}
     </Card>
     <Card icon="account_tree" title="Approval workflow policy" subtitle="Configured in Approval Workflows" actions={<Button size="sm" variant="ghost" iconRight="arrow_forward" onClick={() => go('workflows')}>Open Approval Workflows</Button>} />
   </Page>;

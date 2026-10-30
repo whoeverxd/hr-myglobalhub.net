@@ -68,7 +68,8 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   passes every `requireRole`). Who may give which role on creation: `ASSIGNABLE_ROLES` in `auth.service.js` (PM →
   employee/contractor/supervisor; a job title never escalates beyond that). Admin changes roles on the profile card
   "Acceso al sistema" (`PUT /employees/:id/account/role`) or for every login at once in `#admin` → "Usuarios y roles"
-  (`PUT /users/:id/role`, also accounts without an employee); never own role, never the last active admin. No "super admin":
+  (`PUT /users/:id/role`, also accounts without an employee); never own role, never the last active admin. The same table
+  deletes a login (`DELETE /users/:id`, admin): login + sessions only — the employee record and payroll history stay. No "super admin":
   `admin` is the top level. Bootstrap admins:
   `node scripts/set-user-role.js --role admin <email…>` (dry run) / `--apply` (reads live Firestore, then asks CAMBIAR).
 - Removing an employee ("Eliminar empleado" on the profile; PM for team accounts, admin for any; never yourself or the

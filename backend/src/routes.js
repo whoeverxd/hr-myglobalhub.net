@@ -429,6 +429,9 @@ router.get('/employees/:id/account', authenticate, requireRole('pm', 'hr', 'admi
 router.put('/users/:id/role', authenticate, requireRole('admin'), (req, res, next) => {
   try { res.json(authService.setUserRole({ userId: req.params.id, role: (req.body || {}).role, actor: req.user, ip: getClientIp(req) })); } catch (err) { next(err); }
 });
+router.delete('/users/:id', authenticate, requireRole('admin'), (req, res, next) => {
+  try { res.json(authService.deleteUser({ userId: req.params.id, actor: req.user, ip: getClientIp(req) })); } catch (err) { next(err); }
+});
 router.put('/employees/:id/account/role', authenticate, requireRole('admin'), (req, res, next) => {
   try { res.json(authService.setRoleForEmployee({ employeeId: req.params.id, role: (req.body || {}).role, actor: req.user, ip: getClientIp(req) })); } catch (err) { next(err); }
 });
