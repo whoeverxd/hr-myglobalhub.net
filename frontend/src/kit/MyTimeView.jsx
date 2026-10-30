@@ -2,6 +2,9 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { calculateQuincena, localDateStr } from '../lib/periodService.js';
 import { MySheets, MyHistory, EDITABLE, statusLabel, statusTone } from './MyTimesheets.jsx';
 import ActivityFormModal, { WORK_TYPES, isMeetingCopy, fmtDuration } from './ActivityFormModal.jsx';
+import ActivityViewModal from './ActivityViewModal.jsx';
+
+const DAILY_GOAL = 8; // hours per working day
 export { calculateQuincena };
 
 // #myentry → daily activity log • #mysheets → my quincena timesheets • #myhistory → approval timeline
@@ -39,6 +42,7 @@ function MyTimeEntry({ user, empId, notify, go }) {
 
   // Activity form (ActivityFormModal): { date, initialTask } to log • { activity } to edit
   const [form, setForm] = useState(null);
+  const [viewAct, setViewAct] = useState(null); // read-only detail of a clicked task card
 
   // Filter by work type inside quincena
   const [typeFilter, setTypeFilter] = useState('ALL');
@@ -564,20 +568,17 @@ function MyTimeEntry({ user, empId, notify, go }) {
           <table style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--mgh-surface-1)', borderBottom: '1px solid var(--mgh-surface-2)' }}>
-                <th style={{ width: '180px', textAlign: 'left', padding: '12px 16px', font: '700 11px/14px var(--font-sans)', textTransform: 'uppercase', color: 'var(--mgh-ink-3)', letterSpacing: '0.5px' }}>
-                  Fecha y Día
-                </th>
-                <th style={{ textAlign: 'left', padding: '12px 16px', font: '700 11px/14px var(--font-sans)', textTransform: 'uppercase', color: 'var(--mgh-ink-3)', letterSpacing: '0.5px' }}>
-                  Tareas y Entregables de la Jornada
-                </th>
-                <th style={{ width: '120px', textAlign: 'right', padding: '12px 16px', font: '700 11px/14px var(--font-sans)', textTransform: 'uppercase', color: 'var(--mgh-ink-3)', letterSpacing: '0.5px' }}>
-                  Total Horas
+                <th style={{ width: '200px', textAlign: 'left', padding: '12px 16px', font: '700 11px/14px var(--font-sans)', textTransform: 'uppercase', color: 'var(--mgh-ink-3)', letterSpacing: '0.5px' }}>
+                  Fecha y horas del día
                 </th>
                 <th style={{ width: '140px', textAlign: 'center', padding: '12px 16px', font: '700 11px/14px var(--font-sans)', textTransform: 'uppercase', color: 'var(--mgh-ink-3)', letterSpacing: '0.5px' }}>
                   Estado
                 </th>
-                <th style={{ width: '130px', textAlign: 'center', padding: '12px 16px', font: '700 11px/14px var(--font-sans)', textTransform: 'uppercase', color: 'var(--mgh-ink-3)', letterSpacing: '0.5px' }}>
+                <th style={{ width: '110px', textAlign: 'center', padding: '12px 16px', font: '700 11px/14px var(--font-sans)', textTransform: 'uppercase', color: 'var(--mgh-ink-3)', letterSpacing: '0.5px' }}>
                   Acción
+                </th>
+                <th style={{ textAlign: 'left', padding: '12px 16px', font: '700 11px/14px var(--font-sans)', textTransform: 'uppercase', color: 'var(--mgh-ink-3)', letterSpacing: '0.5px' }}>
+                  Tareas y Entregables de la Jornada
                 </th>
               </tr>
             </thead>
@@ -596,7 +597,7 @@ function MyTimeEntry({ user, empId, notify, go }) {
                 let statusBadge = null;
                 if (day.isWeekend && dayTotal === 0) {
                   statusBadge = <Badge tone="neutral" size="sm">Fin de semana</Badge>;
-                } else if (dayTotal >= 8) {
+                } else if (dayTotal >= DAILY_GOAL) {
                   statusBadge = <Badge tone="success" dot={true} size="sm">Jornada completa</Badge>;
                 } else if (dayTotal > 0) {
                   statusBadge = <Badge tone="warning" dot={true} size="sm">Parcial ({fmtDuration(dayTotal)})</Badge>;
@@ -643,7 +644,52 @@ function MyTimeEntry({ user, empId, notify, go }) {
                         <span style={{ font: '500 11px/14px var(--font-mono)', color: 'var(--mgh-ink-3)' }}>
                           {day.dateStr}
                         </span>
+                        {/* Logged / daily goal (weekends only show what was logged) */}
+                        {!(day.isWeekend && dayTotal === 0) && (
+                          <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <span style={{ font: '800 15px/20px var(--font-sans)', fontVariantNumeric: 'tabular-nums', color: dayTotal >= DAILY_GOAL ? 'var(--mgh-success)' : dayTotal > 0 ? 'var(--mgh-warning)' : 'var(--mgh-ink-3)' }}>
+                              {fmtDuration(dayTotal)}{day.isWeekend ? '' : <span style={{ fontWeight: 600, color: 'var(--mgh-ink-3)' }}> / {fmtDuration(DAILY_GOAL)}</span>}
+                            </span>
+                            {!day.isWeekend && (
+                              <div style={{ width: '120px', height: '4px', borderRadius: '9999px', background: 'var(--mgh-surface-2)', overflow: 'hidden' }}>
+                                <div style={{ width: Math.min(100, (dayTotal / DAILY_GOAL) * 100) + '%', height: '100%', background: dayTotal >= DAILY_GOAL ? 'var(--mgh-success)' : 'var(--mgh-warning)' }} />
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
+                    </td>
+
+                    {/* Status Column */}
+                    <td style={{ padding: '14px 16px', textAlign: 'center', verticalAlign: 'top' }}>
+                      {statusBadge}
+                    </td>
+
+                    {/* Action Column */}
+                    <td style={{ padding: '14px 16px', textAlign: 'center', verticalAlign: 'top' }}>
+                      <button
+                        disabled={readOnly}
+                                    onClick={() => openNewTaskModal(day.dateStr)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '6px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid var(--mgh-surface-2)',
+                          background: day.isToday ? 'var(--mgh-primary-50)' : '#fff',
+                          color: day.isToday ? 'var(--mgh-primary)' : 'var(--mgh-ink-2)',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          cursor: readOnly ? 'not-allowed' : 'pointer',
+                          opacity: readOnly ? 0.35 : 1,
+                          transition: 'all 0.15s ease'
+                        }}
+                        title={`Registrar tarea para el ${day.dateStr}`}
+                      >
+                        <Icon name="add" size={14} />
+                        Tarea
+                      </button>
                     </td>
 
                     {/* Tasks Column */}
@@ -661,6 +707,12 @@ function MyTimeEntry({ user, empId, notify, go }) {
                             return (
                               <div
                                 key={act.id}
+                                role="button"
+                                tabIndex={0}
+                                title="Ver la actividad"
+                                onClick={() => setViewAct(act)}
+                                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewAct(act); } }}
+                                className="mgh-myentry-task"
                                 style={{
                                   display: 'flex',
                                   alignItems: 'center',
@@ -670,7 +722,8 @@ function MyTimeEntry({ user, empId, notify, go }) {
                                   background: '#fff',
                                   border: '1px solid var(--mgh-surface-2)',
                                   boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                                  gap: '12px'
+                                  gap: '12px',
+                                  cursor: 'pointer'
                                 }}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
@@ -756,7 +809,7 @@ function MyTimeEntry({ user, empId, notify, go }) {
 
                                   <button
                                     disabled={readOnly || isMeetingCopy(act)}
-                                    onClick={() => openEditTask(act)}
+                                    onClick={e => { e.stopPropagation(); openEditTask(act); }}
                                     style={{
                                       background: 'transparent',
                                       border: 'none',
@@ -774,7 +827,7 @@ function MyTimeEntry({ user, empId, notify, go }) {
                                   </button>
                                   <button
                                     disabled={readOnly}
-                                    onClick={() => handleDeleteTask(act.id, act.jiraSummary || act.jiraKey)}
+                                    onClick={e => { e.stopPropagation(); handleDeleteTask(act.id, act.jiraSummary || act.jiraKey); }}
                                     style={{
                                       background: 'transparent',
                                       border: 'none',
@@ -796,56 +849,6 @@ function MyTimeEntry({ user, empId, notify, go }) {
                           })}
                         </div>
                       )}
-                    </td>
-
-                    {/* Total Hours Column */}
-                    <td style={{ padding: '14px 16px', textAlign: 'right', verticalAlign: 'top' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                        <span style={{
-                          font: '800 16px/22px var(--font-sans)',
-                          color: dayTotal >= 8 ? 'var(--mgh-success)' : (dayTotal > 0 ? 'var(--mgh-warning)' : 'var(--mgh-ink-3)'),
-                          fontVariantNumeric: 'tabular-nums'
-                        }}>
-                          {dayTotal > 0 ? fmtDuration(dayTotal) : '—'}
-                        </span>
-                        {dayTotal > 0 && (
-                          <span style={{ fontSize: '11px', color: 'var(--mgh-ink-3)' }}>
-                            de 8.0h meta
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Status Column */}
-                    <td style={{ padding: '14px 16px', textAlign: 'center', verticalAlign: 'top' }}>
-                      {statusBadge}
-                    </td>
-
-                    {/* Action Column */}
-                    <td style={{ padding: '14px 16px', textAlign: 'center', verticalAlign: 'top' }}>
-                      <button
-                        disabled={readOnly}
-                                    onClick={() => openNewTaskModal(day.dateStr)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '6px 10px',
-                          borderRadius: '6px',
-                          border: '1px solid var(--mgh-surface-2)',
-                          background: day.isToday ? 'var(--mgh-primary-50)' : '#fff',
-                          color: day.isToday ? 'var(--mgh-primary)' : 'var(--mgh-ink-2)',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          cursor: readOnly ? 'not-allowed' : 'pointer',
-                          opacity: readOnly ? 0.35 : 1,
-                          transition: 'all 0.15s ease'
-                        }}
-                        title={`Registrar tarea para el ${day.dateStr}`}
-                      >
-                        <Icon name="add" size={14} />
-                        Tarea
-                      </button>
                     </td>
                   </tr>
                 );
@@ -890,6 +893,15 @@ function MyTimeEntry({ user, empId, notify, go }) {
           onSaved={() => loadPeriodActivities()}
         />
       )}
+
+      {viewAct && (
+        <ActivityViewModal
+          activity={viewAct}
+          onClose={() => setViewAct(null)}
+          onEdit={readOnly || isMeetingCopy(viewAct) ? null : act => { setViewAct(null); openEditTask(act); }}
+        />
+      )}
+      <style>{'.mgh-myentry-task:hover{border-color:var(--mgh-primary)!important;background:var(--mgh-surface-1)!important}.mgh-myentry-task:focus-visible{outline:2px solid var(--mgh-primary);outline-offset:1px}'}</style>
 
     </div>
   );
