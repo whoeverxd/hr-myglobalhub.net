@@ -746,6 +746,8 @@ const jiraService = {
   /**
    * Búsqueda local de tareas en SQLite (< 5ms) para autocompletado y selectores
    */
+  // Newest ticket first, by the date Jira created it. Ordering by cached_at put them in no order at all:
+  // a bulk sync writes the same cached_at on every row it touches, so the tie was broken by nothing.
   searchIssues({ query = '', projectKey = null, limit = 20 } = {}) {
     const qLower = (query || '').toLowerCase().trim();
     const config = getJiraConfig();
@@ -756,12 +758,12 @@ const jiraService = {
         rows = db.query(
           `SELECT * FROM jira_issues_cache
            WHERE LOWER(key) LIKE ? OR LOWER(summary) LIKE ? OR LOWER(assignee_name) LIKE ?
-           ORDER BY cached_at DESC LIMIT ?`,
+           ORDER BY jira_created_at DESC, cached_at DESC LIMIT ?`,
           [`%${qLower}%`, `%${qLower}%`, `%${qLower}%`, limit]
         );
       } else {
         rows = db.query(
-          `SELECT * FROM jira_issues_cache ORDER BY cached_at DESC LIMIT ?`,
+          `SELECT * FROM jira_issues_cache ORDER BY jira_created_at DESC, cached_at DESC LIMIT ?`,
           [limit]
         );
       }

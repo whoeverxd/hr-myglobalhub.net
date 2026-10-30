@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const db = require('../db');
 const { logAction } = require('../controllers/audit.controller');
 const jiraService = require('./jira.service');
-const { todayLocal } = require('../utils/today');
+const { todayLocal, nowStamp } = require('../utils/today');
 
 const DEFAULT_STATUS_TEMPLATES = [
   { name: 'To Do', category: 'todo', color: '#64748b', is_default: 1, is_done: 0 },
@@ -447,7 +447,11 @@ class AgileService {
       params.push(q, q, q);
     }
 
-    sql += ' ORDER BY pt.order_index ASC, pt.created_at DESC';
+    // order_index is the manual board order: a new task gets MAX + 1, so it always lands LAST. That is right
+    // for a kanban column someone arranged by hand, and wrong for a list you scan to find what you just created.
+    sql += filters.sort === 'recent'
+      ? ' ORDER BY pt.created_at DESC'
+      : ' ORDER BY pt.order_index ASC, pt.created_at DESC';
 
     if (filters.limit) {
       sql += ' LIMIT ?';
@@ -522,14 +526,18 @@ class AgileService {
          task_type, priority, estimate_hours, story_points,
          assignee_id, assignee_name, assignee_avatar,
          reporter_id, reporter_name, order_index,
-         origin_jira_key, origin_jira_url, labels
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         origin_jira_key, origin_jira_url, labels,
+         created_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, taskKey, proj.id, sprintId, statusId, title, description,
         taskType, priority, estimateHours, storyPoints,
         assigneeId, assigneeName, assigneeAvatar,
         user, user, orderIndex,
-        originJiraKey, originJiraUrl, labels
+        originJiraKey, originJiraUrl, labels,
+        // `DEFAULT (datetime('now'))` is a SQLite clause: initSchema() never runs on Firestore, so there the
+        // column simply stayed empty and anything that ordered or filtered by it read a blank.
+        nowStamp(), nowStamp()
       ]
     );
 
@@ -675,7 +683,9 @@ class AgileService {
       params.push(q, q, q);
     }
 
-    sql += ' ORDER BY pt.updated_at DESC LIMIT ?';
+    // Newest first by creation date, which every row has. updated_at is only written by an UPDATE, so a task
+    // nobody had touched yet carried none and sorted last -- exactly the task you just made and came to find.
+    sql += ' ORDER BY pt.created_at DESC LIMIT ?';
     params.push(Number(limit) || 15);
 
     return db.query(sql, params);

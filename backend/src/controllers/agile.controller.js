@@ -110,8 +110,8 @@ async function deleteSprint(req, res, next) {
 async function listTasks(req, res, next) {
   try {
     const { key } = req.params;
-    const { sprintId, inBacklog, statusId, assigneeId, query, limit } = req.query;
-    const tasks = agileService.listTasks(key, { sprintId, inBacklog, statusId, assigneeId, query, limit });
+    const { sprintId, inBacklog, statusId, assigneeId, query, limit, sort } = req.query;
+    const tasks = agileService.listTasks(key, { sprintId, inBacklog, statusId, assigneeId, query, limit, sort });
     res.json(tasks);
   } catch (err) {
     next(err);

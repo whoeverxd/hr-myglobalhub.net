@@ -12,4 +12,11 @@ function currentYearLocal(now = Date.now()) {
   return Number(todayLocal(now).slice(0, 4));
 }
 
-module.exports = { todayLocal, currentYearLocal };
+// An instant for a row we write ourselves. Same shape the Firestore adapter already stamps on created_at, so
+// ordering by a timestamp never compares two different spellings of the same moment.
+function nowStamp(now = Date.now()) {
+  const ms = now instanceof Date ? now.getTime() : Number(now);
+  return new Date(ms).toISOString();
+}
+
+module.exports = { todayLocal, currentYearLocal, nowStamp };
