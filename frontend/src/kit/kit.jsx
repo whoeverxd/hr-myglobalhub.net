@@ -1424,7 +1424,17 @@ function EmployeeProfileInner({ empId, go, notify }) {
     finally { setRoleBusy(false); }
   };
   // Form starts from the stored values only (no sample cédula / bank / rate)
-  const initialForm = () => ({ name: e.name || '', phone: e.phone || '', role: e.role || '', dept: e.dept || '', type: e.type || 'Full-time', entity: e.entity || '', loc: e.loc || '', mgr: e.mgr || '', project: e.project || '', rate: e.rate || '', bank: e.bank || '', nid: e.nid || '' });
+  // Direct manager = another active employee. Stored by name, as Add Employee, the profile and the supervisor filters
+  // read it; a value that is no longer an employee (e.g. "Board of Directors") stays selectable so saving keeps it.
+  const managerOptions = (() => {
+    const people = (window.EMPLOYEES || []).filter(x => x.id !== e.id && x.name && !['Terminated', 'Inactive'].includes(x.status))
+      .slice().sort((a, b) => String(a.name).localeCompare(String(b.name)))
+      .map(x => ({ value: x.name, label: x.name + ' • ' + x.id }));
+    const cur = String(e.mgr || '').trim();
+    const legacy = cur && cur !== '—' && !/^unassigned$/i.test(cur) && !people.some(o => o.value === cur) ? [{ value: cur, label: cur + ' (actual)' }] : [];
+    return [{ value: '', label: 'Sin asignar' }, ...legacy, ...people];
+  })();
+  const initialForm = () => ({ name: e.name || '', phone: e.phone || '', role: e.role || '', dept: e.dept || '', type: e.type || 'Full-time', entity: e.entity || '', loc: e.loc || '', mgr: (e.mgr && e.mgr !== '—' && !/^unassigned$/i.test(e.mgr)) ? e.mgr : '', project: e.project || '', rate: e.rate || '', bank: e.bank || '', nid: e.nid || '' });
   const [form, setForm] = React.useState(initialForm);
 
   React.useEffect(() => {
@@ -1602,7 +1612,7 @@ function EmployeeProfileInner({ empId, go, notify }) {
         <Select label="Department" value={form.dept} onChange={x => setForm(f => ({ ...f, dept: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['Executive', 'Engineering', 'Product', 'Design', 'Operations', 'Finance', 'Human Resources']} />
         <TextField label="Base Rate (USD/hr)" type="number" value={String(form.rate)} onChange={x => setForm(f => ({ ...f, rate: typeof x === 'string' ? x : x.target.value }))} />
         <Select label="Empresa" value={form.entity} onChange={x => setForm(f => ({ ...f, entity: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['MGH Dominicana SRL']} />
-        <TextField label="Direct Manager" value={form.mgr} onChange={x => setForm(f => ({ ...f, mgr: typeof x === 'string' ? x : x.target.value }))} />
+        <Select label="Direct Manager" value={form.mgr} onChange={x => setForm(f => ({ ...f, mgr: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={managerOptions} />
         <TextField label="Primary Bank" value={form.bank} onChange={x => setForm(f => ({ ...f, bank: typeof x === 'string' ? x : x.target.value }))} />
         <TextField label="RNC / Cédula Personal" value={form.nid} mono onChange={x => setForm(f => ({ ...f, nid: typeof x === 'string' ? x : x.target.value }))} />
         <TextField label="Work Location" value={form.loc} onChange={x => setForm(f => ({ ...f, loc: typeof x === 'string' ? x : x.target.value }))} />
