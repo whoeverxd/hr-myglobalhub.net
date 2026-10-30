@@ -19,6 +19,7 @@ export default function MyProjects({ notify, go, currentUser }) {
   const [projTasks, setProjTasks] = useState([]);
   const [statusesByProject, setStatusesByProject] = useState({});
   const [newTitle, setNewTitle] = useState('');
+  const [taskQuery, setTaskQuery] = useState('');
   const [busy, setBusy] = useState(false);
 
   const loadStatuses = useCallback(async (key) => {
@@ -46,7 +47,7 @@ export default function MyProjects({ notify, go, currentUser }) {
   useEffect(() => {
     if (!sel) { setProjTasks([]); return; }
     let cancel = false;
-    window.api.projectTasks(sel).then((r) => { if (!cancel) setProjTasks(Array.isArray(r) ? r : []); }).catch(() => { if (!cancel) setProjTasks([]); });
+    window.api.projectTasks(sel, { sort: 'recent' }).then((r) => { if (!cancel) setProjTasks(Array.isArray(r) ? r : []); }).catch(() => { if (!cancel) setProjTasks([]); });
     loadStatuses(sel);
     return () => { cancel = true; };
   }, [sel]);
@@ -57,7 +58,7 @@ export default function MyProjects({ notify, go, currentUser }) {
       await window.api.moveTask(task.id, { statusId });
       notify && notify(task.task_key + ' actualizada');
       await load();
-      if (sel) setProjTasks(await window.api.projectTasks(sel));
+      if (sel) setProjTasks(await window.api.projectTasks(sel, { sort: 'recent' }));
     } catch (e) {
       notify && notify('No se pudo actualizar • ' + e.message);
     }
@@ -70,7 +71,7 @@ export default function MyProjects({ notify, go, currentUser }) {
       notify && notify(t.task_key + ' creada y asignada a ti');
       setNewTitle('');
       await load();
-      setProjTasks(await window.api.projectTasks(sel));
+      setProjTasks(await window.api.projectTasks(sel, { sort: 'recent' }));
     } catch (e) {
       notify && notify('No se pudo crear la tarea • ' + e.message);
     } finally {
@@ -82,6 +83,12 @@ export default function MyProjects({ notify, go, currentUser }) {
     go && go('myentry');
   };
 
+  // The endpoint returns the whole project (no limit), so filtering here searches all of it, not a first page
+  const shownTasks = useMemo(() => {
+    const q = taskQuery.trim().toLowerCase();
+    if (!q) return projTasks;
+    return projTasks.filter((t) => `${t.task_key} ${t.title || ''} ${t.assignee_name || ''}`.toLowerCase().includes(q));
+  }, [projTasks, taskQuery]);
   const open = myTasks.filter((t) => !t.status_is_done && t.status_category !== 'done');
   const logged = myTasks.reduce((s, t) => s + (Number(t.logged_hours) || 0), 0);
   const selProject = (projects || []).find((p) => p.key === sel);
@@ -139,10 +146,18 @@ export default function MyProjects({ notify, go, currentUser }) {
             <div style={{ flex: '1 1 260px' }}><TextField label={'Nueva tarea en ' + (selProject ? selProject.name : '')} value={newTitle} onChange={(x) => setNewTitle(typeof x === 'string' ? x : x.target.value)} placeholder="Título de la tarea (quedará asignada a ti)" /></div>
             <Button icon="add" disabled={busy || !newTitle.trim()} onClick={create}>Crear tarea</Button>
           </div>
-          {!projTasks.length ? <div className="mgh-body" style={{ color: 'var(--mgh-ink-3)' }}>Este proyecto aún no tiene tareas.</div> : (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
+            <div style={{ flex: '1 1 260px' }}>
+              <TextField label="Buscar tarea" value={taskQuery} onChange={(x) => setTaskQuery(typeof x === 'string' ? x : x.target.value)} placeholder="Clave, título o responsable" />
+            </div>
+            <div className="mgh-body" style={{ color: 'var(--mgh-ink-3)', font: '500 12px/16px var(--font-sans)', paddingTop: 18 }}>
+              {taskQuery.trim() ? `${shownTasks.length} de ${projTasks.length}` : `${projTasks.length} tarea${projTasks.length === 1 ? '' : 's'}`}
+            </div>
+          </div>
+          {!shownTasks.length ? <div className="mgh-body" style={{ color: 'var(--mgh-ink-3)' }}>{projTasks.length ? `Ninguna tarea coincide con "${taskQuery.trim()}".` : 'Este proyecto aún no tiene tareas.'}</div> : (
             <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
               <thead><tr>{['Tarea', 'Responsable', 'Estado', 'Sprint', 'Estimado'].map((c) => <th key={c} style={th}>{c}</th>)}</tr></thead>
-              <tbody>{projTasks.map((t) => (
+              <tbody>{shownTasks.map((t) => (
                 <tr key={t.id}>
                   <td style={td}><b style={{ fontFamily: 'var(--font-mono)' }}>{t.task_key}</b> {t.title}</td>
                   <td style={td}>{t.assignee_name || 'Sin asignar'}{t.assignee_id === me ? ' (tú)' : ''}</td>
