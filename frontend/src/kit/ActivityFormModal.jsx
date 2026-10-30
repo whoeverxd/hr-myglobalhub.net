@@ -67,38 +67,65 @@ export default function ActivityFormModal({ empId, date, activity, initialTask, 
   const [saving, setSaving] = useState(false);
   const fileInput = useRef(null);
 
-  // Escape closes the dialog
+  // A click landing outside the dialog, or Escape, used to close it and throw away everything typed. Both now
+  // go through requestClose: nothing changed since it opened -> close; something changed -> ask first.
+  const formState = JSON.stringify({
+    taskDate, taskKey: task ? task.key : null, title, workType, hours, description,
+    files: files.map(f => f.url || f.id || f.name), links, linkUrl, linkLabel,
+    attendees: attendees.map(a => a.id),
+  });
+  const asOpened = useRef(null);
+  if (asOpened.current === null) asOpened.current = formState;
+  const dirty = formState !== asOpened.current;
+  const requestClose = () => {
+    if (dirty && !window.confirm('Tienes cambios sin guardar en esta actividad. ¿Descartarlos?')) return;
+    onClose();
+  };
+
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e) => { if (e.key === 'Escape') requestClose(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [dirty, onClose]);
 
-  // Tasks of my projects (membership-scoped by the backend; assigned to me first) + the Jira cache
+  // Tasks of my projects (membership-scoped by the backend; assigned to me first) + the Jira cache.
+  // The search runs on the SERVER: what the browser holds is one page of the newest tasks, so filtering
+  // that page found nothing outside it -- type the key of an older ticket and it simply did not exist.
+  const PAGE = '50';
   const [projectTasks, setProjectTasks] = useState([]);
   const [jiraIssues, setJiraIssues] = useState([]);
+  const [searching, setSearching] = useState(false);
   useEffect(() => {
     if (!window.api) return;
-    if (window.api.searchTasks) window.api.searchTasks({ limit: '200' })
-      .then(r => { const l = Array.isArray(r) ? r : []; setProjectTasks(l.sort((a, b) => (b.assignee_id === empId) - (a.assignee_id === empId))); })
-      .catch(() => {});
-    if (window.api.jiraIssues) window.api.jiraIssues()
-      .then(r => setJiraIssues(Array.isArray(r) ? r : []))
-      .catch(() => {});
-  }, [empId]);
-  const taskOptions = useMemo(() => {
-    const all = [
-      ...projectTasks.map(t => ({ key: t.task_key, summary: t.title, project: t.project_name || t.project_key, native: true, mine: t.assignee_id === empId, status: t.status_name })),
-      ...jiraIssues.filter(i => !projectTasks.some(t => t.task_key === i.key || t.origin_jira_key === i.key)).map(i => ({ key: i.key, summary: i.summary, project: i.project, native: false, status: i.status })),
-    ];
-    const q = taskQuery.trim().toLowerCase();
-    return (q ? all.filter(o => `${o.key} ${o.summary || ''}`.toLowerCase().includes(q)) : all).slice(0, 30);
-  }, [projectTasks, jiraIssues, taskQuery, empId]);
+    const q = taskQuery.trim();
+    const params = q ? { query: q, limit: PAGE } : { limit: PAGE };
+    let cancelled = false;
+    setSearching(true);
+    // Typing is debounced; the first, empty load is not
+    const timer = setTimeout(() => {
+      Promise.all([
+        window.api.searchTasks ? window.api.searchTasks(params).catch(() => []) : Promise.resolve([]),
+        window.api.jiraIssues ? window.api.jiraIssues(params).catch(() => []) : Promise.resolve([]),
+      ]).then(([t, j]) => {
+        if (cancelled) return;
+        const list = Array.isArray(t) ? t : [];
+        setProjectTasks(list.sort((a, b) => (b.assignee_id === empId) - (a.assignee_id === empId)));
+        setJiraIssues(Array.isArray(j) ? j : []);
+        setSearching(false);
+      });
+    }, q ? 250 : 0);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [empId, taskQuery]);
+  const taskOptions = useMemo(() => ([
+    ...projectTasks.map(t => ({ key: t.task_key, summary: t.title, project: t.project_name || t.project_key, native: true, mine: t.assignee_id === empId, status: t.status_name })),
+    ...jiraIssues.filter(i => !projectTasks.some(t => t.task_key === i.key || t.origin_jira_key === i.key)).map(i => ({ key: i.key, summary: i.summary, project: i.project, native: false, status: i.status })),
+  ]), [projectTasks, jiraIssues, empId]);
   // Opened with only a task key (from "Mis proyectos → Registrar horas"): take its title once the tasks load
   useEffect(() => {
     if (!task || task.summary) return;
     const t = projectTasks.find(x => x.task_key === task.key);
-    if (t) { setTask({ ...task, summary: t.title }); setTitle(prev => prev || t.title); }
+    // Filling the title from the task is not the user typing: re-baseline, or closing an untouched form would ask
+    if (t) { setTask({ ...task, summary: t.title }); setTitle(prev => prev || t.title); asOpened.current = null; }
   }, [projectTasks]);
   const pickTask = (t) => { setTask(t); setTaskQuery(''); if (t.summary) setTitle(t.summary); };
 
@@ -206,7 +233,7 @@ export default function ActivityFormModal({ empId, date, activity, initialTask, 
 
   const q = taskQuery.trim();
   return (
-    <div className="mgh-actmodal-overlay" onClick={onClose}>
+    <div className="mgh-actmodal-overlay" onClick={requestClose}>
       <style>{CSS}</style>
       <div className="mgh-actmodal" role="dialog" aria-modal="true" aria-labelledby="mgh-actmodal-title" onClick={e => e.stopPropagation()}>
         <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--mgh-surface-2)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
@@ -218,7 +245,7 @@ export default function ActivityFormModal({ empId, date, activity, initialTask, 
               Las horas cuentan en tu hoja de la quincena mientras esté en borrador o devuelta.
             </div>
           </div>
-          <IconButton icon="close" title="Cerrar" onClick={onClose} />
+          <IconButton icon="close" title="Cerrar" onClick={requestClose} />
         </div>
 
         <form onSubmit={save} className="mgh-actmodal-body">
@@ -268,6 +295,13 @@ export default function ActivityFormModal({ empId, date, activity, initialTask, 
                       {o.mine ? <span style={{ fontSize: 11, color: 'var(--mgh-ink-3)', flexShrink: 0 }}>asignada a ti</span> : null}
                     </button>
                   ))}
+                  {searching && !taskOptions.length ? (
+                    <div style={{ padding: '6px 10px', font: '500 12px/16px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>Buscando…</div>
+                  ) : !searching && !taskOptions.length ? (
+                    <div style={{ padding: '6px 10px', font: '500 12px/16px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>
+                      {q ? `Ninguna tarea coincide con "${q}".` : 'Todavía no hay tareas en tus proyectos.'}
+                    </div>
+                  ) : null}
                   {q && /^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(q) && !taskOptions.some(o => o.key.toLowerCase() === q.toLowerCase()) && (
                     <button type="button" onClick={() => pickTask({ key: q.toUpperCase(), summary: title })}
                       style={{ padding: '6px 10px', borderRadius: 6, border: '1px dashed var(--mgh-surface-3)', background: '#fff', cursor: 'pointer', textAlign: 'left', font: '600 12px/16px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>
@@ -396,7 +430,7 @@ export default function ActivityFormModal({ empId, date, activity, initialTask, 
         </form>
 
         <div style={{ padding: '14px 24px', borderTop: '1px solid var(--mgh-surface-2)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <Button size="sm" variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button size="sm" variant="secondary" onClick={requestClose}>Cancelar</Button>
           <Button size="sm" variant="primary" onClick={save} disabled={saving || uploading > 0}>
             {saving ? 'Guardando…' : editing ? 'Guardar cambios' : 'Guardar actividad'}
           </Button>
