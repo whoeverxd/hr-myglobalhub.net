@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { calculateQuincena, localDateStr } from '../lib/periodService.js';
 import { MySheets, MyHistory, EDITABLE, statusLabel, statusTone } from './MyTimesheets.jsx';
-import ActivityFormModal, { WORK_TYPES, isMeetingCopy } from './ActivityFormModal.jsx';
+import ActivityFormModal, { WORK_TYPES, isMeetingCopy, fmtDuration } from './ActivityFormModal.jsx';
 export { calculateQuincena };
 
 // #myentry → daily activity log • #mysheets → my quincena timesheets • #myhistory → approval timeline
@@ -599,7 +599,7 @@ function MyTimeEntry({ user, empId, notify, go }) {
                 } else if (dayTotal >= 8) {
                   statusBadge = <Badge tone="success" dot={true} size="sm">Jornada completa</Badge>;
                 } else if (dayTotal > 0) {
-                  statusBadge = <Badge tone="warning" dot={true} size="sm">Parcial ({dayTotal}h)</Badge>;
+                  statusBadge = <Badge tone="warning" dot={true} size="sm">Parcial ({fmtDuration(dayTotal)})</Badge>;
                 } else if (day.isToday) {
                   statusBadge = <Badge tone="info" dot={true} size="sm">En curso</Badge>;
                 } else {
@@ -734,7 +734,7 @@ function MyTimeEntry({ user, empId, notify, go }) {
                                     {['approved', 'partial', 'rejected'].includes(act.reviewStatus) && (
                                       <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', font: '500 11px/15px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>
                                         <Badge size="sm" tone={act.reviewStatus === 'approved' ? 'success' : act.reviewStatus === 'partial' ? 'warning' : 'danger'}>
-                                          {act.reviewStatus === 'approved' ? 'Aprobada' : act.reviewStatus === 'partial' ? `Aprobadas ${act.approvedHours}h de ${act.hours}h` : 'Horas rechazadas'}
+                                          {act.reviewStatus === 'approved' ? 'Aprobada' : act.reviewStatus === 'partial' ? `Aprobadas ${fmtDuration(act.approvedHours)} de ${fmtDuration(act.hours)}` : 'Horas rechazadas'}
                                         </Badge>
                                         {act.reviewComment ? `“${act.reviewComment}”${act.reviewedBy ? ' — ' + act.reviewedBy : ''}` : null}
                                       </span>
@@ -751,7 +751,7 @@ function MyTimeEntry({ user, empId, notify, go }) {
                                     padding: '3px 8px',
                                     borderRadius: '6px'
                                   }}>
-                                    {Number(act.hours).toFixed(1)}h
+                                    {fmtDuration(act.hours)}
                                   </span>
 
                                   <button
@@ -806,7 +806,7 @@ function MyTimeEntry({ user, empId, notify, go }) {
                           color: dayTotal >= 8 ? 'var(--mgh-success)' : (dayTotal > 0 ? 'var(--mgh-warning)' : 'var(--mgh-ink-3)'),
                           fontVariantNumeric: 'tabular-nums'
                         }}>
-                          {dayTotal > 0 ? `${dayTotal.toFixed(1)}h` : '—'}
+                          {dayTotal > 0 ? fmtDuration(dayTotal) : '—'}
                         </span>
                         {dayTotal > 0 && (
                           <span style={{ fontSize: '11px', color: 'var(--mgh-ink-3)' }}>

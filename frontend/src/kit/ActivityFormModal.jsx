@@ -17,6 +17,17 @@ export const isMeetingCopy = (act) => !!(act && act.loggedBy && act.loggedBy !==
 
 const MEETING_ORGANIZER_ROLES = ['pm', 'supervisor', 'admin'];
 
+// Durations are stored as decimal hours (2.25) but shown and typed as hours + minutes ("2h 15m"):
+// "2.15" used to read as 2h 15m while it means 2h 09m.
+export function fmtDuration(hours) {
+  const total = Math.round((Number(hours) || 0) * 60);
+  const h = Math.floor(total / 60), m = total % 60;
+  return h && m ? `${h}h ${m}m` : m ? `${m}m` : `${h}h`;
+}
+const splitHours = (hours) => { const total = Math.round((Number(hours) || 0) * 60); return [String(Math.floor(total / 60)), String(total % 60)]; };
+const MINUTE_OPTIONS = ['0', '15', '30', '45'];
+const PRESETS = [0.5, 1, 2, 4, 8];
+
 const CSS = `
 .mgh-actmodal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.5);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px}
 .mgh-actmodal{width:640px;max-width:100%;max-height:calc(100vh - 40px);background:#fff;border-radius:16px;box-shadow:var(--shadow-xl);display:flex;flex-direction:column;overflow:hidden}
@@ -25,6 +36,7 @@ const CSS = `
 .mgh-actmodal-label{display:block;font:600 12px/16px var(--font-sans);color:var(--mgh-ink);margin-bottom:6px}
 .mgh-actmodal-input{width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1px solid var(--mgh-surface-3,#D5DAE6);font:500 13px/18px var(--font-sans);color:var(--mgh-ink);background:#fff;outline:none}
 .mgh-actmodal-input:focus{border-color:var(--mgh-primary)}
+.mgh-actmodal-unit{font:600 13px/18px var(--font-sans);color:var(--mgh-ink-3)}
 .mgh-actmodal-chip{padding:5px 10px;border-radius:8px;border:1px solid var(--mgh-surface-2);background:var(--mgh-surface-1);font:600 12px/16px var(--font-sans);color:var(--mgh-ink-2);cursor:pointer}
 @media (max-width:640px){
   .mgh-actmodal-overlay{padding:0}
@@ -54,7 +66,10 @@ export default function ActivityFormModal({ empId, date, activity, initialTask, 
   const [taskQuery, setTaskQuery] = useState('');
   const [title, setTitle] = useState((activity && activity.jiraSummary) || (initialTask && initialTask.summary) || '');
   const [workType, setWorkType] = useState((activity && activity.workType) || 'Desarrollo');
-  const [hours, setHours] = useState(activity ? String(activity.hours) : '2.0');
+  const [[hrs, mins], setDuration] = useState(() => (activity ? splitHours(activity.hours) : ['2', '0']));
+  const setHrs = (v) => setDuration(([, m]) => [v, m]);
+  const setMins = (v) => setDuration(([h]) => [h, v]);
+  const hours = Math.round(((Number(hrs) || 0) + (Number(mins) || 0) / 60) * 10000) / 10000;
   const [description, setDescription] = useState((activity && activity.description) || '');
   const [files, setFiles] = useState((activity && activity.files) || []);
   const [links, setLinks] = useState((activity && activity.links) || []);
@@ -190,8 +205,8 @@ export default function ActivityFormModal({ empId, date, activity, initialTask, 
   const save = async (e) => {
     if (e) e.preventDefault();
     if (!empId || !window.api) { if (notify) notify('Tu usuario no tiene un empleado asociado; no se puede registrar la actividad'); return; }
-    const parsedHours = parseFloat(hours);
-    if (isNaN(parsedHours) || parsedHours <= 0 || parsedHours > 24) { if (notify) notify('Ingresa una duración válida en horas (entre 0.25 y 24)'); return; }
+    const parsedHours = hours;
+    if (!/^\d{0,2}$/.test(String(hrs).trim()) || parsedHours <= 0 || parsedHours > 24) { if (notify) notify('Indica cuánto tiempo dedicaste: entre 15 minutos y 24 horas'); return; }
     if (!description.trim()) { if (notify) notify('Describe el trabajo realizado'); return; }
     if (uploading) { if (notify) notify('Espera a que terminen de subir las evidencias'); return; }
     // A link typed but not added with "+ Agregar" is still saved
@@ -219,7 +234,7 @@ export default function ActivityFormModal({ empId, date, activity, initialTask, 
           const skipped = m.skipped.length ? ` No se agregó a ${m.skipped.map(s => `${s.name} (hoja ${s.periodId} ${statusLabel(s.status)})`).join(', ')}.` : '';
           notify(`Reunión registrada para ti y ${m.created.length} asistente${m.created.length === 1 ? '' : 's'}.${skipped}`);
         } else {
-          notify(editing ? `Actividad ${key} actualizada (${parsedHours}h)` : `Actividad ${key} registrada para el ${taskDate} (+${parsedHours}h)`);
+          notify(editing ? `Actividad ${key} actualizada (${fmtDuration(parsedHours)})` : `Actividad ${key} registrada para el ${taskDate} (+${fmtDuration(parsedHours)})`);
         }
       }
       onSaved && onSaved(saved);
@@ -256,16 +271,25 @@ export default function ActivityFormModal({ empId, date, activity, initialTask, 
               <input id="act-date" className="mgh-actmodal-input" type="date" required value={taskDate} onChange={e => setTaskDate(e.target.value)} />
             </div>
             <div>
-              <label className="mgh-actmodal-label" htmlFor="act-hours">Horas dedicadas</label>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input id="act-hours" className="mgh-actmodal-input" style={{ width: 90, fontWeight: 700 }} type="number" step="0.25" min="0.25" max="24" required value={hours} onChange={e => setHours(e.target.value)} />
-                {['0.5', '1.0', '2.0', '4.0', '8.0'].map(h => (
-                  <button key={h} type="button" className="mgh-actmodal-chip" onClick={() => setHours(h)}
-                    style={hours === h ? { background: 'var(--mgh-navy)', color: '#fff', borderColor: 'var(--mgh-navy)' } : undefined}>
-                    {parseFloat(h)}h
+              <label className="mgh-actmodal-label" htmlFor="act-hours">Tiempo dedicado</label>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input id="act-hours" aria-label="Horas" className="mgh-actmodal-input" style={{ width: 64, fontWeight: 700, textAlign: 'right' }} type="number" inputMode="numeric" step="1" min="0" max="24" value={hrs}
+                  onChange={e => setHrs(e.target.value.replace(/\D/g, '').slice(0, 2))} />
+                <span className="mgh-actmodal-unit">h</span>
+                <select id="act-mins" aria-label="Minutos" className="mgh-actmodal-input" style={{ width: 72, fontWeight: 700 }} value={mins} onChange={e => setMins(e.target.value)}>
+                  {(MINUTE_OPTIONS.includes(mins) ? MINUTE_OPTIONS : [...MINUTE_OPTIONS, mins].sort((a, b) => a - b)).map(m => <option key={m} value={m}>{m.padStart(2, '0')}</option>)}
+                </select>
+                <span className="mgh-actmodal-unit">min</span>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                {PRESETS.map(p => (
+                  <button key={p} type="button" className="mgh-actmodal-chip" onClick={() => setDuration(splitHours(p))}
+                    style={hours === p ? { background: 'var(--mgh-navy)', color: '#fff', borderColor: 'var(--mgh-navy)' } : undefined}>
+                    {fmtDuration(p)}
                   </button>
                 ))}
               </div>
+              {hours > 24 ? <div style={{ marginTop: 6, font: '500 12px/16px var(--font-sans)', color: 'var(--mgh-danger)' }}>Máximo 24 horas por actividad.</div> : null}
             </div>
           </div>
 

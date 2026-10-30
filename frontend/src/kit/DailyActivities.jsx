@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getQuincenaForDate } from '../lib/periodService.js';
 import { EDITABLE, statusLabel } from './MyTimesheets.jsx';
-import ActivityFormModal, { WORK_TYPES, isMeetingCopy } from './ActivityFormModal.jsx';
+import ActivityFormModal, { WORK_TYPES, isMeetingCopy, fmtDuration } from './ActivityFormModal.jsx';
 
 export { WORK_TYPES };
 
@@ -83,8 +83,8 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
 
   const dailyGoal = 8.0;
   const progressPercent = Math.min(100, Math.round((totalHours / dailyGoal) * 100));
-  const remainingHours = Math.max(0, +(dailyGoal - totalHours).toFixed(1));
-  const otHours = Math.max(0, +(totalHours - dailyGoal).toFixed(1));
+  const remainingHours = Math.max(0, dailyGoal - totalHours);
+  const otHours = Math.max(0, totalHours - dailyGoal);
 
   // Navegación de fechas
   const shiftDate = (days) => {
@@ -219,7 +219,7 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
                 Horas en Tareas
               </div>
               <div style={{ font: '700 22px/26px var(--font-sans)', color: totalHours >= dailyGoal ? 'var(--mgh-success)' : 'var(--mgh-primary)' }}>
-                {totalHours.toFixed(1)}h
+                {fmtDuration(totalHours)}
               </div>
             </div>
             <div style={{ width: 1, height: 32, background: 'var(--mgh-surface-2)' }} />
@@ -228,7 +228,7 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
                 Meta Diaria
               </div>
               <div style={{ font: '600 20px/26px var(--font-sans)', color: 'var(--mgh-ink)' }}>
-                {dailyGoal.toFixed(1)}h
+                {fmtDuration(dailyGoal)}
               </div>
             </div>
             <div style={{ width: 1, height: 32, background: 'var(--mgh-surface-2)' }} />
@@ -237,7 +237,7 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
                 {otHours > 0 ? 'Horas Extra (OT)' : 'Faltante'}
               </div>
               <div style={{ font: '600 20px/26px var(--font-sans)', color: otHours > 0 ? '#F59E0B' : 'var(--mgh-ink-2)' }}>
-                {otHours > 0 ? `+${otHours.toFixed(1)}h` : `${remainingHours.toFixed(1)}h`}
+                {otHours > 0 ? `+${fmtDuration(otHours)}` : fmtDuration(remainingHours)}
               </div>
             </div>
           </div>
@@ -247,7 +247,7 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', font: '600 12px/16px var(--font-sans)', marginBottom: 6, color: 'var(--mgh-ink-2)' }}>
             <span>Cumplimiento de Jornada: {progressPercent}%</span>
-            <span>{totalHours.toFixed(1)} / {dailyGoal.toFixed(1)} horas</span>
+            <span>{fmtDuration(totalHours)} de {fmtDuration(dailyGoal)}</span>
           </div>
           <ProgressBar value={progressPercent} tone={totalHours >= dailyGoal ? 'success' : 'primary'} />
         </div>
@@ -352,7 +352,7 @@ export default function DailyActivities({ f, setF, go, notify, empId }) {
                       padding: '4px 10px',
                       borderRadius: 8
                     }}>
-                      {Number(act.hours).toFixed(1)}h
+                      {fmtDuration(act.hours)}
                     </div>
                     {canWrite && (isMeetingCopy(act) ? (
                       <span title="Actividad de una reunión: no se puede editar (se perdería el vínculo con la reunión). Solo puedes eliminarla." style={{ display: 'inline-flex', width: 36, height: 36, alignItems: 'center', justifyContent: 'center', color: 'var(--mgh-ink-3)', cursor: 'not-allowed' }}>
