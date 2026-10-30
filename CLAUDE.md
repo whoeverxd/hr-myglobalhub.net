@@ -35,7 +35,10 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   (shipping app) are PROJECTS inside it — not legal entities, tenants or clients. No "MGH USA Inc." / "MGH UK Ltd.".
 - My time (employee, contractor, PM, supervisor — always their OWN record), `src/kit/MyTimeView.jsx` + `MyTimesheets.jsx`:
   `#myentry` log daily activities (only while that quincena's sheet is Draft/Returned) • `#mysheets` one row per quincena,
-  live hours while editable, submit • `#myhistory` status timeline of own sheets + leave. Team review stays in
+  live hours while editable, submit • `#myhistory` status timeline of own sheets + leave. One activity form for
+  `#myentry` and `#actDaily`: `ActivityFormModal.jsx` (centered; task search, evidence upload, links, meeting
+  attendees); edits use `PUT /activities/:id` (in place, clears the review decision; meeting copies → 409).
+  `#actDaily` on someone else's day is read-only (admin may correct). Team review stays in
   `#approvals` / `#queue` / `#timesheets`. Backend rules (`timesheets.controller.js`): hours are computed from activities
   (+ approved paid leave, paid holidays; OT by org rule) and frozen on submit; 0 worked+leave hours can't be submitted;
   only sheets under review can be approved/returned/adjusted; nobody but admin approves their own sheet; activities are

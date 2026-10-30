@@ -1055,6 +1055,22 @@ router.post('/activities', authenticate, (req, res, next) => {
   }
 });
 
+router.put('/activities/:id', authenticate, (req, res, next) => {
+  try {
+    const existing = db.getOne('SELECT employee_id, date FROM daily_activities WHERE id = ?', [req.params.id]);
+    if (!existing) return res.status(404).json({ error: 'Activity not found' });
+    const body = req.body || {};
+    // Both the current day and the new one (if the date moves) must be on an editable sheet
+    for (const date of new Set([existing.date, body.date || existing.date])) {
+      const blocked = activityWriteError(req.user, existing.employee_id, date);
+      if (blocked) return res.status(blocked.status).json({ error: blocked.error });
+    }
+    res.json(activitiesController.updateActivity(req.params.id, body, getUserName(req), getClientIp(req)));
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.delete('/activities/:id', authenticate, (req, res, next) => {
   try {
     const existing = db.getOne('SELECT employee_id, date FROM daily_activities WHERE id = ?', [req.params.id]);

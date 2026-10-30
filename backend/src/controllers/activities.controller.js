@@ -188,6 +188,65 @@ function createMeeting(data, attendeeIds, user = 'System', ip = '127.0.0.1') {
   return { ...toResponse(organizer), meeting: { id: meetingId, created, skipped } };
 }
 
+// A copy created for a meeting attendee: logged by someone else (the organizer). Only deletable, never edited.
+function isMeetingCopy(row) {
+  return !!(row && row.meeting_id && row.logged_by && row.logged_by !== row.employee_id);
+}
+
+/**
+ * Edits an activity in place (same id, employee and meeting). Any earlier review decision is cleared: the
+ * reviewer judged the old content. Owner/admin and sheet-status checks happen in the route.
+ */
+function updateActivity(id, data, user = 'System', ip = '127.0.0.1') {
+  const current = db.getOne(`SELECT * FROM daily_activities WHERE id = ?`, [id]);
+  if (!current) {
+    const err = new Error('Activity not found');
+    err.status = 404;
+    throw err;
+  }
+  if (isMeetingCopy(current)) {
+    const err = new Error('A meeting attendee copy cannot be edited; delete it instead');
+    err.status = 409;
+    throw err;
+  }
+  const a = buildActivity({ ...data, id, employeeId: current.employee_id, empId: current.employee_id, date: data.date || current.date });
+
+  db.transaction(() => {
+    db.execute(
+      `UPDATE daily_activities SET date = ?, jira_key = ?, jira_summary = ?, hours = ?, work_type = ?, description = ?, evidences_json = ?, links_json = ?,
+         review_status = 'pending', approved_hours = NULL, review_comment = NULL, reviewed_by = NULL, reviewed_at = NULL
+       WHERE id = ?`,
+      [a.date, a.jiraKey, a.jiraSummary, a.hours, a.workType, a.description, JSON.stringify(a.files), JSON.stringify(a.links), id]
+    );
+
+    // Move the hours on the native agile task(s): out of the old key, into the new one
+    try {
+      if (current.jira_key) {
+        db.execute(
+          `UPDATE project_tasks SET logged_hours = MAX(0, COALESCE(logged_hours, 0) - ?), updated_at = (datetime('now')) WHERE UPPER(task_key) = ?`,
+          [Number(current.hours) || 0, current.jira_key.toUpperCase()]
+        );
+      }
+      db.execute(
+        `UPDATE project_tasks SET logged_hours = COALESCE(logged_hours, 0) + ?, updated_at = (datetime('now')) WHERE UPPER(task_key) = ?`,
+        [a.hours, a.jiraKey.toUpperCase()]
+      );
+    } catch (_) {}
+
+    logAction({
+      actor: user,
+      action: 'ACTIVITY_UPDATED',
+      entityType: 'activity',
+      entityId: id,
+      oldValues: { date: current.date, jiraKey: current.jira_key, hours: Number(current.hours), workType: current.work_type, description: current.description },
+      newValues: { date: a.date, jiraKey: a.jiraKey, hours: a.hours, workType: a.workType, description: a.description },
+      ip,
+    });
+  });
+
+  return listActivities({ empId: current.employee_id, date: a.date }).find((x) => x.id === id) || toResponse(a);
+}
+
 function deleteActivity(id, user = 'System', ip = '127.0.0.1') {
   const current = db.getOne(`SELECT * FROM daily_activities WHERE id = ?`, [id]);
   if (!current) {
@@ -240,6 +299,7 @@ function getActivitySummary(empId, date) {
 module.exports = {
   listActivities,
   createActivity,
+  updateActivity,
   deleteActivity,
   getActivitySummary,
   createMeeting,

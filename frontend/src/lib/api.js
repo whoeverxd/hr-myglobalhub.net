@@ -231,6 +231,7 @@ export const api = {
     return request('GET', `/activities${q ? `?${q}` : ''}`);
   },
   createActivity: (act) => request('POST', '/activities', act),
+  updateActivity: (id, act) => request('PUT', `/activities/${encodeURIComponent(id)}`, act),
   deleteActivity: (id) => request('DELETE', `/activities/${encodeURIComponent(id)}`),
   activitySummary: (params = {}) => {
     const q = new URLSearchParams(params).toString();
