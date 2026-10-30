@@ -1,6 +1,4 @@
 {
-  "attendance_exceptions": {},
-  "attendance_punches": {},
   "audit_logs": {
     "1": {
       "id": 1,
@@ -23389,270 +23387,655 @@
       "new_values": null
     },
     "1978": {
-      "actor": "User",
-      "action": "USER_LOGOUT",
-      "entity_type": "session",
-      "entity_id": "usr-joshua-com",
+      "id": "1978",
       "old_values": null,
-      "new_values": null,
       "ip_address": "127.0.0.1",
-      "created_at": "2026-10-28T18:00:29.069Z",
-      "id": "1978"
+      "actor": "luis enriquez rodriguez carvajal",
+      "entity_type": "employee",
+      "action": "CREATE_EMPLOYEE",
+      "created_at": "2026-10-28T18:12:54.826Z",
+      "entity_id": "MGH-1180",
+      "new_values": "{\"id\":\"MGH-1180\",\"name\":\"luis enriquez rodriguez carvajal\",\"email\":\"luiscarvajal2693@gmail.com\",\"project\":\"\",\"status\":\"Active\"}"
     },
     "1979": {
-      "actor": "Joshua Hernandez",
-      "action": "USER_LOGIN",
+      "id": "1979",
       "entity_type": "user",
-      "entity_id": "usr_1793131618127_8yfuy",
       "old_values": null,
-      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\",\"provider\":\"google\",\"googleUid\":\"aJhVPkkiWePUXE5ufREZovS160E2\"}",
-      "ip_address": "127.0.0.1",
-      "created_at": "2026-10-28T18:00:36.974Z",
-      "id": "1979"
+      "action": "USER_LOGIN",
+      "actor": "luis enriquez rodriguez carvajal",
+      "created_at": "2026-10-28T18:12:54.836Z",
+      "ip_address": "187.13.207.111",
+      "entity_id": "usr_1793211174813_jhr33",
+      "new_values": "{\"ip\":\"187.13.207.111\",\"role\":\"employee\",\"provider\":\"google\",\"googleUid\":\"RkySRdLMavb1yyVIxChrYn6nrgq2\"}"
     },
     "1980": {
+      "id": "1980",
       "actor": "Joshua Hernandez",
-      "action": "USER_LOGIN",
       "entity_type": "user",
-      "entity_id": "usr_1793131618127_8yfuy",
       "old_values": null,
-      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\"}",
-      "ip_address": "127.0.0.1",
-      "created_at": "2026-10-28T18:19:38.509Z",
-      "id": "1980"
+      "action": "USER_LOGIN",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "created_at": "2026-10-28T18:32:55.201Z",
+      "ip_address": "45.83.145.4",
+      "new_values": "{\"ip\":\"45.83.145.4\",\"role\":\"pm\"}"
     },
     "1981": {
-      "actor": "Joshua Hernandez",
-      "action": "USER_LOGIN",
-      "entity_type": "user",
-      "entity_id": "usr_1793131618127_8yfuy",
+      "id": "1981",
       "old_values": null,
-      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\"}",
-      "ip_address": "127.0.0.1",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "actor": "Joshua Hernandez",
+      "entity_type": "user",
+      "action": "USER_LOGIN",
       "created_at": "2026-10-28T18:48:55.426Z",
-      "id": "1981"
+      "ip_address": "127.0.0.1",
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\"}"
     },
     "1982": {
+      "id": "1982",
       "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "entity_type": "pay_period",
-      "entity_id": "PP-2026-01",
       "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
+      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "created_at": "2026-10-28T20:30:40.056Z",
-      "id": "1982"
+      "ip_address": "cli",
+      "entity_id": "PP-2026-01",
+      "new_values": "{\"status\":\"Open\"}"
     },
     "1983": {
+      "id": "1983",
       "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "entity_type": "pay_period",
-      "entity_id": "PP-2026-02",
       "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
+      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "created_at": "2026-10-28T20:30:40.057Z",
-      "id": "1983"
+      "ip_address": "cli",
+      "entity_id": "PP-2026-02",
+      "new_values": "{\"status\":\"Open\"}"
     },
     "1984": {
+      "id": "1984",
       "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "entity_type": "pay_period",
-      "entity_id": "PP-2026-03",
       "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
+      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "created_at": "2026-10-28T20:30:40.058Z",
-      "id": "1984"
+      "ip_address": "cli",
+      "entity_id": "PP-2026-03",
+      "new_values": "{\"status\":\"Open\"}"
     },
     "1985": {
-      "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
-      "entity_type": "pay_period",
-      "entity_id": "PP-2026-04",
-      "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
-      "created_at": "2026-10-28T20:30:40.058Z",
-      "id": "1985"
+      "id": "1985",
+      "actor": "T Z",
+      "entity_type": "employee",
+      "old_values": null,
+      "action": "CREATE_EMPLOYEE",
+      "created_at": "2026-10-28T20:37:03.620Z",
+      "ip_address": "127.0.0.1",
+      "entity_id": "MGH-1182",
+      "new_values": "{\"id\":\"MGH-1182\",\"name\":\"T Z\",\"email\":\"uraharazamora@gmail.com\",\"project\":\"\",\"status\":\"Active\"}"
     },
     "1986": {
-      "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
-      "entity_type": "pay_period",
-      "entity_id": "PP-2026-05",
-      "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
-      "created_at": "2026-10-28T20:30:40.058Z",
-      "id": "1986"
+      "id": "1986",
+      "actor": "T Z",
+      "entity_type": "user",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "created_at": "2026-10-28T20:37:03.628Z",
+      "ip_address": "45.230.45.134",
+      "entity_id": "usr_1793219823617_ckxrk",
+      "new_values": "{\"ip\":\"45.230.45.134\",\"role\":\"employee\",\"provider\":\"google\",\"googleUid\":\"RCTEKNTf65f8UsNjl91xQhmJt2c2\"}"
     },
     "1987": {
-      "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
-      "entity_type": "pay_period",
-      "entity_id": "PP-2026-06",
-      "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
-      "created_at": "2026-10-28T20:30:40.059Z",
-      "id": "1987"
+      "id": "1987",
+      "actor": "Joshua Hernandez",
+      "entity_type": "activity",
+      "old_values": null,
+      "action": "CREATE_ACTIVITY",
+      "created_at": "2026-10-28T21:59:57.209Z",
+      "ip_address": "146.70.198.44",
+      "entity_id": "ACT-1793224797207-drw3",
+      "new_values": "{\"empId\":\"MGH-1042\",\"date\":\"2026-10-26\",\"jiraKey\":\"GENERAL\",\"hours\":1,\"workType\":\"Documentación\"}"
     },
     "1988": {
-      "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
-      "entity_type": "pay_period",
-      "entity_id": "PP-2026-07",
-      "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
-      "created_at": "2026-10-28T20:30:40.059Z",
-      "id": "1988"
+      "id": "1988",
+      "actor": "Joshua Hernandez",
+      "entity_type": "activity",
+      "old_values": null,
+      "action": "CREATE_ACTIVITY",
+      "created_at": "2026-10-28T22:01:55.317Z",
+      "ip_address": "146.70.198.44",
+      "entity_id": "ACT-1793224915313-jhrb",
+      "new_values": "{\"empId\":\"MGH-1042\",\"date\":\"2026-10-26\",\"jiraKey\":\"GENERAL\",\"hours\":2.5,\"workType\":\"Reunión\"}"
     },
     "1989": {
-      "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
-      "entity_type": "pay_period",
-      "entity_id": "PP-2026-08",
-      "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
-      "created_at": "2026-10-28T20:30:40.059Z",
-      "id": "1989"
+      "id": "1989",
+      "actor": "User",
+      "entity_type": "session",
+      "old_values": null,
+      "action": "USER_LOGOUT",
+      "created_at": "2026-10-28T22:45:02.797Z",
+      "ip_address": "66.179.15.91",
+      "entity_id": "usr_1793212551396_0i3pq",
+      "new_values": null
     },
     "1990": {
-      "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
-      "entity_type": "pay_period",
-      "entity_id": "PP-2026-09",
-      "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
-      "created_at": "2026-10-28T20:30:40.060Z",
-      "id": "1990"
+      "id": "1990",
+      "actor": "Edwin Perez-Montalvo",
+      "entity_type": "user",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "created_at": "2026-10-28T22:45:18.802Z",
+      "ip_address": "66.179.15.91",
+      "entity_id": "usr_1793212551396_0i3pq",
+      "new_values": "{\"ip\":\"66.179.15.91\",\"role\":\"employee\",\"provider\":\"google\",\"googleUid\":\"uJcD6yB64yUiiomBTPP4nYxiV3L2\"}"
     },
     "1991": {
-      "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
-      "entity_type": "pay_period",
-      "entity_id": "PP-2026-10",
-      "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
-      "created_at": "2026-10-28T20:30:40.060Z",
-      "id": "1991"
+      "id": "1991",
+      "actor": "User",
+      "entity_type": "session",
+      "old_values": null,
+      "action": "USER_LOGOUT",
+      "created_at": "2026-10-28T22:45:43.156Z",
+      "ip_address": "66.179.15.91",
+      "entity_id": "usr_1793212551396_0i3pq",
+      "new_values": null
     },
     "1992": {
-      "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
-      "entity_type": "pay_period",
-      "entity_id": "PP-2026-11",
-      "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
-      "created_at": "2026-10-28T20:30:40.060Z",
-      "id": "1992"
+      "id": "1992",
+      "actor": "Zain Rondón",
+      "entity_type": "employee",
+      "old_values": null,
+      "action": "CREATE_EMPLOYEE",
+      "created_at": "2026-10-28T23:19:35.142Z",
+      "ip_address": "127.0.0.1",
+      "entity_id": "MGH-1183",
+      "new_values": "{\"id\":\"MGH-1183\",\"name\":\"Zain Rondón\",\"email\":\"zajrj.3@gmail.com\",\"project\":\"\",\"status\":\"Active\"}"
     },
     "1993": {
-      "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
-      "entity_type": "pay_period",
-      "entity_id": "PP-2026-12",
-      "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
-      "created_at": "2026-10-28T20:30:40.061Z",
-      "id": "1993"
+      "id": "1993",
+      "actor": "Zain Rondón",
+      "entity_type": "user",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "created_at": "2026-10-28T23:19:35.149Z",
+      "ip_address": "200.82.150.186",
+      "entity_id": "usr_1793229575138_5bve8",
+      "new_values": "{\"ip\":\"200.82.150.186\",\"role\":\"employee\",\"provider\":\"google\",\"googleUid\":\"a8jDGsbMYsOYXTrQDeZCpLADc3C3\"}"
     },
     "1994": {
+      "id": "1994",
       "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "entity_type": "pay_period",
-      "entity_id": "PP-2026-13",
       "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
+      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "created_at": "2026-10-28T20:30:40.061Z",
-      "id": "1994"
+      "ip_address": "cli",
+      "entity_id": "PP-2026-13",
+      "new_values": "{\"status\":\"Open\"}"
     },
     "1995": {
+      "id": "1995",
       "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "entity_type": "pay_period",
-      "entity_id": "PP-2026-14",
       "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
+      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "created_at": "2026-10-28T20:30:40.061Z",
-      "id": "1995"
+      "ip_address": "cli",
+      "entity_id": "PP-2026-14",
+      "new_values": "{\"status\":\"Open\"}"
     },
     "1996": {
+      "id": "1996",
       "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "entity_type": "pay_period",
-      "entity_id": "PP-2026-15",
       "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
+      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "created_at": "2026-10-28T20:30:40.061Z",
-      "id": "1996"
+      "ip_address": "cli",
+      "entity_id": "PP-2026-15",
+      "new_values": "{\"status\":\"Open\"}"
     },
     "1997": {
+      "id": "1997",
       "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "entity_type": "pay_period",
-      "entity_id": "PP-2026-16",
       "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
+      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "created_at": "2026-10-28T20:30:40.062Z",
-      "id": "1997"
+      "ip_address": "cli",
+      "entity_id": "PP-2026-16",
+      "new_values": "{\"status\":\"Open\"}"
     },
     "1998": {
+      "id": "1998",
       "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "entity_type": "pay_period",
-      "entity_id": "PP-2026-17",
       "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
+      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "created_at": "2026-10-28T20:30:40.062Z",
-      "id": "1998"
+      "ip_address": "cli",
+      "entity_id": "PP-2026-17",
+      "new_values": "{\"status\":\"Open\"}"
     },
     "1999": {
+      "id": "1999",
       "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "entity_type": "pay_period",
-      "entity_id": "PP-2026-18",
       "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
+      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "created_at": "2026-10-28T20:30:40.062Z",
-      "id": "1999"
+      "ip_address": "cli",
+      "entity_id": "PP-2026-18",
+      "new_values": "{\"status\":\"Open\"}"
     },
     "2000": {
+      "id": "2000",
       "actor": "reopen-auto-closed-periods script",
-      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "entity_type": "pay_period",
-      "entity_id": "PP-2026-19",
       "old_values": "{\"status\":\"Closed\"}",
-      "new_values": "{\"status\":\"Open\"}",
-      "ip_address": "cli",
+      "action": "REOPEN_AUTO_CLOSED_PERIOD",
       "created_at": "2026-10-28T20:30:40.062Z",
-      "id": "2000"
+      "ip_address": "cli",
+      "entity_id": "PP-2026-19",
+      "new_values": "{\"status\":\"Open\"}"
     },
     "2001": {
+      "id": "2001",
+      "actor": "User",
+      "entity_type": "session",
+      "old_values": null,
+      "action": "USER_LOGOUT",
+      "created_at": "2026-10-28T21:43:47.688Z",
+      "ip_address": "127.0.0.1",
+      "entity_id": "usr_1792629459554_8iac1",
+      "new_values": null
+    },
+    "2002": {
+      "id": "2002",
+      "actor": "Joshua Hernandez",
+      "entity_type": "user",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "created_at": "2026-10-28T21:44:08.808Z",
+      "ip_address": "127.0.0.1",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\"}"
+    },
+    "2003": {
+      "id": "2003",
+      "actor": "Joshua Hernandez",
+      "entity_type": "user",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "created_at": "2026-10-28T22:28:23.616Z",
+      "ip_address": "127.0.0.1",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\"}"
+    },
+    "2004": {
+      "id": "2004",
+      "actor": "Zain Rondón",
+      "entity_type": "activity",
+      "old_values": null,
+      "action": "CREATE_ACTIVITY",
+      "created_at": "2026-10-29T16:46:04.179Z",
+      "ip_address": "134.82.68.159",
+      "entity_id": "ACT-1793292364168-q332",
+      "new_values": "{\"empId\":\"MGH-1183\",\"date\":\"2026-10-16\",\"jiraKey\":\"HORAS 16 OCT\",\"hours\":8.5,\"workType\":\"Desarrollo\",\"meetingId\":null,\"loggedBy\":null}"
+    },
+    "2005": {
+      "id": "2005",
+      "actor": "Zain Rondón",
+      "entity_type": "user",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "created_at": "2026-10-29T18:12:56.710Z",
+      "ip_address": "186.165.180.93",
+      "entity_id": "usr_1793229575138_5bve8",
+      "new_values": "{\"ip\":\"186.165.180.93\",\"role\":\"employee\",\"provider\":\"google\",\"googleUid\":\"a8jDGsbMYsOYXTrQDeZCpLADc3C3\"}"
+    },
+    "2006": {
+      "id": "2006",
+      "actor": "Lisandra Yenet Garzon Ferrr",
+      "entity_type": "employee",
+      "old_values": null,
+      "action": "CREATE_EMPLOYEE",
+      "created_at": "2026-10-29T20:56:43.734Z",
+      "ip_address": "127.0.0.1",
+      "entity_id": "MGH-1184",
+      "new_values": "{\"id\":\"MGH-1184\",\"name\":\"Lisandra Yenet Garzon Ferrr\",\"email\":\"lisandragarzon@gmail.com\",\"project\":\"\",\"status\":\"Active\"}"
+    },
+    "2007": {
+      "id": "2007",
+      "actor": "Lisandra Yenet Garzon Ferrr",
+      "entity_type": "user",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "created_at": "2026-10-29T20:56:43.747Z",
+      "ip_address": "167.60.254.142",
+      "entity_id": "usr_1793307403719_enw32",
+      "new_values": "{\"ip\":\"167.60.254.142\",\"role\":\"employee\",\"provider\":\"google\",\"googleUid\":\"56pT3yNcDvbEkaUWLN7oq5sJzJn2\"}"
+    },
+    "2008": {
+      "id": "2008",
+      "actor": "Lisandra Yenet Garzon Ferrr",
+      "entity_type": "activity",
+      "old_values": null,
+      "action": "CREATE_ACTIVITY",
+      "created_at": "2026-10-29T21:04:50.521Z",
+      "ip_address": "167.60.254.142",
+      "entity_id": "ACT-1793307890518-6t2d",
+      "new_values": "{\"empId\":\"MGH-1184\",\"date\":\"2026-10-16\",\"jiraKey\":\"Reunión Semanal con el equipo\",\"hours\":2,\"workType\":\"Reunión\",\"meetingId\":null,\"loggedBy\":null}"
+    },
+    "2009": {
+      "id": "2009",
+      "actor": "Lisandra Yenet Garzon Ferrr",
+      "entity_type": "activity",
+      "old_values": null,
+      "action": "CREATE_ACTIVITY",
+      "created_at": "2026-10-29T21:08:22.176Z",
+      "ip_address": "167.60.254.142",
+      "entity_id": "ACT-1793308102174-c2oe",
+      "new_values": "{\"empId\":\"MGH-1184\",\"date\":\"2026-10-17\",\"jiraKey\":\"Revisión de sugerencia y bugs. Revisión de cambios realizados. Revisión modulo de operaciones, supervisión, apk conductor. Revisión de documentacion\",\"hours\":7,\"workType\":\"QA\",\"meetingId\":null,\"loggedBy\":null}"
+    },
+    "2010": {
+      "id": "2010",
+      "actor": "Joshua Hernandez",
+      "entity_type": "user",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "created_at": "2026-10-29T21:17:33.612Z",
+      "ip_address": "138.199.52.196",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "new_values": "{\"ip\":\"138.199.52.196\",\"role\":\"pm\",\"provider\":\"google\",\"googleUid\":\"aJhVPkkiWePUXE5ufREZovS160E2\"}"
+    },
+    "2011": {
+      "id": "2011",
+      "actor": "Lisandra Yenet Garzon Ferrr",
+      "entity_type": "activity",
+      "old_values": null,
+      "action": "CREATE_ACTIVITY",
+      "created_at": "2026-10-29T21:52:52.573Z",
+      "ip_address": "167.60.254.142",
+      "entity_id": "ACT-1793310772570-l2z6",
+      "new_values": "{\"empId\":\"MGH-1184\",\"date\":\"2026-10-17\",\"jiraKey\":\"MSHP-74\",\"hours\":2.5,\"workType\":\"Desarrollo\",\"meetingId\":null,\"loggedBy\":null}"
+    },
+    "2012": {
+      "id": "2012",
+      "actor": "Lisandra Yenet Garzon Ferrr",
+      "entity_type": "activity",
+      "old_values": "{\"id\":\"ACT-1793310772570-l2z6\",\"employee_id\":\"MGH-1184\",\"date\":\"2026-10-17\",\"jira_key\":\"MSHP-74\",\"jira_summary\":\"Creación de politicas de la privacidad\",\"hours\":2.5,\"work_type\":\"Desarrollo\",\"description\":\"uugig\",\"evidences_json\":\"[]\",\"links_json\":\"[]\",\"meeting_id\":null,\"logged_by\":null,\"created_at\":\"2026-10-29T21:52:52.572Z\"}",
+      "action": "DELETE_ACTIVITY",
+      "created_at": "2026-10-29T21:53:04.925Z",
+      "ip_address": "167.60.254.142",
+      "entity_id": "ACT-1793310772570-l2z6",
+      "new_values": null
+    },
+    "2013": {
+      "id": "2013",
+      "actor": "Lisandra Yenet Garzon Ferrr",
+      "entity_type": "activity",
+      "old_values": null,
+      "action": "CREATE_ACTIVITY",
+      "created_at": "2026-10-29T21:58:06.027Z",
+      "ip_address": "167.60.254.142",
+      "entity_id": "ACT-1793311086025-0zqc",
+      "new_values": "{\"empId\":\"MGH-1184\",\"date\":\"2026-10-20\",\"jiraKey\":\"TRES-53\",\"hours\":2,\"workType\":\"Desarrollo\",\"meetingId\":null,\"loggedBy\":null}"
+    },
+    "2014": {
+      "id": "2014",
+      "actor": "Lisandra Yenet Garzon Ferrr",
+      "entity_type": "activity",
+      "old_values": null,
+      "action": "CREATE_ACTIVITY",
+      "created_at": "2026-10-29T22:01:43.994Z",
+      "ip_address": "167.60.254.142",
+      "entity_id": "ACT-1793311303992-xth7",
+      "new_values": "{\"empId\":\"MGH-1184\",\"date\":\"2026-10-21\",\"jiraKey\":\"TRES-53\",\"hours\":3.5,\"workType\":\"QA\",\"meetingId\":null,\"loggedBy\":null}"
+    },
+    "2015": {
+      "id": "2015",
+      "actor": "Lisandra Yenet Garzon Ferrr",
+      "entity_type": "activity",
+      "old_values": null,
+      "action": "CREATE_ACTIVITY",
+      "created_at": "2026-10-29T22:03:38.888Z",
+      "ip_address": "167.60.254.142",
+      "entity_id": "ACT-1793311418886-6db0",
+      "new_values": "{\"empId\":\"MGH-1184\",\"date\":\"2026-10-23\",\"jiraKey\":\"GENERAL\",\"hours\":1,\"workType\":\"Desarrollo\",\"meetingId\":null,\"loggedBy\":null}"
+    },
+    "2016": {
+      "id": "2016",
+      "actor": "Lisandra Yenet Garzon Ferrr",
+      "entity_type": "activity",
+      "old_values": null,
+      "action": "CREATE_ACTIVITY",
+      "created_at": "2026-10-29T22:06:12.481Z",
+      "ip_address": "167.60.254.142",
+      "entity_id": "ACT-1793311572478-ebgb",
+      "new_values": "{\"empId\":\"MGH-1184\",\"date\":\"2026-10-23\",\"jiraKey\":\"Reunión Semanal\",\"hours\":2,\"workType\":\"Reunión\",\"meetingId\":null,\"loggedBy\":null}"
+    },
+    "2017": {
+      "id": "2017",
+      "actor": "Lisandra Yenet Garzon Ferrr",
+      "entity_type": "activity",
+      "old_values": null,
+      "action": "CREATE_ACTIVITY",
+      "created_at": "2026-10-29T22:08:08.346Z",
+      "ip_address": "167.60.254.142",
+      "entity_id": "ACT-1793311688345-d5tf",
+      "new_values": "{\"empId\":\"MGH-1184\",\"date\":\"2026-10-24\",\"jiraKey\":\"GENERAL\",\"hours\":6,\"workType\":\"QA\",\"meetingId\":null,\"loggedBy\":null}"
+    },
+    "2018": {
+      "id": "2018",
+      "actor": "Lisandra Yenet Garzon Ferrr",
+      "entity_type": "activity",
+      "old_values": null,
+      "action": "CREATE_ACTIVITY",
+      "created_at": "2026-10-29T22:11:23.867Z",
+      "ip_address": "167.60.254.142",
+      "entity_id": "ACT-1793311883865-i0t9",
+      "new_values": "{\"empId\":\"MGH-1184\",\"date\":\"2026-10-25\",\"jiraKey\":\"TRES-53\",\"hours\":2.25,\"workType\":\"Reunión\",\"meetingId\":null,\"loggedBy\":null}"
+    },
+    "2019": {
+      "id": "2019",
+      "actor": "Lisandra Yenet Garzon Ferrr",
+      "entity_type": "leave_request",
+      "old_values": null,
+      "action": "SUBMIT_LEAVE_REQUEST",
+      "created_at": "2026-10-29T22:25:37.592Z",
+      "ip_address": "167.60.254.142",
+      "entity_id": "LV-1793312737589",
+      "new_values": "{\"empId\":\"MGH-1184\",\"type\":\"Vacaciones\",\"fromDate\":\"2026-11-20\",\"toDate\":\"2026-11-28\",\"reason\":\"\"}"
+    },
+    "2020": {
+      "id": "2020",
+      "actor": "Lisandra Yenet Garzon Ferrr",
+      "entity_type": "leave_request",
+      "old_values": null,
+      "action": "SUBMIT_LEAVE_REQUEST",
+      "created_at": "2026-10-29T22:26:04.751Z",
+      "ip_address": "167.60.254.142",
+      "entity_id": "LV-1793312764749",
+      "new_values": "{\"empId\":\"MGH-1184\",\"type\":\"Vacaciones\",\"fromDate\":\"2026-11-20\",\"toDate\":\"2026-11-29\",\"reason\":\"\"}"
+    },
+    "2021": {
+      "id": "2021",
+      "actor": "Lisandra Yenet Garzon Ferrr",
+      "entity_type": "leave_request",
+      "old_values": "{\"status\":\"Pending Supervisor\"}",
+      "action": "REVIEW_LEAVE_REQUEST",
+      "created_at": "2026-10-29T22:26:09.082Z",
+      "ip_address": "167.60.254.142",
+      "entity_id": "LV-1793312764749",
+      "new_values": "{\"status\":\"Cancelled\",\"comment\":\"\"}"
+    },
+    "2022": {
+      "id": "2022",
+      "actor": "Lisandra Yenet Garzon Ferrr",
+      "entity_type": "leave_request",
+      "old_values": "{\"status\":\"Pending Supervisor\"}",
+      "action": "REVIEW_LEAVE_REQUEST",
+      "created_at": "2026-10-29T22:26:17.663Z",
+      "ip_address": "167.60.254.142",
+      "entity_id": "LV-1793312737589",
+      "new_values": "{\"status\":\"Cancelled\",\"comment\":\"\"}"
+    },
+    "2023": {
+      "id": "2023",
+      "actor": "Lisandra Yenet Garzon Ferrr",
+      "entity_type": "leave_request",
+      "old_values": null,
+      "action": "SUBMIT_LEAVE_REQUEST",
+      "created_at": "2026-10-29T22:26:27.595Z",
+      "ip_address": "167.60.254.142",
+      "entity_id": "LV-1793312787593",
+      "new_values": "{\"empId\":\"MGH-1184\",\"type\":\"Vacaciones\",\"fromDate\":\"2026-11-20\",\"toDate\":\"2026-11-29\",\"reason\":\"\"}"
+    },
+    "2024": {
+      "id": "2024",
+      "actor": "Lisandra Yenet Garzon Ferrr",
+      "entity_type": "leave_request",
+      "old_values": null,
+      "action": "SUBMIT_LEAVE_REQUEST",
+      "created_at": "2026-10-29T22:26:36.227Z",
+      "ip_address": "167.60.254.142",
+      "entity_id": "LV-1793312796225",
+      "new_values": "{\"empId\":\"MGH-1184\",\"type\":\"Sin goce de sueldo\",\"fromDate\":\"2026-11-20\",\"toDate\":\"2026-11-29\",\"reason\":\"\"}"
+    },
+    "2025": {
+      "id": "2025",
+      "actor": "Edwin Perez-Montalvo",
+      "entity_type": "user",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "created_at": "2026-10-29T22:52:59.560Z",
+      "ip_address": "66.179.15.86",
+      "entity_id": "usr_1793212551396_0i3pq",
+      "new_values": "{\"ip\":\"66.179.15.86\",\"role\":\"employee\",\"provider\":\"google\",\"googleUid\":\"uJcD6yB64yUiiomBTPP4nYxiV3L2\"}"
+    },
+    "2026": {
+      "id": "2026",
+      "actor": "User",
+      "entity_type": "session",
+      "old_values": null,
+      "action": "USER_LOGOUT",
+      "created_at": "2026-10-29T22:58:11.584Z",
+      "ip_address": "66.179.15.86",
+      "entity_id": "usr_1793212551396_0i3pq",
+      "new_values": null
+    },
+    "2027": {
+      "id": "2027",
+      "actor": "Edwin Perez Montalvo",
+      "entity_type": "employee",
+      "old_values": null,
+      "action": "CREATE_EMPLOYEE",
+      "created_at": "2026-10-29T22:59:01.086Z",
+      "ip_address": "127.0.0.1",
+      "entity_id": "MGH-1185",
+      "new_values": "{\"id\":\"MGH-1185\",\"name\":\"Edwin Perez Montalvo\",\"email\":\"hr@myglobalhub.net\",\"project\":\"\",\"status\":\"Active\"}"
+    },
+    "2028": {
+      "id": "2028",
+      "actor": "Edwin Perez Montalvo",
+      "entity_type": "user",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "created_at": "2026-10-29T22:59:01.095Z",
+      "ip_address": "66.179.15.86",
+      "entity_id": "usr_1793314741082_hibd6",
+      "new_values": "{\"ip\":\"66.179.15.86\",\"role\":\"employee\",\"provider\":\"google\",\"googleUid\":\"PvClYz9WzXaM9eRR3UmCqiXhQGk1\"}"
+    },
+    "2029": {
+      "id": "2029",
+      "actor": "User",
+      "entity_type": "session",
+      "old_values": null,
+      "action": "USER_LOGOUT",
+      "created_at": "2026-10-29T23:33:22.175Z",
+      "ip_address": "185.107.56.30",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "new_values": null
+    },
+    "2030": {
+      "id": "2030",
+      "actor": "Joshua Hernandez",
+      "entity_type": "user",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "created_at": "2026-10-29T23:34:17.922Z",
+      "ip_address": "185.107.56.30",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "new_values": "{\"ip\":\"185.107.56.30\",\"role\":\"pm\"}"
+    },
+    "2031": {
+      "id": "2031",
+      "actor": "Edwin Perez-Montalvo",
+      "entity_type": "user",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "created_at": "2026-10-29T23:48:26.048Z",
+      "ip_address": "66.179.15.86",
+      "entity_id": "usr_1793212551396_0i3pq",
+      "new_values": "{\"ip\":\"66.179.15.86\",\"role\":\"employee\",\"provider\":\"google\",\"googleUid\":\"uJcD6yB64yUiiomBTPP4nYxiV3L2\"}"
+    },
+    "2032": {
+      "id": "2032",
+      "actor": "User",
+      "entity_type": "session",
+      "old_values": null,
+      "action": "USER_LOGOUT",
+      "created_at": "2026-10-29T23:48:39.078Z",
+      "ip_address": "66.179.15.86",
+      "entity_id": "usr_1793212551396_0i3pq",
+      "new_values": null
+    },
+    "2033": {
+      "id": "2033",
+      "actor": "User",
+      "entity_type": "session",
+      "old_values": null,
+      "action": "USER_LOGOUT",
+      "created_at": "2026-10-30T00:04:18.665Z",
+      "ip_address": "167.60.254.142",
+      "entity_id": "usr_1793307403719_enw32",
+      "new_values": null
+    },
+    "2034": {
+      "id": "2034",
+      "actor": "Joshua Hernandez",
+      "entity_type": "user",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "created_at": "2026-10-30T00:15:59.030Z",
+      "ip_address": "127.0.0.1",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\"}"
+    },
+    "2035": {
+      "id": "2035",
+      "entity_type": "user",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "actor": "Joshua Hernandez",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "created_at": "2026-10-30T00:56:42.127Z",
+      "ip_address": "127.0.0.1",
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\"}"
+    },
+    "2036": {
       "actor": "User",
       "action": "USER_LOGOUT",
       "entity_type": "session",
-      "entity_id": "usr_1792629459554_8iac1",
+      "entity_id": "usr_1793131618127_8yfuy",
       "old_values": null,
       "new_values": null,
       "ip_address": "127.0.0.1",
-      "created_at": "2026-10-28T21:43:47.688Z",
-      "id": "2001"
+      "created_at": "2026-10-30T01:52:31.694Z",
+      "id": "2036"
     },
-    "2002": {
+    "2037": {
       "actor": "Joshua Hernandez",
       "action": "USER_LOGIN",
       "entity_type": "user",
@@ -23660,19 +24043,217 @@
       "old_values": null,
       "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\"}",
       "ip_address": "127.0.0.1",
-      "created_at": "2026-10-28T21:44:08.808Z",
-      "id": "2002"
+      "created_at": "2026-10-30T01:54:45.287Z",
+      "id": "2037"
     },
-    "2003": {
+    "2038": {
+      "actor": "User",
+      "action": "USER_LOGOUT",
+      "entity_type": "session",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "old_values": null,
+      "new_values": null,
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T01:58:56.316Z",
+      "id": "2038"
+    },
+    "2039": {
+      "actor": "Admin System",
+      "action": "USER_LOGIN",
+      "entity_type": "user",
+      "entity_id": "usr-admin",
+      "old_values": null,
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"admin\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T02:00:01.282Z",
+      "id": "2039"
+    },
+    "2040": {
+      "actor": "User",
+      "action": "USER_LOGOUT",
+      "entity_type": "session",
+      "entity_id": "usr-admin",
+      "old_values": null,
+      "new_values": null,
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T02:00:01.969Z",
+      "id": "2040"
+    },
+    "2041": {
+      "actor": "Admin System",
+      "action": "USER_LOGIN",
+      "entity_type": "user",
+      "entity_id": "usr-admin",
+      "old_values": null,
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"admin\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T02:00:56.747Z",
+      "id": "2041"
+    },
+    "2042": {
+      "actor": "Admin System",
+      "action": "USER_DELETED",
+      "entity_type": "user",
+      "entity_id": "usr-edwin",
+      "old_values": "{\"email\":\"edwin@myglobalhub.net\",\"role\":\"admin\",\"employeeId\":\"MGH-1001\"}",
+      "new_values": null,
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T02:09:27.986Z",
+      "id": "2042"
+    },
+    "2043": {
+      "actor": "Admin System",
+      "action": "USER_DELETED",
+      "entity_type": "user",
+      "entity_id": "usr-lissandra",
+      "old_values": "{\"email\":\"lissandra@myglobalhub.com\",\"role\":\"employee\",\"employeeId\":\"MGH-1045\"}",
+      "new_values": null,
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T02:09:44.187Z",
+      "id": "2043"
+    },
+    "2044": {
+      "actor": "Admin System",
+      "action": "USER_DELETED",
+      "entity_type": "user",
+      "entity_id": "usr-lissandra-net",
+      "old_values": "{\"email\":\"lissandra@myglobalhub.net\",\"role\":\"employee\",\"employeeId\":\"MGH-1045\"}",
+      "new_values": null,
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T02:09:46.642Z",
+      "id": "2044"
+    },
+    "2045": {
+      "actor": "Admin System",
+      "action": "USER_DELETED",
+      "entity_type": "user",
+      "entity_id": "usr-luis-com",
+      "old_values": "{\"email\":\"luis@myglobalhub.com\",\"role\":\"employee\",\"employeeId\":\"MGH-1044\"}",
+      "new_values": null,
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T02:09:49.566Z",
+      "id": "2045"
+    },
+    "2046": {
+      "actor": "Admin System",
+      "action": "USER_DELETED",
+      "entity_type": "user",
+      "entity_id": "usr-juan-short",
+      "old_values": "{\"email\":\"juan@myglobalhub.com\",\"role\":\"employee\",\"employeeId\":\"MGH-1046\"}",
+      "new_values": null,
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T02:10:29.138Z",
+      "id": "2046"
+    },
+    "2047": {
+      "actor": "Admin System",
+      "action": "USER_DELETED",
+      "entity_type": "user",
+      "entity_id": "usr-zain-com",
+      "old_values": "{\"email\":\"zain@myglobalhub.com\",\"role\":\"contractor\",\"employeeId\":\"MGH-1043\"}",
+      "new_values": null,
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T02:10:32.381Z",
+      "id": "2047"
+    },
+    "2048": {
+      "actor": "Admin System",
+      "action": "USER_DELETED",
+      "entity_type": "user",
+      "entity_id": "usr-juan-net",
+      "old_values": "{\"email\":\"juan.zamora@myglobalhub.net\",\"role\":\"employee\",\"employeeId\":\"MGH-1046\"}",
+      "new_values": null,
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T02:10:34.744Z",
+      "id": "2048"
+    },
+    "2049": {
+      "actor": "Admin System",
+      "action": "ROLE_CHANGED",
+      "entity_type": "user",
+      "entity_id": "usr_1793141848610_ilsyi",
+      "old_values": "{\"role\":\"employee\"}",
+      "new_values": "{\"role\":\"admin\",\"email\":\"info@myglobalhub.net\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T02:33:02.159Z",
+      "id": "2049"
+    },
+    "2050": {
+      "actor": "Admin System",
+      "action": "ROLE_CHANGED",
+      "entity_type": "user",
+      "entity_id": "usr_1793212551396_0i3pq",
+      "old_values": "{\"role\":\"employee\"}",
+      "new_values": "{\"role\":\"admin\",\"email\":\"eperez@myglobalhub.net\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T02:33:06.547Z",
+      "id": "2050"
+    },
+    "2051": {
+      "actor": "User",
+      "action": "USER_LOGOUT",
+      "entity_type": "session",
+      "entity_id": "usr-admin",
+      "old_values": null,
+      "new_values": null,
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T04:52:01.595Z",
+      "id": "2051"
+    },
+    "2052": {
       "actor": "Joshua Hernandez",
       "action": "USER_LOGIN",
       "entity_type": "user",
       "entity_id": "usr_1793131618127_8yfuy",
       "old_values": null,
-      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\"}",
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"admin\"}",
       "ip_address": "127.0.0.1",
-      "created_at": "2026-10-28T22:28:23.616Z",
-      "id": "2003"
+      "created_at": "2026-10-30T04:52:03.356Z",
+      "id": "2052"
+    },
+    "2053": {
+      "actor": "Joshua Hernandez",
+      "action": "UPLOAD_FILE",
+      "entity_type": "file_attachment",
+      "entity_id": "att_1793337597534_b14b758a",
+      "old_values": null,
+      "new_values": "{\"originalName\":\"WhatsApp Image 2026-10-28 at 6.36.45 PM.jpeg\",\"size\":109621,\"category\":\"evidences\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T05:19:57.536Z",
+      "id": "2053"
+    },
+    "2054": {
+      "actor": "Joshua Hernandez",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activity",
+      "entity_id": "ACT-1793337603020-v7k9",
+      "old_values": null,
+      "new_values": "{\"empId\":\"MGH-1042\",\"date\":\"2026-10-29\",\"jiraKey\":\"GENERAL\",\"hours\":5,\"workType\":\"QA\",\"meetingId\":null,\"loggedBy\":null}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T05:20:03.022Z",
+      "id": "2054"
+    },
+    "2055": {
+      "actor": "Joshua Hernandez",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activity",
+      "entity_id": "ACT-1793337708054-kmok",
+      "old_values": null,
+      "new_values": "{\"empId\":\"MGH-1042\",\"date\":\"2026-10-29\",\"jiraKey\":\"GENERAL\",\"hours\":2,\"workType\":\"Desarrollo\",\"meetingId\":null,\"loggedBy\":null}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T05:21:48.055Z",
+      "id": "2055"
+    },
+    "2056": {
+      "actor": "Joshua Hernandez",
+      "action": "CREATE_ACTIVITY",
+      "entity_type": "activity",
+      "entity_id": "ACT-1793337776542-6xbh",
+      "old_values": null,
+      "new_values": "{\"empId\":\"MGH-1042\",\"date\":\"2026-10-29\",\"jiraKey\":\"GENERAL\",\"hours\":1,\"workType\":\"Desarrollo\",\"meetingId\":null,\"loggedBy\":null}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T05:22:56.543Z",
+      "id": "2056"
     },
     "audit_test_1793052942079": {
       "id": "audit_test_1793052942079",
@@ -23689,233 +24270,6 @@
       "_migratedAt": "2026-10-27T17:59:41.373Z",
       "action": "FIRESTORE_VERIFY_UPDATED",
       "ip_address": "127.0.0.1"
-    },
-    "doc_1793053053452_aamwa": {
-      "id": "doc_1793053053452_aamwa",
-      "actor": "Luis Rodriguez",
-      "entity_type": "user",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": null,
-      "action": "USER_LOGIN",
-      "ip_address": "127.0.0.1",
-      "entity_id": "usr-luis",
-      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"employee\"}"
-    },
-    "doc_1793053170247_jdemt": {
-      "id": "doc_1793053170247_jdemt",
-      "actor": "Luis Rodriguez",
-      "entity_type": "user",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": null,
-      "action": "USER_LOGIN",
-      "ip_address": "127.0.0.1",
-      "entity_id": "usr-luis",
-      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"employee\"}"
-    },
-    "doc_1793054145845_lvdo3": {
-      "id": "doc_1793054145845_lvdo3",
-      "actor": "Luis Rodriguez",
-      "entity_type": "user",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": null,
-      "action": "USER_LOGIN",
-      "ip_address": "127.0.0.1",
-      "entity_id": "usr-luis",
-      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"employee\"}"
-    },
-    "doc_1793054236792_nolci": {
-      "id": "doc_1793054236792_nolci",
-      "actor": "Luis Rodriguez",
-      "entity_type": "user",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": null,
-      "action": "USER_LOGIN",
-      "ip_address": "127.0.0.1",
-      "entity_id": "usr-luis",
-      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"employee\"}"
-    },
-    "doc_1793054264531_tokjd": {
-      "id": "doc_1793054264531_tokjd",
-      "actor": "Luis Rodriguez",
-      "entity_type": "user",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": null,
-      "action": "USER_LOGIN",
-      "ip_address": "127.0.0.1",
-      "entity_id": "usr-luis",
-      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"employee\"}"
-    },
-    "doc_1793054264636_d82xe": {
-      "id": "doc_1793054264636_d82xe",
-      "actor": "Zain Rondon",
-      "entity_type": "user",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": null,
-      "action": "USER_LOGIN",
-      "ip_address": "127.0.0.1",
-      "entity_id": "usr-zain",
-      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"contractor\"}"
-    },
-    "doc_1793054264724_8t4q4": {
-      "id": "doc_1793054264724_8t4q4",
-      "actor": "Joshua Hernandez",
-      "entity_type": "user",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": null,
-      "action": "USER_LOGIN",
-      "ip_address": "127.0.0.1",
-      "entity_id": "usr-joshua",
-      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\"}"
-    },
-    "doc_1793054264840_0q3u0": {
-      "id": "doc_1793054264840_0q3u0",
-      "actor": "Admin System",
-      "entity_type": "user",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": null,
-      "action": "USER_LOGIN",
-      "ip_address": "127.0.0.1",
-      "entity_id": "usr-admin",
-      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"admin\"}"
-    },
-    "doc_1793054275061_won8u": {
-      "id": "doc_1793054275061_won8u",
-      "actor": "Luis Rodriguez",
-      "entity_type": "user",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": null,
-      "action": "USER_LOGIN",
-      "ip_address": "127.0.0.1",
-      "entity_id": "usr-luis",
-      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"employee\"}"
-    },
-    "doc_1793054275161_nlhy1": {
-      "id": "doc_1793054275161_nlhy1",
-      "actor": "Zain Rondon",
-      "entity_type": "user",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": null,
-      "action": "USER_LOGIN",
-      "ip_address": "127.0.0.1",
-      "entity_id": "usr-zain",
-      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"contractor\"}"
-    },
-    "doc_1793054275237_cl9mi": {
-      "id": "doc_1793054275237_cl9mi",
-      "actor": "Joshua Hernandez",
-      "entity_type": "user",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": null,
-      "action": "USER_LOGIN",
-      "ip_address": "127.0.0.1",
-      "entity_id": "usr-joshua",
-      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\"}"
-    },
-    "doc_1793054275352_125a4": {
-      "id": "doc_1793054275352_125a4",
-      "actor": "Admin System",
-      "entity_type": "user",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": null,
-      "action": "USER_LOGIN",
-      "ip_address": "127.0.0.1",
-      "entity_id": "usr-admin",
-      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"admin\"}"
-    },
-    "doc_1793054279825_pzwjy": {
-      "id": "doc_1793054279825_pzwjy",
-      "actor": "Carlos Mendez",
-      "entity_type": "activity",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": null,
-      "action": "CREATE_ACTIVITY",
-      "ip_address": "127.0.0.1",
-      "entity_id": "ACT-1793054279820-4idk",
-      "new_values": "{\"empId\":\"MGH-1042\",\"date\":\"2025-04-18\",\"jiraKey\":\"MSH-215\",\"hours\":3.5,\"workType\":\"Desarrollo\"}"
-    },
-    "doc_1793054279843_fil4i": {
-      "id": "doc_1793054279843_fil4i",
-      "actor": "System",
-      "entity_type": "activity",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": null,
-      "action": "CREATE_ACTIVITY",
-      "ip_address": "127.0.0.1",
-      "entity_id": "ACT-1793054279842-uvx2",
-      "new_values": "{\"empId\":\"MGH-1043\",\"date\":\"2025-04-29\",\"jiraKey\":\"CORE-108\",\"hours\":4.5,\"workType\":\"Desarrollo\"}"
-    },
-    "doc_1793054279843_2i49x": {
-      "id": "doc_1793054279843_2i49x",
-      "actor": "System",
-      "entity_type": "activity",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": null,
-      "action": "CREATE_ACTIVITY",
-      "ip_address": "127.0.0.1",
-      "entity_id": "ACT-1793054279843-hj6k",
-      "new_values": "{\"empId\":\"MGH-1043\",\"date\":\"2025-04-29\",\"jiraKey\":\"CORE-111\",\"hours\":2,\"workType\":\"Pruebas\"}"
-    },
-    "doc_1793054279844_w1z21": {
-      "id": "doc_1793054279844_w1z21",
-      "actor": "System",
-      "entity_type": "activity",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": null,
-      "action": "CREATE_ACTIVITY",
-      "ip_address": "127.0.0.1",
-      "entity_id": "ACT-1793054279843-rg15",
-      "new_values": "{\"empId\":\"MGH-1043\",\"date\":\"2025-04-29\",\"jiraKey\":\"ATLAS-398\",\"hours\":1.5,\"workType\":\"Reunión\"}"
-    },
-    "doc_1793054279845_bltn1": {
-      "id": "doc_1793054279845_bltn1",
-      "actor": "System",
-      "entity_type": "activity",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": "{\"id\":\"ACT-1793054279842-uvx2\",\"employee_id\":\"MGH-1043\",\"date\":\"2025-04-29\",\"jira_key\":\"CORE-108\",\"jira_summary\":\"Database Sharding Pipeline\",\"hours\":4.5,\"work_type\":\"Desarrollo\",\"description\":\"Particionado horizontal de tablas\",\"evidences_json\":\"[]\",\"links_json\":\"[]\"}",
-      "action": "DELETE_ACTIVITY",
-      "ip_address": "127.0.0.1",
-      "entity_id": "ACT-1793054279842-uvx2",
-      "new_values": null
-    },
-    "doc_1793054279845_kz8hs": {
-      "id": "doc_1793054279845_kz8hs",
-      "actor": "System",
-      "entity_type": "activity",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": "{\"id\":\"ACT-1793054279843-hj6k\",\"employee_id\":\"MGH-1043\",\"date\":\"2025-04-29\",\"jira_key\":\"CORE-111\",\"jira_summary\":\"Billing Event Stream\",\"hours\":2,\"work_type\":\"Pruebas\",\"description\":\"Tests unitarios de streams\",\"evidences_json\":\"[]\",\"links_json\":\"[]\"}",
-      "action": "DELETE_ACTIVITY",
-      "ip_address": "127.0.0.1",
-      "entity_id": "ACT-1793054279843-hj6k",
-      "new_values": null
-    },
-    "doc_1793054279846_z00sn": {
-      "id": "doc_1793054279846_z00sn",
-      "actor": "System",
-      "entity_type": "activity",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": "{\"id\":\"ACT-1793054279843-rg15\",\"employee_id\":\"MGH-1043\",\"date\":\"2025-04-29\",\"jira_key\":\"ATLAS-398\",\"jira_summary\":\"Sprint 24 Release Prep\",\"hours\":1.5,\"work_type\":\"Reunión\",\"description\":\"Planificación de sprint\",\"evidences_json\":\"[]\",\"links_json\":\"[]\"}",
-      "action": "DELETE_ACTIVITY",
-      "ip_address": "127.0.0.1",
-      "entity_id": "ACT-1793054279843-rg15",
-      "new_values": null
-    },
-    "doc_1793054944377_cmlrw": {
-      "id": "doc_1793054944377_cmlrw",
-      "actor": "Carlos Mendez",
-      "entity_type": "activity",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "old_values": null,
-      "action": "CREATE_ACTIVITY",
-      "ip_address": "127.0.0.1",
-      "entity_id": "ACT-1793054944374-u3p1",
-      "new_values": "{\"empId\":\"MGH-1044\",\"date\":\"2026-10-26\",\"jiraKey\":\"ACT-TEST\",\"hours\":3.5,\"workType\":\"Desarrollo\"}"
-    },
-    "test_verify_1793113144819": {
-      "id": "test_verify_1793113144819",
-      "actor": "verification_script",
-      "_migratedAt": "2026-10-27T17:59:41.373Z",
-      "action": "VERIFY_FIREBASE_DIRECT_WRITE",
-      "details": "Checking direct save to Firestore"
     },
     "audit_test_1793057308636": {
       "id": "audit_test_1793057308636",
@@ -24093,9 +24447,235 @@
       "action": "FIRESTORE_VERIFY",
       "created_at": "2026-10-28T00:59:18.609Z",
       "ip_address": "127.0.0.1"
+    },
+    "doc_1793053053452_aamwa": {
+      "id": "doc_1793053053452_aamwa",
+      "actor": "Luis Rodriguez",
+      "entity_type": "user",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "ip_address": "127.0.0.1",
+      "entity_id": "usr-luis",
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"employee\"}"
+    },
+    "doc_1793053170247_jdemt": {
+      "id": "doc_1793053170247_jdemt",
+      "actor": "Luis Rodriguez",
+      "entity_type": "user",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "ip_address": "127.0.0.1",
+      "entity_id": "usr-luis",
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"employee\"}"
+    },
+    "doc_1793054145845_lvdo3": {
+      "id": "doc_1793054145845_lvdo3",
+      "actor": "Luis Rodriguez",
+      "entity_type": "user",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "ip_address": "127.0.0.1",
+      "entity_id": "usr-luis",
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"employee\"}"
+    },
+    "doc_1793054236792_nolci": {
+      "id": "doc_1793054236792_nolci",
+      "actor": "Luis Rodriguez",
+      "entity_type": "user",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "ip_address": "127.0.0.1",
+      "entity_id": "usr-luis",
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"employee\"}"
+    },
+    "doc_1793054264531_tokjd": {
+      "id": "doc_1793054264531_tokjd",
+      "actor": "Luis Rodriguez",
+      "entity_type": "user",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "ip_address": "127.0.0.1",
+      "entity_id": "usr-luis",
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"employee\"}"
+    },
+    "doc_1793054264636_d82xe": {
+      "id": "doc_1793054264636_d82xe",
+      "actor": "Zain Rondon",
+      "entity_type": "user",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "ip_address": "127.0.0.1",
+      "entity_id": "usr-zain",
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"contractor\"}"
+    },
+    "doc_1793054264724_8t4q4": {
+      "id": "doc_1793054264724_8t4q4",
+      "actor": "Joshua Hernandez",
+      "entity_type": "user",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "ip_address": "127.0.0.1",
+      "entity_id": "usr-joshua",
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\"}"
+    },
+    "doc_1793054264840_0q3u0": {
+      "id": "doc_1793054264840_0q3u0",
+      "actor": "Admin System",
+      "entity_type": "user",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "ip_address": "127.0.0.1",
+      "entity_id": "usr-admin",
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"admin\"}"
+    },
+    "doc_1793054275061_won8u": {
+      "id": "doc_1793054275061_won8u",
+      "actor": "Luis Rodriguez",
+      "entity_type": "user",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "ip_address": "127.0.0.1",
+      "entity_id": "usr-luis",
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"employee\"}"
+    },
+    "doc_1793054275161_nlhy1": {
+      "id": "doc_1793054275161_nlhy1",
+      "actor": "Zain Rondon",
+      "entity_type": "user",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "ip_address": "127.0.0.1",
+      "entity_id": "usr-zain",
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"contractor\"}"
+    },
+    "doc_1793054275237_cl9mi": {
+      "id": "doc_1793054275237_cl9mi",
+      "actor": "Joshua Hernandez",
+      "entity_type": "user",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "ip_address": "127.0.0.1",
+      "entity_id": "usr-joshua",
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\"}"
+    },
+    "doc_1793054275352_125a4": {
+      "id": "doc_1793054275352_125a4",
+      "actor": "Admin System",
+      "entity_type": "user",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": null,
+      "action": "USER_LOGIN",
+      "ip_address": "127.0.0.1",
+      "entity_id": "usr-admin",
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"admin\"}"
+    },
+    "doc_1793054279825_pzwjy": {
+      "id": "doc_1793054279825_pzwjy",
+      "actor": "Carlos Mendez",
+      "entity_type": "activity",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": null,
+      "action": "CREATE_ACTIVITY",
+      "ip_address": "127.0.0.1",
+      "entity_id": "ACT-1793054279820-4idk",
+      "new_values": "{\"empId\":\"MGH-1042\",\"date\":\"2025-04-18\",\"jiraKey\":\"MSH-215\",\"hours\":3.5,\"workType\":\"Desarrollo\"}"
+    },
+    "doc_1793054279843_2i49x": {
+      "id": "doc_1793054279843_2i49x",
+      "actor": "System",
+      "entity_type": "activity",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": null,
+      "action": "CREATE_ACTIVITY",
+      "ip_address": "127.0.0.1",
+      "entity_id": "ACT-1793054279843-hj6k",
+      "new_values": "{\"empId\":\"MGH-1043\",\"date\":\"2025-04-29\",\"jiraKey\":\"CORE-111\",\"hours\":2,\"workType\":\"Pruebas\"}"
+    },
+    "doc_1793054279843_fil4i": {
+      "id": "doc_1793054279843_fil4i",
+      "actor": "System",
+      "entity_type": "activity",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": null,
+      "action": "CREATE_ACTIVITY",
+      "ip_address": "127.0.0.1",
+      "entity_id": "ACT-1793054279842-uvx2",
+      "new_values": "{\"empId\":\"MGH-1043\",\"date\":\"2025-04-29\",\"jiraKey\":\"CORE-108\",\"hours\":4.5,\"workType\":\"Desarrollo\"}"
+    },
+    "doc_1793054279844_w1z21": {
+      "id": "doc_1793054279844_w1z21",
+      "actor": "System",
+      "entity_type": "activity",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": null,
+      "action": "CREATE_ACTIVITY",
+      "ip_address": "127.0.0.1",
+      "entity_id": "ACT-1793054279843-rg15",
+      "new_values": "{\"empId\":\"MGH-1043\",\"date\":\"2025-04-29\",\"jiraKey\":\"ATLAS-398\",\"hours\":1.5,\"workType\":\"Reunión\"}"
+    },
+    "doc_1793054279845_bltn1": {
+      "id": "doc_1793054279845_bltn1",
+      "actor": "System",
+      "entity_type": "activity",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": "{\"id\":\"ACT-1793054279842-uvx2\",\"employee_id\":\"MGH-1043\",\"date\":\"2025-04-29\",\"jira_key\":\"CORE-108\",\"jira_summary\":\"Database Sharding Pipeline\",\"hours\":4.5,\"work_type\":\"Desarrollo\",\"description\":\"Particionado horizontal de tablas\",\"evidences_json\":\"[]\",\"links_json\":\"[]\"}",
+      "action": "DELETE_ACTIVITY",
+      "ip_address": "127.0.0.1",
+      "entity_id": "ACT-1793054279842-uvx2",
+      "new_values": null
+    },
+    "doc_1793054279845_kz8hs": {
+      "id": "doc_1793054279845_kz8hs",
+      "actor": "System",
+      "entity_type": "activity",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": "{\"id\":\"ACT-1793054279843-hj6k\",\"employee_id\":\"MGH-1043\",\"date\":\"2025-04-29\",\"jira_key\":\"CORE-111\",\"jira_summary\":\"Billing Event Stream\",\"hours\":2,\"work_type\":\"Pruebas\",\"description\":\"Tests unitarios de streams\",\"evidences_json\":\"[]\",\"links_json\":\"[]\"}",
+      "action": "DELETE_ACTIVITY",
+      "ip_address": "127.0.0.1",
+      "entity_id": "ACT-1793054279843-hj6k",
+      "new_values": null
+    },
+    "doc_1793054279846_z00sn": {
+      "id": "doc_1793054279846_z00sn",
+      "actor": "System",
+      "entity_type": "activity",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": "{\"id\":\"ACT-1793054279843-rg15\",\"employee_id\":\"MGH-1043\",\"date\":\"2025-04-29\",\"jira_key\":\"ATLAS-398\",\"jira_summary\":\"Sprint 24 Release Prep\",\"hours\":1.5,\"work_type\":\"Reunión\",\"description\":\"Planificación de sprint\",\"evidences_json\":\"[]\",\"links_json\":\"[]\"}",
+      "action": "DELETE_ACTIVITY",
+      "ip_address": "127.0.0.1",
+      "entity_id": "ACT-1793054279843-rg15",
+      "new_values": null
+    },
+    "doc_1793054944377_cmlrw": {
+      "id": "doc_1793054944377_cmlrw",
+      "actor": "Carlos Mendez",
+      "entity_type": "activity",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "old_values": null,
+      "action": "CREATE_ACTIVITY",
+      "ip_address": "127.0.0.1",
+      "entity_id": "ACT-1793054944374-u3p1",
+      "new_values": "{\"empId\":\"MGH-1044\",\"date\":\"2026-10-26\",\"jiraKey\":\"ACT-TEST\",\"hours\":3.5,\"workType\":\"Desarrollo\"}"
+    },
+    "test_verify_1793113144819": {
+      "id": "test_verify_1793113144819",
+      "actor": "verification_script",
+      "_migratedAt": "2026-10-27T17:59:41.373Z",
+      "action": "VERIFY_FIREBASE_DIRECT_WRITE",
+      "details": "Checking direct save to Firestore"
     }
   },
-  "contractor_payments": {},
   "contractors": {
     "CTR-1043": {
       "id": "CTR-1043",
@@ -24147,6 +24727,167 @@
       "jira_key": "MSH-215",
       "links_json": "[]"
     },
+    "ACT-1793224797207-drw3": {
+      "id": "ACT-1793224797207-drw3",
+      "date": "2026-10-26",
+      "jira_summary": "revision de las tareas completadas, analisis de sprint , contraste de completadas por tareas pendientes para cerrar sprint",
+      "hours": 1,
+      "evidences_json": "[]",
+      "employee_id": "MGH-1042",
+      "work_type": "Documentación",
+      "created_at": "2026-10-28T21:59:57.208Z",
+      "description": "estuve verificando que efectivamente se hayan cumplido las actividades de la semana anterior  y contrastando toda la informacion sobre las tareas restantes con la intencion de mitigar posibles bloqueos y dar direccion al equipo con relacion a sus siguientes tareas",
+      "jira_key": "GENERAL",
+      "links_json": "[]"
+    },
+    "ACT-1793224915313-jhrb": {
+      "id": "ACT-1793224915313-jhrb",
+      "date": "2026-10-26",
+      "jira_summary": "Reunion semanal de planificacion",
+      "hours": 2.5,
+      "evidences_json": "[]",
+      "employee_id": "MGH-1042",
+      "work_type": "Reunión",
+      "created_at": "2026-10-28T22:01:55.316Z",
+      "description": "Nos hemos reunido Zain, Luis, Juan y mi persona para revisar las necesidades de cada developer para completar sus tareas del mismo modo que se les suminstro el listado de tareas a completar por esta semana individualmente.",
+      "jira_key": "GENERAL",
+      "links_json": "[]"
+    },
+    "ACT-1793292364168-q332": {
+      "id": "ACT-1793292364168-q332",
+      "date": "2026-10-16",
+      "jira_summary": "Meeting PM · Implementacion centro de resolucion de problemas (appeals) · Team meeting · Implementacion notificationes de moderacion de contenido",
+      "hours": 8.5,
+      "evidences_json": "[]",
+      "meeting_id": null,
+      "work_type": "Desarrollo",
+      "created_at": "2026-10-29T16:46:04.171Z",
+      "description": "Actividad registrada en jornada quincenal",
+      "logged_by": null,
+      "employee_id": "MGH-1183",
+      "jira_key": "HORAS 16 OCT",
+      "links_json": "[]"
+    },
+    "ACT-1793307890518-6t2d": {
+      "id": "ACT-1793307890518-6t2d",
+      "date": "2026-10-16",
+      "jira_summary": "Reunión Semanal con el equipo",
+      "hours": 2,
+      "evidences_json": "[]",
+      "meeting_id": null,
+      "work_type": "Reunión",
+      "created_at": "2026-10-29T21:04:50.520Z",
+      "description": "Actividad registrada en jornada quincenal",
+      "logged_by": null,
+      "employee_id": "MGH-1184",
+      "jira_key": "Reunión Semanal con el equipo",
+      "links_json": "[]"
+    },
+    "ACT-1793308102174-c2oe": {
+      "id": "ACT-1793308102174-c2oe",
+      "date": "2026-10-17",
+      "jira_summary": "Pruebas funcionales",
+      "hours": 7,
+      "evidences_json": "[]",
+      "meeting_id": null,
+      "work_type": "QA",
+      "created_at": "2026-10-29T21:08:22.175Z",
+      "description": "Tareas de testing",
+      "logged_by": null,
+      "employee_id": "MGH-1184",
+      "jira_key": "Revisión de sugerencia y bugs. Revisión de cambios realizados. Revisión modulo de operaciones, supervisión, apk conductor. Revisión de documentacion",
+      "links_json": "[]"
+    },
+    "ACT-1793311086025-0zqc": {
+      "id": "ACT-1793311086025-0zqc",
+      "date": "2026-10-20",
+      "jira_summary": "Pruebas funcionales",
+      "hours": 2,
+      "evidences_json": "[]",
+      "meeting_id": null,
+      "work_type": "Desarrollo",
+      "created_at": "2026-10-29T21:58:06.027Z",
+      "description": "Revisión APP Conductor \nMódulo Cliente",
+      "logged_by": null,
+      "employee_id": "MGH-1184",
+      "jira_key": "TRES-53",
+      "links_json": "[{\"label\":\"Enlace de trabajo\",\"url\":\"https://myglobalhub.atlassian.net/browse/TRES-53\"}]"
+    },
+    "ACT-1793311303992-xth7": {
+      "id": "ACT-1793311303992-xth7",
+      "date": "2026-10-21",
+      "jira_summary": "Pruebas Funcionales",
+      "hours": 3.5,
+      "evidences_json": "[]",
+      "meeting_id": null,
+      "work_type": "QA",
+      "created_at": "2026-10-29T22:01:43.993Z",
+      "description": "Pruebas de flujo  APP conductor\n\nRevisión cliente Empresarial\nModulo Operaciones",
+      "logged_by": null,
+      "employee_id": "MGH-1184",
+      "jira_key": "TRES-53",
+      "links_json": "[{\"label\":\"Enlace de trabajo\",\"url\":\"https://myglobalhub.atlassian.net/browse/TRES-53\"}]"
+    },
+    "ACT-1793311418886-6db0": {
+      "id": "ACT-1793311418886-6db0",
+      "date": "2026-10-23",
+      "jira_summary": "Pruebas",
+      "hours": 1,
+      "evidences_json": "[]",
+      "meeting_id": null,
+      "work_type": "Desarrollo",
+      "created_at": "2026-10-29T22:03:38.887Z",
+      "description": "Revisión modulo Empresarial",
+      "logged_by": null,
+      "employee_id": "MGH-1184",
+      "jira_key": "GENERAL",
+      "links_json": "[]"
+    },
+    "ACT-1793311572478-ebgb": {
+      "id": "ACT-1793311572478-ebgb",
+      "date": "2026-10-23",
+      "jira_summary": "Reunión Semanal",
+      "hours": 2,
+      "evidences_json": "[]",
+      "meeting_id": null,
+      "work_type": "Reunión",
+      "created_at": "2026-10-29T22:06:12.480Z",
+      "description": "Exposición de los miembros del quipo de los avances",
+      "logged_by": null,
+      "employee_id": "MGH-1184",
+      "jira_key": "Reunión Semanal",
+      "links_json": "[]"
+    },
+    "ACT-1793311688345-d5tf": {
+      "id": "ACT-1793311688345-d5tf",
+      "date": "2026-10-24",
+      "jira_summary": "Pruebas funcioanles",
+      "hours": 6,
+      "evidences_json": "[]",
+      "meeting_id": null,
+      "work_type": "QA",
+      "created_at": "2026-10-29T22:08:08.346Z",
+      "description": "Pruebas de de fujos entre modulos",
+      "logged_by": null,
+      "employee_id": "MGH-1184",
+      "jira_key": "GENERAL",
+      "links_json": "[]"
+    },
+    "ACT-1793311883865-i0t9": {
+      "id": "ACT-1793311883865-i0t9",
+      "date": "2026-10-25",
+      "jira_summary": "Reunión con Juan Carlos",
+      "hours": 2.25,
+      "evidences_json": "[]",
+      "meeting_id": null,
+      "work_type": "Reunión",
+      "created_at": "2026-10-29T22:11:23.866Z",
+      "description": "Revisión detallada de los Modulos cliente y Operaciones, detección de busg, señalamiento de sugerencia",
+      "logged_by": null,
+      "employee_id": "MGH-1184",
+      "jira_key": "TRES-53",
+      "links_json": "[{\"label\":\"Enlace de trabajo\",\"url\":\"https://myglobalhub.atlassian.net/browse/TRES-53\"}]"
+    },
     "act-1791585546546": {
       "id": "act-1791585546546",
       "date": "2025-04-15",
@@ -24161,6 +24902,51 @@
       "_syncedAt": "2026-10-23T04:22:20.304Z",
       "jira_key": "MSHP-396",
       "links_json": "[]"
+    },
+    "ACT-1793337603020-v7k9": {
+      "id": "ACT-1793337603020-v7k9",
+      "employee_id": "MGH-1042",
+      "date": "2026-10-29",
+      "jira_key": "GENERAL",
+      "jira_summary": "Pruebas unitarias, de seguridad sobre el sistema de gestion de horas",
+      "hours": 5,
+      "work_type": "QA",
+      "description": "estuve varias horaas verificando que el sistema funcionara bien, cargando tareas de prueba, verificando que no hayan quedado errores, son demasiadas vistas",
+      "evidences_json": "[{\"id\":\"att_1793337597534_b14b758a\",\"name\":\"WhatsApp Image 2026-10-28 at 6.36.45 PM.jpeg\",\"size\":\"0.1 MB\",\"type\":\"image\",\"url\":\"/api/uploads/att_1793337597534_b14b758a\"}]",
+      "links_json": "[]",
+      "meeting_id": null,
+      "logged_by": null,
+      "created_at": "2026-10-30T05:20:03.021Z"
+    },
+    "ACT-1793337708054-kmok": {
+      "id": "ACT-1793337708054-kmok",
+      "employee_id": "MGH-1042",
+      "date": "2026-10-29",
+      "jira_key": "GENERAL",
+      "jira_summary": "Gestion de usuarios y verificacion de accesos de todo el equipo",
+      "hours": 2,
+      "work_type": "Desarrollo",
+      "description": "estuve gestionando las cuentas de todo el equipo de myglobalhub, gestionando los roles adecuadamente , dando permisos de admin , a carmen, y  edwin, verificando que solo ellos tengan informacion confidencial y acceso a secciones criticas",
+      "evidences_json": "[]",
+      "links_json": "[]",
+      "meeting_id": null,
+      "logged_by": null,
+      "created_at": "2026-10-30T05:21:48.055Z"
+    },
+    "ACT-1793337776542-6xbh": {
+      "id": "ACT-1793337776542-6xbh",
+      "employee_id": "MGH-1042",
+      "date": "2026-10-29",
+      "jira_key": "GENERAL",
+      "jira_summary": "actualizacion de codigo, debugging",
+      "hours": 1,
+      "work_type": "Desarrollo",
+      "description": "dedique una hora a subir el codigo, publicar nuevos cambios, ubicar y corregir errores y mejorar la logica del sistema",
+      "evidences_json": "[]",
+      "links_json": "[]",
+      "meeting_id": null,
+      "logged_by": null,
+      "created_at": "2026-10-30T05:22:56.543Z"
     }
   },
   "employees": {
@@ -24440,9 +25226,308 @@
       "acct": null,
       "entity": "MGH Dominicana SRL",
       "status": "Active"
+    },
+    "MGH-1180": {
+      "id": "MGH-1180",
+      "cur": "USD",
+      "loc": "Punta Cana, DR",
+      "role": "Contributor",
+      "crypto_alloc": 0,
+      "crypto_asset": null,
+      "crypto_wallet": null,
+      "freq": "Bi-Weekly",
+      "nid": null,
+      "created_at": "2026-10-28T18:12:54.825Z",
+      "project": "",
+      "type": "Full-time",
+      "routing": null,
+      "bank": null,
+      "rate": 0,
+      "mgr": "Unassigned",
+      "first_name": "",
+      "email": "luiscarvajal2693@gmail.com",
+      "jira": null,
+      "start_date": "2026-10-28",
+      "ot": 1,
+      "last_name": "",
+      "tax": null,
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLqKQBF4UrnKCxW4CbwfkshgX4AVdWpNrIglMccod-xxxJLqoo=s96-c",
+      "dept": "Engineering",
+      "pmethod": "Bank Deposit",
+      "phone": null,
+      "dob": null,
+      "crypto_network": null,
+      "name": "luis enriquez rodriguez carvajal",
+      "alloc": 100,
+      "raw_meta": "{\"pending\":[]}",
+      "acct": null,
+      "entity": "MGH Dominicana SRL",
+      "status": "Active"
+    },
+    "MGH-1181": {
+      "id": "MGH-1181",
+      "cur": "USD",
+      "loc": "Punta Cana, DR",
+      "role": "Contributor",
+      "crypto_alloc": 0,
+      "crypto_asset": null,
+      "crypto_wallet": null,
+      "freq": "Bi-Weekly",
+      "nid": null,
+      "created_at": "2026-10-28T18:35:51.399Z",
+      "project": "",
+      "type": "Full-time",
+      "routing": null,
+      "bank": null,
+      "rate": 0,
+      "mgr": "Unassigned",
+      "first_name": "",
+      "email": "eperez@myglobalhub.net",
+      "jira": null,
+      "start_date": "2026-10-28",
+      "ot": 1,
+      "last_name": "",
+      "tax": null,
+      "avatar": "https://lh3.googleusercontent.com/a-/ALV-UjXRSyjXHpCbjwfGEPUA2uSpv-ksNKfCW3aGx4rLT8lIzKw9XWxMtd_7CItyakuXQDZJn3s8zBr7MZErqLuyGXgbY34LFhcBXO8HalK-qkeXjUkInMgsPV1AyIiaQiOBjW7pVSE9A76UppJkz43OIGmb1mLkgJJLOC-Fxw39aJtYfHdkKOw4ZMwMc2ZXC7ZDEphhaATjrMGBIK_uFVHjV9T9sG03j9U_WfsDxHV-LG6cD9J7z3ZeSXkfKvOtbmJXrQniBadi0ylor2xRExXVUzHvHtKgCgFpnvp2mHvlKPpBf_2arM1-aBkKKdOnIBdiYoVsn09YB6iUr_yCf8NxQQk0T576jDd3HJHh7hQuE8BDMnKN1UdFJzpgxElORhoDgQJSU3htj3K4yubqt3MgCQ-iNEDLdg-H38OjsSRNrsvUbkkmnOc6HACAuIhbJZx6ADKEXKoBFgD9BgcOGdVKTVedNIg7c3Yxy-v975zXzs02ZwQFIXyxXGkAX0-T1irvyex31old6FYB1c2qkXV3qlM4Pa09ZeSDJLs30t6QqKB0bl7UP3nVT76bKhvo_qlCwn-Nj47skEw3xL5bGcKbhN9wc5TlM2jtLnxfvkKBPIJW2h7Y6-6yYtFFloQtxVVZY0CocQ0Q-JWTlFPAD4_St3gOUoO8n3DGO3MXaJUO8AHmoD3NHUVc5cQLo2p2bpyKigXFkgGIk4pFBPnJdbkHnd3FHt-Go7KZVsrNaGrjEgg6Qm9s3uyI-6wDNUHsi8JTcDrTa7B6r89uSa62PMRx1Jj-cT3b1KapjMuIPNEpiTS8wRHpf4Za-bfvhSLSStyc5L2HEWYIN3J4fKUcMBs_WJPFzWWIJYTYytYI9DovoQqLPIfC--pUp8_etxSBNZStJ_vgBm7axaov-lN79SsGyi5AtkYVFa3xCkC24jfnSSCTA1ljKXTIEoyl5qJkqyw5O0n8jmoMB_KHCWTUHYjWOoyomOc_mTWJkYld8uTPRa0jp8x4KKuHlkIMCJCAAzYNLHgMAwnbgKjoC2UpTKkX3Dd91ksSz9reem-d9l-R1BFBt4QmX6jRtau-KQ=s96-c",
+      "dept": "Engineering",
+      "pmethod": "Bank Deposit",
+      "phone": null,
+      "dob": null,
+      "crypto_network": null,
+      "name": "Edwin Perez-Montalvo",
+      "alloc": 100,
+      "raw_meta": "{\"pending\":[]}",
+      "acct": null,
+      "entity": "MGH Dominicana SRL",
+      "status": "Active"
+    },
+    "MGH-1182": {
+      "id": "MGH-1182",
+      "cur": "USD",
+      "loc": "Punta Cana, DR",
+      "role": "Contributor",
+      "crypto_alloc": 0,
+      "crypto_asset": null,
+      "crypto_wallet": null,
+      "freq": "Bi-Weekly",
+      "nid": null,
+      "created_at": "2026-10-28T20:37:03.620Z",
+      "project": "",
+      "type": "Full-time",
+      "routing": null,
+      "bank": null,
+      "rate": 0,
+      "mgr": "Unassigned",
+      "first_name": "",
+      "email": "uraharazamora@gmail.com",
+      "jira": null,
+      "start_date": "2026-10-28",
+      "ot": 1,
+      "last_name": "",
+      "tax": null,
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocIq-CVEFFoSxP_wCDPNjjRHV5cz4lLzpAsfnZmGEAfaP4f2YJqSQQ=s96-c",
+      "dept": "Engineering",
+      "pmethod": "Bank Deposit",
+      "phone": null,
+      "dob": null,
+      "crypto_network": null,
+      "name": "T Z",
+      "alloc": 100,
+      "raw_meta": "{\"pending\":[]}",
+      "acct": null,
+      "entity": "MGH Dominicana SRL",
+      "status": "Active"
+    },
+    "MGH-1183": {
+      "id": "MGH-1183",
+      "cur": "USD",
+      "loc": "Punta Cana, DR",
+      "role": "Contributor",
+      "crypto_alloc": 0,
+      "crypto_asset": null,
+      "crypto_wallet": null,
+      "freq": "Bi-Weekly",
+      "nid": null,
+      "created_at": "2026-10-28T23:19:35.141Z",
+      "project": "",
+      "type": "Full-time",
+      "routing": null,
+      "bank": null,
+      "rate": 0,
+      "mgr": "Unassigned",
+      "first_name": "",
+      "email": "zajrj.3@gmail.com",
+      "jira": null,
+      "start_date": "2026-10-28",
+      "ot": 1,
+      "last_name": "",
+      "tax": null,
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocIaWVXTfiVTdUWuKfsLIsAO3N5LZORylAZ2u2dvTd3LAtGwpQ=s96-c",
+      "dept": "Engineering",
+      "pmethod": "Bank Deposit",
+      "phone": null,
+      "dob": null,
+      "crypto_network": null,
+      "name": "Zain Rondón",
+      "alloc": 100,
+      "raw_meta": "{\"pending\":[]}",
+      "acct": null,
+      "entity": "MGH Dominicana SRL",
+      "status": "Active"
+    },
+    "MGH-1184": {
+      "id": "MGH-1184",
+      "cur": "USD",
+      "loc": null,
+      "role": "",
+      "crypto_alloc": 0,
+      "crypto_asset": null,
+      "crypto_wallet": null,
+      "freq": "Bi-Weekly",
+      "nid": null,
+      "created_at": "2026-10-29T20:56:43.732Z",
+      "project": "",
+      "type": "Full-time",
+      "routing": null,
+      "bank": null,
+      "rate": 0,
+      "mgr": null,
+      "first_name": "",
+      "email": "lisandragarzon@gmail.com",
+      "jira": null,
+      "start_date": "2026-10-29",
+      "ot": 1,
+      "last_name": "",
+      "tax": null,
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocIW_yxyM6TIEpYt8a789AtRifXzzlaL7Wb6svv9-sbAAASjwA=s96-c",
+      "dept": "",
+      "pmethod": "Bank Deposit",
+      "phone": null,
+      "dob": null,
+      "crypto_network": null,
+      "name": "Lisandra Yenet Garzon Ferrr",
+      "alloc": 100,
+      "raw_meta": "{\"pending\":[]}",
+      "acct": null,
+      "entity": "MGH Dominicana SRL",
+      "status": "Active"
+    },
+    "MGH-1185": {
+      "id": "MGH-1185",
+      "cur": "USD",
+      "loc": null,
+      "role": "",
+      "crypto_alloc": 0,
+      "crypto_asset": null,
+      "crypto_wallet": null,
+      "freq": "Bi-Weekly",
+      "nid": null,
+      "created_at": "2026-10-29T22:59:01.085Z",
+      "project": "",
+      "type": "Full-time",
+      "routing": null,
+      "bank": null,
+      "rate": 0,
+      "mgr": null,
+      "first_name": "",
+      "email": "hr@myglobalhub.net",
+      "jira": null,
+      "start_date": "2026-10-29",
+      "ot": 1,
+      "last_name": "",
+      "tax": null,
+      "avatar": "https://lh3.googleusercontent.com/a-/ALV-UjVmeDuNM73_OjablRSnCoUTlLgKqGMNodcXSXhzNQwtvDv84_PxPcxeMsoWXaoGuMySkb8ycyxq2cYBLEi30fx3u-DhhQ8aDQRTFhcscqCci7MS72_Tm7kXzvw-8O1DFVVPhaLXFIzVkTO-pPqDdi-NlJT6QjllWdMfJcTdc7ZUbVlHqXRMg8GXE7FQhpL3byoIDmtbXSZE1XBdxuho9mxvjFQpzLwnOnALJZIJDWNYNUt-LQ0jkv9PtdvvMw9z_XKdcyMGMqEs5pTXUUhomPPNmhFU5f5HGOPU90sPRMiKHjosD8-rBqH4J21NVIx8yGei4V71TmRsCjwezVgOr4EH6cV61iNpMwYfiOFKofmKXGxugstMsiQrHvH8xS0Ra23BiGSFs_-K1Hn7cs4BNSiChyevysAi8SdGkOApjAtAYglNJRwOZpr4GOk2NqW0jAN9ydExby5frqanCvFdS0IwimhGjxUVGP6syZc90aOYYrnCQyXcMKAlZBuEBJj5nTlokM11N1T9JhQ5NWByiKCH81uLHsdeyU1JtFLOTgLrCRUXriZizLPLdB3t5OyAHJ6zjTWHuk7YKy4o8U23qPCptiQ_KCz_tBM_qam5dRFGievpMFMkylp1B6h-Nm7vdlieaG1c5-NhDCi2MkX0Dvsr_2oNEBrXbT18jembPNCl3-rKWfufLm5udYbwH7DTPBO8ZJnQKL8L4qZGTTPVeUlGjaTTpFh82s6TXeYBmrK6qF_YBhlV4Vjxai8kzDxYI9Md7IC90jZ8f9uo-8eAn5tZN5FdLQPBsCgRhgN8rVJNlmMLnWrYv1OZ5Qom-cQQtxPt7bBpfmX5trJ84RgsAYpY4zXSwsCDVMviBk_x3IA1A5MUzawQU8t23c8Ug_-_a3UJqZTWnEbLg_zhIUaDPgTEmVu4MPVvU-yGsh-0Gi3nZdq-NbHf3AFeIGOtRT0wnMPOyumamgXmz4JszB0efRSvP_bpkcKOAM7O7JRyP4JfwPJYE-Mv3KvWGufKROoqnmT7pi38o8s57rDgw2iLfJ2tV8fUGv4JWSHkn2lEARslMC2K3buKXjIrjQ=s96-c",
+      "dept": "",
+      "pmethod": "Bank Deposit",
+      "phone": null,
+      "dob": null,
+      "crypto_network": null,
+      "name": "Edwin Perez Montalvo",
+      "alloc": 100,
+      "raw_meta": "{\"pending\":[]}",
+      "acct": null,
+      "entity": "MGH Dominicana SRL",
+      "status": "Active"
     }
   },
   "holidays": {
+    "H-1793056924943": {
+      "id": "H-1793056924943",
+      "date": "2025-10-12",
+      "country": "Dominican Republic",
+      "org_id": "MGH Dominicana SRL",
+      "_migratedAt": "2026-10-27T17:59:43.176Z",
+      "description": "Company Innovation Day",
+      "is_working": 0,
+      "is_paid": 1,
+      "region": "National"
+    },
+    "H-1793057054158": {
+      "id": "H-1793057054158",
+      "date": "2025-10-12",
+      "country": "Dominican Republic",
+      "org_id": "MGH Dominicana SRL",
+      "_migratedAt": "2026-10-27T17:59:43.176Z",
+      "description": "Company Innovation Day",
+      "is_working": 0,
+      "is_paid": 1,
+      "region": "National"
+    },
+    "H-1793113894138": {
+      "id": "H-1793113894138",
+      "date": "2025-10-12",
+      "country": "Dominican Republic",
+      "org_id": "MGH Dominicana SRL",
+      "_migratedAt": "2026-10-27T17:59:43.176Z",
+      "description": "Company Innovation Day",
+      "is_working": 0,
+      "is_paid": 1,
+      "region": "National"
+    },
+    "H-1793124001059": {
+      "id": "H-1793124001059",
+      "date": "2025-10-12",
+      "country": "Dominican Republic",
+      "org_id": "MGH Dominicana SRL",
+      "created_at": "2026-10-27T18:00:01.060Z",
+      "description": "Company Innovation Day",
+      "is_working": 0,
+      "is_paid": 1,
+      "region": "National"
+    },
+    "H-1793124056287": {
+      "id": "H-1793124056287",
+      "date": "2025-10-12",
+      "country": "Dominican Republic",
+      "org_id": "MGH Dominicana SRL",
+      "created_at": "2026-10-27T18:00:56.287Z",
+      "description": "Company Innovation Day",
+      "is_working": 0,
+      "is_paid": 1,
+      "region": "National"
+    },
+    "H-1793124090412": {
+      "id": "H-1793124090412",
+      "date": "2025-10-12",
+      "country": "Dominican Republic",
+      "org_id": "MGH Dominicana SRL",
+      "created_at": "2026-10-27T18:01:30.412Z",
+      "description": "Company Innovation Day",
+      "is_working": 0,
+      "is_paid": 1,
+      "region": "National"
+    },
+    "H-1793132505785": {
+      "id": "H-1793132505785",
+      "date": "2025-10-12",
+      "country": "Dominican Republic",
+      "org_id": "MGH Dominicana SRL",
+      "created_at": "2026-10-27T20:21:45.787Z",
+      "description": "Company Innovation Day",
+      "is_working": 0,
+      "is_paid": 1,
+      "region": "National"
+    },
     "H1": {
       "id": "H1",
       "date": "2025-01-01",
@@ -24595,83 +25680,6 @@
       "_syncedAt": "2026-10-26T22:05:48.113Z",
       "created_at": "2026-10-22 23:39:28",
       "description": "Restoration Day",
-      "is_working": 0,
-      "is_paid": 1,
-      "region": "National"
-    },
-    "H-1793056924943": {
-      "id": "H-1793056924943",
-      "date": "2025-10-12",
-      "country": "Dominican Republic",
-      "org_id": "MGH Dominicana SRL",
-      "_migratedAt": "2026-10-27T17:59:43.176Z",
-      "description": "Company Innovation Day",
-      "is_working": 0,
-      "is_paid": 1,
-      "region": "National"
-    },
-    "H-1793057054158": {
-      "id": "H-1793057054158",
-      "date": "2025-10-12",
-      "country": "Dominican Republic",
-      "org_id": "MGH Dominicana SRL",
-      "_migratedAt": "2026-10-27T17:59:43.176Z",
-      "description": "Company Innovation Day",
-      "is_working": 0,
-      "is_paid": 1,
-      "region": "National"
-    },
-    "H-1793113894138": {
-      "id": "H-1793113894138",
-      "date": "2025-10-12",
-      "country": "Dominican Republic",
-      "org_id": "MGH Dominicana SRL",
-      "_migratedAt": "2026-10-27T17:59:43.176Z",
-      "description": "Company Innovation Day",
-      "is_working": 0,
-      "is_paid": 1,
-      "region": "National"
-    },
-    "H-1793124001059": {
-      "id": "H-1793124001059",
-      "date": "2025-10-12",
-      "country": "Dominican Republic",
-      "org_id": "MGH Dominicana SRL",
-      "created_at": "2026-10-27T18:00:01.060Z",
-      "description": "Company Innovation Day",
-      "is_working": 0,
-      "is_paid": 1,
-      "region": "National"
-    },
-    "H-1793124056287": {
-      "id": "H-1793124056287",
-      "date": "2025-10-12",
-      "country": "Dominican Republic",
-      "org_id": "MGH Dominicana SRL",
-      "created_at": "2026-10-27T18:00:56.287Z",
-      "description": "Company Innovation Day",
-      "is_working": 0,
-      "is_paid": 1,
-      "region": "National"
-    },
-    "H-1793124090412": {
-      "id": "H-1793124090412",
-      "date": "2025-10-12",
-      "country": "Dominican Republic",
-      "org_id": "MGH Dominicana SRL",
-      "created_at": "2026-10-27T18:01:30.412Z",
-      "description": "Company Innovation Day",
-      "is_working": 0,
-      "is_paid": 1,
-      "region": "National"
-    },
-    "H-1793132505785": {
-      "id": "H-1793132505785",
-      "date": "2025-10-12",
-      "country": "Dominican Republic",
-      "org_id": "MGH Dominicana SRL",
-      "created_at": "2026-10-27T20:21:45.787Z",
-      "description": "Company Innovation Day",
       "is_working": 0,
       "is_paid": 1,
       "region": "National"
@@ -25687,6 +26695,19 @@
     }
   },
   "jira_projects": {
+    "ARW": {
+      "id": "ARW",
+      "st": "On track",
+      "spent": 0,
+      "hrs": 0,
+      "name": "Arawaki",
+      "bill": 0,
+      "created_at": "2026-10-28T17:27:01.965Z",
+      "people": 0,
+      "key": "ARW",
+      "lead": null,
+      "budget": 0
+    },
     "MSHP": {
       "id": "MSHP",
       "st": "On track",
@@ -25704,19 +26725,6 @@
       "budget": 50000,
       "updated_at": "2026-10-28T17:27:01.962Z",
       "name": "Wokokai"
-    },
-    "ARW": {
-      "id": "ARW",
-      "st": "On track",
-      "spent": 0,
-      "hrs": 0,
-      "name": "Arawaki",
-      "bill": 0,
-      "created_at": "2026-10-28T17:27:01.965Z",
-      "people": 0,
-      "key": "ARW",
-      "lead": null,
-      "budget": 0
     },
     "TR3": {
       "id": "TR3",
@@ -25756,7 +26764,58 @@
       "status": "SUCCESS"
     }
   },
-  "leave_requests": {},
+  "leave_requests": {
+    "LV-1793312737589": {
+      "id": "LV-1793312737589",
+      "reason": null,
+      "from_date": "2026-11-20",
+      "to_date": "2026-11-28",
+      "employee_id": "MGH-1184",
+      "created_at": "2026-10-29T22:25:37.591Z",
+      "employee_name": "Lisandra Yenet Garzon Ferrr",
+      "type": "Vacaciones",
+      "updated_at": "2026-10-29T22:26:17.662Z",
+      "history_json": "[{\"at\":\"2026-10-29T22:25:37.589Z\",\"actor\":\"Lisandra Yenet Garzon Ferrr\",\"role\":\"Employee\",\"to\":\"Pending Supervisor\",\"comment\":\"\"},{\"at\":\"2026-10-29T22:26:17.658Z\",\"actor\":\"Lisandra Yenet Garzon Ferrr\",\"role\":\"Supervisor\",\"to\":\"Cancelled\",\"comment\":\"\"}]",
+      "status": "Cancelled"
+    },
+    "LV-1793312764749": {
+      "id": "LV-1793312764749",
+      "reason": null,
+      "from_date": "2026-11-20",
+      "to_date": "2026-11-29",
+      "employee_id": "MGH-1184",
+      "created_at": "2026-10-29T22:26:04.750Z",
+      "employee_name": "Lisandra Yenet Garzon Ferrr",
+      "type": "Vacaciones",
+      "updated_at": "2026-10-29T22:26:09.081Z",
+      "history_json": "[{\"at\":\"2026-10-29T22:26:04.749Z\",\"actor\":\"Lisandra Yenet Garzon Ferrr\",\"role\":\"Employee\",\"to\":\"Pending Supervisor\",\"comment\":\"\"},{\"at\":\"2026-10-29T22:26:09.081Z\",\"actor\":\"Lisandra Yenet Garzon Ferrr\",\"role\":\"Supervisor\",\"to\":\"Cancelled\",\"comment\":\"\"}]",
+      "status": "Cancelled"
+    },
+    "LV-1793312787593": {
+      "id": "LV-1793312787593",
+      "reason": null,
+      "from_date": "2026-11-20",
+      "to_date": "2026-11-29",
+      "employee_id": "MGH-1184",
+      "created_at": "2026-10-29T22:26:27.594Z",
+      "employee_name": "Lisandra Yenet Garzon Ferrr",
+      "history_json": "[{\"at\":\"2026-10-29T22:26:27.593Z\",\"actor\":\"Lisandra Yenet Garzon Ferrr\",\"role\":\"Employee\",\"to\":\"Pending Supervisor\",\"comment\":\"\"}]",
+      "type": "Vacaciones",
+      "status": "Pending Supervisor"
+    },
+    "LV-1793312796225": {
+      "id": "LV-1793312796225",
+      "reason": null,
+      "from_date": "2026-11-20",
+      "to_date": "2026-11-29",
+      "employee_id": "MGH-1184",
+      "created_at": "2026-10-29T22:26:36.226Z",
+      "employee_name": "Lisandra Yenet Garzon Ferrr",
+      "history_json": "[{\"at\":\"2026-10-29T22:26:36.225Z\",\"actor\":\"Lisandra Yenet Garzon Ferrr\",\"role\":\"Employee\",\"to\":\"Pending Supervisor\",\"comment\":\"\"}]",
+      "type": "Sin goce de sueldo",
+      "status": "Pending Supervisor"
+    }
+  },
   "organizations": {
     "MGH Dominicana SRL": {
       "id": "MGH Dominicana SRL",
@@ -26173,286 +27232,286 @@
     "PP-2026-01": {
       "id": "PP-2026-01",
       "end_date": "2026-01-15",
-      "is_locked": 0,
       "pay_date": "2026-01-20",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 1,
-      "updated_at": "2026-10-28T20:30:40.054Z",
       "_syncedAt": "2026-10-26T22:05:47.817Z",
       "cutoff": "2026-01-15T23:59",
       "start_date": "2026-01-01",
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.054Z",
       "status": "Open"
     },
     "PP-2026-02": {
       "id": "PP-2026-02",
       "end_date": "2026-01-31",
-      "is_locked": 0,
       "pay_date": "2026-02-05",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 2,
-      "updated_at": "2026-10-28T20:30:40.057Z",
       "_syncedAt": "2026-10-26T22:05:47.817Z",
       "cutoff": "2026-01-31T23:59",
-      "start_date": "2026-01-16",
-      "status": "Open"
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.057Z",
+      "status": "Open",
+      "start_date": "2026-01-16"
     },
     "PP-2026-03": {
       "id": "PP-2026-03",
       "end_date": "2026-02-15",
-      "is_locked": 0,
       "pay_date": "2026-02-20",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 3,
-      "updated_at": "2026-10-28T20:30:40.057Z",
       "_syncedAt": "2026-10-26T22:05:47.817Z",
       "cutoff": "2026-02-15T23:59",
       "start_date": "2026-02-01",
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.057Z",
       "status": "Open"
     },
     "PP-2026-04": {
       "id": "PP-2026-04",
       "end_date": "2026-02-28",
-      "is_locked": 0,
       "pay_date": "2026-03-05",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 4,
-      "updated_at": "2026-10-28T20:30:40.058Z",
       "_syncedAt": "2026-10-26T22:05:47.817Z",
       "cutoff": "2026-02-28T23:59",
-      "start_date": "2026-02-16",
-      "status": "Open"
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.058Z",
+      "status": "Open",
+      "start_date": "2026-02-16"
     },
     "PP-2026-05": {
       "id": "PP-2026-05",
       "end_date": "2026-03-15",
-      "is_locked": 0,
       "pay_date": "2026-03-20",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 5,
-      "updated_at": "2026-10-28T20:30:40.058Z",
       "_syncedAt": "2026-10-26T22:05:47.817Z",
       "cutoff": "2026-03-15T23:59",
       "start_date": "2026-03-01",
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.058Z",
       "status": "Open"
     },
     "PP-2026-06": {
       "id": "PP-2026-06",
       "end_date": "2026-03-31",
-      "is_locked": 0,
       "pay_date": "2026-04-05",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 6,
-      "updated_at": "2026-10-28T20:30:40.059Z",
       "_syncedAt": "2026-10-26T22:05:47.817Z",
       "cutoff": "2026-03-31T23:59",
-      "start_date": "2026-03-16",
-      "status": "Open"
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.059Z",
+      "status": "Open",
+      "start_date": "2026-03-16"
     },
     "PP-2026-07": {
       "id": "PP-2026-07",
       "end_date": "2026-04-15",
-      "is_locked": 0,
       "pay_date": "2026-04-20",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 7,
-      "updated_at": "2026-10-28T20:30:40.059Z",
       "_syncedAt": "2026-10-26T22:05:47.817Z",
       "cutoff": "2026-04-15T23:59",
       "start_date": "2026-04-01",
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.059Z",
       "status": "Open"
     },
     "PP-2026-08": {
       "id": "PP-2026-08",
       "end_date": "2026-04-30",
-      "is_locked": 0,
       "pay_date": "2026-05-05",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 8,
-      "updated_at": "2026-10-28T20:30:40.059Z",
       "_syncedAt": "2026-10-26T22:05:47.817Z",
       "cutoff": "2026-04-30T23:59",
-      "start_date": "2026-04-16",
-      "status": "Open"
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.059Z",
+      "status": "Open",
+      "start_date": "2026-04-16"
     },
     "PP-2026-09": {
       "id": "PP-2026-09",
       "end_date": "2026-05-15",
-      "is_locked": 0,
       "pay_date": "2026-05-20",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 9,
-      "updated_at": "2026-10-28T20:30:40.059Z",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-05-15T23:59",
       "start_date": "2026-05-01",
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.059Z",
       "status": "Open"
     },
     "PP-2026-10": {
       "id": "PP-2026-10",
       "end_date": "2026-05-31",
-      "is_locked": 0,
       "pay_date": "2026-06-05",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 10,
-      "updated_at": "2026-10-28T20:30:40.060Z",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-05-31T23:59",
-      "start_date": "2026-05-16",
-      "status": "Open"
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.060Z",
+      "status": "Open",
+      "start_date": "2026-05-16"
     },
     "PP-2026-11": {
       "id": "PP-2026-11",
       "end_date": "2026-06-15",
-      "is_locked": 0,
       "pay_date": "2026-06-20",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 11,
-      "updated_at": "2026-10-28T20:30:40.060Z",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-06-15T23:59",
       "start_date": "2026-06-01",
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.060Z",
       "status": "Open"
     },
     "PP-2026-12": {
       "id": "PP-2026-12",
       "end_date": "2026-06-30",
-      "is_locked": 0,
       "pay_date": "2026-07-05",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 12,
-      "updated_at": "2026-10-28T20:30:40.060Z",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-06-30T23:59",
-      "start_date": "2026-06-16",
-      "status": "Open"
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.060Z",
+      "status": "Open",
+      "start_date": "2026-06-16"
     },
     "PP-2026-13": {
       "id": "PP-2026-13",
       "end_date": "2026-07-15",
-      "is_locked": 0,
       "pay_date": "2026-07-20",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 13,
-      "updated_at": "2026-10-28T20:30:40.061Z",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-07-15T23:59",
       "start_date": "2026-07-01",
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.061Z",
       "status": "Open"
     },
     "PP-2026-14": {
       "id": "PP-2026-14",
       "end_date": "2026-07-31",
-      "is_locked": 0,
       "pay_date": "2026-08-05",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 14,
-      "updated_at": "2026-10-28T20:30:40.061Z",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-07-31T23:59",
-      "start_date": "2026-07-16",
-      "status": "Open"
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.061Z",
+      "status": "Open",
+      "start_date": "2026-07-16"
     },
     "PP-2026-15": {
       "id": "PP-2026-15",
       "end_date": "2026-08-15",
-      "is_locked": 0,
       "pay_date": "2026-08-20",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 15,
-      "updated_at": "2026-10-28T20:30:40.061Z",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-08-15T23:59",
       "start_date": "2026-08-01",
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.061Z",
       "status": "Open"
     },
     "PP-2026-16": {
       "id": "PP-2026-16",
       "end_date": "2026-08-31",
-      "is_locked": 0,
       "pay_date": "2026-09-05",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 16,
-      "updated_at": "2026-10-28T20:30:40.061Z",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-08-31T23:59",
-      "start_date": "2026-08-16",
-      "status": "Open"
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.061Z",
+      "status": "Open",
+      "start_date": "2026-08-16"
     },
     "PP-2026-17": {
       "id": "PP-2026-17",
       "end_date": "2026-09-15",
-      "is_locked": 0,
       "pay_date": "2026-09-20",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 17,
-      "updated_at": "2026-10-28T20:30:40.062Z",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-09-15T23:59",
       "start_date": "2026-09-01",
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.062Z",
       "status": "Open"
     },
     "PP-2026-18": {
       "id": "PP-2026-18",
       "end_date": "2026-09-30",
-      "is_locked": 0,
       "pay_date": "2026-10-05",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 18,
-      "updated_at": "2026-10-28T20:30:40.062Z",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-09-30T23:59",
-      "start_date": "2026-09-16",
-      "status": "Open"
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.062Z",
+      "status": "Open",
+      "start_date": "2026-09-16"
     },
     "PP-2026-19": {
       "id": "PP-2026-19",
       "end_date": "2026-10-15",
-      "is_locked": 0,
       "pay_date": "2026-10-20",
       "year": 2026,
       "_migratedAt": "2026-10-27T17:59:44.734Z",
       "created_at": "2026-10-23 23:16:38",
       "period_number": 19,
-      "updated_at": "2026-10-28T20:30:40.062Z",
       "_syncedAt": "2026-10-26T22:05:47.818Z",
       "cutoff": "2026-10-15T23:59",
       "start_date": "2026-10-01",
+      "is_locked": 0,
+      "updated_at": "2026-10-28T20:30:40.062Z",
       "status": "Open"
     },
     "PP-2026-20": {
@@ -26531,8 +27590,6 @@
       "start_date": "2026-12-16"
     }
   },
-  "payment_proofs": {},
-  "payroll_adjustments": {},
   "payroll_run_items": {
     "PRI-PR-PP-2025-10-MGH-1001": {
       "id": "PRI-PR-PP-2025-10-MGH-1001",
@@ -26572,23 +27629,42 @@
       "employee_role": "Project Manager & Lead",
       "created_at": "2026-10-27T20:22:51.403Z"
     },
-    "PRI-PR-PP-2025-10-MGH-1046": {
-      "id": "PRI-PR-PP-2025-10-MGH-1046",
-      "deductions_json": "[{\"label\":\"TSS — SFS (Salud 3.04%)\",\"code\":\"TSS_SFS\",\"rate\":\"3.04%\",\"amount\":109.44,\"statutory\":true},{\"label\":\"TSS — AFP (Pensión 2.87%)\",\"code\":\"TSS_AFP\",\"rate\":\"2.87%\",\"amount\":103.32,\"statutory\":true},{\"label\":\"DGII — Retención ISR\",\"code\":\"DGII_ISR\",\"rate\":\"Escala Progresiva\",\"amount\":759.71,\"statutory\":true}]",
-      "adjustments_json": "[]",
+    "PRI-PR-PP-2025-10-MGH-1043": {
+      "id": "PRI-PR-PP-2025-10-MGH-1043",
+      "deductions_json": "[]",
+      "adjustments_json": "[{\"id\":\"MGH-1043\",\"type\":\"Remote Office Stipend\",\"kind\":\"stipend\",\"amount\":1200,\"status\":\"Tax Audited\"}]",
       "run_id": "PR-PP-2025-10",
       "_migratedAt": "2026-10-27T17:59:45.346Z",
-      "employee_name": "Juan Zamora",
+      "employee_name": "Zain Rondon",
       "ot_hours": 0,
-      "gross_pay": 3600,
+      "gross_pay": 5200,
       "pto_hours": 0,
-      "net_pay": 2627.53,
-      "payout_json": "[{\"rail\":\"Bank Deposit\",\"target\":\"Banreservas\",\"accountMasked\":\"5069788234\",\"percentage\":100,\"amount\":2627.53}]",
-      "rate": 45,
-      "employee_id": "MGH-1046",
+      "net_pay": 5200,
+      "payout_json": "[{\"rail\":\"Bank Deposit\",\"target\":\"Banco BHD León\",\"accountMasked\":\"2039485761\",\"percentage\":100,\"amount\":5200}]",
+      "rate": 50,
+      "employee_id": "MGH-1043",
       "reg_hours": 80,
-      "total_deductions": 972.47,
-      "employee_role": "QA Engineer & Developer",
+      "total_deductions": 0,
+      "employee_role": "Full Stack Developer",
+      "created_at": "2026-10-27T20:22:51.405Z"
+    },
+    "PRI-PR-PP-2025-10-MGH-1044": {
+      "id": "PRI-PR-PP-2025-10-MGH-1044",
+      "deductions_json": "[{\"label\":\"TSS — SFS (Salud 3.04%)\",\"code\":\"TSS_SFS\",\"rate\":\"3.04%\",\"amount\":147.44,\"statutory\":true},{\"label\":\"TSS — AFP (Pensión 2.87%)\",\"code\":\"TSS_AFP\",\"rate\":\"2.87%\",\"amount\":139.2,\"statutory\":true},{\"label\":\"DGII — Retención ISR\",\"code\":\"DGII_ISR\",\"rate\":\"Escala Progresiva\",\"amount\":1053.74,\"statutory\":true}]",
+      "adjustments_json": "[{\"id\":\"MGH-1044\",\"type\":\"Equipment Reimbursement\",\"kind\":\"stipend\",\"amount\":850,\"status\":\"Approved & Queued\"}]",
+      "run_id": "PR-PP-2025-10",
+      "_migratedAt": "2026-10-27T17:59:45.346Z",
+      "employee_name": "Luis Rodriguez",
+      "ot_hours": 0,
+      "gross_pay": 4850,
+      "pto_hours": 0,
+      "net_pay": 3509.62,
+      "payout_json": "[{\"rail\":\"Bank Deposit\",\"target\":\"Banreservas\",\"accountMasked\":\"3049586712\",\"percentage\":100,\"amount\":3509.62}]",
+      "rate": 50,
+      "employee_id": "MGH-1044",
+      "reg_hours": 80,
+      "total_deductions": 1340.38,
+      "employee_role": "Backend & Mobile Developer",
       "created_at": "2026-10-27T20:22:51.403Z"
     },
     "PRI-PR-PP-2025-10-MGH-1045": {
@@ -26610,23 +27686,23 @@
       "employee_role": "UI/UX Designer & Frontend Developer",
       "created_at": "2026-10-27T20:22:51.403Z"
     },
-    "PRI-PR-PP-2025-10-MGH-1044": {
-      "id": "PRI-PR-PP-2025-10-MGH-1044",
-      "deductions_json": "[{\"label\":\"TSS — SFS (Salud 3.04%)\",\"code\":\"TSS_SFS\",\"rate\":\"3.04%\",\"amount\":147.44,\"statutory\":true},{\"label\":\"TSS — AFP (Pensión 2.87%)\",\"code\":\"TSS_AFP\",\"rate\":\"2.87%\",\"amount\":139.2,\"statutory\":true},{\"label\":\"DGII — Retención ISR\",\"code\":\"DGII_ISR\",\"rate\":\"Escala Progresiva\",\"amount\":1053.74,\"statutory\":true}]",
-      "adjustments_json": "[{\"id\":\"MGH-1044\",\"type\":\"Equipment Reimbursement\",\"kind\":\"stipend\",\"amount\":850,\"status\":\"Approved & Queued\"}]",
+    "PRI-PR-PP-2025-10-MGH-1046": {
+      "id": "PRI-PR-PP-2025-10-MGH-1046",
+      "deductions_json": "[{\"label\":\"TSS — SFS (Salud 3.04%)\",\"code\":\"TSS_SFS\",\"rate\":\"3.04%\",\"amount\":109.44,\"statutory\":true},{\"label\":\"TSS — AFP (Pensión 2.87%)\",\"code\":\"TSS_AFP\",\"rate\":\"2.87%\",\"amount\":103.32,\"statutory\":true},{\"label\":\"DGII — Retención ISR\",\"code\":\"DGII_ISR\",\"rate\":\"Escala Progresiva\",\"amount\":759.71,\"statutory\":true}]",
+      "adjustments_json": "[]",
       "run_id": "PR-PP-2025-10",
       "_migratedAt": "2026-10-27T17:59:45.346Z",
-      "employee_name": "Luis Rodriguez",
+      "employee_name": "Juan Zamora",
       "ot_hours": 0,
-      "gross_pay": 4850,
+      "gross_pay": 3600,
       "pto_hours": 0,
-      "net_pay": 3509.62,
-      "payout_json": "[{\"rail\":\"Bank Deposit\",\"target\":\"Banreservas\",\"accountMasked\":\"3049586712\",\"percentage\":100,\"amount\":3509.62}]",
-      "rate": 50,
-      "employee_id": "MGH-1044",
+      "net_pay": 2627.53,
+      "payout_json": "[{\"rail\":\"Bank Deposit\",\"target\":\"Banreservas\",\"accountMasked\":\"5069788234\",\"percentage\":100,\"amount\":2627.53}]",
+      "rate": 45,
+      "employee_id": "MGH-1046",
       "reg_hours": 80,
-      "total_deductions": 1340.38,
-      "employee_role": "Backend & Mobile Developer",
+      "total_deductions": 972.47,
+      "employee_role": "QA Engineer & Developer",
       "created_at": "2026-10-27T20:22:51.403Z"
     },
     "PRI-PR-PP-2025-10-MGH-1163": {
@@ -26914,25 +27990,6 @@
       "employee_role": "Cloud Architect",
       "created_at": "2026-10-27T20:22:51.405Z"
     },
-    "PRI-PR-PP-2025-10-MGH-1043": {
-      "id": "PRI-PR-PP-2025-10-MGH-1043",
-      "deductions_json": "[]",
-      "adjustments_json": "[{\"id\":\"MGH-1043\",\"type\":\"Remote Office Stipend\",\"kind\":\"stipend\",\"amount\":1200,\"status\":\"Tax Audited\"}]",
-      "run_id": "PR-PP-2025-10",
-      "_migratedAt": "2026-10-27T17:59:45.346Z",
-      "employee_name": "Zain Rondon",
-      "ot_hours": 0,
-      "gross_pay": 5200,
-      "pto_hours": 0,
-      "net_pay": 5200,
-      "payout_json": "[{\"rail\":\"Bank Deposit\",\"target\":\"Banco BHD León\",\"accountMasked\":\"2039485761\",\"percentage\":100,\"amount\":5200}]",
-      "rate": 50,
-      "employee_id": "MGH-1043",
-      "reg_hours": 80,
-      "total_deductions": 0,
-      "employee_role": "Full Stack Developer",
-      "created_at": "2026-10-27T20:22:51.405Z"
-    },
     "PRI-PR-PP-2025-10-MGH-1178": {
       "id": "PRI-PR-PP-2025-10-MGH-1178",
       "deductions_json": "[{\"label\":\"TSS — SFS (Salud 3.04%)\",\"code\":\"TSS_SFS\",\"rate\":\"3.04%\",\"amount\":158.08,\"statutory\":true},{\"label\":\"TSS — AFP (Pensión 2.87%)\",\"code\":\"TSS_AFP\",\"rate\":\"2.87%\",\"amount\":149.24,\"statutory\":true},{\"label\":\"DGII — Retención ISR\",\"code\":\"DGII_ISR\",\"rate\":\"Escala Progresiva\",\"amount\":1136.07,\"statutory\":true}]",
@@ -26977,7 +28034,6 @@
       "status": "PM_Approved"
     }
   },
-  "payroll_signoffs": {},
   "rollout_stages": {
     "STAGE-1": {
       "id": "STAGE-1",
@@ -27044,16 +28100,6 @@
       "ip_address": "127.0.0.1",
       "token": "434478c7903770dce3e68f91957fd657edecc2de8b34d49488fbd4a8a3aa0987"
     },
-    "4a8b3338436b4fa72e74c73564971190ac18f27c447b09ec59aff7733d949cdd": {
-      "id": "4a8b3338436b4fa72e74c73564971190ac18f27c447b09ec59aff7733d949cdd",
-      "expires_at": "2026-10-30T00:52:07.824Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.150Z",
-      "_syncedAt": "2026-10-26T22:05:51.742Z",
-      "created_at": "2026-10-23 00:52:07",
-      "ip_address": "127.0.0.1",
-      "token": "4a8b3338436b4fa72e74c73564971190ac18f27c447b09ec59aff7733d949cdd"
-    },
     "5c1acf9e15bf413af0adfc91b24af7296102c22a59548e56a9bb33e387ee41a8": {
       "id": "5c1acf9e15bf413af0adfc91b24af7296102c22a59548e56a9bb33e387ee41a8",
       "expires_at": "2026-10-29T00:38:01.233Z",
@@ -27093,16 +28139,6 @@
       "created_at": "2026-10-22 23:41:02",
       "ip_address": "127.0.0.1",
       "token": "85969864fc9325f0b6eafd40116f9985db15d90eb7f06cf71db4960aabc8902a"
-    },
-    "8a2894634519aa3b2c813ce94d137e256258733cf7aa367574e95559899f49a2": {
-      "id": "8a2894634519aa3b2c813ce94d137e256258733cf7aa367574e95559899f49a2",
-      "expires_at": "2026-10-30T00:52:10.882Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.150Z",
-      "_syncedAt": "2026-10-26T22:05:51.742Z",
-      "created_at": "2026-10-23 00:52:10",
-      "ip_address": "10.0.0.1",
-      "token": "8a2894634519aa3b2c813ce94d137e256258733cf7aa367574e95559899f49a2"
     },
     "933df9b6e433b33098196db6eff4aad2aa9acb498a1b03bc3f24b98c44926eb0": {
       "id": "933df9b6e433b33098196db6eff4aad2aa9acb498a1b03bc3f24b98c44926eb0",
@@ -27152,36 +28188,6 @@
       "ip_address": "127.0.0.1",
       "token": "8014cba756475c562161604d492b2316095664bdaefd22ecc84c259e6ce58a94"
     },
-    "e4314d016fc2bd667adc0e94ee05f4e4e18bca42f900eb795ca78945940cffd4": {
-      "id": "e4314d016fc2bd667adc0e94ee05f4e4e18bca42f900eb795ca78945940cffd4",
-      "expires_at": "2026-10-30T21:17:44.304Z",
-      "user_id": "usr-joshua",
-      "_migratedAt": "2026-10-27T17:59:46.150Z",
-      "_syncedAt": "2026-10-26T22:05:51.742Z",
-      "created_at": "2026-10-23 21:17:44",
-      "ip_address": "127.0.0.1",
-      "token": "e4314d016fc2bd667adc0e94ee05f4e4e18bca42f900eb795ca78945940cffd4"
-    },
-    "e801c0b9efaf34ede6644fce6e448fc82075f6e9e58b9d3a6f6d5bad19fc85fd": {
-      "id": "e801c0b9efaf34ede6644fce6e448fc82075f6e9e58b9d3a6f6d5bad19fc85fd",
-      "expires_at": "2026-10-30T17:03:29.503Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.150Z",
-      "_syncedAt": "2026-10-26T22:05:51.742Z",
-      "created_at": "2026-10-23 17:03:29",
-      "ip_address": "127.0.0.1",
-      "token": "e801c0b9efaf34ede6644fce6e448fc82075f6e9e58b9d3a6f6d5bad19fc85fd"
-    },
-    "fb6fc9458b494f25fea9f9f9a6aed3418aca94034b4c6c83e287023d6a6f3dd1": {
-      "id": "fb6fc9458b494f25fea9f9f9a6aed3418aca94034b4c6c83e287023d6a6f3dd1",
-      "expires_at": "2026-10-30T17:03:29.265Z",
-      "user_id": "usr-luis",
-      "_migratedAt": "2026-10-27T17:59:46.150Z",
-      "_syncedAt": "2026-10-26T22:05:51.742Z",
-      "created_at": "2026-10-23 17:03:29",
-      "ip_address": "127.0.0.1",
-      "token": "fb6fc9458b494f25fea9f9f9a6aed3418aca94034b4c6c83e287023d6a6f3dd1"
-    },
     "doc_1793053170244_l4hwu": {
       "id": "doc_1793053170244_l4hwu",
       "expires_at": "2026-11-02T22:19:30.244Z",
@@ -27230,14 +28236,6 @@
       "ip_address": "127.0.0.1",
       "token": "1f7788ddc6899e88f7c9a0d01012b91d2c08a55024b44101162126da9ecff2d8"
     },
-    "doc_1793054264839_hbxcz": {
-      "id": "doc_1793054264839_hbxcz",
-      "expires_at": "2026-11-02T22:37:44.839Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.150Z",
-      "ip_address": "127.0.0.1",
-      "token": "7b09c9d8896276d1b711907a6c569f25c9c6cbe806fd79b3916e681df89ec797"
-    },
     "doc_1793054275058_ktnln": {
       "id": "doc_1793054275058_ktnln",
       "expires_at": "2026-11-02T22:37:55.057Z",
@@ -27261,14 +28259,6 @@
       "_migratedAt": "2026-10-27T17:59:46.150Z",
       "ip_address": "127.0.0.1",
       "token": "fef4bef49654833dcfbdc347ca5d1273110a85c17606aa6560e371648a55b27e"
-    },
-    "doc_1793054275351_lnajh": {
-      "id": "doc_1793054275351_lnajh",
-      "expires_at": "2026-11-02T22:37:55.350Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.150Z",
-      "ip_address": "127.0.0.1",
-      "token": "46465ad03e44eb7d0e27ad4980def9c37acfee4ad8a03ea77de12e2484866800"
     },
     "doc_1793055315939_p4vjj": {
       "id": "doc_1793055315939_p4vjj",
@@ -27294,14 +28284,6 @@
       "ip_address": "127.0.0.1",
       "token": "0bf6dcbe7b16784575ae40e23fe2ddb23e206f34722927f9e8f59bef91c111a2"
     },
-    "doc_1793055316412_qq8qj": {
-      "id": "doc_1793055316412_qq8qj",
-      "expires_at": "2026-11-02T22:55:16.412Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.150Z",
-      "ip_address": "127.0.0.1",
-      "token": "6744cb9fe1b746a63efd97e83fb4359f79e83d3b0e3af92e08c0a5e40dd73379"
-    },
     "doc_1793055401345_08qmv": {
       "id": "doc_1793055401345_08qmv",
       "expires_at": "2026-11-02T22:56:41.344Z",
@@ -27325,14 +28307,6 @@
       "_migratedAt": "2026-10-27T17:59:46.150Z",
       "ip_address": "127.0.0.1",
       "token": "0a53ac5b7e6afbf27a0e57e6fd5d180a201975184e59390c06b9bc74eb70ba73"
-    },
-    "doc_1793055401777_pkk61": {
-      "id": "doc_1793055401777_pkk61",
-      "expires_at": "2026-11-02T22:56:41.777Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.150Z",
-      "ip_address": "127.0.0.1",
-      "token": "876c48c4dd4bbce8b753ff8409786a14585b9dd7733de94a424307b2553eb83c"
     },
     "doc_1793056225529_9q4zm": {
       "id": "doc_1793056225529_9q4zm",
@@ -27374,14 +28348,6 @@
       "ip_address": "127.0.0.1",
       "token": "b10df66c61731910293cea94836b3d67918b6e438b2f0acee85bd80d1bb13977"
     },
-    "doc_1793056536461_665jk": {
-      "id": "doc_1793056536461_665jk",
-      "expires_at": "2026-11-02T23:15:36.461Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.150Z",
-      "ip_address": "127.0.0.1",
-      "token": "1428bf80cc275bda221eb1485a066a38167ef8ede00bbb73f7d3c57617337fd6"
-    },
     "doc_1793056576861_gky7l": {
       "id": "doc_1793056576861_gky7l",
       "expires_at": "2026-11-02T23:16:16.860Z",
@@ -27405,14 +28371,6 @@
       "_migratedAt": "2026-10-27T17:59:46.150Z",
       "ip_address": "127.0.0.1",
       "token": "8776db0dfcf9f1721a868fd0c9591ec768644b75ea1c6c64932cdee689a55e98"
-    },
-    "doc_1793056577283_8kc50": {
-      "id": "doc_1793056577283_8kc50",
-      "expires_at": "2026-11-02T23:16:17.283Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.150Z",
-      "ip_address": "127.0.0.1",
-      "token": "4d9a7f5e6ce2640c1e8f83685751d0ddf2af1c029c73f674fe34ca8c352df758"
     },
     "doc_1793056940605_iop34": {
       "id": "doc_1793056940605_iop34",
@@ -27438,22 +28396,6 @@
       "ip_address": "127.0.0.1",
       "token": "652faa449a8fe4f079355b19fa2f5298fa7b8489b57d831434672c6cb67a2923"
     },
-    "doc_1793056941039_bfuvo": {
-      "id": "doc_1793056941039_bfuvo",
-      "expires_at": "2026-11-02T23:22:21.039Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.150Z",
-      "ip_address": "127.0.0.1",
-      "token": "ffa5140e0bda4acf9a8f0cd568a58910b05752f4576456b18c65070a50615b9a"
-    },
-    "doc_1793056947255_e61xb": {
-      "id": "doc_1793056947255_e61xb",
-      "expires_at": "2026-11-02T23:22:27.254Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.150Z",
-      "ip_address": "127.0.0.1",
-      "token": "3ad60067d312a5ec10f4b4e60939e59fb7f9b5848647ecc7c8be476185c02ea4"
-    },
     "doc_1793057049061_fn71t": {
       "id": "doc_1793057049061_fn71t",
       "expires_at": "2026-11-02T23:24:09.060Z",
@@ -27478,22 +28420,6 @@
       "ip_address": "127.0.0.1",
       "token": "0bd60e9eb357d8b91841b92348e70766819d1748b9dafa4631bc24889ccb1afe"
     },
-    "doc_1793057049492_2ussn": {
-      "id": "doc_1793057049492_2ussn",
-      "expires_at": "2026-11-02T23:24:09.492Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.150Z",
-      "ip_address": "127.0.0.1",
-      "token": "036c4bc77837fcf94ef0df20422b51764fb38516369f35173c75eaeeba2c81bf"
-    },
-    "doc_1793057055442_sletn": {
-      "id": "doc_1793057055442_sletn",
-      "expires_at": "2026-11-02T23:24:15.440Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.150Z",
-      "ip_address": "127.0.0.1",
-      "token": "d9d03c6f7664c543332ac5b872c243a9a57ecaee24210fe4e9eb6453423e2394"
-    },
     "doc_1793057058890_ulf4o": {
       "id": "doc_1793057058890_ulf4o",
       "expires_at": "2026-11-02T23:24:18.888Z",
@@ -27501,14 +28427,6 @@
       "_migratedAt": "2026-10-27T17:59:46.150Z",
       "ip_address": "192.168.1.50",
       "token": "6534213b78a75063c3eec96a3fd1fad4d835d7afd355adf0bd85131f6cf39a9f"
-    },
-    "doc_1793057059157_s7k2e": {
-      "id": "doc_1793057059157_s7k2e",
-      "expires_at": "2026-11-02T23:24:19.156Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.150Z",
-      "ip_address": "10.0.0.1",
-      "token": "2457f5d655512046164ac5860e3ba5dec09c6a1943f02701f670ba27486c8cc8"
     },
     "doc_1793057296100_55ir6": {
       "id": "doc_1793057296100_55ir6",
@@ -27534,22 +28452,6 @@
       "ip_address": "127.0.0.1",
       "token": "38c03bfc6186d39a0574936ecad0bacc8e21f3130675e987c31d0277c6134ca2"
     },
-    "doc_1793057296526_qijzq": {
-      "id": "doc_1793057296526_qijzq",
-      "expires_at": "2026-11-02T23:28:16.526Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.150Z",
-      "ip_address": "127.0.0.1",
-      "token": "dee54c06d313da58c64cb58fd997f0a7908369f16d19c280df8409ff2208a619"
-    },
-    "doc_1793057302475_9cse5": {
-      "id": "doc_1793057302475_9cse5",
-      "expires_at": "2026-11-02T23:28:22.473Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.151Z",
-      "ip_address": "127.0.0.1",
-      "token": "09ce9675de11109afd4c87036296e73306dac2111bdf8e8953b331fbe04c4d87"
-    },
     "doc_1793057305661_2asfc": {
       "id": "doc_1793057305661_2asfc",
       "expires_at": "2026-11-02T23:28:25.660Z",
@@ -27557,14 +28459,6 @@
       "_migratedAt": "2026-10-27T17:59:46.151Z",
       "ip_address": "192.168.1.50",
       "token": "ec376a3c98f10080bbfbb5fa451032eb4c04d6b575df8e79634780179dfea255"
-    },
-    "doc_1793057305913_jjbgl": {
-      "id": "doc_1793057305913_jjbgl",
-      "expires_at": "2026-11-02T23:28:25.913Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.151Z",
-      "ip_address": "10.0.0.1",
-      "token": "7bba3b79d7eabdd86c4854743844acda547e316298f0f2be82927897bad5cf93"
     },
     "doc_1793113222658_x126x": {
       "id": "doc_1793113222658_x126x",
@@ -27590,14 +28484,6 @@
       "ip_address": "127.0.0.1",
       "token": "f3d34abff27781a49eef5e5161b7b6a4cb26e65ff69dc80c7c94a91f67ee6879"
     },
-    "doc_1793113222959_casi0": {
-      "id": "doc_1793113222959_casi0",
-      "expires_at": "2026-11-03T15:00:22.958Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.151Z",
-      "ip_address": "127.0.0.1",
-      "token": "b5d59f4d5d91b2a73c20eb1df1a6982e0ddca49b104d0752fcc3807148dfda46"
-    },
     "doc_1793113888882_0id7j": {
       "id": "doc_1793113888882_0id7j",
       "expires_at": "2026-11-03T15:11:28.881Z",
@@ -27621,22 +28507,6 @@
       "_migratedAt": "2026-10-27T17:59:46.151Z",
       "ip_address": "127.0.0.1",
       "token": "f084e533a9fd1fd2afe709c208abed21e13cab57945a622ec303f4c7eb029ff8"
-    },
-    "doc_1793113889218_22qyt": {
-      "id": "doc_1793113889218_22qyt",
-      "expires_at": "2026-11-03T15:11:29.218Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.151Z",
-      "ip_address": "127.0.0.1",
-      "token": "85939dae17d845d57159fdc1428f2e31e61d57b7ef451815543abf07a49ccefc"
-    },
-    "doc_1793113895430_49zpt": {
-      "id": "doc_1793113895430_49zpt",
-      "expires_at": "2026-11-03T15:11:35.428Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.151Z",
-      "ip_address": "127.0.0.1",
-      "token": "9b8eeb0fe4b8f4b7394189da53e232b2c553a3cbc6db5f5b8dc26fcc55ab93e2"
     },
     "doc_1793113934271_1tv5b": {
       "id": "doc_1793113934271_1tv5b",
@@ -27662,22 +28532,6 @@
       "ip_address": "127.0.0.1",
       "token": "f8f1d93a7915c087ecd452c3b204eaca378b6ef9cb244978a3b7435a421dab78"
     },
-    "doc_1793113934608_640vq": {
-      "id": "doc_1793113934608_640vq",
-      "expires_at": "2026-11-03T15:12:14.608Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.151Z",
-      "ip_address": "127.0.0.1",
-      "token": "7bf95e7212a39a175257286e2bb653e107a9c7a890e07a9d45f219d6762a6f05"
-    },
-    "doc_1793113940431_k5c5d": {
-      "id": "doc_1793113940431_k5c5d",
-      "expires_at": "2026-11-03T15:12:20.430Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.151Z",
-      "ip_address": "127.0.0.1",
-      "token": "4127006f37a5a8ce9d205f668bb5df214d549f8290ee1c74dae9c2be807009b6"
-    },
     "doc_1793113943944_q7vug": {
       "id": "doc_1793113943944_q7vug",
       "expires_at": "2026-11-03T15:12:23.943Z",
@@ -27685,14 +28539,6 @@
       "_migratedAt": "2026-10-27T17:59:46.151Z",
       "ip_address": "192.168.1.50",
       "token": "4c2f947c9abe5bc5f33b68d94967cc9ef35431621087ec61a7b0cff357d82f1b"
-    },
-    "doc_1793113944057_rnr5m": {
-      "id": "doc_1793113944057_rnr5m",
-      "expires_at": "2026-11-03T15:12:24.057Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.151Z",
-      "ip_address": "10.0.0.1",
-      "token": "0407672479ad95042e4663cb1644c5b80a2eecee3973fb0d5c7afeadb210a078"
     },
     "doc_1793113952195_lwvxt": {
       "id": "doc_1793113952195_lwvxt",
@@ -27755,24 +28601,6 @@
       "ip_address": "127.0.0.1",
       "token": "8e3626488f02ce4e19a6c01cbaaa47fb76300205c64abce3ccf2e3f5e68f540e"
     },
-    "doc_1793114664732_h47oe": {
-      "id": "doc_1793114664732_h47oe",
-      "expires_at": "2026-11-03T15:24:24.732Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.151Z",
-      "created_at": "2026-10-27T15:24:24.732Z",
-      "ip_address": "127.0.0.1",
-      "token": "3314fc04a1f6d95cca5809883cc53ca427b37103f78568f675c3dd74555a3679"
-    },
-    "doc_1793114670676_27awp": {
-      "id": "doc_1793114670676_27awp",
-      "expires_at": "2026-11-03T15:24:30.674Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.151Z",
-      "created_at": "2026-10-27T15:24:30.676Z",
-      "ip_address": "127.0.0.1",
-      "token": "eff6268ffdc2f2d6469a077414c2676f7ab2d1a21c5dc0705c871c726fbef2f2"
-    },
     "doc_1793114696120_yvx4a": {
       "id": "doc_1793114696120_yvx4a",
       "expires_at": "2026-11-03T15:24:56.118Z",
@@ -27800,24 +28628,6 @@
       "ip_address": "127.0.0.1",
       "token": "fb577ca0a2ddb92ea994036fa32bf478efb93f28de78050cb2ba434dbdb1483a"
     },
-    "doc_1793114696430_6fzn4": {
-      "id": "doc_1793114696430_6fzn4",
-      "expires_at": "2026-11-03T15:24:56.430Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.151Z",
-      "created_at": "2026-10-27T15:24:56.430Z",
-      "ip_address": "127.0.0.1",
-      "token": "35a3ad4d99163266692ef087d5bf6bd0a925679c0f2879512bfca3659af9bb99"
-    },
-    "doc_1793114702173_u41xi": {
-      "id": "doc_1793114702173_u41xi",
-      "expires_at": "2026-11-03T15:25:02.171Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.151Z",
-      "created_at": "2026-10-27T15:25:02.173Z",
-      "ip_address": "127.0.0.1",
-      "token": "ab92e2f53dff5491336c534430e1775670507ddaad6449873f6ba63fed676642"
-    },
     "doc_1793114706065_a3w7q": {
       "id": "doc_1793114706065_a3w7q",
       "expires_at": "2026-11-03T15:25:06.064Z",
@@ -27826,15 +28636,6 @@
       "created_at": "2026-10-27T15:25:06.065Z",
       "ip_address": "192.168.1.50",
       "token": "3b8a37c1c7e9da0eaecb213f214d020accf7609c6cf787beca4cd2bd10bf0919"
-    },
-    "doc_1793114706170_eqebi": {
-      "id": "doc_1793114706170_eqebi",
-      "expires_at": "2026-11-03T15:25:06.170Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.151Z",
-      "created_at": "2026-10-27T15:25:06.170Z",
-      "ip_address": "10.0.0.1",
-      "token": "b4d7367ea3e826d78213b12d67ac3f1a707e45f25ae1f49a7d1201f732b29c1a"
     },
     "doc_1793114714887_lu6rh": {
       "id": "doc_1793114714887_lu6rh",
@@ -27872,24 +28673,6 @@
       "ip_address": "127.0.0.1",
       "token": "a27234031f465aee64182ce540e004856250f4de13e143b22c031f89af0de313"
     },
-    "doc_1793117564547_apckq": {
-      "id": "doc_1793117564547_apckq",
-      "expires_at": "2026-11-03T16:12:44.546Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.151Z",
-      "created_at": "2026-10-27T16:12:44.547Z",
-      "ip_address": "127.0.0.1",
-      "token": "16bdd08ea75bb95bca4051fe0f0377f2fe4ec4f92b54a3e2bac7dc318dc4b41e"
-    },
-    "doc_1793117571479_vklfh": {
-      "id": "doc_1793117571479_vklfh",
-      "expires_at": "2026-11-03T16:12:51.477Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.151Z",
-      "created_at": "2026-10-27T16:12:51.479Z",
-      "ip_address": "127.0.0.1",
-      "token": "61b612c882ccf157e55269b60c982a225d096a20b552b19afeb5f33d6ebe7060"
-    },
     "doc_1793117575347_46ejr": {
       "id": "doc_1793117575347_46ejr",
       "expires_at": "2026-11-03T16:12:55.346Z",
@@ -27898,15 +28681,6 @@
       "created_at": "2026-10-27T16:12:55.347Z",
       "ip_address": "192.168.1.50",
       "token": "25be3cd5cb245b994a41bdbac4b75de2c3f534d84b1245c147d37a93ffbd908a"
-    },
-    "doc_1793117575498_4v77e": {
-      "id": "doc_1793117575498_4v77e",
-      "expires_at": "2026-11-03T16:12:55.498Z",
-      "user_id": "usr-admin",
-      "_migratedAt": "2026-10-27T17:59:46.151Z",
-      "created_at": "2026-10-27T16:12:55.498Z",
-      "ip_address": "10.0.0.1",
-      "token": "b5a61379d52e9eb4e655f560b419117b851ebb1e025f75122e2f50cfe4fb8a98"
     },
     "doc_1793117584422_xaubt": {
       "id": "doc_1793117584422_xaubt",
@@ -27941,22 +28715,6 @@
       "ip_address": "127.0.0.1",
       "token": "cc86fc0f60cb72fab55e2c7fd409e19d6638d434ebbb7c0673e2ad380bb01171"
     },
-    "doc_1793123996431_8wuln": {
-      "id": "doc_1793123996431_8wuln",
-      "expires_at": "2026-11-03T17:59:56.430Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T17:59:56.431Z",
-      "ip_address": "127.0.0.1",
-      "token": "d70ae0347f00de925c629d4bead0f6d405e09f81f5e4c278dbad65dda35413f6"
-    },
-    "doc_1793124002549_ivxl0": {
-      "id": "doc_1793124002549_ivxl0",
-      "expires_at": "2026-11-03T18:00:02.548Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T18:00:02.549Z",
-      "ip_address": "127.0.0.1",
-      "token": "29461932add4279403c5d36afd021a1af28e8d0f91feb1f1b43413d841a7222a"
-    },
     "doc_1793124005926_d30gt": {
       "id": "doc_1793124005926_d30gt",
       "expires_at": "2026-11-03T18:00:05.925Z",
@@ -27964,14 +28722,6 @@
       "created_at": "2026-10-27T18:00:05.926Z",
       "ip_address": "192.168.1.50",
       "token": "85da0e7bf3cbf64ed7d801dfc31066972044b226adefc1c9e2ef72bac3e22ad7"
-    },
-    "doc_1793124006109_v8y4m": {
-      "id": "doc_1793124006109_v8y4m",
-      "expires_at": "2026-11-03T18:00:06.109Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T18:00:06.109Z",
-      "ip_address": "10.0.0.1",
-      "token": "8c0790853d74ece6eeb7b78b672b5998b9b3807284d923c84c9837f140ff852c"
     },
     "doc_1793124051340_08z7u": {
       "id": "doc_1793124051340_08z7u",
@@ -27997,22 +28747,6 @@
       "ip_address": "127.0.0.1",
       "token": "00f59cfdd1edf08ef0977c79d3c02bf358d0a8e6d879edc7183a9785e6869d05"
     },
-    "doc_1793124051626_t1h6e": {
-      "id": "doc_1793124051626_t1h6e",
-      "expires_at": "2026-11-03T18:00:51.625Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T18:00:51.626Z",
-      "ip_address": "127.0.0.1",
-      "token": "a2331996bd307f210d393262cfd05be2c6ea7e77101c7e39137f5418f7c0d229"
-    },
-    "doc_1793124057545_t9g5c": {
-      "id": "doc_1793124057545_t9g5c",
-      "expires_at": "2026-11-03T18:00:57.543Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T18:00:57.545Z",
-      "ip_address": "127.0.0.1",
-      "token": "032ca9238041d348437007e08bb19ece4f6fc9bd6d4001242814251ddd5aae6d"
-    },
     "doc_1793124060732_x8hes": {
       "id": "doc_1793124060732_x8hes",
       "expires_at": "2026-11-03T18:01:00.731Z",
@@ -28020,14 +28754,6 @@
       "created_at": "2026-10-27T18:01:00.732Z",
       "ip_address": "192.168.1.50",
       "token": "aca7af6e7ff39e3240df51f6bec590b5e6df8732f2a93d7a52568c4d1ea23e12"
-    },
-    "doc_1793124060880_yq1gc": {
-      "id": "doc_1793124060880_yq1gc",
-      "expires_at": "2026-11-03T18:01:00.880Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T18:01:00.880Z",
-      "ip_address": "10.0.0.1",
-      "token": "6e7c06138afeb65a80e156b2f4947ebab3efb3298e2bd518dfdff80db0c333fd"
     },
     "doc_1793124085869_pzf9m": {
       "id": "doc_1793124085869_pzf9m",
@@ -28053,22 +28779,6 @@
       "ip_address": "127.0.0.1",
       "token": "450a852b31e0604d905629096db1274bc13056ee068e58e7e29950d9cfaafb6a"
     },
-    "doc_1793124086154_bpgd4": {
-      "id": "doc_1793124086154_bpgd4",
-      "expires_at": "2026-11-03T18:01:26.154Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T18:01:26.154Z",
-      "ip_address": "127.0.0.1",
-      "token": "15c80d861fdc4cd0720dfd61fb65f10f7a9ae85d89a443e8b4b33ff05f38aee9"
-    },
-    "doc_1793124091614_5ujig": {
-      "id": "doc_1793124091614_5ujig",
-      "expires_at": "2026-11-03T18:01:31.613Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T18:01:31.614Z",
-      "ip_address": "127.0.0.1",
-      "token": "9c86c8c877f5955ac630de7756777cd996e9114ad4ca991ed1bce2c66f601024"
-    },
     "doc_1793124094792_l5bot": {
       "id": "doc_1793124094792_l5bot",
       "expires_at": "2026-11-03T18:01:34.791Z",
@@ -28076,14 +28786,6 @@
       "created_at": "2026-10-27T18:01:34.792Z",
       "ip_address": "192.168.1.50",
       "token": "04d8b3db5f3fb3daaa578ae7fe6dd715f487a9b0201a8b557c1dc01902029919"
-    },
-    "doc_1793124094937_rle1s": {
-      "id": "doc_1793124094937_rle1s",
-      "expires_at": "2026-11-03T18:01:34.937Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T18:01:34.937Z",
-      "ip_address": "10.0.0.1",
-      "token": "f38772911f6c71f2372583c6695ff0f5bb4d89472cb65a9f1514181c9893ea7b"
     },
     "doc_1793124103064_9hhwh": {
       "id": "doc_1793124103064_9hhwh",
@@ -28117,22 +28819,6 @@
       "ip_address": "127.0.0.1",
       "token": "495e297dab5248b7545664c40a44d0caed359ff611a4cf1baa2099498001bc6e"
     },
-    "doc_1793125839936_flntn": {
-      "id": "doc_1793125839936_flntn",
-      "expires_at": "2026-11-03T18:30:39.935Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T18:30:39.936Z",
-      "ip_address": "127.0.0.1",
-      "token": "1009687fc316049a1491bf81f9cbfca7991be8199bef4b2ae63e479340f3eafc"
-    },
-    "doc_1793125846341_k3e0j": {
-      "id": "doc_1793125846341_k3e0j",
-      "expires_at": "2026-11-03T18:30:46.339Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T18:30:46.341Z",
-      "ip_address": "127.0.0.1",
-      "token": "76e64bc986da268a06c7bbc70f59fdaf2579aa5a870a44f8fe8c3ac2f809b49f"
-    },
     "doc_1793125849667_r11yl": {
       "id": "doc_1793125849667_r11yl",
       "expires_at": "2026-11-03T18:30:49.665Z",
@@ -28140,14 +28826,6 @@
       "created_at": "2026-10-27T18:30:49.667Z",
       "ip_address": "192.168.1.50",
       "token": "3251bafd8db7d985979daf5a251c85a7d3be9b860c86ca947c4401d5c3331857"
-    },
-    "doc_1793125849771_cm7su": {
-      "id": "doc_1793125849771_cm7su",
-      "expires_at": "2026-11-03T18:30:49.771Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T18:30:49.771Z",
-      "ip_address": "10.0.0.1",
-      "token": "252118a0cd2fb14eac51602f97b3447d8142fa44e8a5e536fbe9c88887db2d55"
     },
     "doc_1793125876375_2hoaw": {
       "id": "doc_1793125876375_2hoaw",
@@ -28173,22 +28851,6 @@
       "ip_address": "127.0.0.1",
       "token": "ac480555e24a1752ca00f701c8a3b584d4d88549c0a79c35bbb53efca706d287"
     },
-    "doc_1793125876714_qfdgc": {
-      "id": "doc_1793125876714_qfdgc",
-      "expires_at": "2026-11-03T18:31:16.713Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T18:31:16.714Z",
-      "ip_address": "127.0.0.1",
-      "token": "dd3a10872cf99e7bf17af6e0388ae61fc0efc99fd267a1884a541991fd243fa3"
-    },
-    "doc_1793125882784_cx8ds": {
-      "id": "doc_1793125882784_cx8ds",
-      "expires_at": "2026-11-03T18:31:22.782Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T18:31:22.784Z",
-      "ip_address": "127.0.0.1",
-      "token": "e48ff34c13fa44a4c08bbdb098724f0afbb79f013011043bba2a3f33622a1c1b"
-    },
     "doc_1793125886039_wi2yb": {
       "id": "doc_1793125886039_wi2yb",
       "expires_at": "2026-11-03T18:31:26.038Z",
@@ -28196,14 +28858,6 @@
       "created_at": "2026-10-27T18:31:26.039Z",
       "ip_address": "192.168.1.50",
       "token": "67a9dc502beee441b87dc400bf4ae683843b243e153182ab598baa1fcdc4b033"
-    },
-    "doc_1793125886154_es4if": {
-      "id": "doc_1793125886154_es4if",
-      "expires_at": "2026-11-03T18:31:26.154Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T18:31:26.154Z",
-      "ip_address": "10.0.0.1",
-      "token": "2cba6c6e3316ae1185be171b3cfb240ab9611338a06275806f5b33f2e6d76dd2"
     },
     "doc_1793125917599_v2qva": {
       "id": "doc_1793125917599_v2qva",
@@ -28229,22 +28883,6 @@
       "ip_address": "127.0.0.1",
       "token": "6810d851c908f2211b19e0d6264f072bff813254ef074ffd9e362c9803271841"
     },
-    "doc_1793125917898_z58p6": {
-      "id": "doc_1793125917898_z58p6",
-      "expires_at": "2026-11-03T18:31:57.897Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T18:31:57.898Z",
-      "ip_address": "127.0.0.1",
-      "token": "f006b820d8601fa6dccfd93521f9dc81da6b54af70c523bc18f11254ee9e0410"
-    },
-    "doc_1793125923605_j4crq": {
-      "id": "doc_1793125923605_j4crq",
-      "expires_at": "2026-11-03T18:32:03.603Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T18:32:03.605Z",
-      "ip_address": "127.0.0.1",
-      "token": "524f87508cb706236a310f05ac83f1aef103de51b6d33706a5e546cfa8b0085d"
-    },
     "doc_1793125926724_sv3xs": {
       "id": "doc_1793125926724_sv3xs",
       "expires_at": "2026-11-03T18:32:06.723Z",
@@ -28252,14 +28890,6 @@
       "created_at": "2026-10-27T18:32:06.724Z",
       "ip_address": "192.168.1.50",
       "token": "325716cbf55cb1490526e043d1e541f5f1ddb52fb54a20cf52e60e70723fc677"
-    },
-    "doc_1793125926878_tulj3": {
-      "id": "doc_1793125926878_tulj3",
-      "expires_at": "2026-11-03T18:32:06.877Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T18:32:06.878Z",
-      "ip_address": "10.0.0.1",
-      "token": "4c558978873be47f587d62368ea7d40cf772fcfec342f497c1a284e0843a7212"
     },
     "doc_1793125935081_hos6y": {
       "id": "doc_1793125935081_hos6y",
@@ -28284,6 +28914,86 @@
       "created_at": "2026-10-27T20:21:31.744Z",
       "ip_address": "127.0.0.1",
       "token": "1e27c78412b3787ccd07af3c18220cc0b08342cb897577a3a3df4bc9061140ac"
+    },
+    "doc_1793132500850_4c49m": {
+      "id": "doc_1793132500850_4c49m",
+      "expires_at": "2026-11-03T20:21:40.848Z",
+      "user_id": "usr-luis",
+      "created_at": "2026-10-27T20:21:40.850Z",
+      "ip_address": "127.0.0.1",
+      "token": "a4e6b23324b2c2fedff1083c3b233b942aa3715579da6972aa82c9d9ee12cb61"
+    },
+    "doc_1793132501065_5uog2": {
+      "id": "doc_1793132501065_5uog2",
+      "expires_at": "2026-11-03T20:21:41.065Z",
+      "user_id": "usr-zain",
+      "created_at": "2026-10-27T20:21:41.065Z",
+      "ip_address": "127.0.0.1",
+      "token": "ca2f440420f357264da07d66a15803375abffd5f2d94ee2c836d574dc81a4265"
+    },
+    "doc_1793132501114_9vg4x": {
+      "id": "doc_1793132501114_9vg4x",
+      "expires_at": "2026-11-03T20:21:41.113Z",
+      "user_id": "usr-joshua",
+      "created_at": "2026-10-27T20:21:41.114Z",
+      "ip_address": "127.0.0.1",
+      "token": "75553b2a03ff1a0182204a714fd6c3f1667913651259430345ae2e9973bc4ea6"
+    },
+    "doc_1793132510382_0iqck": {
+      "id": "doc_1793132510382_0iqck",
+      "expires_at": "2026-11-03T20:21:50.381Z",
+      "user_id": "usr-luis",
+      "created_at": "2026-10-27T20:21:50.382Z",
+      "ip_address": "192.168.1.50",
+      "token": "865a3b15f1183f0f71d9d86c582270b72e87ecc6c5e26bb1a4a76a631d5ed6ad"
+    },
+    "doc_1793132518950_1h9ig": {
+      "id": "doc_1793132518950_1h9ig",
+      "expires_at": "2026-11-03T20:21:58.948Z",
+      "user_id": "usr-joshua",
+      "created_at": "2026-10-27T20:21:58.950Z",
+      "ip_address": "127.0.0.1",
+      "token": "7ec2e94eee9fb3c87db7283ddd2cef1a5f0642a9ed64eaeb13268a817a95909e"
+    },
+    "doc_1793132549558_33bzp": {
+      "id": "doc_1793132549558_33bzp",
+      "expires_at": "2026-11-03T20:22:29.556Z",
+      "user_id": "usr-luis",
+      "created_at": "2026-10-27T20:22:29.558Z",
+      "ip_address": "127.0.0.1",
+      "token": "ee4c8010c54e07e4b1fbffcfe7971f36a1338cae841d50eb13bcd1319d4912fe"
+    },
+    "doc_1793132549768_apr0x": {
+      "id": "doc_1793132549768_apr0x",
+      "expires_at": "2026-11-03T20:22:29.768Z",
+      "user_id": "usr-zain",
+      "created_at": "2026-10-27T20:22:29.768Z",
+      "ip_address": "127.0.0.1",
+      "token": "4db1c91b22f3fb767a79a205bfd3427628d0e23b6ec2a6fab8c536cc57fa4b11"
+    },
+    "doc_1793132549814_1m0t0": {
+      "id": "doc_1793132549814_1m0t0",
+      "expires_at": "2026-11-03T20:22:29.814Z",
+      "user_id": "usr-joshua",
+      "created_at": "2026-10-27T20:22:29.814Z",
+      "ip_address": "127.0.0.1",
+      "token": "2d004e82ef47bd4b9661042ce2bc47da07cdb5bd2d711ff2d4b7657761357be8"
+    },
+    "doc_1793132560995_17jci": {
+      "id": "doc_1793132560995_17jci",
+      "expires_at": "2026-11-03T20:22:40.994Z",
+      "user_id": "usr-luis",
+      "created_at": "2026-10-27T20:22:40.995Z",
+      "ip_address": "192.168.1.50",
+      "token": "a6fc47b7b1e8dec9d1c85b87ea7f5df9ed964517ccedd40ade2979b80d0c25aa"
+    },
+    "doc_1793132569214_up80e": {
+      "id": "doc_1793132569214_up80e",
+      "expires_at": "2026-11-03T20:22:49.212Z",
+      "user_id": "usr-joshua",
+      "created_at": "2026-10-27T20:22:49.214Z",
+      "ip_address": "127.0.0.1",
+      "token": "71921997ca28dc9cef741b69cb4dcf388a265c960d0360fa2340095a5e2ffdfa"
     },
     "doc_1793132757352_nbxa6": {
       "id": "doc_1793132757352_nbxa6",
@@ -28341,176 +29051,139 @@
       "ip_address": "127.0.0.1",
       "token": "aa612d47f3c6e215a1af6a9f96e0ad0aa50302ff3a44d3aa80e8b127479e3f17"
     },
-    "doc_1793132500850_4c49m": {
-      "id": "doc_1793132500850_4c49m",
-      "expires_at": "2026-11-03T20:21:40.848Z",
-      "user_id": "usr-luis",
-      "created_at": "2026-10-27T20:21:40.850Z",
-      "ip_address": "127.0.0.1",
-      "token": "a4e6b23324b2c2fedff1083c3b233b942aa3715579da6972aa82c9d9ee12cb61"
-    },
-    "doc_1793132501065_5uog2": {
-      "id": "doc_1793132501065_5uog2",
-      "expires_at": "2026-11-03T20:21:41.065Z",
-      "user_id": "usr-zain",
-      "created_at": "2026-10-27T20:21:41.065Z",
-      "ip_address": "127.0.0.1",
-      "token": "ca2f440420f357264da07d66a15803375abffd5f2d94ee2c836d574dc81a4265"
-    },
-    "doc_1793132501114_9vg4x": {
-      "id": "doc_1793132501114_9vg4x",
-      "expires_at": "2026-11-03T20:21:41.113Z",
-      "user_id": "usr-joshua",
-      "created_at": "2026-10-27T20:21:41.114Z",
-      "ip_address": "127.0.0.1",
-      "token": "75553b2a03ff1a0182204a714fd6c3f1667913651259430345ae2e9973bc4ea6"
-    },
-    "doc_1793132501184_cw8r8": {
-      "id": "doc_1793132501184_cw8r8",
-      "expires_at": "2026-11-03T20:21:41.183Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T20:21:41.184Z",
-      "ip_address": "127.0.0.1",
-      "token": "8ecfb9e31913551761718147a5f9a7b5c7d669db1fd992c05e9f8c8915b24401"
-    },
-    "doc_1793132506990_yhith": {
-      "id": "doc_1793132506990_yhith",
-      "expires_at": "2026-11-03T20:21:46.988Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T20:21:46.990Z",
-      "ip_address": "127.0.0.1",
-      "token": "445e0d2a8a37ae3778f786a09be76b7d2c32fd8b2e83605574e54cb897747154"
-    },
-    "doc_1793132510382_0iqck": {
-      "id": "doc_1793132510382_0iqck",
-      "expires_at": "2026-11-03T20:21:50.381Z",
-      "user_id": "usr-luis",
-      "created_at": "2026-10-27T20:21:50.382Z",
-      "ip_address": "192.168.1.50",
-      "token": "865a3b15f1183f0f71d9d86c582270b72e87ecc6c5e26bb1a4a76a631d5ed6ad"
-    },
-    "doc_1793132510547_pglh3": {
-      "id": "doc_1793132510547_pglh3",
-      "expires_at": "2026-11-03T20:21:50.546Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T20:21:50.547Z",
-      "ip_address": "10.0.0.1",
-      "token": "2311645ae10c107d56d2c3eed072bb78e9685dc4a5babec3fe7c02eba7c0312b"
-    },
-    "doc_1793132518950_1h9ig": {
-      "id": "doc_1793132518950_1h9ig",
-      "expires_at": "2026-11-03T20:21:58.948Z",
-      "user_id": "usr-joshua",
-      "created_at": "2026-10-27T20:21:58.950Z",
-      "ip_address": "127.0.0.1",
-      "token": "7ec2e94eee9fb3c87db7283ddd2cef1a5f0642a9ed64eaeb13268a817a95909e"
-    },
-    "doc_1793132549558_33bzp": {
-      "id": "doc_1793132549558_33bzp",
-      "expires_at": "2026-11-03T20:22:29.556Z",
-      "user_id": "usr-luis",
-      "created_at": "2026-10-27T20:22:29.558Z",
-      "ip_address": "127.0.0.1",
-      "token": "ee4c8010c54e07e4b1fbffcfe7971f36a1338cae841d50eb13bcd1319d4912fe"
-    },
-    "doc_1793132549768_apr0x": {
-      "id": "doc_1793132549768_apr0x",
-      "expires_at": "2026-11-03T20:22:29.768Z",
-      "user_id": "usr-zain",
-      "created_at": "2026-10-27T20:22:29.768Z",
-      "ip_address": "127.0.0.1",
-      "token": "4db1c91b22f3fb767a79a205bfd3427628d0e23b6ec2a6fab8c536cc57fa4b11"
-    },
-    "doc_1793132549814_1m0t0": {
-      "id": "doc_1793132549814_1m0t0",
-      "expires_at": "2026-11-03T20:22:29.814Z",
-      "user_id": "usr-joshua",
-      "created_at": "2026-10-27T20:22:29.814Z",
-      "ip_address": "127.0.0.1",
-      "token": "2d004e82ef47bd4b9661042ce2bc47da07cdb5bd2d711ff2d4b7657761357be8"
-    },
-    "doc_1793132549881_uhzk3": {
-      "id": "doc_1793132549881_uhzk3",
-      "expires_at": "2026-11-03T20:22:29.881Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T20:22:29.881Z",
-      "ip_address": "127.0.0.1",
-      "token": "d315249efff396156885dd22603bfd209427d1f5b0c26d95fde9d56ec509e113"
-    },
-    "doc_1793132557859_gnbzh": {
-      "id": "doc_1793132557859_gnbzh",
-      "expires_at": "2026-11-03T20:22:37.857Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T20:22:37.859Z",
-      "ip_address": "127.0.0.1",
-      "token": "542ed3a3add74b8550a21b3902c596fbf479198268932c07274202574f7c3e8a"
-    },
-    "doc_1793132560995_17jci": {
-      "id": "doc_1793132560995_17jci",
-      "expires_at": "2026-11-03T20:22:40.994Z",
-      "user_id": "usr-luis",
-      "created_at": "2026-10-27T20:22:40.995Z",
-      "ip_address": "192.168.1.50",
-      "token": "a6fc47b7b1e8dec9d1c85b87ea7f5df9ed964517ccedd40ade2979b80d0c25aa"
-    },
-    "doc_1793132561152_dz4sn": {
-      "id": "doc_1793132561152_dz4sn",
-      "expires_at": "2026-11-03T20:22:41.152Z",
-      "user_id": "usr-admin",
-      "created_at": "2026-10-27T20:22:41.152Z",
-      "ip_address": "10.0.0.1",
-      "token": "abb59b1448baeff5e429e58b3fe1c23b6127037b79234c0670a15f79c4072757"
-    },
-    "doc_1793132569214_up80e": {
-      "id": "doc_1793132569214_up80e",
-      "expires_at": "2026-11-03T20:22:49.212Z",
-      "user_id": "usr-joshua",
-      "created_at": "2026-10-27T20:22:49.214Z",
-      "ip_address": "127.0.0.1",
-      "token": "71921997ca28dc9cef741b69cb4dcf388a265c960d0360fa2340095a5e2ffdfa"
-    },
     "doc_1793210436973_ctmaf": {
-      "token": "c868e649828e7bd288b7910978a4a7498389449b6e25ab2e0a4cf1a7987ba40d",
-      "user_id": "usr_1793131618127_8yfuy",
-      "ip_address": "127.0.0.1",
+      "id": "doc_1793210436973_ctmaf",
       "expires_at": "2026-11-04T18:00:36.973Z",
+      "user_id": "usr_1793131618127_8yfuy",
       "created_at": "2026-10-28T18:00:36.973Z",
-      "id": "doc_1793210436973_ctmaf"
+      "ip_address": "127.0.0.1",
+      "token": "c868e649828e7bd288b7910978a4a7498389449b6e25ab2e0a4cf1a7987ba40d"
+    },
+    "doc_1793211174835_vq7d5": {
+      "id": "doc_1793211174835_vq7d5",
+      "expires_at": "2026-11-04T18:12:54.833Z",
+      "user_id": "usr_1793211174813_jhr33",
+      "created_at": "2026-10-28T18:12:54.835Z",
+      "ip_address": "187.13.207.111",
+      "token": "a7ac64eac3ccc6ba83e1cf61eb7ca43aab6fcc27fe5961623088beb7212d697f"
     },
     "doc_1793211578506_s6njr": {
-      "token": "30e633b26491acc0da8bc0bf3c6c72ea35b77775d5629861d45f5f0ae082d23c",
-      "user_id": "usr_1793131618127_8yfuy",
-      "ip_address": "127.0.0.1",
+      "id": "doc_1793211578506_s6njr",
       "expires_at": "2026-11-04T18:19:38.505Z",
+      "user_id": "usr_1793131618127_8yfuy",
       "created_at": "2026-10-28T18:19:38.506Z",
-      "id": "doc_1793211578506_s6njr"
+      "ip_address": "127.0.0.1",
+      "token": "30e633b26491acc0da8bc0bf3c6c72ea35b77775d5629861d45f5f0ae082d23c"
+    },
+    "doc_1793212498742_7sra9": {
+      "id": "doc_1793212498742_7sra9",
+      "expires_at": "2026-11-04T18:34:58.740Z",
+      "user_id": "usr_1793131618127_8yfuy",
+      "created_at": "2026-10-28T18:34:58.742Z",
+      "ip_address": "45.83.145.4",
+      "token": "8ccdfb2b4a3f53e6565b22a5da7184ecf3c68b1c76d158dfb8b8c7688b92bcbf"
     },
     "doc_1793213335423_rlzwh": {
-      "token": "e840ce8b115e263f812e3557603ffe461475ca22b2c51ee728797ebde55eec0d",
-      "user_id": "usr_1793131618127_8yfuy",
-      "ip_address": "127.0.0.1",
+      "id": "doc_1793213335423_rlzwh",
       "expires_at": "2026-11-04T18:48:55.422Z",
+      "user_id": "usr_1793131618127_8yfuy",
       "created_at": "2026-10-28T18:48:55.423Z",
-      "id": "doc_1793213335423_rlzwh"
+      "ip_address": "127.0.0.1",
+      "token": "e840ce8b115e263f812e3557603ffe461475ca22b2c51ee728797ebde55eec0d"
+    },
+    "doc_1793219823625_vaupy": {
+      "id": "doc_1793219823625_vaupy",
+      "expires_at": "2026-11-04T20:37:03.625Z",
+      "user_id": "usr_1793219823617_ckxrk",
+      "created_at": "2026-10-28T20:37:03.625Z",
+      "ip_address": "45.230.45.134",
+      "token": "fceca59b53f404d1c08dff9819f8a4f6c1a9c40f57b592930c844fb0fc0272fe"
     },
     "doc_1793223848807_l25py": {
-      "token": "02214f1e9eff520161c5bb5d8f938566b455cf27f2dff4fa5015e2c7a0c7bf93",
-      "user_id": "usr_1793131618127_8yfuy",
-      "ip_address": "127.0.0.1",
+      "id": "doc_1793223848807_l25py",
       "expires_at": "2026-11-04T21:44:08.807Z",
+      "user_id": "usr_1793131618127_8yfuy",
       "created_at": "2026-10-28T21:44:08.807Z",
-      "id": "doc_1793223848807_l25py"
+      "ip_address": "127.0.0.1",
+      "token": "02214f1e9eff520161c5bb5d8f938566b455cf27f2dff4fa5015e2c7a0c7bf93"
     },
     "doc_1793226503614_pi6ap": {
-      "token": "abd9af52b26ea2954d40dac90d0197bf1681ea998e995d9e28ee002ebd60ec99",
+      "id": "doc_1793226503614_pi6ap",
+      "expires_at": "2026-11-04T22:28:23.613Z",
+      "user_id": "usr_1793131618127_8yfuy",
+      "created_at": "2026-10-28T22:28:23.614Z",
+      "ip_address": "127.0.0.1",
+      "token": "abd9af52b26ea2954d40dac90d0197bf1681ea998e995d9e28ee002ebd60ec99"
+    },
+    "doc_1793229575148_ha1uc": {
+      "id": "doc_1793229575148_ha1uc",
+      "expires_at": "2026-11-04T23:19:35.147Z",
+      "user_id": "usr_1793229575138_5bve8",
+      "created_at": "2026-10-28T23:19:35.148Z",
+      "ip_address": "200.82.150.186",
+      "token": "a30036706e9180f53edb6b18d620d1cee79b02758cd5b6e84add42bee9dfb588"
+    },
+    "doc_1793297576710_58x7h": {
+      "id": "doc_1793297576710_58x7h",
+      "expires_at": "2026-11-05T18:12:56.708Z",
+      "user_id": "usr_1793229575138_5bve8",
+      "created_at": "2026-10-29T18:12:56.710Z",
+      "ip_address": "186.165.180.93",
+      "token": "9a63a08fb5125f369433ed3be94db0f37d829f700e7abace7a16883a12b2a70f"
+    },
+    "doc_1793314741093_9ty0x": {
+      "id": "doc_1793314741093_9ty0x",
+      "expires_at": "2026-11-05T22:59:01.091Z",
+      "user_id": "usr_1793314741082_hibd6",
+      "created_at": "2026-10-29T22:59:01.093Z",
+      "ip_address": "66.179.15.86",
+      "token": "e7ff82baeee91cf919fddd3f828415a8f4be6639dd73babbf5c728936670a9c2"
+    },
+    "doc_1793316857921_vjd78": {
+      "id": "doc_1793316857921_vjd78",
+      "expires_at": "2026-11-05T23:34:17.918Z",
+      "user_id": "usr_1793131618127_8yfuy",
+      "created_at": "2026-10-29T23:34:17.921Z",
+      "ip_address": "185.107.56.30",
+      "token": "9c127455d55da5b092f813372b5e4f6bbd14d478f60952d367b12753951fa6f2"
+    },
+    "doc_1793319359027_5m685": {
+      "id": "doc_1793319359027_5m685",
+      "expires_at": "2026-11-06T00:15:59.026Z",
+      "user_id": "usr_1793131618127_8yfuy",
+      "created_at": "2026-10-30T00:15:59.027Z",
+      "ip_address": "127.0.0.1",
+      "token": "adea355979e4548cc767bde0f9470ebac1367e741d3d72e08f6b55f33c3081cf"
+    },
+    "e4314d016fc2bd667adc0e94ee05f4e4e18bca42f900eb795ca78945940cffd4": {
+      "id": "e4314d016fc2bd667adc0e94ee05f4e4e18bca42f900eb795ca78945940cffd4",
+      "expires_at": "2026-10-30T21:17:44.304Z",
+      "user_id": "usr-joshua",
+      "_migratedAt": "2026-10-27T17:59:46.150Z",
+      "_syncedAt": "2026-10-26T22:05:51.742Z",
+      "created_at": "2026-10-23 21:17:44",
+      "ip_address": "127.0.0.1",
+      "token": "e4314d016fc2bd667adc0e94ee05f4e4e18bca42f900eb795ca78945940cffd4"
+    },
+    "fb6fc9458b494f25fea9f9f9a6aed3418aca94034b4c6c83e287023d6a6f3dd1": {
+      "id": "fb6fc9458b494f25fea9f9f9a6aed3418aca94034b4c6c83e287023d6a6f3dd1",
+      "expires_at": "2026-10-30T17:03:29.265Z",
+      "user_id": "usr-luis",
+      "_migratedAt": "2026-10-27T17:59:46.150Z",
+      "_syncedAt": "2026-10-26T22:05:51.742Z",
+      "created_at": "2026-10-23 17:03:29",
+      "ip_address": "127.0.0.1",
+      "token": "fb6fc9458b494f25fea9f9f9a6aed3418aca94034b4c6c83e287023d6a6f3dd1"
+    },
+    "doc_1793335923356_st9se": {
+      "token": "1756901fe5399468076d619b7b8166bec8960596990d159f68c460a8abd6af78",
       "user_id": "usr_1793131618127_8yfuy",
       "ip_address": "127.0.0.1",
-      "expires_at": "2026-11-04T22:28:23.613Z",
-      "created_at": "2026-10-28T22:28:23.614Z",
-      "id": "doc_1793226503614_pi6ap"
+      "expires_at": "2026-11-06T04:52:03.355Z",
+      "created_at": "2026-10-30T04:52:03.356Z",
+      "id": "doc_1793335923356_st9se"
     }
   },
-  "test_sandbox": {},
   "timesheets": {
     "TS-PP-2025-08-MGH-1001": {
       "id": "TS-PP-2025-08-MGH-1001",
@@ -28886,6 +29559,231 @@
       "history_json": "[]",
       "period_id": "PP-2026-20",
       "status": "Draft"
+    },
+    "TS-PP-2026-20-MGH-1181": {
+      "id": "TS-PP-2026-20-MGH-1181",
+      "overtime_hours": 0,
+      "created_at": "2026-10-28T18:36:11.404Z",
+      "regular_hours": 0,
+      "employee_name": "Edwin Perez-Montalvo",
+      "total_hours": 0,
+      "holiday_hours": 0,
+      "pto_hours": 0,
+      "employee_id": "MGH-1181",
+      "step_index": 0,
+      "history_json": "[]",
+      "period_id": "PP-2026-20",
+      "status": "Draft"
+    },
+    "TS-PP-2026-20-MGH-1184": {
+      "id": "TS-PP-2026-20-MGH-1184",
+      "overtime_hours": 0,
+      "created_at": "2026-10-29T20:59:49.729Z",
+      "regular_hours": 0,
+      "employee_name": "Lisandra Yenet Garzon Ferrr",
+      "total_hours": 0,
+      "holiday_hours": 0,
+      "pto_hours": 0,
+      "employee_id": "MGH-1184",
+      "step_index": 0,
+      "history_json": "[]",
+      "period_id": "PP-2026-20",
+      "status": "Draft"
+    },
+    "TS-PP-2026-19-MGH-1001": {
+      "id": "TS-PP-2026-19-MGH-1001",
+      "employee_id": "MGH-1001",
+      "employee_name": "Edwin Montalvo",
+      "period_id": "PP-2026-19",
+      "status": "Draft",
+      "step_index": 0,
+      "regular_hours": 0,
+      "overtime_hours": 0,
+      "pto_hours": 0,
+      "holiday_hours": 0,
+      "total_hours": 0,
+      "history_json": "[]",
+      "created_at": "2026-10-30T04:51:10.064Z"
+    },
+    "TS-PP-2026-19-MGH-1042": {
+      "id": "TS-PP-2026-19-MGH-1042",
+      "employee_id": "MGH-1042",
+      "employee_name": "Joshua Hernandez",
+      "period_id": "PP-2026-19",
+      "status": "Draft",
+      "step_index": 0,
+      "regular_hours": 0,
+      "overtime_hours": 0,
+      "pto_hours": 0,
+      "holiday_hours": 0,
+      "total_hours": 0,
+      "history_json": "[]",
+      "created_at": "2026-10-30T04:51:10.077Z"
+    },
+    "TS-PP-2026-19-MGH-1043": {
+      "id": "TS-PP-2026-19-MGH-1043",
+      "employee_id": "MGH-1043",
+      "employee_name": "Zain Rondon",
+      "period_id": "PP-2026-19",
+      "status": "Draft",
+      "step_index": 0,
+      "regular_hours": 0,
+      "overtime_hours": 0,
+      "pto_hours": 0,
+      "holiday_hours": 0,
+      "total_hours": 0,
+      "history_json": "[]",
+      "created_at": "2026-10-30T04:51:10.079Z"
+    },
+    "TS-PP-2026-19-MGH-1044": {
+      "id": "TS-PP-2026-19-MGH-1044",
+      "employee_id": "MGH-1044",
+      "employee_name": "Luis Rodriguez",
+      "period_id": "PP-2026-19",
+      "status": "Draft",
+      "step_index": 0,
+      "regular_hours": 0,
+      "overtime_hours": 0,
+      "pto_hours": 0,
+      "holiday_hours": 0,
+      "total_hours": 0,
+      "history_json": "[]",
+      "created_at": "2026-10-30T04:51:10.081Z"
+    },
+    "TS-PP-2026-19-MGH-1045": {
+      "id": "TS-PP-2026-19-MGH-1045",
+      "employee_id": "MGH-1045",
+      "employee_name": "Lissandra",
+      "period_id": "PP-2026-19",
+      "status": "Draft",
+      "step_index": 0,
+      "regular_hours": 0,
+      "overtime_hours": 0,
+      "pto_hours": 0,
+      "holiday_hours": 0,
+      "total_hours": 0,
+      "history_json": "[]",
+      "created_at": "2026-10-30T04:51:10.082Z"
+    },
+    "TS-PP-2026-19-MGH-1046": {
+      "id": "TS-PP-2026-19-MGH-1046",
+      "employee_id": "MGH-1046",
+      "employee_name": "Juan Zamora",
+      "period_id": "PP-2026-19",
+      "status": "Draft",
+      "step_index": 0,
+      "regular_hours": 0,
+      "overtime_hours": 0,
+      "pto_hours": 0,
+      "holiday_hours": 0,
+      "total_hours": 0,
+      "history_json": "[]",
+      "created_at": "2026-10-30T04:51:10.083Z"
+    },
+    "TS-PP-2026-19-MGH-1179": {
+      "id": "TS-PP-2026-19-MGH-1179",
+      "employee_id": "MGH-1179",
+      "employee_name": "Carmen Perez De La Matta",
+      "period_id": "PP-2026-19",
+      "status": "Draft",
+      "step_index": 0,
+      "regular_hours": 0,
+      "overtime_hours": 0,
+      "pto_hours": 0,
+      "holiday_hours": 0,
+      "total_hours": 0,
+      "history_json": "[]",
+      "created_at": "2026-10-30T04:51:10.084Z"
+    },
+    "TS-PP-2026-19-MGH-1180": {
+      "id": "TS-PP-2026-19-MGH-1180",
+      "employee_id": "MGH-1180",
+      "employee_name": "luis enriquez rodriguez carvajal",
+      "period_id": "PP-2026-19",
+      "status": "Draft",
+      "step_index": 0,
+      "regular_hours": 0,
+      "overtime_hours": 0,
+      "pto_hours": 0,
+      "holiday_hours": 0,
+      "total_hours": 0,
+      "history_json": "[]",
+      "created_at": "2026-10-30T04:51:10.085Z"
+    },
+    "TS-PP-2026-19-MGH-1181": {
+      "id": "TS-PP-2026-19-MGH-1181",
+      "employee_id": "MGH-1181",
+      "employee_name": "Edwin Perez-Montalvo",
+      "period_id": "PP-2026-19",
+      "status": "Draft",
+      "step_index": 0,
+      "regular_hours": 0,
+      "overtime_hours": 0,
+      "pto_hours": 0,
+      "holiday_hours": 0,
+      "total_hours": 0,
+      "history_json": "[]",
+      "created_at": "2026-10-30T04:51:10.087Z"
+    },
+    "TS-PP-2026-19-MGH-1182": {
+      "id": "TS-PP-2026-19-MGH-1182",
+      "employee_id": "MGH-1182",
+      "employee_name": "T Z",
+      "period_id": "PP-2026-19",
+      "status": "Draft",
+      "step_index": 0,
+      "regular_hours": 0,
+      "overtime_hours": 0,
+      "pto_hours": 0,
+      "holiday_hours": 0,
+      "total_hours": 0,
+      "history_json": "[]",
+      "created_at": "2026-10-30T04:51:10.088Z"
+    },
+    "TS-PP-2026-19-MGH-1183": {
+      "id": "TS-PP-2026-19-MGH-1183",
+      "employee_id": "MGH-1183",
+      "employee_name": "Zain Rondón",
+      "period_id": "PP-2026-19",
+      "status": "Draft",
+      "step_index": 0,
+      "regular_hours": 0,
+      "overtime_hours": 0,
+      "pto_hours": 0,
+      "holiday_hours": 0,
+      "total_hours": 0,
+      "history_json": "[]",
+      "created_at": "2026-10-30T04:51:10.089Z"
+    },
+    "TS-PP-2026-19-MGH-1184": {
+      "id": "TS-PP-2026-19-MGH-1184",
+      "employee_id": "MGH-1184",
+      "employee_name": "Lisandra Yenet Garzon Ferrr",
+      "period_id": "PP-2026-19",
+      "status": "Draft",
+      "step_index": 0,
+      "regular_hours": 0,
+      "overtime_hours": 0,
+      "pto_hours": 0,
+      "holiday_hours": 0,
+      "total_hours": 0,
+      "history_json": "[]",
+      "created_at": "2026-10-30T04:51:10.090Z"
+    },
+    "TS-PP-2026-19-MGH-1185": {
+      "id": "TS-PP-2026-19-MGH-1185",
+      "employee_id": "MGH-1185",
+      "employee_name": "Edwin Perez Montalvo",
+      "period_id": "PP-2026-19",
+      "status": "Draft",
+      "step_index": 0,
+      "regular_hours": 0,
+      "overtime_hours": 0,
+      "pto_hours": 0,
+      "holiday_hours": 0,
+      "total_hours": 0,
+      "history_json": "[]",
+      "created_at": "2026-10-30T04:51:10.091Z"
     }
   },
   "users": {
@@ -28893,18 +29791,19 @@
       "id": "usr-admin",
       "is_active": 1,
       "role": "admin",
-      "salt": "5ddb4630e1b30375d357f2ce8871fa28",
+      "salt": "13d09c1d121c1bf68c57ad76357476d3",
       "_migratedAt": "2026-10-27T17:59:47.268Z",
       "created_at": "2026-10-23 00:42:21",
       "avatar": null,
       "updated_at": "2026-10-26 22:05:46",
       "employee_id": null,
-      "password_hash": "96763f5a33a5ba80fe7fd488a5c8715d42f9c0aa7675699c8c5c59559621bec3ff0d50209f52fc58f5a6c3bee008d84075bbfe0c7f538ab6a2f4c93e1ae03b4b",
+      "password_hash": "453ed3b69004e0cb582e0622f75df1adb8eed0f8191a4af7d3a6422c0727ff1ea8395b07e73b7d7d2ba32cd481cd55ca29a9afb063c4dcfb7ac1636b4722f708",
       "name": "Admin System",
       "_syncedAt": "2026-10-26T22:05:50.125Z",
       "email": "admin@myglobalhub.net",
       "entity": "MGH Dominicana SRL",
-      "last_login_at": "2026-10-27T20:22:41.154Z"
+      "last_login_at": "2026-10-30T02:00:56.747Z",
+      "must_change_password": 0
     },
     "usr-admin-com": {
       "id": "usr-admin-com",
@@ -28921,23 +29820,6 @@
       "name": "Admin System",
       "_syncedAt": "2026-10-23T04:22:21.307Z",
       "email": "admin@myglobalhub.com",
-      "entity": "MGH Dominicana SRL"
-    },
-    "usr-edwin": {
-      "id": "usr-edwin",
-      "last_login_at": null,
-      "is_active": 1,
-      "role": "admin",
-      "salt": "7e0542fe2d5c0657dfe9ee9441cfed5b",
-      "_migratedAt": "2026-10-27T17:59:47.268Z",
-      "created_at": "2026-10-23 00:42:21",
-      "avatar": "assets/avatars/person-1.jpg",
-      "updated_at": "2026-10-26 22:05:46",
-      "employee_id": "MGH-1001",
-      "password_hash": "5dbadb033a3388b29630eb54a92d579bbfb6479289d1b84ba33cbb1a8233924b178eebd685b197bfd13781ba9f3182e684067110a8123352997b8fe9844e5c50",
-      "name": "Edwin Montalvo",
-      "_syncedAt": "2026-10-26T22:05:50.125Z",
-      "email": "edwin@myglobalhub.net",
       "entity": "MGH Dominicana SRL"
     },
     "usr-joshua": {
@@ -28991,74 +29873,6 @@
       "email": "juan.zamora@myglobalhub.com",
       "entity": "MGH Dominicana SRL"
     },
-    "usr-juan-net": {
-      "id": "usr-juan-net",
-      "last_login_at": null,
-      "is_active": 1,
-      "role": "employee",
-      "salt": "1b36d5e4c2dbc9b348ada1af20236b0d",
-      "_migratedAt": "2026-10-27T17:59:47.268Z",
-      "created_at": "2026-10-23 17:02:41",
-      "avatar": "assets/avatars/person-6.jpg",
-      "updated_at": "2026-10-26 22:05:46",
-      "employee_id": "MGH-1046",
-      "password_hash": "e0b44b52373374e218c1a0367c3ffd1175fe9025a646bc0dcff0dbafd6a757e11f5f27ee880d85c8328a7c8543e4c5284ee15c3995a62bf4b2229d0e23ac7e1e",
-      "name": "Juan Zamora",
-      "_syncedAt": "2026-10-26T22:05:50.126Z",
-      "email": "juan.zamora@myglobalhub.net",
-      "entity": "MGH Dominicana SRL"
-    },
-    "usr-juan-short": {
-      "id": "usr-juan-short",
-      "last_login_at": null,
-      "is_active": 1,
-      "role": "employee",
-      "salt": "67d50c983c860655b42cf4688a2af0da",
-      "_migratedAt": "2026-10-27T17:59:47.268Z",
-      "created_at": "2026-10-23 17:02:41",
-      "avatar": "assets/avatars/person-6.jpg",
-      "updated_at": "2026-10-26 22:05:46",
-      "employee_id": "MGH-1046",
-      "password_hash": "f6cacc945fc8c5f2f950a326e34241181f8ad9e29298d2e9d549ef82cfd92a182fc595321ec3cc71dccf40fbdf7fb01cdf13ebc195735590b63f7f6723340620",
-      "name": "Juan Zamora",
-      "_syncedAt": "2026-10-26T22:05:50.126Z",
-      "email": "juan@myglobalhub.com",
-      "entity": "MGH Dominicana SRL"
-    },
-    "usr-lissandra": {
-      "id": "usr-lissandra",
-      "last_login_at": null,
-      "is_active": 1,
-      "role": "employee",
-      "salt": "08f52d369e762af022817a46425a42e2",
-      "_migratedAt": "2026-10-27T17:59:47.268Z",
-      "created_at": "2026-10-23 17:02:41",
-      "avatar": "assets/avatars/person-5.jpg",
-      "updated_at": "2026-10-26 22:05:46",
-      "employee_id": "MGH-1045",
-      "password_hash": "46f7f56a233dba6398fbf387d4ac4c4116d8b17132f4fa536a9d2ba47d051f163b95c6f42a8fe9b7fbaee794d99e7b020876da03f33913a03865a609e964b9ef",
-      "name": "Lissandra",
-      "_syncedAt": "2026-10-26T22:05:50.125Z",
-      "email": "lissandra@myglobalhub.com",
-      "entity": "MGH Dominicana SRL"
-    },
-    "usr-lissandra-net": {
-      "id": "usr-lissandra-net",
-      "last_login_at": null,
-      "is_active": 1,
-      "role": "employee",
-      "salt": "7d609375bf87a531a6e4d94c45ea7b6b",
-      "_migratedAt": "2026-10-27T17:59:47.268Z",
-      "created_at": "2026-10-23 17:02:41",
-      "avatar": "assets/avatars/person-5.jpg",
-      "updated_at": "2026-10-26 22:05:46",
-      "employee_id": "MGH-1045",
-      "password_hash": "482d44eb8bfe222800095b3ba4f41c49e6c633503e7a234e61474ad405925e5a1f6d4dcce3d880a2bb9c44ea2c04e0ad096987a17db344eb0085a27043fffa13",
-      "name": "Lissandra",
-      "_syncedAt": "2026-10-26T22:05:50.125Z",
-      "email": "lissandra@myglobalhub.net",
-      "entity": "MGH Dominicana SRL"
-    },
     "usr-luis": {
       "id": "usr-luis",
       "is_active": 1,
@@ -29076,23 +29890,6 @@
       "entity": "MGH Dominicana SRL",
       "last_login_at": "2026-10-27T20:22:41.039Z"
     },
-    "usr-luis-com": {
-      "id": "usr-luis-com",
-      "last_login_at": null,
-      "is_active": 1,
-      "role": "employee",
-      "salt": "ad3a4652558367cf951f5a30ee073b03",
-      "_migratedAt": "2026-10-27T17:59:47.268Z",
-      "created_at": "2026-10-23 17:02:41",
-      "avatar": "assets/avatars/person-4.jpg",
-      "updated_at": "2026-10-26 22:05:46",
-      "employee_id": "MGH-1044",
-      "password_hash": "162d982fc1f428a15f8879367d9ed77f222c7a55d605e27900ea8c7409e1c10c0f5ceaf925defaed031899564724486d9a8c54757a4ebc46ea47d64d994cc6c4",
-      "name": "Luis Rodriguez",
-      "_syncedAt": "2026-10-26T22:05:50.125Z",
-      "email": "luis@myglobalhub.com",
-      "entity": "MGH Dominicana SRL"
-    },
     "usr-zain": {
       "id": "usr-zain",
       "is_active": 1,
@@ -29108,24 +29905,7 @@
       "email": "zain@myglobalhub.net",
       "entity": "MGH Dominicana SRL",
       "last_login_at": "2026-10-27T18:31:57.798Z",
-      "updated_at": "2026-10-28T22:34:11.666Z"
-    },
-    "usr-zain-com": {
-      "id": "usr-zain-com",
-      "last_login_at": "2026-10-23 22:06:31",
-      "is_active": 1,
-      "role": "contractor",
-      "salt": "c348ba59a4c11b8851215ddca94d9128",
-      "_migratedAt": "2026-10-27T17:59:47.269Z",
-      "created_at": "2026-10-23 17:02:41",
-      "avatar": "assets/avatars/person-3.jpg",
-      "updated_at": "2026-10-26 22:05:46",
-      "employee_id": "MGH-1043",
-      "password_hash": "d76a988780a548448439134f9292720b692e0d222df99e90fdc0857d38c1b9f98d136f1e4e82ecd28d9bca6c9d45f4a6e989861263122192ef76795aed02f6a2",
-      "name": "Zain Rondon",
-      "_syncedAt": "2026-10-26T22:05:50.125Z",
-      "email": "zain@myglobalhub.com",
-      "entity": "MGH Dominicana SRL"
+      "updated_at": "2026-10-30T05:51:37.387Z"
     },
     "usr_1792629362415_0yi6a": {
       "id": "usr_1792629362415_0yi6a",
@@ -29168,17 +29948,18 @@
       "avatar": "https://lh3.googleusercontent.com/a/ACg8ocIbwZhRWfile1B8LjT1SHb6EYXpIY1tl02ZKuXfwRA5l08ySGLc=s96-c",
       "email": "joshuamoises1995@gmail.com",
       "entity": "MGH Dominicana SRL",
-      "role": "pm",
       "salt": "05125657372eb76f9ae92e7f12cccffe",
       "employee_id": "MGH-1042",
       "password_hash": "7bd4f1703ab6c1f83839942480b500b41274c6676204ed81fbf530019f75bc08a027860abd058d04bc7ae8e812a94ba8f0836fc17fa507e038ee1092a010ebfe",
       "name": "Joshua Hernandez",
-      "last_login_at": "2026-10-28T22:28:23.616Z"
+      "updated_at": "2026-10-30T00:51:27.428Z",
+      "last_login_at": "2026-10-30T04:52:03.356Z",
+      "role": "admin"
     },
     "usr_1793141848610_ilsyi": {
       "id": "usr_1793141848610_ilsyi",
       "is_active": 1,
-      "role": "employee",
+      "role": "admin",
       "salt": "ddbfd7267e8e8f42d7dd8536d34df83d",
       "password_hash": "54456dacd25e85f49709dc75a4a012140e967bc5f6cad0f1e1150e475e1c5c1d6969d731b30ac0e0dc4c4b4af23aa6edae4fcc49ef2c8416286def56b53cadf7",
       "name": "Carmen Perez De La Matta",
@@ -29186,9 +29967,99 @@
       "avatar": "https://lh3.googleusercontent.com/a/ACg8ocJbltZrUJYYEvRsMA8dllgtnOfxuiS_EM9EiuumDibY4vqHuL4=s96-c",
       "email": "info@myglobalhub.net",
       "entity": "MGH Dominicana SRL",
-      "updated_at": "2026-10-27T23:01:15.335Z",
+      "updated_at": "2026-10-30T02:33:02.159Z",
       "employee_id": "MGH-1179",
       "last_login_at": "2026-10-27T23:33:16.432Z"
+    },
+    "usr_1793211174813_jhr33": {
+      "id": "usr_1793211174813_jhr33",
+      "is_active": 1,
+      "role": "employee",
+      "salt": "",
+      "password_hash": "",
+      "name": "luis enriquez rodriguez carvajal",
+      "created_at": "2026-10-28T18:12:54.814Z",
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLqKQBF4UrnKCxW4CbwfkshgX4AVdWpNrIglMccod-xxxJLqoo=s96-c",
+      "email": "luiscarvajal2693@gmail.com",
+      "entity": "MGH Dominicana SRL",
+      "updated_at": "2026-10-28T18:12:54.828Z",
+      "employee_id": "MGH-1180",
+      "last_login_at": "2026-10-28T18:12:54.835Z"
+    },
+    "usr_1793212551396_0i3pq": {
+      "id": "usr_1793212551396_0i3pq",
+      "is_active": 1,
+      "role": "admin",
+      "salt": "",
+      "created_at": "2026-10-28T18:35:51.396Z",
+      "avatar": "https://lh3.googleusercontent.com/a-/ALV-UjXRSyjXHpCbjwfGEPUA2uSpv-ksNKfCW3aGx4rLT8lIzKw9XWxMtd_7CItyakuXQDZJn3s8zBr7MZErqLuyGXgbY34LFhcBXO8HalK-qkeXjUkInMgsPV1AyIiaQiOBjW7pVSE9A76UppJkz43OIGmb1mLkgJJLOC-Fxw39aJtYfHdkKOw4ZMwMc2ZXC7ZDEphhaATjrMGBIK_uFVHjV9T9sG03j9U_WfsDxHV-LG6cD9J7z3ZeSXkfKvOtbmJXrQniBadi0ylor2xRExXVUzHvHtKgCgFpnvp2mHvlKPpBf_2arM1-aBkKKdOnIBdiYoVsn09YB6iUr_yCf8NxQQk0T576jDd3HJHh7hQuE8BDMnKN1UdFJzpgxElORhoDgQJSU3htj3K4yubqt3MgCQ-iNEDLdg-H38OjsSRNrsvUbkkmnOc6HACAuIhbJZx6ADKEXKoBFgD9BgcOGdVKTVedNIg7c3Yxy-v975zXzs02ZwQFIXyxXGkAX0-T1irvyex31old6FYB1c2qkXV3qlM4Pa09ZeSDJLs30t6QqKB0bl7UP3nVT76bKhvo_qlCwn-Nj47skEw3xL5bGcKbhN9wc5TlM2jtLnxfvkKBPIJW2h7Y6-6yYtFFloQtxVVZY0CocQ0Q-JWTlFPAD4_St3gOUoO8n3DGO3MXaJUO8AHmoD3NHUVc5cQLo2p2bpyKigXFkgGIk4pFBPnJdbkHnd3FHt-Go7KZVsrNaGrjEgg6Qm9s3uyI-6wDNUHsi8JTcDrTa7B6r89uSa62PMRx1Jj-cT3b1KapjMuIPNEpiTS8wRHpf4Za-bfvhSLSStyc5L2HEWYIN3J4fKUcMBs_WJPFzWWIJYTYytYI9DovoQqLPIfC--pUp8_etxSBNZStJ_vgBm7axaov-lN79SsGyi5AtkYVFa3xCkC24jfnSSCTA1ljKXTIEoyl5qJkqyw5O0n8jmoMB_KHCWTUHYjWOoyomOc_mTWJkYld8uTPRa0jp8x4KKuHlkIMCJCAAzYNLHgMAwnbgKjoC2UpTKkX3Dd91ksSz9reem-d9l-R1BFBt4QmX6jRtau-KQ=s96-c",
+      "updated_at": "2026-10-30T02:33:06.547Z",
+      "password_hash": "",
+      "name": "Edwin Perez-Montalvo",
+      "email": "eperez@myglobalhub.net",
+      "entity": "MGH Dominicana SRL",
+      "employee_id": "MGH-1181",
+      "last_login_at": "2026-10-29T23:48:26.047Z"
+    },
+    "usr_1793219823617_ckxrk": {
+      "id": "usr_1793219823617_ckxrk",
+      "is_active": 1,
+      "role": "employee",
+      "salt": "",
+      "password_hash": "",
+      "name": "T Z",
+      "created_at": "2026-10-28T20:37:03.617Z",
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocIq-CVEFFoSxP_wCDPNjjRHV5cz4lLzpAsfnZmGEAfaP4f2YJqSQQ=s96-c",
+      "email": "uraharazamora@gmail.com",
+      "entity": "MGH Dominicana SRL",
+      "last_login_at": "2026-10-28T20:37:03.626Z",
+      "updated_at": "2026-10-28T20:37:03.622Z",
+      "employee_id": "MGH-1182"
+    },
+    "usr_1793229575138_5bve8": {
+      "id": "usr_1793229575138_5bve8",
+      "is_active": 1,
+      "role": "employee",
+      "salt": "",
+      "password_hash": "",
+      "name": "Zain Rondón",
+      "created_at": "2026-10-28T23:19:35.138Z",
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocIaWVXTfiVTdUWuKfsLIsAO3N5LZORylAZ2u2dvTd3LAtGwpQ=s96-c",
+      "email": "zajrj.3@gmail.com",
+      "entity": "MGH Dominicana SRL",
+      "updated_at": "2026-10-28T23:19:35.143Z",
+      "employee_id": "MGH-1183",
+      "last_login_at": "2026-10-29T18:12:56.710Z"
+    },
+    "usr_1793307403719_enw32": {
+      "id": "usr_1793307403719_enw32",
+      "is_active": 1,
+      "role": "employee",
+      "salt": "",
+      "password_hash": "",
+      "name": "Lisandra Yenet Garzon Ferrr",
+      "created_at": "2026-10-29T20:56:43.721Z",
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocIW_yxyM6TIEpYt8a789AtRifXzzlaL7Wb6svv9-sbAAASjwA=s96-c",
+      "email": "lisandragarzon@gmail.com",
+      "entity": "MGH Dominicana SRL",
+      "last_login_at": "2026-10-29T20:56:43.746Z",
+      "updated_at": "2026-10-29T20:56:43.737Z",
+      "employee_id": "MGH-1184"
+    },
+    "usr_1793314741082_hibd6": {
+      "id": "usr_1793314741082_hibd6",
+      "is_active": 1,
+      "role": "employee",
+      "salt": "",
+      "password_hash": "",
+      "name": "Edwin Perez Montalvo",
+      "created_at": "2026-10-29T22:59:01.082Z",
+      "avatar": "https://lh3.googleusercontent.com/a-/ALV-UjVmeDuNM73_OjablRSnCoUTlLgKqGMNodcXSXhzNQwtvDv84_PxPcxeMsoWXaoGuMySkb8ycyxq2cYBLEi30fx3u-DhhQ8aDQRTFhcscqCci7MS72_Tm7kXzvw-8O1DFVVPhaLXFIzVkTO-pPqDdi-NlJT6QjllWdMfJcTdc7ZUbVlHqXRMg8GXE7FQhpL3byoIDmtbXSZE1XBdxuho9mxvjFQpzLwnOnALJZIJDWNYNUt-LQ0jkv9PtdvvMw9z_XKdcyMGMqEs5pTXUUhomPPNmhFU5f5HGOPU90sPRMiKHjosD8-rBqH4J21NVIx8yGei4V71TmRsCjwezVgOr4EH6cV61iNpMwYfiOFKofmKXGxugstMsiQrHvH8xS0Ra23BiGSFs_-K1Hn7cs4BNSiChyevysAi8SdGkOApjAtAYglNJRwOZpr4GOk2NqW0jAN9ydExby5frqanCvFdS0IwimhGjxUVGP6syZc90aOYYrnCQyXcMKAlZBuEBJj5nTlokM11N1T9JhQ5NWByiKCH81uLHsdeyU1JtFLOTgLrCRUXriZizLPLdB3t5OyAHJ6zjTWHuk7YKy4o8U23qPCptiQ_KCz_tBM_qam5dRFGievpMFMkylp1B6h-Nm7vdlieaG1c5-NhDCi2MkX0Dvsr_2oNEBrXbT18jembPNCl3-rKWfufLm5udYbwH7DTPBO8ZJnQKL8L4qZGTTPVeUlGjaTTpFh82s6TXeYBmrK6qF_YBhlV4Vjxai8kzDxYI9Md7IC90jZ8f9uo-8eAn5tZN5FdLQPBsCgRhgN8rVJNlmMLnWrYv1OZ5Qom-cQQtxPt7bBpfmX5trJ84RgsAYpY4zXSwsCDVMviBk_x3IA1A5MUzawQU8t23c8Ug_-_a3UJqZTWnEbLg_zhIUaDPgTEmVu4MPVvU-yGsh-0Gi3nZdq-NbHf3AFeIGOtRT0wnMPOyumamgXmz4JszB0efRSvP_bpkcKOAM7O7JRyP4JfwPJYE-Mv3KvWGufKROoqnmT7pi38o8s57rDgw2iLfJ2tV8fUGv4JWSHkn2lEARslMC2K3buKXjIrjQ=s96-c",
+      "email": "hr@myglobalhub.net",
+      "entity": "MGH Dominicana SRL",
+      "updated_at": "2026-10-29T22:59:01.087Z",
+      "employee_id": "MGH-1185",
+      "last_login_at": "2026-10-29T22:59:01.093Z"
     }
   },
   "worklogs": {
@@ -29227,50 +30098,6 @@
     }
   },
   "project_statuses": {
-    "stat_MSHP_0_1793055526198": {
-      "id": "stat_MSHP_0_1793055526198",
-      "is_done": 0,
-      "color": "#64748b",
-      "project_id": "MSHP",
-      "_migratedAt": "2026-10-27T17:59:47.604Z",
-      "name": "To Do",
-      "position": 0,
-      "category": "todo",
-      "is_default": 1
-    },
-    "stat_MSHP_1_1793055526201": {
-      "id": "stat_MSHP_1_1793055526201",
-      "is_done": 0,
-      "color": "#3b82f6",
-      "project_id": "MSHP",
-      "_migratedAt": "2026-10-27T17:59:47.604Z",
-      "name": "In Progress",
-      "position": 1,
-      "category": "in_progress",
-      "is_default": 0
-    },
-    "stat_MSHP_2_1793055526201": {
-      "id": "stat_MSHP_2_1793055526201",
-      "is_done": 0,
-      "color": "#8b5cf6",
-      "project_id": "MSHP",
-      "_migratedAt": "2026-10-27T17:59:47.604Z",
-      "name": "Code Review",
-      "position": 2,
-      "category": "in_progress",
-      "is_default": 0
-    },
-    "stat_MSHP_3_1793055526201": {
-      "id": "stat_MSHP_3_1793055526201",
-      "is_done": 1,
-      "color": "#10b981",
-      "project_id": "MSHP",
-      "_migratedAt": "2026-10-27T17:59:47.604Z",
-      "name": "Done",
-      "position": 3,
-      "category": "done",
-      "is_default": 0
-    },
     "stat_ARW_0_1793208421966": {
       "id": "stat_ARW_0_1793208421966",
       "is_done": 0,
@@ -29311,6 +30138,50 @@
       "project_id": "ARW",
       "name": "Done",
       "created_at": "2026-10-28T17:27:01.966Z",
+      "position": 3,
+      "category": "done",
+      "is_default": 0
+    },
+    "stat_MSHP_0_1793055526198": {
+      "id": "stat_MSHP_0_1793055526198",
+      "is_done": 0,
+      "color": "#64748b",
+      "project_id": "MSHP",
+      "_migratedAt": "2026-10-27T17:59:47.604Z",
+      "name": "To Do",
+      "position": 0,
+      "category": "todo",
+      "is_default": 1
+    },
+    "stat_MSHP_1_1793055526201": {
+      "id": "stat_MSHP_1_1793055526201",
+      "is_done": 0,
+      "color": "#3b82f6",
+      "project_id": "MSHP",
+      "_migratedAt": "2026-10-27T17:59:47.604Z",
+      "name": "In Progress",
+      "position": 1,
+      "category": "in_progress",
+      "is_default": 0
+    },
+    "stat_MSHP_2_1793055526201": {
+      "id": "stat_MSHP_2_1793055526201",
+      "is_done": 0,
+      "color": "#8b5cf6",
+      "project_id": "MSHP",
+      "_migratedAt": "2026-10-27T17:59:47.604Z",
+      "name": "Code Review",
+      "position": 2,
+      "category": "in_progress",
+      "is_default": 0
+    },
+    "stat_MSHP_3_1793055526201": {
+      "id": "stat_MSHP_3_1793055526201",
+      "is_done": 1,
+      "color": "#10b981",
+      "project_id": "MSHP",
+      "_migratedAt": "2026-10-27T17:59:47.604Z",
+      "name": "Done",
       "position": 3,
       "category": "done",
       "is_default": 0
@@ -29360,8 +30231,6 @@
       "is_default": 0
     }
   },
-  "sprints": {},
-  "project_tasks": {},
   "project_members": {
     "pm_e9551563": {
       "id": "pm_e9551563",
@@ -29373,7 +30242,6 @@
       "created_at": "2026-10-27T18:31:59.866Z"
     }
   },
-  "file_attachments": {},
   "schema_migrations": {
     "doc_1793057312076_erehg": {
       "id": "doc_1793057312076_erehg",
@@ -29410,20 +30278,40 @@
       "name": "005_jira_issues_cache.sql",
       "version": "005"
     },
-    "doc_1793057312138_p21ud": {
-      "id": "doc_1793057312138_p21ud",
-      "applied_at": null,
-      "_migratedAt": "2026-10-27T17:59:48.616Z",
-      "name": "006_contractors.sql",
-      "version": "006"
-    },
     "doc_1793057312138_mc3te": {
       "id": "doc_1793057312138_mc3te",
       "applied_at": null,
       "_migratedAt": "2026-10-27T17:59:48.616Z",
       "name": "007_agile_tasks_and_sprints.sql",
       "version": "007"
+    },
+    "doc_1793057312138_p21ud": {
+      "id": "doc_1793057312138_p21ud",
+      "applied_at": null,
+      "_migratedAt": "2026-10-27T17:59:48.616Z",
+      "name": "006_contractors.sql",
+      "version": "006"
     }
   },
-  "sqlite_master": {}
+  "payroll_adjustments": {},
+  "payment_proofs": {},
+  "attendance_exceptions": {},
+  "contractor_payments": {},
+  "attendance_punches": {},
+  "project_tasks": {},
+  "sprints": {},
+  "file_attachments": {
+    "att_1793337597534_b14b758a": {
+      "id": "att_1793337597534_b14b758a",
+      "original_name": "WhatsApp Image 2026-10-28 at 6.36.45 PM.jpeg",
+      "stored_name": "att_1793337597534_b14b758a.jpeg",
+      "mime_type": "image/jpeg",
+      "file_size": 109621,
+      "file_path": "D:\\GitHub\\hr-myglobalhub.net\\backend\\uploads\\evidences\\att_1793337597534_b14b758a.jpeg",
+      "category": "evidences",
+      "access_token": "77e5f9c55429dc436712ae7b03153fe8",
+      "created_by": "Joshua Hernandez",
+      "created_at": "2026-10-30T05:19:57.535Z"
+    }
+  }
 }
