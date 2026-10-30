@@ -138,6 +138,20 @@ export default class App extends React.Component {
       this.setState({ currentUser: null, authChecking: false });
     }
   }
+  // Header dropdowns open right under the button that was clicked (they used to sit at the far right, under the
+  // profile menu), kept inside the viewport. Without a click target (e.g. "Idioma" inside the profile menu) they keep
+  // the right-aligned spot under the profile.
+  menuAt(ev, width){
+    const el = ev && ev.currentTarget;
+    if (!el || !el.getBoundingClientRect) return null;
+    const r = el.getBoundingClientRect(), vw = window.innerWidth;
+    const w = Math.min(width, vw - 24);
+    return { top: Math.round(r.bottom + 6), left: Math.round(Math.max(12, Math.min(r.left, vw - w - 12))) };
+  }
+  menuPos(width){
+    const a = this.state.menuAnchor;
+    return a ? { top: a.top + 'px', left: a.left + 'px', width: width + 'px', maxWidth: 'calc(100vw - 24px)' } : { top: '60px', right: '24px', width: width + 'px', maxWidth: 'calc(100vw - 48px)' };
+  }
   // The organization row of the active RBAC organization ('MGH Dominicana SRL'), exact id first
   activeOrgConfig(orgs){
     const list = (orgs || []).filter(o => o && o.id);
@@ -1234,8 +1248,8 @@ export default class App extends React.Component {
       notifCount:window.MGH_WF?window.MGH_WF.unread():0,
       ...this.panelVals(),
       topActions:((L)=>{const DS=window.MyGlobalHubDesignSystem_2a603d;if(!DS||(this.state.vw||window.innerWidth)-288>=1040)return L;return React.createElement(React.Fragment,null,L.map((a,k)=>React.createElement(DS.IconButton,{key:k,icon:a.icon,title:a.label,'aria-label':a.label,tone:a.variant==='dark'?'default':'tinted',onClick:a.onClick,style:a.variant==='dark'?{background:'var(--mgh-navy)',color:'#fff'}:undefined})))})([
-        {label:(window.MGH_RBAC&&window.MGH_RBAC.orgSettings()?window.MGH_RBAC.orgSettings().short:'Dominicana'),icon:'domain',variant:'secondary',onClick:()=>this.setState(st=>({orgMenu:!st.orgMenu,langMenu:false}))},
-        {label:(window.MGH_I18N?window.MGH_I18N.lang:'es').toUpperCase().slice(0,2),icon:'language',variant:'secondary',onClick:()=>this.setState(st=>({langMenu:!st.langMenu,orgMenu:false}))},
+        {label:(window.MGH_RBAC&&window.MGH_RBAC.orgSettings()?window.MGH_RBAC.orgSettings().short:'Dominicana'),icon:'domain',variant:'secondary',onClick:ev=>{const at=this.menuAt(ev,360);this.setState(st=>({orgMenu:!st.orgMenu,langMenu:false,menuAnchor:at}))}},
+        {label:(window.MGH_I18N?window.MGH_I18N.lang:'es').toUpperCase().slice(0,2),icon:'language',variant:'secondary',onClick:ev=>{const at=this.menuAt(ev,240);this.setState(st=>({langMenu:!st.langMenu,orgMenu:false,menuAnchor:at}))}},
         {label:'Bulk Actions',icon:'checklist',variant:'secondary',onClick:()=>this.go('queue')},
         ...(window.MGH_RBAC&&window.MGH_RBAC.can('payroll.view')?[{label:'Export Register',icon:'download',variant:'secondary',onClick:()=>this.exportPayrollRegisterCSV()}]:[])
       ]),
@@ -1677,7 +1691,7 @@ export default class App extends React.Component {
             actions={v.topActions}
             onNavigate={v.go}
             onLogout={this.handleLogout}
-            onOpenLangMenu={() => this.setState(s => ({ langMenu: !s.langMenu, orgMenu: false }))}
+            onOpenLangMenu={ev => { const at = this.menuAt(ev, 240); this.setState(s => ({ langMenu: !s.langMenu, orgMenu: false, menuAnchor: at })); }}
           />
           {v.isDenied ? (
             <div style={{ padding: "48px 28px", maxWidth: "800px", margin: "0 auto" }}>
@@ -3058,7 +3072,7 @@ export default class App extends React.Component {
         {this.state.orgMenu ? (
           <>
             <div onClick={() => this.setState({ orgMenu: false })} style={{ position: "fixed", inset: "0", zIndex: "90" }} />
-            <div style={{ position: "fixed", top: "60px", right: "24px", zIndex: "91", width: "360px", maxWidth: "calc(100vw - 48px)", background: "#fff", borderRadius: "12px", boxShadow: "var(--shadow-lg)", padding: "8px", display: "flex", flexDirection: "column", gap: "2px" }}>
+            <div style={{ position: "fixed", ...this.menuPos(360), zIndex: "91", background: "#fff", borderRadius: "12px", boxShadow: "var(--shadow-lg)", padding: "8px", display: "flex", flexDirection: "column", gap: "2px" }}>
               <span style={{ padding: "6px 10px", font: "700 11px/14px var(--font-sans)", letterSpacing: "0.55px", textTransform: "uppercase", color: "var(--mgh-ink-3)" }}>
                 Active organization • data never crosses organizations
               </span>
@@ -3102,7 +3116,7 @@ export default class App extends React.Component {
         {this.state.langMenu ? (
           <>
             <div onClick={() => this.setState({ langMenu: false })} style={{ position: "fixed", inset: "0", zIndex: "90" }} />
-            <div style={{ position: "fixed", top: "60px", right: "24px", zIndex: "91", width: "240px", background: "#fff", borderRadius: "12px", boxShadow: "var(--shadow-lg)", padding: "8px", display: "flex", flexDirection: "column", gap: "2px" }}>
+            <div style={{ position: "fixed", ...this.menuPos(240), zIndex: "91", background: "#fff", borderRadius: "12px", boxShadow: "var(--shadow-lg)", padding: "8px", display: "flex", flexDirection: "column", gap: "2px" }}>
               <span style={{ padding: "6px 10px", font: "700 11px/14px var(--font-sans)", letterSpacing: "0.55px", textTransform: "uppercase", color: "var(--mgh-ink-3)" }}>Language</span>
               {(v.langMenuItems || []).map((o, idx) => (
                 <div key={idx} role="button" onClick={o.run} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "9px 10px", borderRadius: "8px", cursor: "pointer", background: o.bg }}>
