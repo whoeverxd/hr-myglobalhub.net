@@ -35,11 +35,15 @@ test('Account status is reported: created, linked (existing Google login) and co
   assert.equal(created.account.status, 'created');
   assert.ok(created.initialPassword);
 
-  // Same email for another employee → the other person's login is never taken over
-  const other = employees.createEmployee(newEmp(email));
-  assert.equal(other.account.status, 'conflict');
-  assert.equal(other.account.linkedEmployeeId, created.id);
-  assert.equal(db.getOne('SELECT employee_id FROM users WHERE LOWER(email) = ?', [email]).employee_id, created.id);
+  // Same email for another employee → refused before anything is saved (retrying used to pile up duplicates)
+  assert.throws(() => employees.createEmployee(newEmp(email.toUpperCase())), (e) => e.status === 409 && e.message.includes(created.id));
+  assert.equal(db.query('SELECT id FROM employees WHERE LOWER(email) = ?', [email]).length, 1, 'no duplicate employee');
+  assert.equal(db.getOne('SELECT employee_id FROM users WHERE LOWER(email) = ?', [email]).employee_id, created.id, 'login untouched');
+
+  // Same when the other employee has no login yet (their record already uses the email)
+  db.execute('DELETE FROM users WHERE LOWER(email) = ?', [email]);
+  assert.throws(() => employees.createEmployee(newEmp(email)), (e) => e.status === 409);
+  assert.equal(db.query('SELECT id FROM employees WHERE LOWER(email) = ?', [email]).length, 1, 'still no duplicate');
   cleanup(email);
 
   // Someone who signed in with Google first (login without employee) gets linked, no new password

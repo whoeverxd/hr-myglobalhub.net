@@ -65,7 +65,7 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   `must_change_password=1`: `authenticate` answers 403 `PASSWORD_CHANGE_REQUIRED` (except /auth/me, /auth/password,
   /auth/logout) until the user replaces it, and App.jsx shows a non-dismissable modal. Create responses carry
   `account.status` (created | linked | conflict | failed | none); an email already linked to another employee is never
-  taken over. Forgotten password: "Restablecer contraseña" on the employee profile (HR/admin/PM, not own profile; only admin
+  taken over: `createEmployee` refuses it (409, nothing saved) when another employee's record or login uses it. Forgotten password: "Restablecer contraseña" on the employee profile (HR/admin/PM, not own profile; only admin
   for an admin; a PM only for employee/contractor/supervisor accounts)
   System roles (one per login): employee, contractor, supervisor, pm, hr, finance, admin (= Platform Admin, top level,
   passes every `requireRole`). Who may give which role on creation: `ASSIGNABLE_ROLES` in `auth.service.js` (PM →

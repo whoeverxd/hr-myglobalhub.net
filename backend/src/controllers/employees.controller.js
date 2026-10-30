@@ -151,6 +151,20 @@ function createEmployee(data, user = 'System', ip = '127.0.0.1', actorRole = nul
     }
   }
 
+  // An email already used by another employee (their record or their login) is refused before anything is saved:
+  // creating the employee anyway left a record without access, and every retry added another duplicate.
+  if (data.email && data.email.trim()) {
+    const email = data.email.trim().toLowerCase();
+    const login = db.getOne(`SELECT employee_id FROM users WHERE LOWER(email) = ?`, [email]);
+    const holderId = (login && login.employee_id) || ((db.getOne(`SELECT id FROM employees WHERE LOWER(email) = ?`, [email]) || {}).id);
+    if (holderId) {
+      const holder = db.getOne(`SELECT name FROM employees WHERE id = ?`, [holderId]);
+      const err = new Error(`The email ${email} already belongs to employee ${holderId}${holder && holder.name ? ` (${holder.name})` : ''}. Nothing was created: use a different email or edit that employee.`);
+      err.status = 409;
+      throw err;
+    }
+  }
+
   const id = getNextEmployeeId();
   const pending = Array.isArray(data.pending) ? data.pending : [];
   const status = pending.length ? 'Pending Onboarding' : 'Active';
