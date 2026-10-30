@@ -540,6 +540,14 @@ function employeeRemovalPreview(employeeId, actor) {
       contractorPayments: contractorPays.length,
       login: user ? user.email : null,
     },
+    // Only the admin purge (purgeEmployee) removes these
+    payrollHistory: {
+      approvedSheets: paidSheets.length,
+      payrollRunLines: runLines.length,
+      approvedAdjustments: approvedAdj.length,
+      paidContractorPayments: paidCtr.length,
+      paymentProofs: db.query('SELECT id FROM payment_proofs WHERE emp_id = ?', [emp.id]).length,
+    },
   };
 }
 
@@ -570,6 +578,56 @@ function deleteEmployee(employeeId, actor, ip = '127.0.0.1') {
   return { ok: true, deleted: true, employeeId: emp.id, removed: preview.willDelete };
 }
 
+/* Full purge (#admin, admin only) for test people created on live data: everything deleteEmployee removes PLUS the
+ * payroll history it refuses to touch (approved/paid sheets, payroll run lines, approved adjustments, paid contractor
+ * payments, payment proofs). Affected payroll runs get their totals recomputed; a run left without lines is deleted.
+ * Kept: the audit log, tasks the person created (only unassigned) and meeting copies they logged on other people's sheets.
+ * `confirm` must repeat the employee id: there is no undo. */
+function purgeEmployee(employeeId, actor, ip = '127.0.0.1', { confirm } = {}) {
+  if (!actor || actor.role !== 'admin') throw fail(403, 'Solo un administrador puede borrar un empleado con todo su historial.');
+  const { emp, user } = removalContext(employeeId, actor);
+  if (String(confirm || '').trim() !== emp.id) throw fail(400, `Para confirmar escribe el ID del empleado (${emp.id}).`);
+  const preview = employeeRemovalPreview(employeeId, actor);
+  const runLines = db.query('SELECT id, run_id FROM payroll_run_items WHERE employee_id = ?', [emp.id]);
+  const proofs = db.query('SELECT id FROM payment_proofs WHERE emp_id = ?', [emp.id]);
+  const runs = [...new Set(runLines.map((l) => l.run_id))];
+  const removedRuns = [];
+  db.transaction(() => {
+    for (const table of ['daily_activities', 'timesheets', 'attendance_punches', 'attendance_exceptions', 'leave_requests', 'worklogs']) {
+      db.execute(`DELETE FROM ${table} WHERE employee_id = ?`, [emp.id]);
+    }
+    db.execute('DELETE FROM project_members WHERE user_id = ?', [emp.id]);
+    db.execute(`UPDATE project_tasks SET assignee_id = NULL, assignee_name = NULL, assignee_avatar = NULL WHERE assignee_id = ?`, [emp.id]);
+    for (const a of adjustmentsFor(emp)) db.execute('DELETE FROM payroll_adjustments WHERE id = ?', [a.id]);
+    for (const c of db.query('SELECT id FROM contractors WHERE employee_id = ?', [emp.id])) {
+      db.execute('DELETE FROM contractor_payments WHERE contractor_id = ?', [c.id]);
+      db.execute('DELETE FROM contractors WHERE id = ?', [c.id]);
+    }
+    for (const l of runLines) db.execute('DELETE FROM payroll_run_items WHERE id = ?', [l.id]);
+    for (const runId of runs) {
+      const left = db.query('SELECT reg_hours, ot_hours, pto_hours, gross_pay, total_deductions, net_pay FROM payroll_run_items WHERE run_id = ?', [runId]);
+      if (!left.length) { db.execute('DELETE FROM payroll_runs WHERE id = ?', [runId]); removedRuns.push(runId); continue; }
+      const sum = (k) => Math.round(left.reduce((s, x) => s + (Number(x[k]) || 0), 0) * 100) / 100;
+      db.execute(
+        `UPDATE payroll_runs SET total_employees = ?, total_hours = ?, total_gross = ?, total_deductions = ?, total_net = ? WHERE id = ?`,
+        [left.length, Math.round((sum('reg_hours') + sum('ot_hours') + sum('pto_hours')) * 100) / 100, sum('gross_pay'), sum('total_deductions'), sum('net_pay'), runId]
+      );
+    }
+    for (const p of proofs) db.execute('DELETE FROM payment_proofs WHERE id = ?', [p.id]);
+    if (user) {
+      db.execute('DELETE FROM sessions WHERE user_id = ?', [user.id]);
+      db.execute('DELETE FROM users WHERE id = ?', [user.id]);
+    }
+    db.execute('DELETE FROM employees WHERE id = ?', [emp.id]);
+    logAction({
+      actor: actor.name, action: 'PURGE_EMPLOYEE', entityType: 'employee', entityId: emp.id,
+      oldValues: { name: emp.name, email: emp.email, role: emp.role, payrollHistory: preview.blockers },
+      newValues: { deleted: { ...preview.willDelete, payrollRunLines: runLines.length, paymentProofs: proofs.length, payrollRunsRemoved: removedRuns } }, ip,
+    });
+  });
+  return { ok: true, purged: true, employeeId: emp.id, removed: { ...preview.willDelete, payrollRunLines: runLines.length, paymentProofs: proofs.length }, payrollRunsRemoved: removedRuns, payrollRunsUpdated: runs.filter((r) => !removedRuns.includes(r)) };
+}
+
 // Keeps every record; the person can no longer sign in and leaves the active lists
 function deactivateEmployee(employeeId, actor, ip = '127.0.0.1') {
   const { emp, user } = removalContext(employeeId, actor);
@@ -592,5 +650,6 @@ module.exports = {
   updateEmployee,
   employeeRemovalPreview,
   deleteEmployee,
+  purgeEmployee,
   deactivateEmployee,
 };

@@ -4392,6 +4392,80 @@ function Reports({ notify }) {
 
 // Users come from GET /users (one company, no per-entity cards). User accounts are created
 // from Add Employee (there is no invite / MFA / suspend backend yet, so those actions are not offered).
+// #admin: delete a (test) employee and every record they have, payroll history included (POST /employees/:id/purge).
+// The preview lists what goes; the admin confirms by typing the employee id.
+const PURGE_LABELS = [
+  ['activities', 'actividades'], ['timesheets', 'hojas de tiempo'], ['leaveRequests', 'licencias'], ['punches', 'marcajes'],
+  ['exceptions', 'excepciones de asistencia'], ['worklogs', 'registros de trabajo'], ['projectMemberships', 'membresías de proyecto'],
+  ['tasksUnassigned', 'tareas asignadas (quedan sin asignar)'], ['pendingAdjustments', 'ajustes de nómina'],
+  ['contractorRecords', 'fichas de contratista'], ['contractorPayments', 'pagos de contratista'],
+];
+const PURGE_HISTORY_LABELS = [
+  ['approvedSheets', 'hojas aprobadas o pagadas'], ['payrollRunLines', 'líneas de corridas de nómina'],
+  ['approvedAdjustments', 'ajustes aprobados'], ['paidContractorPayments', 'pagos de contratista realizados'], ['paymentProofs', 'comprobantes de pago'],
+];
+function EmployeePurge({ notify, onPurged }) {
+  const me = (window.MGH_RBAC && window.MGH_RBAC.user) || {};
+  const [q, setQ] = React.useState('');
+  const [target, setTarget] = React.useState(null); // { e, preview }
+  const [typed, setTyped] = React.useState('');
+  const [busy, setBusy] = React.useState(null);
+  const [, refresh] = React.useState(0);
+  const list = (window.EMPLOYEES || []).filter(e => e.id !== me.employeeId);
+  const term = q.trim().toLowerCase();
+  const shown = list.filter(e => !term || `${e.name} ${e.id} ${e.email || ''} ${e.status || ''}`.toLowerCase().includes(term))
+    .slice().sort((a, b) => String(b.id).localeCompare(String(a.id)));
+  const open = async e => {
+    setBusy(e.id);
+    try { setTarget({ e, preview: await window.api.employeeRemoval(e.id) }); setTyped(''); }
+    catch (err) { notify('No se puede borrar ' + e.name + ' • ' + err.message); }
+    finally { setBusy(null); }
+  };
+  const purge = async () => {
+    const { e } = target;
+    setBusy(e.id);
+    try {
+      const r = await window.api.purgeEmployee(e.id, typed.trim());
+      for (const arr of [window.EMPLOYEES, window.__MGH_DATA && window.__MGH_DATA.ALL_EMP].filter(Array.isArray)) { const i = arr.findIndex(x => x.id === e.id); if (i >= 0) arr.splice(i, 1); }
+      if (window.__mghSetEmployees) window.__mghSetEmployees(window.EMPLOYEES);
+      setTarget(null); refresh(n => n + 1);
+      const runs = (r.payrollRunsRemoved || []).length ? ' Corridas de nómina eliminadas: ' + r.payrollRunsRemoved.join(', ') + '.' : '';
+      notify(`${e.name} (${e.id}) y todos sus registros fueron borrados.${runs}`);
+      if (onPurged) onPurged(e);
+    } catch (err) { notify('No se pudo borrar • ' + err.message); }
+    finally { setBusy(null); }
+  };
+  const p = target && target.preview;
+  const counts = p ? PURGE_LABELS.map(([k, l]) => [p.willDelete[k] || 0, l]).filter(([n]) => n > 0) : [];
+  const history = p && p.payrollHistory ? PURGE_HISTORY_LABELS.map(([k, l]) => [p.payrollHistory[k] || 0, l]).filter(([n]) => n > 0) : [];
+  const M = window.Modal;
+  return <Card icon="delete_forever" title="Borrar empleados de prueba" subtitle="Elimina un empleado y TODOS sus registros en cascada: actividades, hojas (también aprobadas o pagadas), licencias, marcajes, líneas de nómina, comprobantes y su cuenta. Solo para personas de prueba: no se puede deshacer."
+    bodyStyle={{ paddingTop: 14 }} actions={list.length ? <div style={{ width: 240 }}><TextField placeholder="Buscar nombre, ID o email…" value={q} onChange={x => setQ(typeof x === 'string' ? x : x.target.value)} /></div> : null}>
+    {!list.length ? <div className="mgh-body" style={{ padding: '24px 0', textAlign: 'center', color: 'var(--mgh-ink-3)' }}>No hay empleados.</div> :
+      <DataTable rows={shown.map(e => ({ id: e.id, e }))} columns={[
+        { key: 'e', label: 'Empleado', render: r => <EmployeeCell e={{ name: r.e.name, role: r.e.email || r.e.role, avatar: r.e.avatar }} /> },
+        { key: 'id', label: 'ID', render: r => <span style={{ fontFamily: 'var(--font-mono)' }}>{r.e.id}</span> },
+        { key: 'st', label: 'Estado', render: r => <Badge size="sm" dot tone={r.e.status === 'Active' ? 'success' : 'neutral'}>{r.e.status || '—'}</Badge> },
+        { key: 'act', label: '', align: 'right', render: r => <Button size="sm" variant="danger" icon="delete_forever" disabled={!!busy} onClick={() => open(r.e)}>{busy === r.e.id ? 'Revisando…' : 'Eliminar y borrar registros'}</Button> },
+      ]} />}
+    {M && <M open={!!target} width={540} title={target ? 'Borrar ' + target.e.name + ' (' + target.e.id + ')' : ''} onClose={() => { if (!busy) setTarget(null); }}
+      actions={<><Button variant="outline" disabled={!!busy} onClick={() => setTarget(null)}>Cancelar</Button>
+        <Button variant="danger" icon="delete_forever" disabled={!!busy || !target || typed.trim() !== target.e.id} onClick={purge}>{busy ? 'Borrando…' : 'Borrar todo'}</Button></>}>
+      {p ? <div style={{ display: 'flex', flexDirection: 'column', gap: 12, font: '500 13px/19px var(--font-sans)', color: 'var(--mgh-ink)' }}>
+        <div>Se borrará la ficha del empleado{p.willDelete.login ? <> y su cuenta <b>{p.willDelete.login}</b> (con sus sesiones)</> : null}, además de:</div>
+        {counts.length ? <ul style={{ margin: 0, paddingLeft: 20 }}>{counts.map(([n, l]) => <li key={l}>{n} {l}</li>)}</ul> : <div style={{ color: 'var(--mgh-ink-3)' }}>No tiene otros registros.</div>}
+        {history.length ? <div style={{ padding: '10px 12px', borderRadius: 10, background: 'var(--mgh-danger-bg, #FEE2E2)', color: 'var(--mgh-danger)' }}>
+          <b>Tiene historial de nómina</b>, que también se borrará:
+          <ul style={{ margin: '6px 0 0', paddingLeft: 20 }}>{history.map(([n, l]) => <li key={l}>{n} {l}</li>)}</ul>
+          Las corridas afectadas se recalculan; una corrida que quede vacía se elimina. Si es una persona real, usa "Desactivar" en su perfil.
+        </div> : null}
+        <div style={{ color: 'var(--mgh-ink-2)' }}>Se conservan el registro de auditoría y las tareas que creó (sin asignar).</div>
+        <TextField label={'Para confirmar, escribe ' + target.e.id} value={typed} onChange={x => setTyped(typeof x === 'string' ? x : x.target.value)} placeholder={target.e.id} />
+      </div> : null}
+    </M>}
+  </Card>;
+}
+
 function Administration({ notify, go }) {
   const [users, setUsers] = React.useState(null);
   React.useEffect(() => {
@@ -4468,6 +4542,7 @@ function Administration({ notify, go }) {
         { key: 'active', label: 'Estado', render: r => <Badge size="sm" dot tone={r.active ? 'success' : 'neutral'}>{r.active ? 'Activa' : 'Desactivada'}</Badge> }, { key: 'last', label: 'Último acceso' },
         ...(canEdit ? [{ key: 'del', label: '', align: 'right', render: r => isMe(r.u) ? null : <IconButton icon="delete" size={28} title={'Eliminar la cuenta ' + r.u.email} onClick={() => { if (!busy) removeUser(r.u); }} /> }] : [])]} />}
     </Card>
+    {canEdit ? <EmployeePurge notify={notify} onPurged={e => setUsers(list => (list || []).filter(u => u.employee_id !== e.id))} /> : null}
     <Card icon="account_tree" title="Approval workflow policy" subtitle="Configured in Approval Workflows" actions={<Button size="sm" variant="ghost" iconRight="arrow_forward" onClick={() => go('workflows')}>Open Approval Workflows</Button>} />
   </Page>;
 }

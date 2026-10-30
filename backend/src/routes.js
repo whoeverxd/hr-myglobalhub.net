@@ -418,6 +418,10 @@ router.get('/employees/:id/removal', authenticate, requireRole('pm', 'admin'), (
 router.delete('/employees/:id', authenticate, requireRole('pm', 'admin'), (req, res, next) => {
   try { res.json(employeesController.deleteEmployee(req.params.id, req.user, getClientIp(req))); } catch (err) { next(err); }
 });
+// #admin: delete a (test) employee with ALL their records, payroll history included; body { confirm: <employee id> }
+router.post('/employees/:id/purge', authenticate, requireRole('admin'), (req, res, next) => {
+  try { res.json(employeesController.purgeEmployee(req.params.id, req.user, getClientIp(req), req.body || {})); } catch (err) { next(err); }
+});
 router.post('/employees/:id/deactivate', authenticate, requireRole('pm', 'admin'), (req, res, next) => {
   try { res.json(employeesController.deactivateEmployee(req.params.id, req.user, getClientIp(req))); } catch (err) { next(err); }
 });

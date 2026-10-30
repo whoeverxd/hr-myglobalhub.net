@@ -82,7 +82,10 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   last admin): `GET /employees/:id/removal` previews, `DELETE /employees/:id` cascades over operational data
   (activities, unpaid sheets, punches, leave, memberships, task assignment, contractor rows, login + sessions) and is
   refused (409) with payroll history (approved/paid sheets, run lines, approved adjustments, paid contractor payments);
-  then `POST /employees/:id/deactivate` (status Terminated, login disabled, history kept). `employees.controller.js`. → `POST /employees/:id/reset-password` issues a new temporary password (shown once), revokes the
+  then `POST /employees/:id/deactivate` (status Terminated, login disabled, history kept). `employees.controller.js`.
+  Test people on live data: `#admin` → "Borrar empleados de prueba" → `POST /employees/:id/purge` { confirm: <id> } (admin
+  only, same self/last-admin guards) also deletes payroll history (sheets, run lines → runs recomputed / empty runs
+  deleted, adjustments, contractor payments, payment proofs); keeps the audit log and created tasks (unassigned). → `POST /employees/:id/reset-password` issues a new temporary password (shown once), revokes the
   user's sessions and sets must_change_password. Google-only accounts have no local password until they set one via
   `POST /api/auth/password` (current password, Google re-verification, or none set yet).
 - Payouts: bank, Coinbase (USDC/BTC/ETH on Base/Ethereum/Polygon/Solana) or split; must total 100%.

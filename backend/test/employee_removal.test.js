@@ -94,3 +94,40 @@ test('A legacy adjustment, linked only by name, blocks the delete and goes with 
   db.execute('DELETE FROM payroll_adjustments WHERE id = ?', [othersId]);
   employees.deleteEmployee(other.id, ADMIN);
 });
+
+test('Admin purge removes a test employee with ALL records, payroll history included (typed confirmation)', () => {
+  const { emp, email } = make();
+  const other = make();
+  const P = 'PP-2026-17', runA = 'PR-PURGE-A-' + uniq(), runB = 'PR-PURGE-B-' + uniq();
+  db.execute(`INSERT INTO timesheets (id, employee_id, employee_name, period_id, status, step_index, regular_hours, overtime_hours, pto_hours, holiday_hours, total_hours, history_json) VALUES (?, ?, 'Rm', ?, 'Paid', 2, 80, 0, 0, 0, 80, '[]')`, ['TS-' + P + '-' + emp.id, emp.id, P]);
+  // Run A: only this employee → deleted. Run B: shared → totals recomputed from the remaining line.
+  for (const run of [runA, runB]) db.execute(`INSERT INTO payroll_runs (id, period_id, year, period_number, entity, status, total_employees, total_hours, total_gross, total_deductions, total_net) VALUES (?, ?, 2026, 17, 'MGH Dominicana SRL', 'Paid', 0, 0, 0, 0, 0)`, [run, P]);
+  const line = (run, empId, gross) => db.execute(`INSERT INTO payroll_run_items (id, run_id, employee_id, employee_name, rate, reg_hours, ot_hours, pto_hours, gross_pay, total_deductions, net_pay) VALUES (?, ?, ?, 'x', 10, 80, 0, 0, ?, 50, ?)`, ['PRI-' + uniq(), run, empId, gross, gross - 50]);
+  line(runA, emp.id, 800); line(runB, emp.id, 800); line(runB, other.emp.id, 1000);
+  db.execute(`INSERT INTO payment_proofs (id, transfer, bank, ref, date, emp_id, period_id) VALUES (?, 'T1', 'BHD', 'R1', '2026-09-20', ?, ?)`, ['PRF-' + uniq(), emp.id, P]);
+
+  const preview = employees.employeeRemovalPreview(emp.id, ADMIN);
+  assert.equal(preview.canDelete, false, 'the normal delete still refuses');
+  assert.equal(preview.payrollHistory.payrollRunLines, 2);
+  assert.equal(preview.payrollHistory.paymentProofs, 1);
+
+  assert.throws(() => employees.purgeEmployee(emp.id, PM, '127.0.0.1', { confirm: emp.id }), (e) => e.status === 403, 'admin only');
+  assert.throws(() => employees.purgeEmployee(emp.id, ADMIN, '127.0.0.1', { confirm: 'yes' }), (e) => e.status === 400, 'typed id required');
+  assert.ok(db.getOne('SELECT id FROM employees WHERE id = ?', [emp.id]), 'nothing removed without confirmation');
+
+  const r = employees.purgeEmployee(emp.id, ADMIN, '127.0.0.1', { confirm: emp.id });
+  assert.equal(r.purged, true);
+  assert.equal(db.getOne('SELECT id FROM employees WHERE id = ?', [emp.id]) || null, null);
+  assert.equal(db.query('SELECT id FROM timesheets WHERE employee_id = ?', [emp.id]).length, 0);
+  assert.equal(db.query('SELECT id FROM payroll_run_items WHERE employee_id = ?', [emp.id]).length, 0);
+  assert.equal(db.query('SELECT id FROM payment_proofs WHERE emp_id = ?', [emp.id]).length, 0);
+  assert.equal(db.getOne('SELECT id FROM users WHERE LOWER(email) = ?', [email]) || null, null);
+  assert.equal(db.getOne('SELECT id FROM payroll_runs WHERE id = ?', [runA]) || null, null, 'empty run removed');
+  const b = db.getOne('SELECT total_employees, total_gross, total_net FROM payroll_runs WHERE id = ?', [runB]);
+  assert.deepEqual([Number(b.total_employees), Number(b.total_gross), Number(b.total_net)], [1, 1000, 950], 'shared run recomputed');
+  assert.deepEqual(r.payrollRunsRemoved, [runA]);
+
+  db.execute('DELETE FROM payroll_run_items WHERE run_id = ?', [runB]);
+  db.execute('DELETE FROM payroll_runs WHERE id = ?', [runB]);
+  employees.deleteEmployee(other.emp.id, ADMIN);
+});

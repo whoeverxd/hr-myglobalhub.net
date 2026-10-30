@@ -140,6 +140,7 @@ export const api = {
   changePassword: (payload) => request('POST', '/auth/password', payload),
   employeeRemoval: (employeeId) => request('GET', `/employees/${encodeURIComponent(employeeId)}/removal`),
   deleteEmployee: (employeeId) => request('DELETE', `/employees/${encodeURIComponent(employeeId)}`),
+  purgeEmployee: (employeeId, confirm) => request('POST', `/employees/${encodeURIComponent(employeeId)}/purge`, { confirm }),
   deactivateEmployee: (employeeId) => request('POST', `/employees/${encodeURIComponent(employeeId)}/deactivate`),
   employeeAccount: (employeeId) => request('GET', `/employees/${encodeURIComponent(employeeId)}/account`),
   setEmployeeRole: (employeeId, role) => request('PUT', `/employees/${encodeURIComponent(employeeId)}/account/role`, { role }),
