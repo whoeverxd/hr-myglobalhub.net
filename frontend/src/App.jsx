@@ -219,6 +219,7 @@ export default class App extends React.Component {
           window.__MGH_DATA.EMPLOYEES = window.EMPLOYEES;
           window.__MGH_DATA.ALL_EMP = window.EMPLOYEES.slice();
         }
+        if (window.__mghSetEmployees) window.__mghSetEmployees(window.EMPLOYEES);
       }
       // Backend holidays/leave replace the attendance engine's cached copies right away (not only after a reload)
       if (window.MGH_ATT && window.MGH_ATT.setHolidays) window.MGH_ATT.setHolidays(Array.isArray(d.holidays) ? d.holidays : []);
@@ -263,6 +264,7 @@ export default class App extends React.Component {
       // No fallback data: clear what was loaded so no screen shows stale or sample records
       window.EMPLOYEES = [];
       if (window.__MGH_DATA) { window.__MGH_DATA.EMPLOYEES = window.EMPLOYEES; window.__MGH_DATA.ALL_EMP = []; }
+      if (window.__mghSetEmployees) window.__mghSetEmployees([]);
       this.setState({apiOnline:false,adj:[],worklogs:[],proofs:[],periodsDb:[],sheetsDb:[],runsDb:[]});
       window.dispatchEvent(new Event('mgh-wf'));
       console.warn('[api] Backend not reachable - showing empty states.',e.message);

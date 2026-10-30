@@ -164,8 +164,17 @@ function scopeTenant() {
   const R = window.MGH_RBAC; if (!R) return;
   EMPLOYEES.forEach(e => { if (!ALL_EMP.includes(e) && !ALL_EMP.some(x => x.id === e.id)) ALL_EMP.push(e); });
   const isSelf = R.scopeOf('employees.view') === 'self';
-  EMPLOYEES.splice(0, EMPLOYEES.length, ...ALL_EMP.filter(e => e.entity === R.org && (!isSelf || R.can('employees.view', e))));
+  const orgId = R.orgSettings(R.org).id; // 'My Global Hub Dominicana SRL' and 'MGH Dominicana SRL' are the same org
+  EMPLOYEES.splice(0, EMPLOYEES.length, ...ALL_EMP.filter(e => R.orgSettings(e.entity).id === orgId && (!isSelf || R.can('employees.view', e))));
 }
+// App.loadFromApi hands the backend roster over here: this module's lists are filled IN PLACE, because the
+// attendance engine (MGH_ATT.setRoster) holds a reference to EMPLOYEES. It used to stay empty forever.
+window.__mghSetEmployees = (list) => {
+  ALL_EMP.splice(0, ALL_EMP.length, ...(Array.isArray(list) ? list : []));
+  EMPLOYEES.splice(0, EMPLOYEES.length);
+  scopeTenant();
+  if (window.MGH_ATT) window.MGH_ATT.setRoster(EMPLOYEES);
+};
 scopeTenant();
 if (window.MGH_ATT) window.MGH_ATT.setRoster(EMPLOYEES);
 // Approved paid leave is counted by the backend when it computes each timesheet's hours
@@ -5165,9 +5174,8 @@ function Leave({ notify }) {
   const L = A.leave().filter(l => chip === 'All' || (chip === 'Pending' ? /Pending/.test(l.status) : l.status === chip));
   const selfOnly = MGH_RBAC.scopeOf('leave.request') === 'self', meId = (MGH_RBAC.me() || {}).emp, canReq = MGH_RBAC.can('leave.request');
   const emp = selfOnly ? meId : form.emp;
-  // The backend roster lives on window.EMPLOYEES (App.jsx); the module-level EMPLOYEES is never filled from it.
-  // Everyone still working here can get leave: employees and contractors alike (contractors are employees).
-  const roster = ((window.EMPLOYEES && window.EMPLOYEES.length) ? window.EMPLOYEES : EMPLOYEES)
+  // Everyone still working here can get leave: employees and contractors alike (contractors are employees)
+  const roster = (window.EMPLOYEES || [])
     .filter(e => !['Terminated', 'Inactive'].includes(e.status))
     .slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
   // Backend first (field names match leave.controller: empId/fromDate/toDate); the local engine only mirrors
