@@ -2,7 +2,7 @@ import React from 'react';
 import DailyActivities from './DailyActivities.jsx';
 import AgileWorkspace from './AgileWorkspace.jsx';
 import MyProjects from './MyProjects.jsx';
-import { api } from '../lib/api.js';
+import { api, errorMessage } from '../lib/api.js';
 import { getCurrentPeriod, getQuincenaForDate, getPeriodsForYear } from '../lib/periodService.js';
 
 // Bundled from the My Global Hub design-system UI kit (ui_kits/enterprise). Each file is scoped; globals are shared via window.
@@ -207,9 +207,9 @@ async function apiFetchBlob(path) {
   const token = api.getToken();
   const res = await fetch(apiUrl(path), { headers: token ? { Authorization: 'Bearer ' + token } : {} });
   if (!res.ok) {
-    let msg = res.statusText || ('HTTP ' + res.status);
-    try { const j = await res.json(); msg = j.error || j.message || msg; } catch (_) { /* not JSON */ }
-    const err = new Error(msg); err.status = res.status; throw err;
+    let msg = '';
+    try { const j = await res.json(); msg = j.error || j.message || ''; } catch (_) { /* not JSON */ }
+    const err = new Error(errorMessage(res.status, msg)); err.status = res.status; throw err;
   }
   return { blob: await res.blob(), disposition: res.headers.get('Content-Disposition') || '' };
 }

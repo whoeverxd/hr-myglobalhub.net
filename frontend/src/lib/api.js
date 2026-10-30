@@ -56,24 +56,61 @@ async function request(method, path, body) {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  const res = await fetch(BASE + path, {
-    method,
-    headers: Object.keys(headers).length ? headers : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let res;
+  try {
+    res = await fetch(BASE + path, {
+      method,
+      headers: Object.keys(headers).length ? headers : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (cause) {
+    console.warn(`[api] ${method} ${path}: sin respuesta`, cause);
+    const err = new Error('No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.');
+    err.network = true;
+    err.method = method;
+    err.path = path;
+    throw err;
+  }
 
   if (!res.ok) {
-    let msg = res.statusText;
+    let msg = '';
+    let code = null;
     try {
-      msg = (await res.json()).error || msg;
+      const data = await res.json();
+      msg = data.error || data.message || '';
+      code = data.code || null;
     } catch {
       /* not JSON */
     }
-    const err = new Error(`${method} ${path} → ${res.status} ${msg}`);
+    // The screen shows only the problem in words; method, path and status stay on the error and in the console
+    console.warn(`[api] ${method} ${path} → ${res.status}`, msg);
+    const err = new Error(errorMessage(res.status, msg));
     err.status = res.status;
+    err.code = code;
+    err.method = method;
+    err.path = path;
     throw err;
   }
   return res.status === 204 ? null : res.json();
+}
+
+// The server's own sentence when it gave one; otherwise what the status means for the user.
+// Server errors (5xx) never show internal details.
+export function errorMessage(status, serverMsg) {
+  if (status >= 500) {
+    return status === 502 || status === 503 || status === 504
+      ? 'El servidor no está disponible en este momento. Inténtalo de nuevo en unos minutos.'
+      : 'El servidor tuvo un problema al procesar la solicitud. Inténtalo de nuevo; si sigue pasando, avisa al administrador.';
+  }
+  if (serverMsg) return serverMsg;
+  return {
+    400: 'Los datos enviados no son válidos. Revisa el formulario.',
+    401: 'Tu sesión expiró. Vuelve a iniciar sesión.',
+    403: 'No tienes permiso para hacer esta acción.',
+    404: 'No se encontró el registro. Puede que alguien lo haya eliminado; recarga la página.',
+    409: 'La acción choca con el estado actual de los datos. Recarga la página e inténtalo de nuevo.',
+    413: 'El archivo es demasiado grande.',
+  }[status] || 'No se pudo completar la acción.';
 }
 
 export const api = {

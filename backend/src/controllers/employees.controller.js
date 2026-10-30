@@ -132,12 +132,12 @@ function createEmployee(data, user = 'System', ip = '127.0.0.1', actorRole = nul
   // An explicitly requested system role must be one the creator may give (a PM cannot create administrators)
   const requestedRole = data.systemRole || data.userRole || null;
   if (requestedRole && actorRole && !canAssignRole(actorRole, requestedRole)) {
-    const err = new Error(`Your role cannot create accounts with the role "${requestedRole}"`);
+    const err = new Error(`Tu rol no puede crear cuentas con el rol "${requestedRole}".`);
     err.status = 403;
     throw err;
   }
   if (data.email && !EMAIL_REGEX.test(data.email)) {
-    const err = new Error('Invalid email');
+    const err = new Error('El email no es válido.');
     err.status = 400;
     throw err;
   }
@@ -159,7 +159,7 @@ function createEmployee(data, user = 'System', ip = '127.0.0.1', actorRole = nul
     const holderId = (login && login.employee_id) || ((db.getOne(`SELECT id FROM employees WHERE LOWER(email) = ?`, [email]) || {}).id);
     if (holderId) {
       const holder = db.getOne(`SELECT name FROM employees WHERE id = ?`, [holderId]);
-      const err = new Error(`The email ${email} already belongs to employee ${holderId}${holder && holder.name ? ` (${holder.name})` : ''}. Nothing was created: use a different email or edit that employee.`);
+      const err = new Error(`El email ${email} ya pertenece al empleado ${holderId}${holder && holder.name ? ` (${holder.name})` : ''}. No se creó nada: usa otro email o edita ese empleado.`);
       err.status = 409;
       throw err;
     }
