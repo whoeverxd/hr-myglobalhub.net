@@ -146,6 +146,11 @@ test('2. A returned sheet shows the hours a resubmission will freeze (PM cuts ig
   const sheet = timesheets.ensureTimesheet(LUIS, P, 'Luis');
   assert.equal(timesheets.submitTimesheet(sheet.id, 'Luis').total, 14);
   timesheets.reviewActivity(sheet.id, a2.id, { approvedHours: 3, comment: 'Solo 3h justificadas' }, 'PM');
+  // Repeating the same decision is a no-op: no duplicate entry in the sheet history
+  const reviewsIn = () => JSON.parse(db.getOne('SELECT history_json FROM timesheets WHERE id = ?', [sheet.id]).history_json || '[]').filter((h) => h.type === 'activity_review').length;
+  const before = reviewsIn();
+  assert.equal(timesheets.reviewActivity(sheet.id, a2.id, { approvedHours: 3, comment: 'Solo 3h justificadas' }, 'PM').unchanged, true);
+  assert.equal(reviewsIn(), before);
   timesheets.returnTimesheet(sheet.id, { comment: 'Corrige el martes' }, 'PM');
 
   const live = timesheets.listTimesheets({ empId: LUIS, periodId: P, live: true })[0];

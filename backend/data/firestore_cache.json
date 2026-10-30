@@ -24255,6 +24255,17 @@
       "created_at": "2026-10-30T05:22:56.543Z",
       "id": "2056"
     },
+    "2057": {
+      "actor": "Joshua Hernandez",
+      "action": "USER_LOGIN",
+      "entity_type": "user",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "old_values": null,
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"admin\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-30T17:14:56.082Z",
+      "id": "2057"
+    },
     "audit_test_1793052942079": {
       "id": "audit_test_1793052942079",
       "actor": "Test Runner",
@@ -29182,6 +29193,14 @@
       "expires_at": "2026-11-06T04:52:03.355Z",
       "created_at": "2026-10-30T04:52:03.356Z",
       "id": "doc_1793335923356_st9se"
+    },
+    "doc_1793380494615_5mis4": {
+      "token": "22ecd025240a5ece975e908b5ce696d226c65300132f5f2b710b382d1a329fc9",
+      "user_id": "usr_1793131618127_8yfuy",
+      "ip_address": "127.0.0.1",
+      "expires_at": "2026-11-06T17:14:54.612Z",
+      "created_at": "2026-10-30T17:14:54.615Z",
+      "id": "doc_1793380494615_5mis4"
     }
   },
   "timesheets": {
@@ -29905,7 +29924,7 @@
       "email": "zain@myglobalhub.net",
       "entity": "MGH Dominicana SRL",
       "last_login_at": "2026-10-27T18:31:57.798Z",
-      "updated_at": "2026-10-30T05:51:37.387Z"
+      "updated_at": "2026-10-30T17:14:56.219Z"
     },
     "usr_1792629362415_0yi6a": {
       "id": "usr_1792629362415_0yi6a",
@@ -29953,7 +29972,7 @@
       "password_hash": "7bd4f1703ab6c1f83839942480b500b41274c6676204ed81fbf530019f75bc08a027860abd058d04bc7ae8e812a94ba8f0836fc17fa507e038ee1092a010ebfe",
       "name": "Joshua Hernandez",
       "updated_at": "2026-10-30T00:51:27.428Z",
-      "last_login_at": "2026-10-30T04:52:03.356Z",
+      "last_login_at": "2026-10-30T17:14:56.082Z",
       "role": "admin"
     },
     "usr_1793141848610_ilsyi": {

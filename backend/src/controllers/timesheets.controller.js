@@ -155,6 +155,10 @@ function reviewActivity(sheetId, activityId, { approvedHours, comment = '', role
     throw err;
   }
   const status = approved === logged ? 'approved' : approved === 0 ? 'rejected' : 'partial';
+  // Same decision again (double click, re-approve): nothing changes, so no new history entry
+  if (act.review_status === status && Number(act.approved_hours) === approved && (act.review_comment || '') === String(comment).trim()) {
+    return { id: activityId, reviewStatus: status, approvedHours: approved, hours: logged, reviewComment: String(comment).trim(), unchanged: true };
+  }
   db.transaction(() => {
     db.execute(
       `UPDATE daily_activities SET review_status = ?, approved_hours = ?, review_comment = ?, reviewed_by = ?, reviewed_at = datetime('now') WHERE id = ?`,

@@ -392,6 +392,8 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
   const [comment, setComment] = React.useState('');
   const [detailsTick, setDetailsTick] = React.useState(0); // bump to reload reconciliation + activities
   const [revAct, setRevAct] = React.useState(null); // { act, hours, comment } — per-activity review dialog
+  const [detailAct, setDetailAct] = React.useState(null); // activity shown in the detail modal
+  const [savingAct, setSavingAct] = React.useState(null); // id of the activity whose decision is being saved
   useWF();
 
   // Merge scoped employees with timesheet from DB & #attDaily punch calculations
@@ -605,18 +607,60 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
   // Per-activity decision (PM step only): all hours, part of them (reason required) or none
   const reviewOpen = /Review|Revisión|Supervisión/i.test(String(reconcil?.timesheet?.status || e.status)) && (rec.stepIdx || 0) === 0 && can;
   const saveActivityReview = async (act, approvedHours, note) => {
+    if (savingAct) return; // one decision at a time: repeated clicks must not send it twice
+    setSavingAct(act.id);
     try {
       await window.api.reviewActivity(sheetId, act.id, { approvedHours, comment: note || '', role: WF.role });
       setRevAct(null);
+      setDetailAct(null);
       setDetailsTick(n => n + 1);
       notify(approvedHours >= act.hours ? 'Actividad aprobada' : approvedHours > 0 ? 'Aprobación parcial registrada' : 'Horas de la actividad rechazadas');
     } catch (err) { notify('No se pudo guardar la revisión • ' + err.message); }
+    finally { setSavingAct(null); }
   };
   const REVIEW_TONE = { approved: 'success', partial: 'warning', rejected: 'danger' };
   const REVIEW_LABEL = { approved: 'Aprobada', partial: 'Parcial', rejected: 'Rechazada' };
   // Only a real PM decision counts as reviewed; the API sends 'pending' for activities nobody has reviewed yet
   const isReviewed = a => !!REVIEW_LABEL[a.reviewStatus];
   const reviewedActs = empActivities.filter(isReviewed);
+  const pendingActs = empActivities.filter(a => !isReviewed(a));
+  // Decision buttons: the one matching the current decision is hidden (approving an approved activity does nothing)
+  const reviewButtons = a => {
+    const busy = savingAct === a.id;
+    return <div style={{ display: 'flex', gap: 4 }} onClick={ev => ev.stopPropagation()}>
+      {a.reviewStatus !== 'approved' && <IconButton icon="check" size={28} title="Aprobar todas las horas" disabled={!!savingAct} onClick={() => saveActivityReview(a, Number(a.hours), '')} />}
+      <IconButton icon="rule" size={28} title={isReviewed(a) ? 'Cambiar decisión' : 'Aprobar parcialmente'} disabled={busy} onClick={() => setRevAct({ act: a, hours: String(isReviewed(a) ? a.approvedHours : a.hours), comment: a.reviewComment || '' })} />
+      {a.reviewStatus !== 'rejected' && <IconButton icon="block" size={28} title="Rechazar las horas" disabled={busy} onClick={() => setRevAct({ act: a, hours: '0', comment: a.reviewComment || '' })} />}
+    </div>;
+  };
+  const activityRow = a => (
+    <div key={a.id} role="button" tabIndex={0} title="Ver detalles de la actividad" onClick={() => setDetailAct(a)} onKeyDown={ev => { if (ev.key === 'Enter') setDetailAct(a); }}
+      style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 8, background: '#fff', boxShadow: 'var(--shadow-xs)', flexWrap: 'wrap', cursor: 'pointer', borderLeft: `3px solid var(--mgh-${isReviewed(a) ? REVIEW_TONE[a.reviewStatus] : 'ink-4'})` }}>
+      <div style={{ width: 84, flexShrink: 0, font: '600 12px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>{a.date}</div>
+      <div style={{ flex: 1, minWidth: 200 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          {a.jiraKey && <Badge mono size="sm" tone="primary">{a.jiraKey}</Badge>}
+          <span style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{a.jiraSummary || a.workType || 'Actividad'}</span>
+          {isReviewed(a) && <Badge size="sm" tone={REVIEW_TONE[a.reviewStatus]}>{REVIEW_LABEL[a.reviewStatus]}</Badge>}
+          {(a.files || []).length + (a.links || []).length > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, font: '500 11px var(--font-sans)', color: 'var(--mgh-ink-3)' }}><Icon name="attach_file" size={14} />{(a.files || []).length + (a.links || []).length}</span>}
+        </div>
+        {a.description && <div style={{ font: '400 12px/16px var(--font-sans)', color: 'var(--mgh-ink-2)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 520 }}>{a.description}</div>}
+        {a.reviewComment && <div style={{ font: '500 12px/16px var(--font-sans)', color: 'var(--mgh-ink-2)', marginTop: 4, display: 'flex', gap: 4 }}><Icon name="comment" size={14} />{a.reviewComment}{a.reviewedBy ? ' — ' + a.reviewedBy : ''}</div>}
+      </div>
+      <div style={{ textAlign: 'right', font: '700 13px var(--font-sans)', color: 'var(--mgh-ink)', minWidth: 70 }}>
+        {isReviewed(a) && Number(a.approvedHours) !== Number(a.hours) ? <><s style={{ color: 'var(--mgh-ink-4)', fontWeight: 500 }}>{fmtH(a.hours)}</s> {fmtH(a.approvedHours)}</> : fmtH(a.hours)}
+      </div>
+      {reviewOpen && reviewButtons(a)}
+    </div>
+  );
+  const activityStack = (title, icon, tone, acts, empty) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12, borderRadius: 12, background: 'var(--mgh-surface-1)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, font: '700 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>
+        <Icon name={icon} size={18} color={`var(--mgh-${tone})`} />{title}<Badge size="sm" tone={tone}>{acts.length}</Badge>
+      </div>
+      {acts.length ? acts.map(activityRow) : <div style={{ padding: 10, font: '500 12px var(--font-sans)', color: 'var(--mgh-ink-3)', textAlign: 'center' }}>{empty}</div>}
+    </div>
+  );
   const approvedActHours = empActivities.reduce((s, a) => s + (isReviewed(a) ? Number(a.approvedHours) || 0 : Number(a.hours) || 0), 0);
 
   return <Page>
@@ -788,29 +832,9 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
                 {!empActivities.length ? (
                   <div style={{ padding: 14, font: '500 13px var(--font-sans)', color: 'var(--mgh-ink-3)', textAlign: 'center' }}>No hay actividades registradas en esta quincena.</div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {empActivities.map(a => (
-                      <div key={a.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 8, background: 'var(--mgh-surface-1)', flexWrap: 'wrap' }}>
-                        <div style={{ width: 84, flexShrink: 0, font: '600 12px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>{a.date}</div>
-                        <div style={{ flex: 1, minWidth: 200 }}>
-                          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                            {a.jiraKey && <Badge mono size="sm" tone="primary">{a.jiraKey}</Badge>}
-                            <span style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{a.jiraSummary || a.workType || 'Actividad'}</span>
-                            {isReviewed(a) && <Badge size="sm" tone={REVIEW_TONE[a.reviewStatus]}>{REVIEW_LABEL[a.reviewStatus]}</Badge>}
-                          </div>
-                          {a.description && <div style={{ font: '400 12px/16px var(--font-sans)', color: 'var(--mgh-ink-2)', marginTop: 2 }}>{a.description}</div>}
-                          {a.reviewComment && <div style={{ font: '500 12px/16px var(--font-sans)', color: 'var(--mgh-ink-2)', marginTop: 4, display: 'flex', gap: 4 }}><Icon name="comment" size={14} />{a.reviewComment}{a.reviewedBy ? ' — ' + a.reviewedBy : ''}</div>}
-                        </div>
-                        <div style={{ textAlign: 'right', font: '700 13px var(--font-sans)', color: 'var(--mgh-ink)', minWidth: 70 }}>
-                          {isReviewed(a) && Number(a.approvedHours) !== Number(a.hours) ? <><s style={{ color: 'var(--mgh-ink-4)', fontWeight: 500 }}>{fmtH(a.hours)}</s> {fmtH(a.approvedHours)}</> : fmtH(a.hours)}
-                        </div>
-                        {reviewOpen && <div style={{ display: 'flex', gap: 4 }}>
-                          <IconButton icon="check" size={28} title="Aprobar todas las horas" onClick={() => saveActivityReview(a, Number(a.hours), '')} />
-                          <IconButton icon="rule" size={28} title="Aprobar parcialmente" onClick={() => setRevAct({ act: a, hours: String(isReviewed(a) ? a.approvedHours : a.hours), comment: a.reviewComment || '' })} />
-                          <IconButton icon="block" size={28} title="Rechazar las horas" onClick={() => setRevAct({ act: a, hours: '0', comment: a.reviewComment || '' })} />
-                        </div>}
-                      </div>
-                    ))}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {activityStack('Pendientes de revisión', 'pending_actions', 'warning', pendingActs, 'Todas las actividades están revisadas.')}
+                    {activityStack('Revisadas', 'task_alt', 'success', reviewedActs, 'Aún no has revisado ninguna actividad.')}
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 4px 0', font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)', flexWrap: 'wrap', gap: 8 }}>
                       <span style={{ color: 'var(--mgh-ink-3)', fontWeight: 500 }}>{reviewedActs.length} de {empActivities.length} actividades revisadas</span>
                       <span>Horas a aprobar: <b>{fmtH(approvedActHours)}</b> de {fmtH(empActivities.reduce((s, a) => s + (Number(a.hours) || 0), 0))}</span>
@@ -942,6 +966,56 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
         <p className="mgh-body" style={{ margin: 0 }}>{revAct.act.jiraKey ? revAct.act.jiraKey + ' • ' : ''}{revAct.act.description || revAct.act.jiraSummary || 'Actividad'} — reportó <b>{fmtH(max)}</b>.</p>
         <TextField label={`Horas aprobadas (0 – ${max})`} type="number" value={revAct.hours} onChange={x => setRevAct(r => ({ ...r, hours: v(x) }))} />
         <textarea value={revAct.comment} onChange={x => setRevAct(r => ({ ...r, comment: x.target.value }))} placeholder="Motivo (requerido si apruebas menos de lo reportado). El empleado lo verá en su historial." rows={3} style={{ border: 'none', outline: 'none', borderRadius: 8, padding: 12, background: 'var(--mgh-surface-1)', font: '400 13px/18px var(--font-sans)', resize: 'vertical' }} />
+      </Modal>;
+    })()}
+
+    {detailAct && (() => {
+      // Re-read from the loaded list so the modal reflects a decision saved meanwhile
+      const a = empActivities.find(x => x.id === detailAct.id) || detailAct;
+      const files = a.files || [], links = a.links || [];
+      const isImg = f => f.type === 'image' || /\.(png|jpe?g|gif|webp|svg)$/i.test(f.name || '');
+      const isVid = f => f.type === 'video' || /\.(mp4|webm)$/i.test(f.name || '');
+      const section = (label, body) => <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><div className="mgh-overline">{label}</div>{body}</div>;
+      return <Modal open width={640} title={`Actividad del ${a.date}`} onClose={() => setDetailAct(null)} actions={<>
+        <Button variant="outline" onClick={() => setDetailAct(null)}>Cerrar</Button>
+        {reviewOpen && a.reviewStatus !== 'approved' && <Button icon="check" disabled={!!savingAct} onClick={() => saveActivityReview(a, Number(a.hours), '')}>Aprobar todas las horas</Button>}
+        {reviewOpen && <Button variant="secondary" icon="rule" onClick={() => { setDetailAct(null); setRevAct({ act: a, hours: String(isReviewed(a) ? a.approvedHours : a.hours), comment: a.reviewComment || '' }); }}>{isReviewed(a) ? 'Cambiar decisión' : 'Aprobar parcial / rechazar'}</Button>}
+      </>}>
+        <div className="mgh-scroll" style={{ display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '65vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {a.jiraKey && <Badge mono tone="primary">{a.jiraKey}</Badge>}
+          <span style={{ font: '700 16px/22px var(--font-sans)', color: 'var(--mgh-ink)' }}>{a.jiraSummary || a.workType || 'Actividad'}</span>
+          {isReviewed(a) ? <Badge tone={REVIEW_TONE[a.reviewStatus]}>{REVIEW_LABEL[a.reviewStatus]}</Badge> : <Badge tone="warning">Pendiente de revisión</Badge>}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 8 }}>
+          <MetricTile tone="white" label="Fecha" value={a.date} />
+          <MetricTile tone="white" label="Horas reportadas" value={fmtH(a.hours)} />
+          <MetricTile tone={isReviewed(a) ? REVIEW_TONE[a.reviewStatus] : 'white'} label="Horas aprobadas" value={isReviewed(a) ? fmtH(a.approvedHours) : '—'} />
+          <MetricTile tone="white" label="Tipo" value={a.workType || '—'} />
+        </div>
+        {section('Descripción', <p className="mgh-body" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{a.description || 'Sin descripción.'}</p>)}
+        {section(`Adjuntos (${files.length})`, !files.length ? <span style={{ font: '500 12px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>Sin archivos adjuntos.</span> :
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 8 }}>
+            {files.map((f, i) => (
+              <a key={f.id || f.name || i} href={f.url || undefined} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: 6, borderRadius: 8, background: 'var(--mgh-surface-1)', textDecoration: 'none', color: 'var(--mgh-ink)' }}>
+                {f.url && isImg(f) ? <img src={f.url} alt={f.name} style={{ width: '100%', height: 96, objectFit: 'cover', borderRadius: 6 }} />
+                  : f.url && isVid(f) ? <video src={f.url} controls style={{ width: '100%', height: 96, borderRadius: 6, background: '#000' }} onClick={ev => ev.preventDefault()} />
+                  : <div style={{ height: 96, display: 'grid', placeItems: 'center' }}><Icon name={/\.pdf$/i.test(f.name || '') ? 'picture_as_pdf' : 'description'} size={36} color="var(--mgh-primary)" /></div>}
+                <span style={{ font: '600 12px var(--font-sans)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name || 'Archivo'}</span>
+                <span style={{ font: '400 11px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>{f.size || ''}</span>
+              </a>
+            ))}
+          </div>)}
+        {links.length > 0 && section(`Enlaces (${links.length})`, <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {links.map((l, i) => <a key={l.url || i} href={l.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', gap: 6, alignItems: 'center', font: '500 13px var(--font-sans)', color: 'var(--mgh-primary)' }}><Icon name="link" size={16} />{l.label || l.url}</a>)}
+        </div>)}
+        {(isReviewed(a) || a.reviewComment) && section('Revisión', <div style={{ font: '500 13px/18px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>
+          {a.reviewComment ? `"${a.reviewComment}"` : 'Sin comentario.'}{a.reviewedBy ? ` — ${a.reviewedBy}` : ''}{a.reviewedAt ? ` • ${fmtAt(a.reviewedAt)}` : ''}
+        </div>)}
+        <div style={{ font: '400 12px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>
+          {a.meetingId ? `Reunión registrada por ${a.loggedByName || a.loggedBy || 'el organizador'}` : 'Registrada por el empleado'}{a.createdAt ? ` • ${fmtAt(a.createdAt)}` : ''}
+        </div>
+        </div>
       </Modal>;
     })()}
   </Page>;
