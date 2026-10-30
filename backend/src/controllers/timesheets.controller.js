@@ -3,6 +3,7 @@ const { logAction } = require('./audit.controller');
 const { getOrgConfig } = require('./workflows.controller');
 const { buildPeriods } = require('../payroll');
 const { todayLocal } = require('../utils/today');
+const { isPaidLeave } = require('./leave.controller');
 
 // Statuses in which the employee still owns the timesheet (can log activities and submit)
 const EDITABLE = ['Draft', 'Returned'];
@@ -92,7 +93,7 @@ function computeHours(empId, periodId, { ignoreReview = false } = {}) {
   const leaves = db.query(
     `SELECT from_date, to_date, type FROM leave_requests WHERE employee_id = ? AND status = 'Approved' AND to_date >= ? AND from_date <= ?`,
     [empId, range.start, range.end]
-  ).filter((l) => l.type !== 'Unpaid');
+  ).filter((l) => isPaidLeave(l.type));
   const onLeave = (date) => leaves.some((l) => date >= l.from_date && date <= l.to_date);
   // Only the employee's organization calendar ('My Global Hub Dominicana SRL' and 'MGH Dominicana SRL' are the same org)
   const orgKey = (s) => (/dominicana/i.test(s || '') ? 'MGH-DR' : String(s || ''));

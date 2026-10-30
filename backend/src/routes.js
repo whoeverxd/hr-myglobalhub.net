@@ -750,7 +750,8 @@ router.patch(
       }
       const updated = leaveController.reviewLeaveRequest(
         req.params.id,
-        req.body || {},
+        // Cancelling your own request is recorded as the employee, not as a supervisor
+        action === 'cancel' && own && actsOnSelf(req.user, own.employee_id) ? { ...(req.body || {}), role: 'Employee' } : (req.body || {}),
         getUserName(req),
         getClientIp(req)
       );

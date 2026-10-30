@@ -5203,7 +5203,7 @@ function Leave({ notify }) {
     <Card icon="route" title="Leave workflow" subtitle="Employee → Supervisor → HR → Approved → Calendar → Payroll">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,160px),1fr))', gap: 10, alignItems: 'end' }}>
         {!canReq ? null : selfOnly ? <KeyValue label="Employee" value={MGH_RBAC.me().person + ' • ' + meId} /> : <Select label="Employee" value={form.emp} onChange={x => setForm(p => ({ ...p, emp: v(x) }))} options={[{ value: '', label: 'Selecciona…' }, ...MGH_RBAC.visible(EMPLOYEES, 'leave.request').map(e => ({ value: e.id, label: e.name + ' • ' + e.id }))]} />}
-        {canReq && <Select label="Type" value={form.type} onChange={x => setForm(p => ({ ...p, type: v(x) }))} options={A.LEAVE_TYPES} />}
+        {canReq && <Select label="Type" value={form.type} onChange={x => setForm(p => ({ ...p, type: v(x) }))} options={A.LEAVE_TYPES.map(t => ({ value: t, label: LEAVE_LABEL[t] || t }))} />}
         {canReq && <TextField label="From" type="date" value={form.from} onChange={x => setForm(p => ({ ...p, from: v(x) }))} />}
         {canReq && <TextField label="To" type="date" value={form.to} onChange={x => setForm(p => ({ ...p, to: v(x) }))} />}
         {canReq && <TextField label="Reason" value={form.reason} onChange={x => setForm(p => ({ ...p, reason: v(x) }))} placeholder="Optional for vacation" />}
@@ -5214,7 +5214,7 @@ function Leave({ notify }) {
       <FilterChips value={chip} onChange={setChip} options={['All', 'Pending', 'Approved', 'Rejected', 'Cancelled'].map(x => ({ value: x, label: x, count: x === 'All' ? A.leave().length : A.leave().filter(l => x === 'Pending' ? /Pending/.test(l.status) : l.status === x).length }))} />
       <div style={{ height: 14 }} />
       <Table cols={[['Request'], ['Employee'], ['Type'], ['Dates'], ['Days', 'right'], ['Paid'], ['Status'], ['Actions', 'right']]} empty="No leave requests."
-        rows={L.map(l => [<span style={{ font: '600 12px/16px var(--font-mono)' }}>{l.id}</span>, <Who id={l.emp} />, l.type, fmtD(l.from) + (l.to !== l.from ? ' → ' + fmtD(l.to) : ''), String(days(l)), l.type === 'Unpaid' ? 'No' : 'Yes', <Badge size="sm" dot tone={A.LEAVE_TONE[l.status]}>{l.status}</Badge>,
+        rows={L.map(l => [<span style={{ font: '600 12px/16px var(--font-mono)' }}>{l.id}</span>, <Who id={l.emp} />, LEAVE_LABEL[l.type] || l.type, fmtD(l.from) + (l.to !== l.from ? ' → ' + fmtD(l.to) : ''), String(days(l)), (l.paid != null ? l.paid : l.type !== 'Unpaid') ? 'Sí' : 'No',<Badge size="sm" dot tone={A.LEAVE_TONE[l.status]}>{l.status}</Badge>,
           <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>{A.leaveCan(l) && <><Button size="sm" icon="check" onClick={() => act(l, 'approve')}>Approve</Button><Button size="sm" variant="danger" icon="close" onClick={() => { setRej(l); setWhy(''); }}>Reject</Button></>}
             {/Pending/.test(l.status) && MGH_RBAC.can('leave.cancel', l.emp) && <Button size="sm" variant="ghost" icon="block" onClick={() => act(l, 'cancel')}>Cancel</Button>}
             {!A.leaveCan(l) && /Pending/.test(l.status) && <span style={{ font: '500 12px/16px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>Waiting for {l.status === 'Pending HR' ? 'HR' : 'Supervisor'}</span>}</div>])} />
@@ -5224,6 +5224,9 @@ function Leave({ notify }) {
     </Dlg>
   </>;
 }
+// Leave option values must stay the canonical type: a string option's value is its (auto-translated) text,
+// which used to store "Sin goce de sueldo" — read by payroll as PAID leave
+const LEAVE_LABEL = { Vacation: 'Vacaciones', Sick: 'Enfermedad', Personal: 'Personal', Bereavement: 'Duelo', 'Jury Duty': 'Servicio de jurado', Maternity: 'Maternidad', Paternity: 'Paternidad', Unpaid: 'Sin goce de sueldo' };
 function Holidays({ notify }) {
   const [org, setOrg] = React.useState(A.ORGS[0]); const [n, setN] = React.useState({ date: '', desc: '', country: 'Dominican Republic', region: 'National', paid: true, working: false });
   const H = A.holidays(org), C = { 'MGH Dominicana SRL': 'Dominican Republic' };
