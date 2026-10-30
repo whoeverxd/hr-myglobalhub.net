@@ -16,7 +16,14 @@ test('Leave flow: employee request (frontend payload) is stored and visible to r
   const server = setupTestServer();
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${server.address().port}/api`;
-  t.after(() => server.close());
+  // This request is this test's own data. Leaving it behind used to be invisible; now that an overlapping
+  // request is refused, the leftover from the previous run makes the next one fail.
+  const db = require('../src/db');
+  const clean = () => db.execute(
+    `DELETE FROM leave_requests WHERE employee_id = 'MGH-1043' AND from_date = '2025-09-08' AND to_date = '2025-09-09'`
+  );
+  clean();
+  t.after(() => { clean(); server.close(); });
   const login = async (email) => {
     const r = await fetch(`${base}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: 'Password123!' }) });
     assert.equal(r.status, 200);

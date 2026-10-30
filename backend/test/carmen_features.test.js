@@ -142,7 +142,15 @@ test('Timesheets State Machine: Draft -> Submit -> Multi-level Approve -> Return
 /* ----------------------------------------------------
    3. Leave Requests Flow & Audit History
    ---------------------------------------------------- */
-test('Leave Requests: Full approval lifecycle and audit trail', () => {
+test('Leave Requests: Full approval lifecycle and audit trail', (t) => {
+  // This request is this test's own data. Leaving it behind used to be invisible; now that an overlapping
+  // request is refused, the leftover from the previous run makes the next one fail.
+  const clean = () => db.execute(
+    `DELETE FROM leave_requests WHERE employee_id = 'MGH-1044' AND from_date = '2025-06-01' AND to_date = '2025-06-05'`
+  );
+  clean();
+  t.after(clean);
+
   const req = leaveController.createLeaveRequest(
     {
       empId: 'MGH-1044',
