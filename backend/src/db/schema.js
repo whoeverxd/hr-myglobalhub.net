@@ -608,6 +608,26 @@ function initSchema() {
   try { exec(`ALTER TABLE payroll_adjustments ADD COLUMN period_id TEXT;`); } catch (_) {}
   try { exec(`ALTER TABLE payroll_adjustments ADD COLUMN paid_run_id TEXT;`); } catch (_) {}
   try { exec(`CREATE INDEX IF NOT EXISTS idx_adjustments_emp_period ON payroll_adjustments (employee_id, period_id);`); } catch (_) {}
+  // "Datos de pago": one row per registered method; payroll pays the verified primary (payout-methods.service.js)
+  try {
+    exec(`CREATE TABLE IF NOT EXISTS payout_methods (
+      id TEXT PRIMARY KEY,
+      employee_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      details_json TEXT NOT NULL,
+      is_primary INTEGER DEFAULT 0,
+      wants_primary INTEGER DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'pending',
+      replaces_id TEXT,
+      created_by TEXT,
+      created_at TEXT,
+      updated_at TEXT,
+      reviewed_by TEXT,
+      reviewed_at TEXT,
+      review_note TEXT
+    );`);
+  } catch (_) {}
+  try { exec(`CREATE INDEX IF NOT EXISTS idx_payout_methods_emp ON payout_methods (employee_id);`); } catch (_) {}
 }
 
 module.exports = { initSchema };

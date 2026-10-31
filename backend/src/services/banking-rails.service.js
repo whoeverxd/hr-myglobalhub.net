@@ -4,6 +4,7 @@ const { round2 } = require('../utils/money');
 const payrollEngine = require('./payroll-engine.service');
 const { requirePeriodId } = require('../utils/period');
 const { todayLocal } = require('../utils/today');
+const payoutMethods = require('./payout-methods.service');
 
 // Payment files are only produced from the payroll run the owner approved (never computed on the fly)
 function approvedRunOrThrow(periodId) {
@@ -35,20 +36,24 @@ function employeeMap() {
   return new Map(db.query('SELECT * FROM employees').map((e) => [e.id, e]));
 }
 
-const isCryptoPayout = (p) => Boolean(p) && (p.target === 'USDC' || String(p.rail || '').includes('Coinbase'));
+// Lines paid through a registered method carry their channel (bank | usdc | manual); legacy lines are classified
+// as before (Coinbase / USDC = crypto, anything else = bank)
+const channelOfLine = (p) => p.channel || (p.target === 'USDC' || String(p.rail || '').includes('Coinbase') ? 'usdc' : 'bank');
 
-// Amount of an item on each rail; the crypto share is never also dispersed by bank
+// Amount of an item on each rail; a share is only ever paid through one of them
 function railAmounts(item) {
   const dist = Array.isArray(item.payoutDistribution) ? item.payoutDistribution : [];
-  if (!dist.length) return { bank: round2(Number(item.net_pay ?? item.netPay) || 0), crypto: 0 };
-  let bank = 0;
-  let cryptoAmt = 0;
-  for (const p of dist) {
-    const amt = Number(p.amount) || 0;
-    if (isCryptoPayout(p)) cryptoAmt += amt;
-    else bank += amt;
-  }
-  return { bank: round2(bank), crypto: round2(cryptoAmt) };
+  if (!dist.length) return { bank: round2(Number(item.net_pay ?? item.netPay) || 0), crypto: 0, manual: 0 };
+  const out = { bank: 0, usdc: 0, manual: 0 };
+  for (const p of dist) out[channelOfLine(p)] = (out[channelOfLine(p)] || 0) + (Number(p.amount) || 0);
+  return { bank: round2(out.bank), crypto: round2(out.usdc), manual: round2(out.manual) };
+}
+
+// The registered method a line was paid to (full details), when the run was calculated with one
+function methodOf(item, channel) {
+  const dist = Array.isArray(item.payoutDistribution) ? item.payoutDistribution : [];
+  const line = dist.find((p) => p.methodId && channelOfLine(p) === channel);
+  return line ? payoutMethods.byId(line.methodId) : null;
 }
 
 // Full number only: masked ("••••1234"), empty or non-numeric values are not usable for a payment
@@ -131,8 +136,9 @@ const bankingRailsService = {
       const payoutAmount = railAmounts(item).bank;
       if (!(payoutAmount > 0)) return;
 
-      const routing = validAbaRouting(emp.routing);
-      const accountNumber = fullDigits(emp.acct, { min: 4, max: 17 });
+      const m = methodOf(item, 'bank');
+      const routing = validAbaRouting(m ? m.details.routing : emp.routing);
+      const accountNumber = fullDigits(m ? m.details.account_number : emp.acct, { min: 4, max: 17 });
       const fields = [];
       if (!routing) fields.push('número de ruta ABA');
       if (!accountNumber) fields.push('cuenta');
@@ -301,8 +307,9 @@ const bankingRailsService = {
       if (!(payoutAmount > 0)) return;
 
       // The file declares the document as Cédula (11 digits) and needs the full account number
-      const nidClean = fullDigits(emp.nid, { min: 11, max: 11 });
-      const acctClean = fullDigits(emp.acct, { min: 6, max: 20 });
+      const m = methodOf(item, 'bank');
+      const nidClean = fullDigits((m && m.details.holder_id) || emp.nid, { min: 11, max: 11 });
+      const acctClean = fullDigits(m ? m.details.account_number : emp.acct, { min: 6, max: 20 });
       const fields = [];
       if (!acctClean) fields.push('cuenta');
       if (!nidClean) fields.push('cédula');
@@ -321,7 +328,7 @@ const bankingRailsService = {
         name: empName,
         docType: 'C', // C = Cedula
         docNumber: nidClean,
-        accountType: 'AHO', // Ahorro
+        accountType: m && m.details.account_type === 'Corriente' ? 'CTE' : 'AHO', // Ahorro / Corriente
         accountNumber: acctClean,
         amount: amountLocal,
         concept: `NOMINA MGH ${periodId}`,
@@ -383,7 +390,8 @@ const bankingRailsService = {
       if (!(usdcAmt > 0)) return;
 
       // Never substitute an address: a transfer to an unknown wallet is lost for good
-      const wallet = String(emp.crypto_wallet ?? '').trim();
+      const m = methodOf(item, 'usdc');
+      const wallet = String((m ? m.details.address : emp.crypto_wallet) ?? '').trim();
       if (!WALLET_RE.test(wallet)) {
         missing.push({ id: empId, name: empName });
         return;
@@ -440,6 +448,40 @@ const bankingRailsService = {
       totalEntries: batchPayouts.length,
       totalUsdc,
       batchPayload,
+    };
+  },
+
+  /**
+   * Payments that no file covers (Western Union, PayPal, crypto other than USDC on Base): a CSV with the full
+   * destination of each one, to be paid by hand. Same rule as the files: only the approved run, never a guess.
+   */
+  generateManualPayouts({ periodId }) {
+    const run = approvedRunOrThrow(periodId);
+    const empMap = employeeMap();
+    const rows = [];
+    const missing = [];
+    run.items.forEach((item) => {
+      const amount = railAmounts(item).manual;
+      if (!(amount > 0)) return;
+      const empId = item.employee_id || item.employeeId;
+      const empName = item.employee_name || item.name || (empMap.get(empId) || {}).name;
+      const m = methodOf(item, 'manual');
+      if (!m) { missing.push({ id: empId, name: empName }); return; }
+      const fields = Object.entries(m.details).map(([k, v]) => `${k}=${v}`).join('; ');
+      rows.push([empId, empName, m.typeLabel, m.details.currency ? `${m.details.currency} (${m.details.network})` : '', m.details.address || m.details.email || m.details.document_number || '', fields, amount.toFixed(2)]);
+    });
+    if (missing.length) {
+      throw conflict(`No se puede generar la lista de pagos manuales: el método de pago de ${missing.map(who).join(', ')} ya no existe. Vuelve a calcular la nómina.`);
+    }
+    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const header = ['ID', 'Empleado', 'Método', 'Moneda (red)', 'Destino', 'Datos completos', 'Monto USD'];
+    const total = round2(rows.reduce((t, r) => t + Number(r[6]), 0));
+    return {
+      format: 'MANUAL-PAYOUTS-CSV',
+      fileName: `PAGOS_MANUALES_${periodId}.csv`,
+      totalEntries: rows.length,
+      totalUsd: total,
+      content: [header, ...rows].map((r) => r.map(esc).join(',')).join('\r\n'),
     };
   },
 

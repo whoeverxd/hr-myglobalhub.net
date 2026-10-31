@@ -57,6 +57,21 @@ function exportUsdcBatch(req, res, next) {
   }
 }
 
+function exportManual(req, res, next) {
+  try {
+    const { periodId, download = 'false' } = req.query;
+    const result = bankingRailsService.generateManualPayouts({ periodId: requirePeriodId(periodId) });
+    if (download === 'true') {
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${result.fileName}"`);
+      return res.send('\ufeff' + result.content);
+    }
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 function confirmUsdcTransaction(req, res, next) {
   try {
     const { periodId, txHash, network = 'Base', totalUsdc } = req.body || {};
@@ -217,6 +232,7 @@ module.exports = {
   exportNacha,
   exportBhd,
   exportUsdcBatch,
+  exportManual,
   confirmUsdcTransaction,
   getPaystub,
   renderPaystubHtml,

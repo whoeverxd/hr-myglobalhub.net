@@ -2,6 +2,7 @@ import React from 'react';
 import DailyActivities from './DailyActivities.jsx';
 import AgileWorkspace from './AgileWorkspace.jsx';
 import MyProjects from './MyProjects.jsx';
+import PayoutMethods, { PendingPayoutMethods } from './PayoutMethods.jsx';
 import { api, errorMessage } from '../lib/api.js';
 import { getCurrentPeriod, getQuincenaForDate, getPeriodsForYear } from '../lib/periodService.js';
 
@@ -1360,6 +1361,10 @@ function EmployeeProfileInner({ empId, go, notify }) {
   // The backend decides per target account (a PM only resets employees, contractors and supervisors).
   const me = MGH_RBAC.user;
   const canReset = !!me && ['hr', 'admin', 'pm'].includes(me.role) && !!e.id && me.employeeId !== e.id;
+  // "Datos de pago": the person and HR/finance/admin see and edit them (reviewers verify); PM/supervisor see them masked
+  const payOwn = !!me && !!e.id && me.employeeId === e.id;
+  const payReview = !!me && ['hr', 'finance', 'admin'].includes(me.role);
+  const payView = payOwn || payReview || (!!me && ['pm', 'supervisor'].includes(me.role));
   const [reset, setReset] = React.useState(null); // null | { step: 'confirm' | 'busy' | 'done', email, pw, error }
   const doReset = async () => {
     setReset({ step: 'busy' });
@@ -1488,7 +1493,7 @@ function EmployeeProfileInner({ empId, go, notify }) {
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{canEdit && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit Employee</Button>}{selfEdit && <Button variant="secondary" icon="edit" onClick={() => setEditOpen(true)}>Edit My Profile</Button>}{MGH_RBAC.can('payslips.view', e) && <Button variant="secondary" icon="receipt_long" onClick={() => go('paystub', e.id)}>Generate Pay Statement</Button>}{canReset && <Button variant="secondary" icon="lock_reset" onClick={() => setReset({ step: 'confirm' })}>Restablecer contraseña</Button>}{canRemove && <Button variant="danger" icon="person_remove" onClick={openRemoval}>Eliminar empleado</Button>}</div>
       </div>
-      <Tabs style={{ marginTop: 20 }} value={tab} onChange={setTab} tabs={[{ value: 'overview', label: 'Overview & Profile' }, { value: 'bank', label: 'Multi-Bank Allocations' }, { value: 'comp', label: 'Compensation & Tax' }, { value: 'jira', label: 'Jira Integration' }, { value: 'pto', label: 'Time Off & PTO' }, { value: 'docs', label: 'Documents' }]} />
+      <Tabs style={{ marginTop: 20 }} value={tab} onChange={setTab} tabs={[{ value: 'overview', label: 'Overview & Profile' }, ...(payView ? [{ value: 'pay', label: 'Datos de pago' }] : []), { value: 'comp', label: 'Compensation & Tax' }, { value: 'pto', label: 'Time Off & PTO' }, { value: 'docs', label: 'Documents' }]} />
     </Card>
     <Modal open={!!removal} title={'Eliminar a ' + e.name} onClose={() => removal && !removal.busy && setRemoval(null)} width={540}
       actions={removal && !removal.loading ? <>
@@ -1556,26 +1561,10 @@ function EmployeeProfileInner({ empId, go, notify }) {
         </Card>
       </div>
     </div>}
-    {tab === 'bank' && (() => {
-      // Split from the stored allocation (bank % + Coinbase %); account numbers are the masked values from the backend
-      const segs = [];
-      if (e.alloc > 0) segs.push({ value: e.alloc, color: 'var(--mgh-primary)', label: (e.bank || 'Bank') + ' ' + e.alloc + '%', acct: e.acct || '—' });
-      if (e.cryptoAlloc > 0) segs.push({ value: e.cryptoAlloc, color: 'var(--mgh-accent)', label: 'Coinbase ' + (e.cryptoAsset || '') + ' ' + e.cryptoAlloc + '%', acct: e.cryptoWallet ? e.cryptoWallet.slice(0, 6) + '…' + e.cryptoWallet.slice(-4) : '—' });
-      return <Card icon="account_balance" title="Multi-Bank Allocations" subtitle="Net pay split • must total 100%">
-        {segs.length ? <>
-          <ProgressBar height={16} segments={segs} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 8, marginTop: 14 }}>{segs.map(s => <KeyValue key={s.label} label={s.label} value={s.acct} mono />)}</div>
-        </> : <div className="mgh-body" style={{ color: 'var(--mgh-ink-3)' }}>No payout allocation saved.</div>}
-      </Card>;
-    })()}
+    {tab === 'pay' && payView && <PayoutMethods empId={e.id} notify={notify} canReview={payReview} canEdit={payOwn || payReview} isOwn={payOwn} />}
     {tab === 'comp' && (() => { const c = DEDUCT(e); return <Card icon="payments" title="Compensation & Tax" subtitle={e.tax}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 8 }}><KeyValue label="Base hourly" value={fmt$(e.rate)} /><KeyValue label="Overtime rule" value={WF ? WF.otLabel() : 'Weekly > 44h'} /><KeyValue label="Overtime rate" value={'1.5× • ' + fmt$(e.rate * 1.5)} /><KeyValue label="Gross / period" value={fmt$(e.gross || 0)} />{c.lines.map(([l, v]) => <KeyValue key={l} label={l} value={fmt$(v)} />)}<KeyValue label="Net / period" value={fmt$(c.net || 0)} /></div>
     </Card>; })()}
-    {tab === 'jira' && <Card icon="hub" title="Jira Integration" actions={<Badge tone={e.jira ? 'info' : 'neutral'} dot>{e.jira ? 'Bound' : 'Not bound'}</Badge>}>
-      <KeyValue label="Atlassian account" value={e.jira || '—'} />
-      <KeyValue label="Assigned project" value={e.project || '—'} />
-      <KeyValue label="Jira match this period" value={matchTxt(e)} />
-    </Card>}
     {tab === 'pto' && (() => {
       // Days taken = approved leave this year (weekdays); holidays = the org's calendar loaded from the backend
       const A = window.MGH_ATT, yr = A ? A.TODAY.slice(0, 4) : String(new Date().getFullYear());
@@ -1768,7 +1757,7 @@ function PayrollProcessing({ notify }) {
           {run && run.status === 'Approved' && isAdminUser() && <Button size="sm" icon="paid" disabled={busy} onClick={markPaid}>Marcar pagada</Button>}
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {canPayoutFiles() && [['nacha', 'NACHA (.ach)', 'ach'], ['bhd', 'Banco BHD (.txt)', 'txt'], ['usdc', 'USDC Base (.json)', 'json']].map(([k, l, ext]) => <Button key={k} size="sm" variant="outline" icon="download" disabled={!runLocked} onClick={() => downloadApi(`/payroll/export/${k}?periodId=${encodeURIComponent(periodCode)}&download=true`, `${k}-${periodCode}.${ext}`, notify)}>{l}</Button>)}
+          {canPayoutFiles() && [['nacha', 'NACHA (.ach)', 'ach'], ['bhd', 'Banco BHD (.txt)', 'txt'], ['usdc', 'USDC Base (.json)', 'json'], ['manual', 'Pagos manuales (.csv)', 'csv']].map(([k, l, ext]) => <Button key={k} size="sm" variant="outline" icon="download" disabled={!runLocked} onClick={() => downloadApi(`/payroll/export/${k}?periodId=${encodeURIComponent(periodCode)}&download=true`, `${k}-${periodCode}.${ext}`, notify)}>{l}</Button>)}
           {!runLocked && <span style={{ font: '500 12px var(--font-sans)', color: 'var(--mgh-ink-3)', alignSelf: 'center' }}>Los archivos se habilitan al aprobar la corrida.</span>}
         </div>
         <div style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{approvedSheets.length} hojas aprobadas para pago{pendingSheets.length ? ` • ${pendingSheets.length} todavía en revisión (no se pagan en esta corrida)` : ''}</div>
@@ -4552,6 +4541,7 @@ function Administration({ notify, go }) {
         { key: 'active', label: 'Estado', render: r => <Badge size="sm" dot tone={r.active ? 'success' : 'neutral'}>{r.active ? 'Activa' : 'Desactivada'}</Badge> }, { key: 'last', label: 'Último acceso' },
         ...(canEdit ? [{ key: 'del', label: '', align: 'right', render: r => isMe(r.u) ? null : <IconButton icon="delete" size={28} title={'Eliminar la cuenta ' + r.u.email} onClick={() => { if (!busy) removeUser(r.u); }} /> }] : [])]} />}
     </Card>
+    {MGH_RBAC.user && ['hr', 'finance', 'admin'].includes(MGH_RBAC.user.role) ? <PendingPayoutMethods notify={notify} go={go} /> : null}
     {canEdit ? <EmployeePurge notify={notify} onPurged={e => setUsers(list => (list || []).filter(u => u.employee_id !== e.id))} /> : null}
     <Card icon="account_tree" title="Approval workflow policy" subtitle="Configured in Approval Workflows" actions={<Button size="sm" variant="ghost" iconRight="arrow_forward" onClick={() => go('workflows')}>Open Approval Workflows</Button>} />
   </Page>;

@@ -399,6 +399,11 @@ router.put('/employees/:id', authenticate, (req, res, next) => {
       const SELF_FIELDS = ['name', 'first_name', 'last_name', 'phone', 'loc'];
       body = Object.fromEntries(Object.entries(body).filter(([k]) => SELF_FIELDS.includes(k)));
     }
+    if (req.user && !['hr', 'finance', 'admin'].includes(req.user.role)) {
+      // Where someone is paid changes only through "Datos de pago" (verified) or by HR / finance / admin
+      const PAYOUT_FIELDS = ['pmethod', 'bank', 'acct', 'routing', 'alloc', 'crypto_wallet', 'crypto_asset', 'crypto_network', 'crypto_alloc', 'cryptoWallet', 'cryptoAsset', 'cryptoNetwork', 'cryptoAlloc'];
+      body = Object.fromEntries(Object.entries(body).filter(([k]) => !PAYOUT_FIELDS.includes(k)));
+    }
     const result = employeesController.updateEmployee(
       req.params.id,
       body,
@@ -440,6 +445,33 @@ router.put('/employees/:id/account/role', authenticate, requireRole('admin'), (r
   try { res.json(authService.setRoleForEmployee({ employeeId: req.params.id, role: (req.body || {}).role, actor: req.user, ip: getClientIp(req) })); } catch (err) { next(err); }
 });
 router.post('/employees/:id/reset-password', authenticate, requireRole('pm', 'hr', 'admin'), authController.resetEmployeePassword);
+
+/* ---------- Datos de pago (payout methods) ---------- */
+const payoutMethods = require('./services/payout-methods.service');
+router.get('/payout-methods/pending', authenticate, (req, res, next) => {
+  try { res.json(payoutMethods.pending(req.user)); } catch (err) { next(err); }
+});
+router.get('/employees/:id/payout-methods', authenticate, (req, res, next) => {
+  try { res.json(payoutMethods.list(req.params.id, req.user)); } catch (err) { next(err); }
+});
+router.post('/employees/:id/payout-methods', authenticate, (req, res, next) => {
+  try { res.status(201).json(payoutMethods.create(req.params.id, req.body || {}, req.user)); } catch (err) { next(err); }
+});
+router.put('/payout-methods/:id', authenticate, (req, res, next) => {
+  try { res.json(payoutMethods.update(req.params.id, req.body || {}, req.user)); } catch (err) { next(err); }
+});
+router.delete('/payout-methods/:id', authenticate, (req, res, next) => {
+  try { res.json(payoutMethods.remove(req.params.id, req.user)); } catch (err) { next(err); }
+});
+router.post('/payout-methods/:id/primary', authenticate, (req, res, next) => {
+  try { res.json(payoutMethods.setPrimary(req.params.id, req.user)); } catch (err) { next(err); }
+});
+router.post('/payout-methods/:id/verify', authenticate, (req, res, next) => {
+  try { res.json(payoutMethods.verify(req.params.id, req.user)); } catch (err) { next(err); }
+});
+router.post('/payout-methods/:id/reject', authenticate, (req, res, next) => {
+  try { res.json(payoutMethods.reject(req.params.id, (req.body || {}).note, req.user)); } catch (err) { next(err); }
+});
 
 /* ---------- Contractors & Contractor Payments (RBAC) ---------- */
 router.get('/contractors', authenticate, contractorsController.getContractorsList);
@@ -522,6 +554,7 @@ router.post('/payroll/preview-employee', authenticate, payrollController.preview
 router.get('/payroll/export/nacha', authenticate, requireRole('finance', 'admin'), bankingRailsController.exportNacha);
 router.get('/payroll/export/bhd', authenticate, requireRole('finance', 'admin'), bankingRailsController.exportBhd);
 router.get('/payroll/export/usdc', authenticate, requireRole('finance', 'admin'), bankingRailsController.exportUsdcBatch);
+router.get('/payroll/export/manual', authenticate, requireRole('finance', 'admin'), bankingRailsController.exportManual);
 router.post('/payroll/rails/usdc/confirm', authenticate, requireRole('finance', 'admin'), bankingRailsController.confirmUsdcTransaction);
 // Pay stubs issued from saved payroll runs. Payroll staff see any employee and any run status;
 // everyone else only sees their own stubs from approved runs.

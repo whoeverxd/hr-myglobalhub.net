@@ -3,6 +3,7 @@ const { round2 } = require('../utils/money');
 const { calculateTaxDeductions, DEFAULT_CONFIG } = require('./tax-rules.service');
 const { logAction } = require('../controllers/audit.controller');
 const { SEALED } = require('../payroll');
+const payoutMethods = require('./payout-methods.service');
 
 const NO_ACCOUNT_LABEL = 'Sin cuenta registrada';
 
@@ -83,6 +84,30 @@ function calculateEmployeePeriodPayroll(employee, {
   const totalDeductions = round2(allDeductions.reduce((sum, d) => sum + d.amount, 0));
   const netPay = round2(grossPay - totalDeductions);
 
+  // "Datos de pago": the verified primary method gets 100% of the net. Without one, the legacy employee fields
+  // (bank + optional Coinbase share) are used as before.
+  const primary = employee.id ? payoutMethods.primaryFor(employee.id) : null;
+  if (primary) {
+    const d = primary.details;
+    const rail = primary.type === 'bank' ? 'Banco'
+      : primary.type === 'binance' || primary.type === 'coinbase' ? `${primary.typeLabel} (${d.network})`
+        : primary.typeLabel;
+    const target = primary.type === 'bank' ? d.bank_name
+      : primary.type === 'binance' || primary.type === 'coinbase' ? d.currency
+        : primary.type === 'western_union' ? `${d.city}, ${d.country}` : 'PayPal';
+    const masked = payoutMethods.maskDetails(primary.type, d);
+    return buildResult([{
+      rail,
+      target,
+      accountMasked: masked.account_number || masked.address || masked.email || masked.document_number || '',
+      percentage: 100,
+      amount: netPay,
+      methodId: primary.id,
+      methodType: primary.type,
+      channel: primary.channel,
+    }]);
+  }
+
   // Payout Allocation (e.g. 80% Bank, 20% Coinbase / Chase)
   const cryptoAlloc = Number(employee.crypto_alloc || employee.cryptoAlloc || 0);
   const mainAlloc = Math.max(0, 100 - cryptoAlloc);
@@ -112,6 +137,10 @@ function calculateEmployeePeriodPayroll(employee, {
     });
   }
 
+  return buildResult(payoutDistribution);
+
+  // Hoisted: also used by the primary-method branch above
+  function buildResult(payoutDistribution) {
   return {
     employeeId: employee.id,
     name: employee.name,
@@ -140,6 +169,7 @@ function calculateEmployeePeriodPayroll(employee, {
     payoutDistribution,
     adjustments: adjDetails,
   };
+  }
 }
 
 /**

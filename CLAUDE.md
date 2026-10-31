@@ -88,8 +88,18 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   deleted, adjustments, contractor payments, payment proofs); keeps the audit log and created tasks (unassigned). → `POST /employees/:id/reset-password` issues a new temporary password (shown once), revokes the
   user's sessions and sets must_change_password. Google-only accounts have no local password until they set one via
   `POST /api/auth/password` (current password, Google re-verification, or none set yet).
-- Payouts: bank, Coinbase (USDC/BTC/ETH on Base/Ethereum/Polygon/Solana) or split; must total 100%.
-  Coinbase requires KYC + W-8BEN.
+- Payouts ("Datos de pago", profile tab → `PayoutMethods.jsx`, `payout-methods.service.js`, table `payout_methods`):
+  a person saves several methods — Banco, Binance (USDC/USDT on BSC/Ethereum/Tron/Solana/Base), Coinbase
+  (USDC/BTC/ETH on Base/Ethereum/Polygon/Solana), Western Union, PayPal — and payroll pays 100% of the net to the
+  VERIFIED PRIMARY one (no % split any more). The owner's registrations/edits are 'pending' until HR/finance/admin
+  verify (reject needs a reason; nobody verifies their own except admin); editing a verified method creates a pending
+  replacement and the old one keeps being paid until it is verified. Reviewers' own entries for someone else are
+  verified at once; Add Employee payout data becomes methods (verified by HR/admin, pending by a PM). Full details are
+  stored (payment files need them); owner + reviewers see them, PM/supervisor masked. Channel: bank → BHD/NACHA file,
+  USDC on Base → USDC batch, everything else → `GET /payroll/export/manual` CSV. Without a verified primary the
+  legacy employee fields (bank/acct + crypto_alloc) are used. Payout columns on `PUT /employees` only for
+  hr/finance/admin. Queue for reviewers in `#admin`. Legacy data → `node scripts/migrate-payout-methods.js` (dry run) /
+  `--apply` (asks MIGRAR).
 - Contractors are employees: `employees.type` (Full-time / Contractor) is only a profile field — hours, tasks and payroll
   ignore it, and it never sets the login role (`ensureUserForEmployee({ keepExistingRole: true })`; new logins = employee).
   `#contractors` is the payout profile of Contractor-type employees; one payroll for everyone (#processing):

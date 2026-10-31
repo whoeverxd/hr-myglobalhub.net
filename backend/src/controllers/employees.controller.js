@@ -360,12 +360,32 @@ function createEmployee(data, user = 'System', ip = '127.0.0.1', actorRole = nul
     }
   }
 
+  // Payout data typed in Add Employee becomes "Datos de pago" methods with the FULL number (the employee row only
+  // keeps it masked, which no payment file can use). Verified when HR/admin entered it; a PM's entry waits for HR.
+  // A problem here never undoes the employee: it is reported in payoutWarnings and can be fixed on the profile.
+  const payoutWarnings = [];
+  const payoutMethods = require('../services/payout-methods.service');
+  const creator = { name: user, role: actorRole || 'admin' };
+  const cryptoOnly = /coinbase only/i.test(String(data.pmethod || ''));
+  const tryMethod = (type, details, primary) => {
+    try { payoutMethods.create(id, { type, details, primary }, creator, { atHire: true }); } catch (e) { payoutWarnings.push(`${payoutMethods.TYPES[type].label}: ${e.message}`); }
+  };
+  if (data.bank && data.acct && !String(data.acct).includes('•')) {
+    tryMethod('bank', { bank_name: data.bank, account_type: data.accountType || 'Ahorro', account_number: String(data.acct), holder: fullName, holder_id: data.nid && !String(data.nid).includes('•') ? String(data.nid) : '', routing: data.route || data.routing || '' }, !cryptoOnly);
+  }
+  if (data.cbWallet) {
+    tryMethod('coinbase', { currency: data.cbAsset || 'USDC', network: data.cbNetwork || 'Base', address: data.cbWallet }, cryptoOnly);
+  }
+
   const created = getEmployeeById(id);
-  return initialPassword ? { ...created, account, initialPassword } : { ...created, account };
+  const extra = payoutWarnings.length ? { payoutWarnings } : {};
+  return initialPassword ? { ...created, account, initialPassword, ...extra } : { ...created, account, ...extra };
 }
 
 function updateEmployee(id, data, { user = 'System', ip = '127.0.0.1' } = {}) {
-  const current = getEmployeeById(id);
+  // The stored row (snake_case columns): getEmployeeById() also spreads raw_meta over it, and its keys
+  // (cryptoWallet, first…) used to be read here — undefined, so any PUT without the crypto fields wiped them.
+  const current = db.getOne(`SELECT * FROM employees WHERE id = ?`, [id]);
   if (!current) {
     const err = new Error(`Employee with ID ${id} not found`);
     err.status = 404;
@@ -373,8 +393,8 @@ function updateEmployee(id, data, { user = 'System', ip = '127.0.0.1' } = {}) {
   }
 
   const name = data.name || (data.first_name && data.last_name ? `${data.first_name} ${data.last_name}` : current.name);
-  const first_name = data.first_name || (data.name ? data.name.split(' ')[0] : current.first);
-  const last_name = data.last_name || (data.name ? data.name.split(' ').slice(1).join(' ') : current.last);
+  const first_name = data.first_name || (data.name ? data.name.split(' ')[0] : current.first_name);
+  const last_name = data.last_name || (data.name ? data.name.split(' ').slice(1).join(' ') : current.last_name);
   const email = data.email !== undefined ? data.email : current.email;
   const phone = data.phone !== undefined ? data.phone : current.phone;
   const nid = data.nid !== undefined ? data.nid : current.nid;
@@ -393,10 +413,10 @@ function updateEmployee(id, data, { user = 'System', ip = '127.0.0.1' } = {}) {
   const acct = data.acct !== undefined ? data.acct : current.acct;
   const routing = data.routing !== undefined ? data.routing : current.routing;
   const alloc = data.alloc !== undefined ? Number(data.alloc) : current.alloc;
-  const crypto_wallet = data.cryptoWallet !== undefined ? data.cryptoWallet : (data.crypto_wallet !== undefined ? data.crypto_wallet : current.cryptoWallet);
-  const crypto_asset = data.cryptoAsset !== undefined ? data.cryptoAsset : (data.crypto_asset !== undefined ? data.crypto_asset : current.cryptoAsset);
-  const crypto_network = data.cryptoNetwork !== undefined ? data.cryptoNetwork : (data.crypto_network !== undefined ? data.crypto_network : current.cryptoNetwork);
-  const crypto_alloc = data.cryptoAlloc !== undefined ? Number(data.cryptoAlloc) : (data.crypto_alloc !== undefined ? Number(data.crypto_alloc) : current.cryptoAlloc);
+  const crypto_wallet = data.cryptoWallet !== undefined ? data.cryptoWallet : (data.crypto_wallet !== undefined ? data.crypto_wallet : current.crypto_wallet);
+  const crypto_asset = data.cryptoAsset !== undefined ? data.cryptoAsset : (data.crypto_asset !== undefined ? data.crypto_asset : current.crypto_asset);
+  const crypto_network = data.cryptoNetwork !== undefined ? data.cryptoNetwork : (data.crypto_network !== undefined ? data.crypto_network : current.crypto_network);
+  const crypto_alloc = data.cryptoAlloc !== undefined ? Number(data.cryptoAlloc) : (data.crypto_alloc !== undefined ? Number(data.crypto_alloc) : current.crypto_alloc);
   const jira = data.jira !== undefined ? data.jira : current.jira;
   let project = current.project;
   if (data.projects !== undefined) {
@@ -558,7 +578,7 @@ function deleteEmployee(employeeId, actor, ip = '127.0.0.1') {
   }
   const { emp, user } = removalContext(employeeId, actor);
   db.transaction(() => {
-    for (const table of ['daily_activities', 'timesheets', 'attendance_punches', 'attendance_exceptions', 'leave_requests', 'worklogs']) {
+    for (const table of ['daily_activities', 'timesheets', 'attendance_punches', 'attendance_exceptions', 'leave_requests', 'worklogs', 'payout_methods']) {
       db.execute(`DELETE FROM ${table} WHERE employee_id = ?`, [emp.id]);
     }
     db.execute('DELETE FROM project_members WHERE user_id = ?', [emp.id]);
@@ -593,7 +613,7 @@ function purgeEmployee(employeeId, actor, ip = '127.0.0.1', { confirm } = {}) {
   const runs = [...new Set(runLines.map((l) => l.run_id))];
   const removedRuns = [];
   db.transaction(() => {
-    for (const table of ['daily_activities', 'timesheets', 'attendance_punches', 'attendance_exceptions', 'leave_requests', 'worklogs']) {
+    for (const table of ['daily_activities', 'timesheets', 'attendance_punches', 'attendance_exceptions', 'leave_requests', 'worklogs', 'payout_methods']) {
       db.execute(`DELETE FROM ${table} WHERE employee_id = ?`, [emp.id]);
     }
     db.execute('DELETE FROM project_members WHERE user_id = ?', [emp.id]);
