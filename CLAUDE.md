@@ -62,6 +62,11 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   profile's `project`). Employees/contractors/supervisors see only member projects (`#projects` → `MyProjects.jsx`),
   create tasks (auto-assigned to themselves) and move tasks assigned to them; PM/admin manage projects, members,
   sprints, statuses and assign by employee id (`AgileWorkspace.jsx`). Add Employee "Projects" creates memberships.
+  Subtasks: `project_tasks.parent_id` (one level, same project; `parentId`/`parentKey` on create, type 'Subtask'); a
+  subtask follows its parent's sprint, deleting a parent deletes its subtasks; lists/search carry `parent_key`,
+  `subtask_count/done/logged_hours`, `GET /tasks/:id` includes `subtasks`. Activities can be logged on a subtask.
+  Wokokai moderation plan (Carmen design + Zain implementation per screen): `node scripts/create-moderation-tasks.js`
+  (dry run) / `--apply` (asks CREAR), data in `scripts/data/wokokai-moderacion.js`.
   Backend enforcement in `routes.js` (`requireProjectMember`, `taskAccess`); task search is membership-scoped.
 - Accounts: never a shared default password. New employee/contractor logins get a random one-time password
   (`initialPassword`, shown once); a password typed by the admin must pass `passwordProblem`. Either way the account gets

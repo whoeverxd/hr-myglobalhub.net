@@ -132,7 +132,7 @@ export default function ActivityFormModal({ empId, date, activity, initialTask, 
     return () => { cancelled = true; clearTimeout(timer); };
   }, [empId, taskQuery]);
   const taskOptions = useMemo(() => ([
-    ...projectTasks.map(t => ({ key: t.task_key, summary: t.title, project: t.project_name || t.project_key, native: true, mine: t.assignee_id === empId, status: t.status_name })),
+    ...projectTasks.map(t => ({ key: t.task_key, summary: t.title, project: t.project_name || t.project_key, native: true, mine: t.assignee_id === empId, status: t.status_name, parentKey: t.parent_key || null })),
     ...jiraIssues.filter(i => !projectTasks.some(t => t.task_key === i.key || t.origin_jira_key === i.key)).map(i => ({ key: i.key, summary: i.summary, project: i.project, native: false, status: i.status })),
   ]), [projectTasks, jiraIssues, empId]);
   // Opened with only a task key (from "Mis proyectos → Registrar horas"): take its title once the tasks load
@@ -315,7 +315,7 @@ export default function ActivityFormModal({ empId, date, activity, initialTask, 
                       style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 6, border: 'none', background: 'var(--mgh-surface-1)', cursor: 'pointer', textAlign: 'left', font: '500 12px/16px var(--font-sans)' }}>
                       <Badge tone={o.native ? 'success' : 'neutral'} size="sm">{o.native ? 'Proyecto' : 'Jira'}</Badge>
                       <span style={{ fontWeight: 700, color: 'var(--mgh-primary)', flexShrink: 0 }}>{o.key}</span>
-                      <span style={{ color: 'var(--mgh-ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{o.summary}</span>
+                      <span style={{ color: 'var(--mgh-ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{o.summary}{o.parentKey ? <span style={{ color: 'var(--mgh-ink-3)' }}> • subtarea de {o.parentKey}</span> : null}</span>
                       {o.mine ? <span style={{ fontSize: 11, color: 'var(--mgh-ink-3)', flexShrink: 0 }}>asignada a ti</span> : null}
                     </button>
                   ))}

@@ -36,6 +36,10 @@ export default function AgileWorkspace({
   // Modales
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  // Subtasks of the task open in the modal (GET /tasks/:id → subtasks) and the quick-add row
+  const [subtasks, setSubtasks] = useState([]);
+  const [subtaskDraft, setSubtaskDraft] = useState({ title: '', assigneeId: '' });
+  const [subtaskBusy, setSubtaskBusy] = useState(false);
   const [taskForm, setTaskForm] = useState({
     title: '',
     description: '',
@@ -303,9 +307,35 @@ export default function AgileWorkspace({
     }
   };
 
+  const loadSubtasks = async (taskId) => {
+    try { const full = await window.api.getTask(taskId); setSubtasks((full && full.subtasks) || []); } catch (_) { setSubtasks([]); }
+  };
+  const openTaskById = async (taskId) => {
+    try { const full = await window.api.getTask(taskId); if (full) handleOpenEditTask(full); } catch (err) { if (notify) notify('No se pudo abrir la tarea: ' + err.message); }
+  };
+  const handleAddSubtask = async () => {
+    const title = subtaskDraft.title.trim();
+    if (!editingTask || !title) return;
+    setSubtaskBusy(true);
+    try {
+      const created = await window.api.createTask(selectedProjectKey, { title, parentId: editingTask.id, taskType: 'Subtask', assigneeId: subtaskDraft.assigneeId || editingTask.assignee_id || null, estimateHours: 0, storyPoints: 0 });
+      setSubtaskDraft({ title: '', assigneeId: subtaskDraft.assigneeId });
+      if (notify) notify(`Subtarea ${created.task_key} creada.`);
+      await loadSubtasks(editingTask.id);
+      loadProjectData(selectedProjectKey);
+    } catch (err) {
+      if (notify) notify('No se pudo crear la subtarea: ' + err.message);
+    } finally {
+      setSubtaskBusy(false);
+    }
+  };
+
   // Abrir modal de edición
   const handleOpenEditTask = (task) => {
     setEditingTask(task);
+    setSubtasks([]);
+    setSubtaskDraft({ title: '', assigneeId: '' });
+    if (!task.parent_id) loadSubtasks(task.id);
     setTaskForm({
       title: task.title || '',
       description: task.description || '',
@@ -874,7 +904,7 @@ export default function AgileWorkspace({
                           {/* Badges superiores: Clave, Tipo, Origen Jira */}
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <Badge mono size="xs" tone="primary">{task.task_key}</Badge>
+                              <Badge mono size="xs" tone="primary">{task.task_key}</Badge><SubtaskBadges task={task} />
                               <Badge size="xs" tone={task.task_type === 'Bug' ? 'danger' : task.task_type === 'Story' ? 'success' : 'neutral'}>
                                 {task.task_type}
                               </Badge>
@@ -1109,7 +1139,7 @@ export default function AgileWorkspace({
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-                          <Badge mono size="xs">{task.task_key}</Badge>
+                          <Badge mono size="xs">{task.task_key}</Badge><SubtaskBadges task={task} />
                           <span style={{ fontWeight: 600, color: 'var(--mgh-ink)' }}>{task.title}</span>
                           {task.origin_jira_key && (
                             <Badge size="xs" tone="neutral">[De Jira: {task.origin_jira_key}]</Badge>
@@ -1208,7 +1238,7 @@ export default function AgileWorkspace({
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-                        <Badge mono size="xs">{task.task_key}</Badge>
+                        <Badge mono size="xs">{task.task_key}</Badge><SubtaskBadges task={task} />
                         <Badge size="xs" tone={task.task_type === 'Bug' ? 'danger' : 'neutral'}>{task.task_type}</Badge>
                         <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--mgh-ink)' }}>{task.title}</span>
                         {task.origin_jira_key && (
@@ -1656,6 +1686,12 @@ export default function AgileWorkspace({
                 {editingTask && editingTask.origin_jira_key && (
                   <Badge size="xs" tone="neutral">[De Jira: {editingTask.origin_jira_key}]</Badge>
                 )}
+                {editingTask && editingTask.parent_id ? (
+                  <button type="button" onClick={() => openTaskById(editingTask.parent_id)} title="Abrir la tarea padre"
+                    style={{ border: 'none', background: 'var(--mgh-primary-50)', color: 'var(--mgh-primary)', borderRadius: 6, padding: '2px 8px', font: '600 11px/16px var(--font-sans)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <Icon name="subdirectory_arrow_right" size={14} />Subtarea de {editingTask.parent_key}
+                  </button>
+                ) : null}
               </div>
               <IconButton icon="close" size="sm" onClick={() => setTaskModalOpen(false)} />
             </div>
@@ -1721,6 +1757,7 @@ export default function AgileWorkspace({
                     <option value="Task">Task</option>
                     <option value="Bug">Bug</option>
                     <option value="Epic">Epic</option>
+                    {taskForm.taskType === 'Subtask' ? <option value="Subtask">Subtarea</option> : null}
                   </select>
                 </div>
 
@@ -1790,7 +1827,7 @@ export default function AgileWorkspace({
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--mgh-ink-2)', marginBottom: 4 }}>
                     Sprint
                   </label>
-                  <select
+                  {editingTask && editingTask.parent_id ? <div style={{ fontSize: 12, color: 'var(--mgh-ink-3)', padding: '8px 0' }}>Sigue el sprint de su tarea padre ({editingTask.sprint_name || 'Backlog'}).</div> : <select
                     value={taskForm.sprintId}
                     onChange={e => setTaskForm(prev => ({ ...prev, sprintId: e.target.value }))}
                     style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--mgh-surface-3)', fontSize: 12, background: '#fff' }}
@@ -1799,7 +1836,7 @@ export default function AgileWorkspace({
                     {sprints.map(s => (
                       <option key={s.id} value={s.id}>{s.name} ({s.status})</option>
                     ))}
-                  </select>
+                  </select>}
                 </div>
               </div>
 
@@ -1817,6 +1854,39 @@ export default function AgileWorkspace({
                   ))}
                 </select>
               </div>
+
+              {/* Subtareas: solo en una tarea padre ya creada (un nivel) */}
+              {editingTask && !editingTask.parent_id ? (
+                <div style={{ border: '1px solid var(--mgh-surface-2)', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--mgh-ink-2)' }}>
+                      Subtareas {subtasks.length ? `• ${subtasks.filter(k => Number(k.status_is_done) === 1).length}/${subtasks.length} hechas` : ''}
+                    </span>
+                    {subtasks.length ? <span style={{ fontSize: 11, color: 'var(--mgh-ink-3)' }}>{(Math.round(subtasks.reduce((a, k) => a + (Number(k.logged_hours) || 0), 0) * 100) / 100)}h registradas en subtareas</span> : null}
+                  </div>
+                  {subtasks.map(k => (
+                    <button key={k.id} type="button" onClick={() => openTaskById(k.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, border: '1px solid var(--mgh-surface-2)', background: '#fff', cursor: 'pointer', textAlign: 'left' }}>
+                      <Icon name={Number(k.status_is_done) === 1 ? 'check_circle' : 'radio_button_unchecked'} size={16} color={Number(k.status_is_done) === 1 ? 'var(--mgh-success)' : 'var(--mgh-ink-3)'} />
+                      <Badge mono size="xs">{k.task_key}</Badge>
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: 'var(--mgh-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k.title}</span>
+                      <span style={{ fontSize: 11, color: 'var(--mgh-ink-3)', whiteSpace: 'nowrap' }}>{k.assignee_name || 'Sin asignar'} • {k.status_name || '—'}</span>
+                    </button>
+                  ))}
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <input type="text" placeholder="Nueva subtarea…" value={subtaskDraft.title}
+                      onChange={e => setSubtaskDraft(d => ({ ...d, title: e.target.value }))}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddSubtask(); } }}
+                      style={{ flex: 1, minWidth: 180, padding: '7px 10px', borderRadius: 6, border: '1px solid var(--mgh-surface-3)', fontSize: 12, fontFamily: 'inherit', outline: 'none' }} />
+                    <select value={subtaskDraft.assigneeId} onChange={e => setSubtaskDraft(d => ({ ...d, assigneeId: e.target.value }))}
+                      style={{ padding: '7px 8px', borderRadius: 6, border: '1px solid var(--mgh-surface-3)', fontSize: 12, background: '#fff' }}>
+                      <option value="">{editingTask.assignee_name ? 'Como la tarea: ' + editingTask.assignee_name : 'Sin asignar'}</option>
+                      {members.map(m => <option key={m.user_id} value={m.user_id}>{m.user_name}</option>)}
+                    </select>
+                    <Button type="button" size="sm" variant="secondary" icon="add" disabled={subtaskBusy || !subtaskDraft.title.trim()} onClick={handleAddSubtask}>Añadir</Button>
+                  </div>
+                </div>
+              ) : null}
 
               {/* Botones de acción del Modal */}
               <div style={{
@@ -2143,4 +2213,14 @@ export default function AgileWorkspace({
 
     </div>
   );
+}
+
+// Subtask context on a card / row: the parent key for a subtask, "done/total" for a parent with subtasks
+function SubtaskBadges({ task }) {
+  const DS = window.MyGlobalHubDesignSystem_2a603d || {};
+  const { Badge } = DS;
+  if (!Badge || !task) return null;
+  if (task.parent_key) return <Badge size="xs" tone="neutral" title={'Subtarea de ' + task.parent_key + (task.parent_title ? ' • ' + task.parent_title : '')}>↳ {task.parent_key}</Badge>;
+  if (task.subtask_count > 0) return <Badge size="xs" tone={task.subtask_done === task.subtask_count ? 'success' : 'info'} title="Subtareas hechas">{task.subtask_done}/{task.subtask_count} subtareas</Badge>;
+  return null;
 }

@@ -458,13 +458,54 @@ class AgileService {
       params.push(Number(filters.limit));
     }
 
-    return db.query(sql, params);
+    return this.withSubtaskInfo(db.query(sql, params));
+  }
+
+  /**
+   * Subtasks: adds to each task its parent (parent_key / parent_title) and, for a parent, the roll-up of its
+   * subtasks (subtask_count, subtask_done, subtask_logged_hours). One query per project involved.
+   */
+  withSubtaskInfo(rows) {
+    if (!Array.isArray(rows) || !rows.length) return rows;
+    const projects = [...new Set(rows.map((r) => r.project_id).filter(Boolean))];
+    const all = [];
+    for (const pid of projects) {
+      all.push(...db.query(
+        `SELECT pt.id, pt.task_key, pt.title, pt.parent_id, pt.logged_hours, ps.is_done as status_is_done
+         FROM project_tasks pt LEFT JOIN project_statuses ps ON pt.status_id = ps.id WHERE pt.project_id = ?`, [pid]
+      ));
+    }
+    const byId = new Map(all.map((t) => [t.id, t]));
+    const kids = new Map();
+    for (const t of all) if (t.parent_id) { if (!kids.has(t.parent_id)) kids.set(t.parent_id, []); kids.get(t.parent_id).push(t); }
+    return rows.map((r) => {
+      const parent = r.parent_id ? byId.get(r.parent_id) : null;
+      const list = kids.get(r.id) || [];
+      return {
+        ...r,
+        parent_key: parent ? parent.task_key : null,
+        parent_title: parent ? parent.title : null,
+        subtask_count: list.length,
+        subtask_done: list.filter((k) => Number(k.status_is_done) === 1).length,
+        subtask_logged_hours: Math.round(list.reduce((s, k) => s + (Number(k.logged_hours) || 0), 0) * 100) / 100,
+      };
+    });
+  }
+
+  /** Subtasks of a task, in key order */
+  listSubtasks(taskIdOrKey) {
+    const task = this.getTask(taskIdOrKey);
+    if (!task) return [];
+    return db.query(
+      `SELECT pt.*, ps.name as status_name, ps.category as status_category, ps.color as status_color, ps.is_done as status_is_done
+       FROM project_tasks pt LEFT JOIN project_statuses ps ON pt.status_id = ps.id WHERE pt.parent_id = ?`, [task.id]
+    ).sort((a, b) => String(a.task_key).localeCompare(String(b.task_key), undefined, { numeric: true }));
   }
 
   getTask(taskIdOrKey) {
     if (!taskIdOrKey) return null;
     const clean = String(taskIdOrKey).trim();
-    return db.getOne(
+    const row = db.getOne(
       `SELECT pt.*,
               ps.name as status_name,
               ps.category as status_category,
@@ -478,6 +519,7 @@ class AgileService {
        WHERE pt.id = ? OR UPPER(pt.task_key) = ?`,
       [clean, clean.toUpperCase()]
     );
+    return row ? this.withSubtaskInfo([row])[0] : row;
   }
 
   createTask(projectKeyOrId, data, user = 'System', ip = '127.0.0.1') {
@@ -495,10 +537,18 @@ class AgileService {
       statusId = def ? def.id : null;
     }
 
+    // Subtask: the parent must be a task of this project that is not itself a subtask; it shares the parent's sprint
+    const parentRef = data.parent_id || data.parentId || data.parent_key || data.parentKey || null;
+    const parent = parentRef ? this.getTask(parentRef) : null;
+    const bad = (msg) => Object.assign(new Error(msg), { status: 400 });
+    if (parentRef && !parent) throw bad(`No existe la tarea padre ${parentRef}.`);
+    if (parent && parent.project_id !== proj.id) throw bad('Una subtarea debe estar en el mismo proyecto que su tarea padre.');
+    if (parent && parent.parent_id) throw bad(`${parent.task_key} ya es una subtarea: las subtareas no pueden tener subtareas.`);
+
     const taskKey = this.getNextTaskKey(proj.key);
     const id = `tsk_${crypto.randomUUID().slice(0, 8)}`;
-    const sprintId = data.sprint_id || data.sprintId || null;
-    const taskType = data.task_type || data.taskType || 'Task';
+    const sprintId = parent ? parent.sprint_id || null : data.sprint_id || data.sprintId || null;
+    const taskType = data.task_type || data.taskType || (parent ? 'Subtask' : 'Task');
     const priority = data.priority || 'Medium';
     const estimateHours = Number(data.estimate_hours || data.estimateHours) || 0;
     const storyPoints = parseInt(data.story_points || data.storyPoints, 10) || 0;
@@ -527,8 +577,8 @@ class AgileService {
          assignee_id, assignee_name, assignee_avatar,
          reporter_id, reporter_name, order_index,
          origin_jira_key, origin_jira_url, labels,
-         created_at, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         created_at, updated_at, parent_id
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, taskKey, proj.id, sprintId, statusId, title, description,
         taskType, priority, estimateHours, storyPoints,
@@ -537,7 +587,7 @@ class AgileService {
         originJiraKey, originJiraUrl, labels,
         // `DEFAULT (datetime('now'))` is a SQLite clause: initSchema() never runs on Firestore, so there the
         // column simply stayed empty and anything that ordered or filtered by it read a blank.
-        nowStamp(), nowStamp()
+        nowStamp(), nowStamp(), parent ? parent.id : null
       ]
     );
 
@@ -546,7 +596,7 @@ class AgileService {
       action: 'CREATE_TASK',
       entityType: 'task',
       entityId: taskKey,
-      newValues: { taskKey, title, project: proj.key, sprintId, statusId },
+      newValues: { taskKey, title, project: proj.key, sprintId, statusId, parent: parent ? parent.task_key : null },
       ip
     });
 
@@ -563,7 +613,12 @@ class AgileService {
     const priority = typeof data.priority !== 'undefined' ? data.priority : existing.priority;
     const estimateHours = typeof data.estimate_hours !== 'undefined' ? Number(data.estimate_hours) : (typeof data.estimateHours !== 'undefined' ? Number(data.estimateHours) : existing.estimate_hours);
     const storyPoints = typeof data.story_points !== 'undefined' ? parseInt(data.story_points, 10) : (typeof data.storyPoints !== 'undefined' ? parseInt(data.storyPoints, 10) : existing.story_points);
-    const sprintId = typeof data.sprint_id !== 'undefined' ? data.sprint_id : (typeof data.sprintId !== 'undefined' ? data.sprintId : existing.sprint_id);
+    let sprintId = typeof data.sprint_id !== 'undefined' ? data.sprint_id : (typeof data.sprintId !== 'undefined' ? data.sprintId : existing.sprint_id);
+    if (existing.parent_id) {
+      // A subtask always lives in its parent's sprint
+      const parent = db.getOne('SELECT sprint_id FROM project_tasks WHERE id = ?', [existing.parent_id]);
+      if (parent) sprintId = parent.sprint_id || null;
+    }
     const statusId = typeof data.status_id !== 'undefined' ? data.status_id : (typeof data.statusId !== 'undefined' ? data.statusId : existing.status_id);
     const orderIndex = typeof data.order_index !== 'undefined' ? Number(data.order_index) : (typeof data.orderIndex !== 'undefined' ? Number(data.orderIndex) : existing.order_index);
     const loggedHours = typeof data.logged_hours !== 'undefined' ? Number(data.logged_hours) : (typeof data.loggedHours !== 'undefined' ? Number(data.loggedHours) : existing.logged_hours);
@@ -594,6 +649,12 @@ class AgileService {
         existing.id
       ]
     );
+    // Moving a parent to another sprint (or the backlog) takes its subtasks along
+    if ((sprintId || null) !== (existing.sprint_id || null)) {
+      for (const k of db.query('SELECT id FROM project_tasks WHERE parent_id = ?', [existing.id])) {
+        db.execute('UPDATE project_tasks SET sprint_id = ? WHERE id = ?', [sprintId || null, k.id]);
+      }
+    }
 
     logAction({
       actor: user,
@@ -626,6 +687,9 @@ class AgileService {
     const task = this.getTask(taskId);
     if (!task) throw new Error('Tarea no encontrada.');
 
+    // Its subtasks go with it
+    const subtasks = db.query('SELECT id, task_key FROM project_tasks WHERE parent_id = ?', [task.id]);
+    for (const k of subtasks) db.execute('DELETE FROM project_tasks WHERE id = ?', [k.id]);
     db.execute('DELETE FROM project_tasks WHERE id = ?', [task.id]);
 
     logAction({
@@ -637,7 +701,7 @@ class AgileService {
       ip
     });
 
-    return { success: true, deletedKey: task.task_key };
+    return { success: true, deletedKey: task.task_key, deletedSubtasks: subtasks.map((k) => k.task_key) };
   }
 
   /**
@@ -688,7 +752,7 @@ class AgileService {
     sql += ' ORDER BY pt.created_at DESC LIMIT ?';
     params.push(Number(limit) || 15);
 
-    return db.query(sql, params);
+    return this.withSubtaskInfo(db.query(sql, params));
   }
 
   /* =========================================================================

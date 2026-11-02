@@ -126,7 +126,7 @@ export default function MyProjects({ notify, go, currentUser }) {
               <thead><tr>{['Tarea', 'Proyecto', 'Estado', 'Estimado', 'Registrado', ''].map((c) => <th key={c} style={th}>{c}</th>)}</tr></thead>
               <tbody>{myTasks.map((t) => (
                 <tr key={t.id}>
-                  <td style={td}><b style={{ fontFamily: 'var(--font-mono)' }}>{t.task_key}</b> {t.title}</td>
+                  <td style={td}><b style={{ fontFamily: 'var(--font-mono)' }}>{t.task_key}</b> {t.title}<SubtaskNote t={t} /></td>
                   <td style={td}>{t.project_name || t.project_key}</td>
                   <td style={td}>{statusSelect(t)}</td>
                   <td style={td}>{(Number(t.estimate_hours) || 0).toFixed(1)}h</td>
@@ -159,7 +159,7 @@ export default function MyProjects({ notify, go, currentUser }) {
               <thead><tr>{['Tarea', 'Responsable', 'Estado', 'Sprint', 'Estimado'].map((c) => <th key={c} style={th}>{c}</th>)}</tr></thead>
               <tbody>{shownTasks.map((t) => (
                 <tr key={t.id}>
-                  <td style={td}><b style={{ fontFamily: 'var(--font-mono)' }}>{t.task_key}</b> {t.title}</td>
+                  <td style={td}><b style={{ fontFamily: 'var(--font-mono)' }}>{t.task_key}</b> {t.title}<SubtaskNote t={t} /></td>
                   <td style={td}>{t.assignee_name || 'Sin asignar'}{t.assignee_id === me ? ' (tú)' : ''}</td>
                   <td style={td}>{t.assignee_id === me ? statusSelect({ ...t, project_key: sel }) : <Badge size="sm">{t.status_name || '—'}</Badge>}</td>
                   <td style={td}>{t.sprint_name || 'Backlog'}</td>
@@ -172,4 +172,12 @@ export default function MyProjects({ notify, go, currentUser }) {
       </>}
     </div>
   );
+}
+
+// Subtask context next to the title: parent key for a subtask, done/total for a parent
+function SubtaskNote({ t }) {
+  const style = { marginLeft: 6, font: '500 11px/16px var(--font-sans)', color: 'var(--mgh-ink-3)' };
+  if (t.parent_key) return <span style={style} title={t.parent_title || ''}>↳ subtarea de {t.parent_key}</span>;
+  if (t.subtask_count > 0) return <span style={style}>{t.subtask_done}/{t.subtask_count} subtareas</span>;
+  return null;
 }

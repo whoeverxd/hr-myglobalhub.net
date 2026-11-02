@@ -123,7 +123,7 @@ async function getTask(req, res, next) {
     const { id } = req.params;
     const task = agileService.getTask(id);
     if (!task) return res.status(404).json({ error: 'Tarea no encontrada' });
-    res.json(task);
+    res.json({ ...task, subtasks: agileService.listSubtasks(task.id) });
   } catch (err) {
     next(err);
   }

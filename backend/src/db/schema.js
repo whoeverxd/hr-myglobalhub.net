@@ -608,6 +608,9 @@ function initSchema() {
   try { exec(`ALTER TABLE payroll_adjustments ADD COLUMN period_id TEXT;`); } catch (_) {}
   try { exec(`ALTER TABLE payroll_adjustments ADD COLUMN paid_run_id TEXT;`); } catch (_) {}
   try { exec(`CREATE INDEX IF NOT EXISTS idx_adjustments_emp_period ON payroll_adjustments (employee_id, period_id);`); } catch (_) {}
+  // Subtasks: a project task may hang from a parent task of the same project (one level only)
+  try { exec(`ALTER TABLE project_tasks ADD COLUMN parent_id TEXT;`); } catch (_) {}
+  try { exec(`CREATE INDEX IF NOT EXISTS idx_ptasks_parent ON project_tasks (parent_id);`); } catch (_) {}
   // "Datos de pago": one row per registered method; payroll pays the verified primary (payout-methods.service.js)
   try {
     exec(`CREATE TABLE IF NOT EXISTS payout_methods (
