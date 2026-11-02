@@ -53,3 +53,31 @@ test('Tarea propia: a task the employee creates for themselves is flagged (tasks
   db.execute('DELETE FROM daily_activities WHERE id = ?', [act.id]);
   for (const t of [own, planned]) agileService.deleteTask(t.id, 'Tester');
 });
+
+test('Agregar tarea propia over HTTP: assigned to its creator whatever the role, flagged, and in their queue', async (t) => {
+  const http = require('http');
+  const express = require('express');
+  const routes = require('../src/routes');
+  const app = express();
+  app.use(express.json());
+  app.use('/api', routes);
+  app.use((err, req, res, next) => res.status(err.status || 500).json({ error: err.message }));
+  const server = http.createServer(app);
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  t.after(() => server.close());
+  const base = `http://127.0.0.1:${server.address().port}/api`;
+  const login = async (email) => (await (await fetch(base + '/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: 'Password123!' }) })).json()).token;
+  const call = async (token, method, path, body) => {
+    const r = await fetch(base + path, { method, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: body ? JSON.stringify(body) : undefined });
+    return { status: r.status, data: await r.json().catch(() => null) };
+  };
+  const pm = await login('joshua@myglobalhub.net'); // MGH-1042, pm
+  const me = (await call(pm, 'GET', '/auth/me')).data.user;
+  const r = await call(pm, 'POST', '/projects/MSHP/tasks', { title: 'Imprevisto del PM', description: 'No estaba planificado', own: true, assigneeId: 'MGH-1046', labels: ['tarea propia'] });
+  assert.equal(r.status, 201);
+  assert.equal(r.data.assignee_id, me.employeeId, 'assigned to whoever created it, never to someone else');
+  assert.equal(r.data.self_created, true, 'flagged as an own task even for a PM');
+  const queue = (await call(pm, 'GET', '/my/tasks')).data;
+  assert.ok(queue.tasks.some((x) => x.id === r.data.id), 'shows up in "Mis tareas"');
+  agileService.deleteTask(r.data.id, 'Tester');
+});

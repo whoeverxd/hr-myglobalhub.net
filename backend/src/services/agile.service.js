@@ -11,7 +11,9 @@ const DEFAULT_STATUS_TEMPLATES = [
   { name: 'Done', category: 'done', color: '#10b981', is_default: 0, is_done: 1 },
 ];
 
-const isSelfCreated = (t) => Boolean(t && t.creator_employee_id && t.creator_employee_id === t.assignee_id && !['pm', 'admin'].includes(t.creator_role));
+// The assignee created it: always when it came from "Agregar tarea propia" (label), otherwise only for non-PM/admin roles
+const isSelfCreated = (t) => Boolean(t && t.creator_employee_id && t.creator_employee_id === t.assignee_id &&
+  (!['pm', 'admin'].includes(t.creator_role) || /tarea propia/i.test(String(t.labels || ''))));
 
 class AgileService {
   /**
@@ -501,9 +503,9 @@ class AgileService {
    * "Mis tareas": every task and subtask assigned to an employee, in the projects they belong to, with the sprints
    * those tasks are in (for the sprint filter). Newest sprint first; backlog tasks have no sprint.
    */
-  myTasks(employeeId) {
+  myTasks(employeeId, { allProjects = false } = {}) {
     if (!employeeId) return { tasks: [], sprints: [] };
-    const projects = this.projectsForEmployee(employeeId);
+    const projects = allProjects ? db.query('SELECT * FROM jira_projects') : this.projectsForEmployee(employeeId);
     const allowed = new Set(projects.map((p) => p.id));
     const byProject = new Map(projects.map((p) => [p.id, p]));
     const tasks = db.query(

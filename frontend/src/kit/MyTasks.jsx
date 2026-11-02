@@ -222,6 +222,7 @@ function OwnTaskForm({ myTasks, onClose, onCreated, notify }) {
       const t = await window.api.createTask(f.project, {
         title: f.title.trim(), description: f.description.trim(), estimateHours: Number(f.estimate) || 0, storyPoints: 0,
         sprintId: f.sprintId || null, parentId: parent ? parent.id : null, taskType: parent ? 'Subtask' : 'Task', labels: ['tarea propia'],
+        own: true, // the backend assigns it to whoever creates it
       });
       notify && notify(`${t.task_key} creada y asignada a ti • tu PM la verá marcada como tarea propia`);
       onCreated && onCreated(t);

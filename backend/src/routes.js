@@ -1228,7 +1228,13 @@ router.get('/tasks/search', authenticate, (req, res, next) => {
 });
 router.get('/projects/:key/tasks', authenticate, requireProjectMember, agileController.listTasks);
 router.post('/projects/:key/tasks', authenticate, requireProjectMember, (req, res, next) => {
-  if (projectScoped(req.user)) {
+  // "Agregar tarea propia" (#mytasks): whoever creates it — PM and admin included — is its assignee
+  if (req.body && req.body.own === true) {
+    if (!req.user || !req.user.employeeId) return res.status(400).json({ error: 'Tu usuario no está vinculado a un empleado: no se te puede asignar una tarea. Pide a HR que lo vincule.' });
+    const body = { ...req.body };
+    delete body.own; delete body.assignee_id; delete body.assignee_name; delete body.assigneeName;
+    req.body = { ...body, assigneeId: req.user.employeeId };
+  } else if (projectScoped(req.user)) {
     const body = { ...(req.body || {}) };
     delete body.assignee_id; delete body.assignee_name; delete body.assigneeName;
     req.body = { ...body, assigneeId: req.user.employeeId };
@@ -1237,7 +1243,8 @@ router.post('/projects/:key/tasks', authenticate, requireProjectMember, (req, re
 });
 // "Mis tareas": the caller's own queue, and done / reopen (same rule as moving a task: only your own, or PM/admin)
 router.get('/my/tasks', authenticate, (req, res, next) => {
-  try { res.json(agileService.myTasks(req.user && req.user.employeeId)); } catch (err) { next(err); }
+  // PM / admin may work on projects they are not members of: their queue covers every project
+  try { res.json(agileService.myTasks(req.user && req.user.employeeId, { allProjects: !projectScoped(req.user) })); } catch (err) { next(err); }
 });
 router.post('/tasks/:id/complete', authenticate, taskAccess({ write: true }), (req, res, next) => {
   try {

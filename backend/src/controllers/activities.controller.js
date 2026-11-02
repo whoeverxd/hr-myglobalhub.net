@@ -40,8 +40,8 @@ function listActivities({ empId, date, dateFrom, dateTo } = {}) {
   };
 
   // Task keys the employee created for themselves (not planned by the PM): flagged for the reviewer
-  const selfKeys = new Set(db.query('SELECT task_key, creator_employee_id, creator_role, assignee_id FROM project_tasks')
-    .filter((t) => t.creator_employee_id && t.creator_employee_id === t.assignee_id && !['pm', 'admin'].includes(t.creator_role))
+  const selfKeys = new Set(db.query('SELECT task_key, creator_employee_id, creator_role, assignee_id, labels FROM project_tasks')
+    .filter((t) => t.creator_employee_id && t.creator_employee_id === t.assignee_id && (!['pm', 'admin'].includes(t.creator_role) || /tarea propia/i.test(String(t.labels || ''))))
     .map((t) => String(t.task_key).toUpperCase()));
 
   return db.query(sql, params).map((a) => {
