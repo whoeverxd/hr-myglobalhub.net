@@ -68,6 +68,9 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   `#mytasks` "Mis tareas" (`MyTasks.jsx`, first menu item, every worker): own tasks + subtasks across member projects
   (`GET /my/tasks` → { tasks, sprints }), sprint filter (default: active sprint), done/reopen via
   `POST /tasks/:id/complete` { done } (first done status / project default; same `taskAccess` write rule).
+  "Agregar tarea propia" (unplanned work, reason required): tasks store `creator_employee_id` + `creator_role`;
+  `self_created` = the assignee created it and is not pm/admin. Shown as "Tarea propia" (accent, `SelfTaskBadge`) in
+  #mytasks, AgileWorkspace cards + "Creador" line, and on activities in #approvals (`activity.selfTask`).
   Wokokai moderation plan (Carmen design + Zain implementation per screen): `node scripts/create-moderation-tasks.js`
   (dry run) / `--apply` (asks CREAR), data in `scripts/data/wokokai-moderacion.js`.
   Backend enforcement in `routes.js` (`requireProjectMember`, `taskAccess`); task search is membership-scoped.

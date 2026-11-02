@@ -3,7 +3,7 @@ import DailyActivities from './DailyActivities.jsx';
 import AgileWorkspace from './AgileWorkspace.jsx';
 import MyProjects from './MyProjects.jsx';
 import PayoutMethods, { PendingPayoutMethods } from './PayoutMethods.jsx';
-import MyTasks from './MyTasks.jsx';
+import MyTasks, { SelfTaskBadge } from './MyTasks.jsx';
 import { api, errorMessage } from '../lib/api.js';
 import { getCurrentPeriod, getQuincenaForDate, getPeriodsForYear } from '../lib/periodService.js';
 
@@ -650,6 +650,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
       <div style={{ flex: 1, minWidth: 200 }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
           {a.jiraKey && <Badge mono size="sm" tone="primary">{a.jiraKey}</Badge>}
+          {a.selfTask && <SelfTaskBadge label="Tarea propia" title="Tarea creada por el propio empleado: no la planificó el PM" />}
           <span style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>{a.jiraSummary || a.workType || 'Actividad'}</span>
           {isReviewed(a) && <Badge size="sm" tone={REVIEW_TONE[a.reviewStatus]}>{REVIEW_LABEL[a.reviewStatus]}</Badge>}
           {(a.files || []).length + (a.links || []).length > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, font: '500 11px var(--font-sans)', color: 'var(--mgh-ink-3)' }}><Icon name="attach_file" size={14} />{(a.files || []).length + (a.links || []).length}</span>}
@@ -994,6 +995,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
         <div className="mgh-scroll" style={{ display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '65vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {a.jiraKey && <Badge mono tone="primary">{a.jiraKey}</Badge>}
+          {a.selfTask && <SelfTaskBadge label="Tarea propia del empleado • no planificada por el PM" />}
           <span style={{ font: '700 16px/22px var(--font-sans)', color: 'var(--mgh-ink)' }}>{a.jiraSummary || a.workType || 'Actividad'}</span>
           {isReviewed(a) ? <Badge tone={REVIEW_TONE[a.reviewStatus]}>{REVIEW_LABEL[a.reviewStatus]}</Badge> : <Badge tone="warning">Pendiente de revisión</Badge>}
         </div>

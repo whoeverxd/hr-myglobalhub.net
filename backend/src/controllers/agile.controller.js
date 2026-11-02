@@ -132,7 +132,7 @@ async function getTask(req, res, next) {
 async function createTask(req, res, next) {
   try {
     const { key } = req.params;
-    const task = agileService.createTask(key, req.body || {}, getUserName(req), getClientIp(req));
+    const task = agileService.createTask(key, req.body || {}, getUserName(req), getClientIp(req), { employeeId: req.user && req.user.employeeId, role: req.user && req.user.role });
     res.status(201).json(task);
   } catch (err) {
     next(err);

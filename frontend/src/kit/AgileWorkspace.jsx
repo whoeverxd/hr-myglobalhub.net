@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { SelfTaskBadge } from './MyTasks.jsx';
 
 export default function AgileWorkspace({
   currentProjectKey = null,
@@ -1696,6 +1697,14 @@ export default function AgileWorkspace({
               <IconButton icon="close" size="sm" onClick={() => setTaskModalOpen(false)} />
             </div>
 
+            {editingTask ? (
+              <div style={{ padding: '10px 20px', borderBottom: '1px solid var(--mgh-surface-2)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12, color: 'var(--mgh-ink-2)', background: editingTask.self_created ? 'rgba(0,148,204,.06)' : '#fff' }}>
+                <span style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', fontSize: 11, color: 'var(--mgh-ink-3)' }}>Creador</span>
+                <span style={{ fontWeight: 600, color: 'var(--mgh-ink)' }}>{editingTask.creator_name || editingTask.reporter_name || '—'}</span>
+                {editingTask.self_created ? <SelfTaskBadge label="El propio empleado • no planificada por el PM" /> : null}
+              </div>
+            ) : null}
+
             {/* Formulario */}
             <form onSubmit={handleSaveTask} style={{ padding: 20, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
               
@@ -2220,7 +2229,8 @@ function SubtaskBadges({ task }) {
   const DS = window.MyGlobalHubDesignSystem_2a603d || {};
   const { Badge } = DS;
   if (!Badge || !task) return null;
-  if (task.parent_key) return <Badge size="xs" tone="neutral" title={'Subtarea de ' + task.parent_key + (task.parent_title ? ' • ' + task.parent_title : '')}>↳ {task.parent_key}</Badge>;
-  if (task.subtask_count > 0) return <Badge size="xs" tone={task.subtask_done === task.subtask_count ? 'success' : 'info'} title="Subtareas hechas">{task.subtask_done}/{task.subtask_count} subtareas</Badge>;
-  return null;
+  const own = task.self_created ? <SelfTaskBadge label="Tarea propia" title={'La creó ' + (task.creator_name || 'el propio empleado') + ': no la planificó el PM'} /> : null;
+  if (task.parent_key) return <>{own}<Badge size="xs" tone="neutral" title={'Subtarea de ' + task.parent_key + (task.parent_title ? ' • ' + task.parent_title : '')}>↳ {task.parent_key}</Badge></>;
+  if (task.subtask_count > 0) return <>{own}<Badge size="xs" tone={task.subtask_done === task.subtask_count ? 'success' : 'info'} title="Subtareas hechas">{task.subtask_done}/{task.subtask_count} subtareas</Badge></>;
+  return own;
 }

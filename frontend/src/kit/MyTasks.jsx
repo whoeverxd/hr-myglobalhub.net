@@ -12,6 +12,13 @@ const isDone = (t) => Number(t.status_is_done) === 1;
 const PRIORITY_TONE = { Urgent: 'danger', High: 'warning', Medium: 'neutral', Low: 'neutral' };
 const PRIORITY_ES = { Urgent: 'Urgente', High: 'Alta', Medium: 'Media', Low: 'Baja' };
 
+// "Tarea propia": created by the worker, not planned by the PM. Shown in accent color everywhere the PM reviews work.
+export function SelfTaskBadge({ label = 'Tarea propia', title = 'La creó el propio empleado: no la planificó el PM' }) {
+  return <span title={title} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '1px 8px', borderRadius: 9999, border: '1px solid var(--mgh-accent,#0094CC)', background: 'rgba(0,148,204,.08)', color: 'var(--mgh-accent,#0094CC)', font: '700 11px/16px var(--font-sans)', whiteSpace: 'nowrap' }}>
+    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>person_edit</span>{label}
+  </span>;
+}
+
 export default function MyTasks({ go, notify }) {
   const DS = window.MyGlobalHubDesignSystem_2a603d || {};
   const { PageHeader, Card, StatCard, FilterChips, Badge, Button, Icon } = DS;
@@ -23,6 +30,7 @@ export default function MyTasks({ go, notify }) {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(null); // expanded task id
   const [busy, setBusy] = useState(null);
+  const [own, setOwn] = useState(null); // "Agregar tarea propia" form
 
   const load = useCallback(async () => {
     try { setData(await window.api.myTasks()); }
@@ -91,7 +99,10 @@ export default function MyTasks({ go, notify }) {
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 1600, margin: '0 auto' }}>
       {PageHeader ? <PageHeader breadcrumbs={['Mi trabajo', 'Mis tareas']} title="Mis tareas"
         description="Las tareas y subtareas que tienes asignadas en tus proyectos. Márcalas como completadas al terminarlas y registra tus horas en ellas."
-        actions={go ? <Button variant="secondary" icon="more_time" onClick={() => go('myentry')}>Registrar horas</Button> : null} /> : null}
+        actions={<>
+          <Button icon="add_task" onClick={() => setOwn({})}>Agregar tarea propia</Button>
+          {go ? <Button variant="secondary" icon="more_time" onClick={() => go('myentry')}>Registrar horas</Button> : null}
+        </>} /> : null}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14 }}>
         <StatCard label="Pendientes" value={String(counts.open)} icon="pending_actions" tone="warning" footer={curSprint ? curSprint.name : sprint === 'backlog' ? 'Sin sprint' : 'En el filtro actual'} />
@@ -134,6 +145,7 @@ export default function MyTasks({ go, notify }) {
                                 <b style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--mgh-primary)' }}>{t.task_key}</b>
                                 <span style={{ fontWeight: 600, color: done ? 'var(--mgh-ink-3)' : 'var(--mgh-ink)', textDecoration: done ? 'line-through' : 'none' }}>{t.title}</span>
                                 {t.priority && t.priority !== 'Medium' && Badge ? <Badge size="sm" tone={PRIORITY_TONE[t.priority] || 'neutral'}>{PRIORITY_ES[t.priority] || t.priority}</Badge> : null}
+                                {t.self_created ? <SelfTaskBadge label="Creada por ti" title="La agregaste tú: tu PM la verá marcada como tarea propia al revisar tus horas" /> : null}
                               </span>
                               <span style={{ font: '500 11px/15px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>
                                 {t.parent_key && depth === 0 ? `↳ subtarea de ${t.parent_key}${t.parent_title ? ' • ' + t.parent_title : ''}` : null}
@@ -164,6 +176,104 @@ export default function MyTasks({ go, notify }) {
                 </table>
               </div>}
       </Card>
+      {own ? <OwnTaskForm myTasks={tasks} sprintsHint={sprint} onClose={() => setOwn(null)} notify={notify} onCreated={() => { setOwn(null); load(); }} /> : null}
     </div>
   );
+}
+
+// A task the PM did not plan: the worker adds it to their own queue (assigned to themselves by the backend) and must
+// say why, so the PM understands it when reviewing the hours logged on it.
+function OwnTaskForm({ myTasks, onClose, onCreated, notify }) {
+  const DS = window.MyGlobalHubDesignSystem_2a603d || {};
+  const { Button } = DS;
+  const M = window.Modal;
+  const [projects, setProjects] = useState(null);
+  const [sprints, setSprints] = useState([]);
+  const [f, setF] = useState({ project: '', title: '', description: '', estimate: '', sprintId: '', parentId: '' });
+  const [saving, setSaving] = useState(false);
+  const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
+  useEffect(() => {
+    window.api.jiraProjects().then((list) => {
+      const ps = Array.isArray(list) ? list : [];
+      setProjects(ps);
+      if (ps.length === 1) setF((x) => ({ ...x, project: ps[0].key }));
+    }).catch(() => setProjects([]));
+  }, []);
+  useEffect(() => {
+    setSprints([]);
+    if (!f.project) return;
+    window.api.projectSprints(f.project).then((list) => {
+      const open = (Array.isArray(list) ? list : []).filter((s) => s.status !== 'COMPLETED');
+      setSprints(open);
+      const active = open.find((s) => s.status === 'ACTIVE');
+      setF((x) => ({ ...x, sprintId: active ? active.id : '', parentId: '' }));
+    }).catch(() => setSprints([]));
+  }, [f.project]);
+  const parents = (myTasks || []).filter((t) => t.project_key === f.project && !t.parent_id && Number(t.status_is_done) !== 1);
+  const field = { width: '100%', boxSizing: 'border-box', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--mgh-surface-3,#D5DAE6)', font: '500 13px/18px var(--font-sans)', color: 'var(--mgh-ink)', background: '#fff', outline: 'none' };
+  const label = { display: 'block', font: '600 12px/16px var(--font-sans)', color: 'var(--mgh-ink)', marginBottom: 6 };
+  const save = async () => {
+    if (!f.project) { notify && notify('Elige el proyecto'); return; }
+    if (!f.title.trim()) { notify && notify('Escribe el título de la tarea'); return; }
+    if (!f.description.trim()) { notify && notify('Explica por qué hace falta esta tarea: tu PM la revisará con tus horas'); return; }
+    setSaving(true);
+    try {
+      const parent = parents.find((t) => t.id === f.parentId);
+      const t = await window.api.createTask(f.project, {
+        title: f.title.trim(), description: f.description.trim(), estimateHours: Number(f.estimate) || 0, storyPoints: 0,
+        sprintId: f.sprintId || null, parentId: parent ? parent.id : null, taskType: parent ? 'Subtask' : 'Task', labels: ['tarea propia'],
+      });
+      notify && notify(`${t.task_key} creada y asignada a ti • tu PM la verá marcada como tarea propia`);
+      onCreated && onCreated(t);
+    } catch (err) {
+      notify && notify('No se pudo crear la tarea • ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+  const body = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(0,148,204,.08)', border: '1px solid rgba(0,148,204,.35)', font: '500 13px/19px var(--font-sans)', color: 'var(--mgh-ink)', display: 'flex', gap: 8 }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--mgh-accent,#0094CC)' }}>info</span>
+        <span>Para trabajo que tu PM no planificó. Quedará asignada a ti y marcada como <b>tarea propia</b>: tu PM la verá así al revisar tus horas y la nómina.</span>
+      </div>
+      <div>
+        <label style={label} htmlFor="own-project">Proyecto</label>
+        <select id="own-project" style={field} value={f.project} onChange={set('project')}>
+          <option value="">{projects == null ? 'Cargando…' : projects.length ? 'Elige el proyecto…' : 'No eres miembro de ningún proyecto'}</option>
+          {(projects || []).map((p) => <option key={p.key} value={p.key}>{p.name} ({p.key})</option>)}
+        </select>
+      </div>
+      <div>
+        <label style={label} htmlFor="own-title">Título</label>
+        <input id="own-title" style={field} value={f.title} onChange={set('title')} placeholder="Qué hiciste o vas a hacer" />
+      </div>
+      <div>
+        <label style={label} htmlFor="own-desc">¿Por qué hace falta? (obligatorio)</label>
+        <textarea id="own-desc" rows={4} style={{ ...field, resize: 'vertical' }} value={f.description} onChange={set('description')} placeholder="Ej.: el cliente pidió un cambio urgente que no estaba en el sprint…" />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,180px),1fr))', gap: 12 }}>
+        <div>
+          <label style={label} htmlFor="own-est">Horas estimadas (opcional)</label>
+          <input id="own-est" type="number" min="0" step="0.5" style={field} value={f.estimate} onChange={set('estimate')} />
+        </div>
+        <div>
+          <label style={label} htmlFor="own-sprint">Sprint</label>
+          <select id="own-sprint" style={field} value={f.sprintId} onChange={set('sprintId')} disabled={!f.project || !!f.parentId}>
+            <option value="">Sin sprint (backlog)</option>
+            {sprints.map((s) => <option key={s.id} value={s.id}>{s.name}{s.status === 'ACTIVE' ? ' (activo)' : ''}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={label} htmlFor="own-parent">Subtarea de (opcional)</label>
+          <select id="own-parent" style={field} value={f.parentId} onChange={set('parentId')} disabled={!f.project}>
+            <option value="">— Tarea independiente —</option>
+            {parents.map((t) => <option key={t.id} value={t.id}>{t.task_key} • {t.title}</option>)}
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+  const actions = <><Button variant="outline" disabled={saving} onClick={onClose}>Cancelar</Button><Button icon="add_task" disabled={saving} onClick={save}>{saving ? 'Creando…' : 'Crear tarea propia'}</Button></>;
+  return M ? <M open width={600} title="Agregar tarea propia" onClose={() => { if (!saving) onClose(); }} actions={actions}>{body}</M> : null;
 }

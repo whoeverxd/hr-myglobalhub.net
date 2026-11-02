@@ -11,6 +11,8 @@ const DEFAULT_STATUS_TEMPLATES = [
   { name: 'Done', category: 'done', color: '#10b981', is_default: 0, is_done: 1 },
 ];
 
+const isSelfCreated = (t) => Boolean(t && t.creator_employee_id && t.creator_employee_id === t.assignee_id && !['pm', 'admin'].includes(t.creator_role));
+
 class AgileService {
   /**
    * Obtener proyecto por ID o clave (case-insensitive)
@@ -483,6 +485,9 @@ class AgileService {
       const list = kids.get(r.id) || [];
       return {
         ...r,
+        // "Tarea propia": the assignee created it for themselves (an employee, not the PM / admin planning the work)
+        self_created: isSelfCreated(r),
+        creator_name: r.reporter_name || null,
         parent_key: parent ? parent.task_key : null,
         parent_title: parent ? parent.title : null,
         subtask_count: list.length,
@@ -560,7 +565,9 @@ class AgileService {
     return row ? this.withSubtaskInfo([row])[0] : row;
   }
 
-  createTask(projectKeyOrId, data, user = 'System', ip = '127.0.0.1') {
+  // creator: { employeeId, role } of the signed-in user (routes pass req.user); recorded to tell PM-planned work from
+  // a task the employee added for themselves
+  createTask(projectKeyOrId, data, user = 'System', ip = '127.0.0.1', creator = {}) {
     const proj = this.resolveProject(projectKeyOrId);
     if (!proj) throw new Error(`Proyecto no encontrado: ${projectKeyOrId}`);
 
@@ -615,8 +622,8 @@ class AgileService {
          assignee_id, assignee_name, assignee_avatar,
          reporter_id, reporter_name, order_index,
          origin_jira_key, origin_jira_url, labels,
-         created_at, updated_at, parent_id
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         created_at, updated_at, parent_id, creator_employee_id, creator_role
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, taskKey, proj.id, sprintId, statusId, title, description,
         taskType, priority, estimateHours, storyPoints,
@@ -625,7 +632,8 @@ class AgileService {
         originJiraKey, originJiraUrl, labels,
         // `DEFAULT (datetime('now'))` is a SQLite clause: initSchema() never runs on Firestore, so there the
         // column simply stayed empty and anything that ordered or filtered by it read a blank.
-        nowStamp(), nowStamp(), parent ? parent.id : null
+        nowStamp(), nowStamp(), parent ? parent.id : null,
+        (creator && creator.employeeId) || null, (creator && creator.role) || null
       ]
     );
 

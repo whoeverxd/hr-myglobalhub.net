@@ -39,6 +39,11 @@ function listActivities({ empId, date, dateFrom, dateTo } = {}) {
     return nameCache.get(empId);
   };
 
+  // Task keys the employee created for themselves (not planned by the PM): flagged for the reviewer
+  const selfKeys = new Set(db.query('SELECT task_key, creator_employee_id, creator_role, assignee_id FROM project_tasks')
+    .filter((t) => t.creator_employee_id && t.creator_employee_id === t.assignee_id && !['pm', 'admin'].includes(t.creator_role))
+    .map((t) => String(t.task_key).toUpperCase()));
+
   return db.query(sql, params).map((a) => {
     let files = [];
     let links = [];
@@ -70,6 +75,7 @@ function listActivities({ empId, date, dateFrom, dateTo } = {}) {
       meetingId: a.meeting_id || null,
       loggedBy: a.logged_by || null,
       loggedByName: nameOf(a.logged_by),
+      selfTask: Boolean(a.jira_key && selfKeys.has(String(a.jira_key).toUpperCase())),
     };
   });
 }
