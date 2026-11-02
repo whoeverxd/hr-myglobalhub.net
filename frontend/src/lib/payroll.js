@@ -10,7 +10,7 @@ const LOCKED=['Approved','Paid','Closed','Archived'];
 const STATUSES=['Draft','Open','Awaiting Employee Submission','Awaiting Supervisor Approval','Awaiting Project Manager Approval','Awaiting HR Approval','Awaiting Finance Approval','Processing Payroll','Approved','Paid','Closed','Archived'];
 const SHORT={'Awaiting Employee Submission':'Awaiting Employee','Awaiting Supervisor Approval':'Awaiting Supervisor','Awaiting Project Manager Approval':'Awaiting PM','Awaiting HR Approval':'Awaiting HR','Awaiting Finance Approval':'Awaiting Finance','Processing Payroll':'Processing'};
 const TONE=s=>s==='Draft'?'neutral':s==='Archived'||s==='Closed'?'dark':s==='Paid'||s==='Approved'?'success':s==='Open'?'info':'warning';
-const KIT=['ops','permissions','attendance','attDaily','actDaily','attCalendar','attExceptions','attLeave','attHolidays','attReports','attRules','languages','dashboard','approvals','queue','timesheets','employees','profile','payroll','processing','paystub','banking','jira','projects','reports','admin','settings','audit','contractors','contractorPayments'];
+const KIT=['ops','permissions','attendance','attDaily','actDaily','attCalendar','attExceptions','attLeave','attHolidays','attReports','attRules','languages','dashboard','approvals','queue','timesheets','employees','profile','payroll','processing','paystub','banking','projects','reports','admin','settings','audit','contractors','contractorPayments'];
 const NAV=[
  {label:'Overview',items:[{key:'ops',label:'Operations Center',icon:'monitor_heart'},{key:'dashboard',label:'Executive Dashboard',icon:'space_dashboard'},{key:'payroll',label:'Payroll Dashboard',icon:'monitoring'}]},
  {label:'Workforce',items:[{key:'mytime',label:'My Work',icon:'schedule'},{key:'addEmployee',label:'Add Employee',icon:'person_add'},{key:'approvals',label:'Approval Workspace',icon:'assignment_turned_in'},{key:'queue',label:'Team Approval Queue',icon:'fact_check'},{key:'timesheets',label:'Team Timesheets',icon:'more_time'},{key:'employees',label:'Employee Directory',icon:'badge'}]},
@@ -29,7 +29,7 @@ const NAV=[
  ]},
  {label:'Payroll & Finance',items:[{key:'periods',label:'Pay Periods',icon:'event_repeat'},{key:'adjustments',label:'Adjustments',icon:'tune'},{key:'processing',label:'Payroll Processing',icon:'payments'},{key:'paystub',label:'Pay Stubs',icon:'receipt_long'},{key:'banking',label:'Banking & Allocations',icon:'account_balance'},{key:'reports',label:'Reports & Register',icon:'bar_chart'}]},
  {label:'Contractors',items:[{key:'contractors',label:'Contractors',icon:'handshake'}]},
- {label:'Integrations',items:[{key:'jira',label:'Jira Cloud Sync',icon:'sync_alt',badgeTone:'onDarkSuccess'},{key:'projects',label:'Projects',icon:'folder_open'}]},
+ {label:'Integrations',items:[{key:'projects',label:'Projects',icon:'folder_open'}]},
  {label:'System / Administration',items:[{key:'admin',label:'Organization & Multi-HQ',icon:'hub'},{key:'workflows',label:'Approval Workflows',icon:'account_tree'},{key:'audit',label:'Audit Logs',icon:'shield_lock'},{key:'permissions',label:'Roles & Permissions',icon:'admin_panel_settings'},{key:'languages',label:'Languages',icon:'translate'},{key:'settings',label:'Settings',icon:'settings'}]}];
 // Real approval steps (workflow.js): employee submits → PM reviews each activity → Owner / Admin approves → paid.
 // No SLA or amount threshold is enforced by the backend, so none is shown.

@@ -822,7 +822,7 @@ export default class App extends React.Component {
   }
   crumbRoute(txt){
     const I=window.MGH_I18N,tr=x=>I?I.tx(x):x,eq=x=>x===txt||tr(x)===txt;
-    const extra={'Employee Directory':'employees','Workforce':'employees','Payroll & Finance':'periods','Enterprise Payroll':'periods','Cycles & Compliance':'periods','Employee Self-Service':'mytime','System':'admin','Administration':'admin','System / Administration':'admin','Approvals':'queue','Pay Stubs':'paystub','Contractors':'contractors','Integrations':'jira','Overview':'dashboard','Attendance & Time':'attendance','Attendance':'attendance','Operations':'ops','Operations Center':'ops','Permissions':'permissions','Roles & Permissions':'permissions','Languages':'languages','Daily Activities':'actDaily','Registro por actividades':'actDaily','Registro de jornada':'attDaily'};
+    const extra={'Employee Directory':'employees','Workforce':'employees','Payroll & Finance':'periods','Enterprise Payroll':'periods','Cycles & Compliance':'periods','Employee Self-Service':'mytime','System':'admin','Administration':'admin','System / Administration':'admin','Approvals':'queue','Pay Stubs':'paystub','Contractors':'contractors','Integrations':'projects','Overview':'dashboard','Attendance & Time':'attendance','Attendance':'attendance','Operations':'ops','Operations Center':'ops','Permissions':'permissions','Roles & Permissions':'permissions','Languages':'languages','Daily Activities':'actDaily','Registro por actividades':'actDaily','Registro de jornada':'attDaily'};
     for(const k in extra)if(eq(k))return extra[k];
     return null;
   }

@@ -75,7 +75,7 @@
     attLeave: ['leave.request', 'leave.approve.supervisor', 'leave.approve.hr'], attHolidays: ['attendance.view'], attReports: ['reports.view'], attRules: ['attendance.rules.manage'],
     periods: ['payroll.view'], adjustments: ['adjustments.manage'], processing: ['payroll.process'], paystub: ['payslips.view'], banking: ['banking.view'], reports: ['reports.view'],
     contractors: ['contractors.view'], contractorPayments: ['contractors.pay'],
-    jira: ['jira.view'], projects: ['projects.view'],
+    projects: ['projects.view'],
     admin: ['admin.org'], workflows: ['workflows.manage'], audit: ['audit.view'], languages: ['languages.manage'], settings: ['settings.manage'], permissions: ['rbac.view'],
     login: [],
   };

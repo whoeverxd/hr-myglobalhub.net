@@ -44,7 +44,6 @@ const NAV = [
     { key: 'paystub', label: 'Pay Stubs', icon: 'receipt_long' },
     { key: 'banking', label: 'Banking & Allocations', icon: 'account_balance' } ] },
   { label: 'Integrations', items: [
-    { key: 'jira', label: 'Jira Cloud Sync', icon: 'sync_alt' },
     { key: 'projects', label: 'Projects', icon: 'folder_open' } ] },
   { label: 'Insights', items: [{ key: 'reports', label: 'Reports & Register', icon: 'bar_chart' }] },
   { label: 'System', items: [
@@ -2044,180 +2043,6 @@ window.__MGH_KIT = Object.assign(window.__MGH_KIT || {}, { payroll: PayrollDashb
 const { Button, IconButton, Badge, Avatar, Icon, Card, FilterChips, StatCard, MetricTile, DataTable, TableToolbar, Pagination, ActivityFeed, Tabs, PageHeader, Select, ProgressBar, KeyValue, Toggle, TextField, Checkbox } = window.MyGlobalHubDesignSystem_2a603d;
 
 const PT = { 'On track': 'success', 'At risk': 'warning', 'Over budget': 'danger', 'Non-billable': 'neutral' };
-
-function JiraIntegration({ notify }) {
-  const [status, setStatus] = React.useState(null);
-  const [issues, setIssues] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
-  const [syncing, setSyncing] = React.useState(false);
-  const [errorMsg, setErrorMsg] = React.useState(null);
-
-  const loadData = React.useCallback(async () => {
-    if (!window.api) return;
-    setLoading(true);
-    try {
-      const [st, iss] = await Promise.all([
-        window.api.jiraStatus ? window.api.jiraStatus().catch(() => null) : null,
-        window.api.jiraIssues ? window.api.jiraIssues({ limit: 50 }).catch(() => []) : [],
-      ]);
-      if (st) {
-        setStatus(st);
-        if (st.connection && !st.connection.ok) {
-          setErrorMsg(st.connection.message);
-        } else {
-          setErrorMsg(null);
-        }
-      }
-      if (Array.isArray(iss)) {
-        setIssues(iss);
-      }
-    } catch (e) {
-      setErrorMsg('No se ha podido conectar con Jira');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const handleSyncNow = async () => {
-    if (!window.api || !window.api.syncJiraIssues) {
-      if (notify) notify('API de sincronización no disponible');
-      return;
-    }
-    setSyncing(true);
-    setErrorMsg(null);
-    try {
-      const res = await window.api.syncJiraIssues(status?.projectKey ? { projectKey: status.projectKey } : {});
-      if (res && res.ok) {
-        if (notify) notify(`Sincronización completada: ${res.syncedCount || 0} tareas actualizadas desde Jira Cloud`);
-        loadData();
-      } else {
-        const err = (res && res.error) || 'No se ha podido conectar con Jira';
-        setErrorMsg(err);
-        if (notify) notify(err);
-      }
-    } catch (err) {
-      const msg = 'No se ha podido conectar con Jira: ' + (err.message || 'Error de red');
-      setErrorMsg(msg);
-      if (notify) notify(msg);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  const isConnected = status?.connection?.ok;
-  const lastSyncStr = status?.sync?.last_sync_at ? new Date(status.sync.last_sync_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Pendiente';
-  const totalCached = issues.length || (status?.cachedCount || 0);
-
-  return <Page>
-    <PageHeader
-      breadcrumbs={['Integraciones', 'Sincronización Jira Cloud']}
-      title="Integración Jira Cloud"
-      status={
-        isConnected ? (
-          <Badge tone="success" dot>Conectado • {status?.host ? status.host.replace('https://', '') : 'Jira'} • Sincronizado {lastSyncStr}</Badge>
-        ) : (
-          <Badge tone="danger" dot>Desconectado • {status?.connection?.code ? `HTTP ${status.connection.code}` : 'Sin conexión'}</Badge>
-        )
-      }
-      actions={
-        <>
-          <Button variant="secondary" icon="refresh" onClick={loadData} disabled={loading || syncing}>
-            Refrescar
-          </Button>
-          <Button
-            icon={syncing ? 'sync' : 'sync'}
-            onClick={handleSyncNow}
-            disabled={syncing}
-          >
-            {syncing ? 'Sincronizando...' : 'Sync Now'}
-          </Button>
-        </>
-      }
-    />
-
-    {/* Alerta de conexión / Diagnóstico en vivo */}
-    {errorMsg && (
-      <div style={{
-        background: '#FEF2F2',
-        border: '1px solid #FCA5A5',
-        borderRadius: 10,
-        padding: '14px 18px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        color: '#991B1B',
-        marginBottom: 8
-      }}>
-        <Icon name="cloud_off" size={24} color="#DC2626" />
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700, fontSize: 13 }}>{errorMsg}</div>
-          <div style={{ fontSize: 12, color: '#B91C1C', marginTop: 2 }}>
-            La aplicación sigue usando las tareas ya guardadas en la base de datos ({totalCached} en total). Puedes registrar actividades mientras se restablece la conexión.
-          </div>
-        </div>
-        <Button size="sm" variant="secondary" onClick={handleSyncNow} disabled={syncing}>
-          Reintentar Conexión
-        </Button>
-      </div>
-    )}
-
-    <Grid min={220}>
-      <StatCard label="Tareas guardadas" value={String(totalCached)} icon="inventory_2" tone="accent" />
-      <StatCard label="Estado de sincronización" value={isConnected ? 'Conectado' : 'Sin conexión'} icon={isConnected ? 'check_circle' : 'database'} tone={isConnected ? 'success' : 'warning'} />
-      <StatCard label="Proyecto configurado" value={status?.projectKey || '—'} icon="folder_open" tone="primary" />
-      <StatCard label="Última sincronización" value={lastSyncStr} icon="history" delta={status?.sync?.status === 'SUCCESS' ? 'Completado' : (status?.sync?.status || undefined)} deltaTone={isConnected ? 'success' : 'neutral'} />
-    </Grid>
-
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.6fr) minmax(300px,1fr)', gap: 20 }}>
-      <Card icon="hub" title="Arquitectura de Datos" subtitle="Jira es la fuente; la aplicación guarda una copia de las tareas">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0' }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <div style={{ background: 'var(--mgh-surface-2)', padding: 8, borderRadius: 8 }}><Icon name="verified" size={20} color="var(--mgh-primary)" /></div>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--mgh-ink)' }}>Jira — Fuente Oficial</div>
-              <div style={{ fontSize: 12, color: 'var(--mgh-ink-2)' }}>Jira conserva la autoridad sobre tickets, estados y flujos. El sistema local no los altera, solo los proyecta de forma segura.</div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <div style={{ background: 'var(--mgh-surface-2)', padding: 8, borderRadius: 8 }}><Icon name="bolt" size={20} color="#10B981" /></div>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--mgh-ink)' }}>Copia en la base de datos de la aplicación</div>
-              <div style={{ fontSize: 12, color: 'var(--mgh-ink-2)' }}>Las tareas sincronizadas se guardan para el selector de actividades diarias y los reportes de conciliación.</div>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <Card icon="settings_ethernet" title="Conexión Jira Cloud">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <KeyValue label="Sitio Atlassian" value={status?.host ? status.host.replace('https://', '') : 'No configurado'} mono aside={<Badge tone={isConnected ? 'success' : 'warning'} size="sm">{status?.mode || (isConnected ? 'Conectado' : 'Sin conexión')}</Badge>} />
-          <KeyValue label="Proyecto" value={status?.projectKey || '—'} mono />
-          <KeyValue label="Cuenta / Correo" value={status?.email || 'No configurado'} mono />
-        </div>
-      </Card>
-    </div>
-
-    <Card icon="list_alt" title={`Tareas de Jira guardadas (${totalCached})`} bodyStyle={{ paddingTop: 14 }}>
-      <DataTable
-        density="compact"
-        rows={issues.map((iss, idx) => ({ id: iss.key || idx, ...iss }))}
-        columns={[
-          { key: 'key', label: 'Clave', render: r => <Badge mono size="sm" tone="primary">{r.key}</Badge> },
-          { key: 'summary', label: 'Título / Resumen', render: r => <span style={{ fontWeight: 600, color: 'var(--mgh-ink)' }}>{r.summary}</span> },
-          { key: 'type', label: 'Tipo', render: r => <Badge size="xs">{r.type || 'Task'}</Badge> },
-          { key: 'status', label: 'Estado', render: r => <Badge size="xs" tone={r.status === 'Done' ? 'success' : 'primary'}>{r.status}</Badge> },
-          { key: 'assignee', label: 'Responsable', render: r => r.assignee || 'Sin asignar' },
-          { key: 'estimate', label: 'Estimado', align: 'right', render: r => (r.estimate ? `${r.estimate}h` : '—') },
-          { key: 'url', label: 'Jira Cloud', align: 'right', render: r => r.url ? <a href={r.url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: 'var(--mgh-primary)', fontWeight: 600, fontSize: 12 }}>Abrir ↗</a> : '—' },
-        ]}
-      />
-    </Card>
-  </Page>;
-}
 
 // Employees, contractors and supervisors see only their projects (members-only); PM/admin get the full workspace
 function Projects(props) {
@@ -4689,7 +4514,7 @@ function AuditLog({ notify }) {
   </Page>;
 }
 
-window.__MGH_KIT = Object.assign(window.__MGH_KIT || {}, { jira: JiraIntegration, projects: Projects, reports: Reports, admin: Administration, settings: CompanySettings, audit: AuditLog });
+window.__MGH_KIT = Object.assign(window.__MGH_KIT || {}, { projects: Projects, reports: Reports, admin: Administration, settings: CompanySettings, audit: AuditLog });
 
 })();
 
@@ -5478,11 +5303,10 @@ function Operations({ go, notify }) {
   const R = MGH_RBAC, W = window.MGH_WF, [tick, setTick] = React.useState(Date.now());
   React.useEffect(() => { const t = setInterval(() => setTick(Date.now()), 15000); return () => clearInterval(t); }, []);
   // Live checks against the backend (null = still checking, false = failed)
-  const [hApi, setHApi] = React.useState(null), [hJira, setHJira] = React.useState(null);
+  const [hApi, setHApi] = React.useState(null);
   React.useEffect(() => {
     let cancel = false;
     window.api.health().then(r => { if (!cancel) setHApi(r || false); }).catch(() => { if (!cancel) setHApi(false); });
-    window.api.jiraStatus().then(r => { if (!cancel) setHJira(r || false); }).catch(() => { if (!cancel) setHJira(false); });
     return () => { cancel = true; };
   }, []);
   const E = EMPLOYEES.filter(e => R.canAny(['timesheets.view', 'timesheets.approve', 'payroll.generate'], e));
@@ -5507,7 +5331,6 @@ function Operations({ go, notify }) {
   ].filter(a => R.canRoute(a[3] ? 'queue' : 'queue') || true);
   const sevTone = { high: 'danger', medium: 'warning', low: 'neutral' };
   const health = [
-    ['Jira Cloud', hJira == null ? 'Checking…' : hJira && hJira.connection && hJira.connection.ok ? 'Connected' : 'Not connected' + (hJira && hJira.connection && hJira.connection.message ? ' • ' + hJira.connection.message : ''), hJira == null ? 'ink-4' : hJira && hJira.connection && hJira.connection.ok ? 'success' : 'danger', 'jira'],
     ['Back-end', hApi == null ? 'Checking…' : hApi && hApi.status === 'ok' ? 'Connected • ' + (hApi.dialect || 'database') : 'Unreachable', hApi == null ? 'ink-4' : hApi && hApi.status === 'ok' ? 'success' : 'danger', null],
     ['Exports', 'PDF / Excel / CSV / Print (generated in the browser)', 'success', 'reports'],
     ['Workflow', (W ? ['Employee', ...W.steps().map(s => s.label), 'Paid'].join(' → ') : '—'), 'success', 'workflows']];
