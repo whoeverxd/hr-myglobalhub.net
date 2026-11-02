@@ -68,6 +68,8 @@
   // Every route declares its permission (any-of). Missing route → denied.
   const ROUTES = {
     dashboard: ['dashboard.executive.view'], ops: ['ops.view'], payroll: ['dashboard.payroll.view'],
+    // Every signed-in worker has their own task queue
+    mytasks: [],
     mytime: ['timesheets.self', 'timesheets.approve'], myentry: ['timesheets.self'], mysheets: ['timesheets.self'], myhistory: ['timesheets.self'], addEmployee: ['employees.create'], empCreated: ['employees.create'],
     approvals: ['timesheets.approve', 'payroll.generate'], queue: ['timesheets.approve', 'timesheets.view'], timesheets: ['timesheets.view'],
     employees: ['employees.view'], profile: ['employees.view'],

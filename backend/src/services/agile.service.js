@@ -492,6 +492,44 @@ class AgileService {
     });
   }
 
+  /**
+   * "Mis tareas": every task and subtask assigned to an employee, in the projects they belong to, with the sprints
+   * those tasks are in (for the sprint filter). Newest sprint first; backlog tasks have no sprint.
+   */
+  myTasks(employeeId) {
+    if (!employeeId) return { tasks: [], sprints: [] };
+    const projects = this.projectsForEmployee(employeeId);
+    const allowed = new Set(projects.map((p) => p.id));
+    const byProject = new Map(projects.map((p) => [p.id, p]));
+    const tasks = db.query(
+      `SELECT pt.*, ps.name as status_name, ps.category as status_category, ps.color as status_color, ps.is_done as status_is_done,
+              s.name as sprint_name, s.status as sprint_status
+       FROM project_tasks pt
+       LEFT JOIN project_statuses ps ON pt.status_id = ps.id
+       LEFT JOIN sprints s ON pt.sprint_id = s.id
+       WHERE pt.assignee_id = ?`, [employeeId]
+    ).filter((t) => allowed.has(t.project_id))
+      .map((t) => ({ ...t, project_key: (byProject.get(t.project_id) || {}).key, project_name: (byProject.get(t.project_id) || {}).name }));
+    const sprintIds = [...new Set(tasks.map((t) => t.sprint_id).filter(Boolean))];
+    const sprints = sprintIds.map((id) => db.getOne('SELECT * FROM sprints WHERE id = ?', [id])).filter(Boolean)
+      .map((s) => ({ id: s.id, name: s.name, status: s.status, startDate: s.start_date, endDate: s.end_date, projectKey: (byProject.get(s.project_id) || {}).key }))
+      .sort((a, b) => (a.status === 'ACTIVE' ? -1 : 0) - (b.status === 'ACTIVE' ? -1 : 0) || String(b.startDate || '').localeCompare(String(a.startDate || '')));
+    return { tasks: this.withSubtaskInfo(tasks), sprints };
+  }
+
+  /** Marks a task done (first "done" status of its project) or reopens it (the project's default status) */
+  completeTask(taskId, done, user = 'System', ip = '127.0.0.1') {
+    const task = this.getTask(taskId);
+    if (!task) throw Object.assign(new Error('Tarea no encontrada.'), { status: 404 });
+    const statuses = this.ensureDefaultStatuses(task.project_id);
+    const target = done
+      ? statuses.find((s) => Number(s.is_done) === 1)
+      : statuses.find((s) => Number(s.is_default) === 1 && Number(s.is_done) !== 1) || statuses.find((s) => s.category === 'todo') || statuses.find((s) => Number(s.is_done) !== 1);
+    if (!target) throw Object.assign(new Error('El proyecto no tiene un estado para esto: pide al PM que lo configure.'), { status: 409 });
+    if (target.id === task.status_id) return task;
+    return this.updateTask(task.id, { statusId: target.id }, user, ip);
+  }
+
   /** Subtasks of a task, in key order */
   listSubtasks(taskIdOrKey) {
     const task = this.getTask(taskIdOrKey);

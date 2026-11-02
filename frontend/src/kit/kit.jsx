@@ -3,6 +3,7 @@ import DailyActivities from './DailyActivities.jsx';
 import AgileWorkspace from './AgileWorkspace.jsx';
 import MyProjects from './MyProjects.jsx';
 import PayoutMethods, { PendingPayoutMethods } from './PayoutMethods.jsx';
+import MyTasks from './MyTasks.jsx';
 import { api, errorMessage } from '../lib/api.js';
 import { getCurrentPeriod, getQuincenaForDate, getPeriodsForYear } from '../lib/periodService.js';
 
@@ -4514,7 +4515,7 @@ function AuditLog({ notify }) {
   </Page>;
 }
 
-window.__MGH_KIT = Object.assign(window.__MGH_KIT || {}, { projects: Projects, reports: Reports, admin: Administration, settings: CompanySettings, audit: AuditLog });
+window.__MGH_KIT = Object.assign(window.__MGH_KIT || {}, { mytasks: MyTasks, projects: Projects, reports: Reports, admin: Administration, settings: CompanySettings, audit: AuditLog });
 
 })();
 

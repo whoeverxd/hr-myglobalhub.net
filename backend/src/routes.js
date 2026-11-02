@@ -1235,6 +1235,16 @@ router.post('/projects/:key/tasks', authenticate, requireProjectMember, (req, re
   }
   return agileController.createTask(req, res, next);
 });
+// "Mis tareas": the caller's own queue, and done / reopen (same rule as moving a task: only your own, or PM/admin)
+router.get('/my/tasks', authenticate, (req, res, next) => {
+  try { res.json(agileService.myTasks(req.user && req.user.employeeId)); } catch (err) { next(err); }
+});
+router.post('/tasks/:id/complete', authenticate, taskAccess({ write: true }), (req, res, next) => {
+  try {
+    const done = !(req.body && req.body.done === false);
+    res.json(agileService.completeTask(req.params.id, done, getUserName(req), getClientIp(req)));
+  } catch (err) { next(err); }
+});
 router.get('/tasks/:id', authenticate, taskAccess(), agileController.getTask);
 router.put('/tasks/:id', authenticate, taskAccess({ write: true }), agileController.updateTask);
 router.patch('/tasks/:id/move', authenticate, taskAccess({ write: true }), agileController.moveTask);

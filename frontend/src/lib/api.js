@@ -348,6 +348,9 @@ export const api = {
   },
   createTask: (projectKey, payload) => request('POST', `/projects/${encodeURIComponent(projectKey)}/tasks`, payload),
   getTask: (taskId) => request('GET', `/tasks/${encodeURIComponent(taskId)}`),
+  // #mytasks: my own queue across my projects, and done / reopen
+  myTasks: () => request('GET', '/my/tasks'),
+  completeTask: (taskId, done = true) => request('POST', `/tasks/${encodeURIComponent(taskId)}/complete`, { done }),
   updateTask: (taskId, payload) => request('PUT', `/tasks/${encodeURIComponent(taskId)}`, payload),
   moveTask: (taskId, payload) => request('PATCH', `/tasks/${encodeURIComponent(taskId)}/move`, payload),
   deleteTask: (taskId) => request('DELETE', `/tasks/${encodeURIComponent(taskId)}`),
