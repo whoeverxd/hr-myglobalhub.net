@@ -65,6 +65,9 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   Subtasks: `project_tasks.parent_id` (one level, same project; `parentId`/`parentKey` on create, type 'Subtask'); a
   subtask follows its parent's sprint, deleting a parent deletes its subtasks; lists/search carry `parent_key`,
   `subtask_count/done/logged_hours`, `GET /tasks/:id` includes `subtasks`. Activities can be logged on a subtask.
+  `#mytasks` "Mis tareas" (`MyTasks.jsx`, first menu item, every worker): own tasks + subtasks across member projects
+  (`GET /my/tasks` → { tasks, sprints }), sprint filter (default: active sprint), done/reopen via
+  `POST /tasks/:id/complete` { done } (first done status / project default; same `taskAccess` write rule).
   Wokokai moderation plan (Carmen design + Zain implementation per screen): `node scripts/create-moderation-tasks.js`
   (dry run) / `--apply` (asks CREAR), data in `scripts/data/wokokai-moderacion.js`.
   Backend enforcement in `routes.js` (`requireProjectMember`, `taskAccess`); task search is membership-scoped.
