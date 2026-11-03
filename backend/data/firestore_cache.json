@@ -27104,6 +27104,248 @@
       "created_at": "2026-11-02T21:26:50.120Z",
       "id": "2315"
     },
+    "2316": {
+      "actor": "User",
+      "action": "USER_LOGOUT",
+      "entity_type": "session",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "old_values": null,
+      "new_values": null,
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T02:03:40.158Z",
+      "id": "2316"
+    },
+    "2317": {
+      "actor": "Admin System",
+      "action": "BANK_CREATED",
+      "entity_type": "bank",
+      "entity_id": "BNK-1793680133531-o8u0",
+      "old_values": null,
+      "new_values": "{\"name\":\"Banco Popular Dominicano\",\"country\":\"República Dominicana\",\"swift\":\"\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T04:28:53.555Z",
+      "id": "2317"
+    },
+    "2318": {
+      "actor": "Admin System",
+      "action": "BANK_CREATED",
+      "entity_type": "bank",
+      "entity_id": "BNK-1793680133556-cpi8",
+      "old_values": null,
+      "new_values": "{\"name\":\"Banreservas\",\"country\":\"República Dominicana\",\"swift\":\"\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T04:28:53.556Z",
+      "id": "2318"
+    },
+    "2319": {
+      "actor": "Admin System",
+      "action": "BANK_CREATED",
+      "entity_type": "bank",
+      "entity_id": "BNK-1793680133558-gpjj",
+      "old_values": null,
+      "new_values": "{\"name\":\"Banco BHD\",\"country\":\"República Dominicana\",\"swift\":\"\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T04:28:53.559Z",
+      "id": "2319"
+    },
+    "2320": {
+      "actor": "Admin System",
+      "action": "BANK_CREATED",
+      "entity_type": "bank",
+      "entity_id": "BNK-1793680133559-dda5",
+      "old_values": null,
+      "new_values": "{\"name\":\"Scotiabank\",\"country\":\"República Dominicana\",\"swift\":\"\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T04:28:53.559Z",
+      "id": "2320"
+    },
+    "2321": {
+      "actor": "Admin System",
+      "action": "BANK_CREATED",
+      "entity_type": "bank",
+      "entity_id": "BNK-1793680133560-mja8",
+      "old_values": null,
+      "new_values": "{\"name\":\"Banco Santa Cruz\",\"country\":\"República Dominicana\",\"swift\":\"\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T04:28:53.561Z",
+      "id": "2321"
+    },
+    "2322": {
+      "actor": "Admin System",
+      "action": "BANK_CREATED",
+      "entity_type": "bank",
+      "entity_id": "BNK-1793680133561-6cp3",
+      "old_values": null,
+      "new_values": "{\"name\":\"Banco Promerica\",\"country\":\"República Dominicana\",\"swift\":\"\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T04:28:53.561Z",
+      "id": "2322"
+    },
+    "2323": {
+      "actor": "Admin System",
+      "action": "BANK_CREATED",
+      "entity_type": "bank",
+      "entity_id": "BNK-1793680133563-awbo",
+      "old_values": null,
+      "new_values": "{\"name\":\"Banesco\",\"country\":\"República Dominicana\",\"swift\":\"\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T04:28:53.564Z",
+      "id": "2323"
+    },
+    "2324": {
+      "actor": "Admin System",
+      "action": "BANK_CREATED",
+      "entity_type": "bank",
+      "entity_id": "BNK-1793680133564-2mg2",
+      "old_values": null,
+      "new_values": "{\"name\":\"Banco Caribe\",\"country\":\"República Dominicana\",\"swift\":\"\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T04:28:53.564Z",
+      "id": "2324"
+    },
+    "2325": {
+      "actor": "Admin System",
+      "action": "BANK_CREATED",
+      "entity_type": "bank",
+      "entity_id": "BNK-1793680133564-6hwo",
+      "old_values": null,
+      "new_values": "{\"name\":\"Banco BDI\",\"country\":\"República Dominicana\",\"swift\":\"\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T04:28:53.564Z",
+      "id": "2325"
+    },
+    "2326": {
+      "actor": "Admin System",
+      "action": "BANK_CREATED",
+      "entity_type": "bank",
+      "entity_id": "BNK-1793680133564-2cnk",
+      "old_values": null,
+      "new_values": "{\"name\":\"Banco Vimenca\",\"country\":\"República Dominicana\",\"swift\":\"\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T04:28:53.565Z",
+      "id": "2326"
+    },
+    "2327": {
+      "actor": "Admin System",
+      "action": "BANK_CREATED",
+      "entity_type": "bank",
+      "entity_id": "BNK-1793680133565-war4",
+      "old_values": null,
+      "new_values": "{\"name\":\"Banco López de Haro\",\"country\":\"República Dominicana\",\"swift\":\"\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T04:28:53.565Z",
+      "id": "2327"
+    },
+    "2328": {
+      "actor": "Admin System",
+      "action": "BANK_CREATED",
+      "entity_type": "bank",
+      "entity_id": "BNK-1793680133565-7a9w",
+      "old_values": null,
+      "new_values": "{\"name\":\"Banco Ademi\",\"country\":\"República Dominicana\",\"swift\":\"\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T04:28:53.566Z",
+      "id": "2328"
+    },
+    "2329": {
+      "actor": "Admin System",
+      "action": "BANK_CREATED",
+      "entity_type": "bank",
+      "entity_id": "BNK-1793680133568-xuim",
+      "old_values": null,
+      "new_values": "{\"name\":\"Banco Lafise\",\"country\":\"República Dominicana\",\"swift\":\"\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T04:28:53.568Z",
+      "id": "2329"
+    },
+    "2330": {
+      "actor": "Admin System",
+      "action": "BANK_CREATED",
+      "entity_type": "bank",
+      "entity_id": "BNK-1793680133568-ziv4",
+      "old_values": null,
+      "new_values": "{\"name\":\"Asociación Popular de Ahorros y Préstamos (APAP)\",\"country\":\"República Dominicana\",\"swift\":\"\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T04:28:53.569Z",
+      "id": "2330"
+    },
+    "2331": {
+      "actor": "Admin System",
+      "action": "BANK_CREATED",
+      "entity_type": "bank",
+      "entity_id": "BNK-1793680133569-hwlw",
+      "old_values": null,
+      "new_values": "{\"name\":\"Asociación Cibao de Ahorros y Préstamos\",\"country\":\"República Dominicana\",\"swift\":\"\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T04:28:53.569Z",
+      "id": "2331"
+    },
+    "2332": {
+      "actor": "Admin System",
+      "action": "BANK_CREATED",
+      "entity_type": "bank",
+      "entity_id": "BNK-1793680133569-3xhb",
+      "old_values": null,
+      "new_values": "{\"name\":\"Asociación La Nacional\",\"country\":\"República Dominicana\",\"swift\":\"\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T04:28:53.570Z",
+      "id": "2332"
+    },
+    "2333": {
+      "actor": "Admin System",
+      "action": "BANK_CREATED",
+      "entity_type": "bank",
+      "entity_id": "BNK-1793680133570-w17m",
+      "old_values": null,
+      "new_values": "{\"name\":\"Qik Banco Digital\",\"country\":\"República Dominicana\",\"swift\":\"\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T04:28:53.570Z",
+      "id": "2333"
+    },
+    "2334": {
+      "actor": "Admin System",
+      "action": "BANK_UPDATED",
+      "entity_type": "bank",
+      "entity_id": "BNK-1793680133569-hwlw",
+      "old_values": "{\"name\":\"Asociación Cibao de Ahorros y Préstamos\",\"active\":1}",
+      "new_values": "{\"name\":\"Asociación Cibao de Ahorros y Préstamos\",\"active\":1}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T04:29:08.977Z",
+      "id": "2334"
+    },
+    "2335": {
+      "actor": "Joshua Hernandez",
+      "action": "USER_LOGIN",
+      "entity_type": "user",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "old_values": null,
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T05:10:38.745Z",
+      "id": "2335"
+    },
+    "2336": {
+      "actor": "User",
+      "action": "USER_LOGOUT",
+      "entity_type": "session",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "old_values": null,
+      "new_values": null,
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T05:11:05.278Z",
+      "id": "2336"
+    },
+    "2337": {
+      "actor": "Admin System",
+      "action": "USER_LOGIN",
+      "entity_type": "user",
+      "entity_id": "usr-admin",
+      "old_values": null,
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"admin\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-03T05:11:18.374Z",
+      "id": "2337"
+    },
     "BGtgrxiGlfggBaSVC0F5": {
       "id": "BGtgrxiGlfggBaSVC0F5",
       "actor": "set-admin-password script",
@@ -35083,14 +35325,6 @@
       "ip_address": "127.0.0.1",
       "token": "22ecd025240a5ece975e908b5ce696d226c65300132f5f2b710b382d1a329fc9"
     },
-    "doc_1793382074129_hv7k7": {
-      "id": "doc_1793382074129_hv7k7",
-      "expires_at": "2026-11-06T17:41:14.128Z",
-      "user_id": "usr_1793131618127_8yfuy",
-      "created_at": "2026-10-30T17:41:14.129Z",
-      "ip_address": "127.0.0.1",
-      "token": "11d3150484cfc5eb8e80329275740db7198c96e449b32218edb96a7e0ab66160"
-    },
     "doc_1793385456585_aigoa": {
       "id": "doc_1793385456585_aigoa",
       "expires_at": "2026-11-06T18:37:36.584Z",
@@ -35188,6 +35422,14 @@
       "created_at": "2026-10-23 21:17:44",
       "ip_address": "127.0.0.1",
       "token": "e4314d016fc2bd667adc0e94ee05f4e4e18bca42f900eb795ca78945940cffd4"
+    },
+    "doc_1793682678373_7u6nl": {
+      "token": "6ec02ec471ed9d5cb710c32aa0c36bd265e001503bd4c83b30e0ec54195051cf",
+      "user_id": "usr-admin",
+      "ip_address": "127.0.0.1",
+      "expires_at": "2026-11-10T05:11:18.373Z",
+      "created_at": "2026-11-03T05:11:18.373Z",
+      "id": "doc_1793682678373_7u6nl"
     }
   },
   "sprints": {
@@ -35688,7 +35930,7 @@
       "updated_at": "2026-10-30 01:59:10",
       "password_hash": "cff7411cf04feb694b2523eb631017c37420859ee87b092c5326bc99daa0b86060c30df96df80f34c5bfa3db5cb9bf18ccb784485fb54d2aacc4bdedc446c769",
       "avatar": "https://lh3.googleusercontent.com/a-/ALV-UjU3--eWMWcQ5s9EzMsKcM-02fm-h6oG7Nk2xjq1ZhaP0GN0SplAuRfboufPzTdR18kAOr51-PqUEqFbAOvndGfifhWsD7DnTP5ZwX1Wkrd5lQ-TW9C1yGjCeHbqaS_NMQvEixS0O5SuUFGYoJYqI3Dat394Yrcm0scPpNjOG_5V7eJcZcNQ_yndpNxutmthzLuD3cg2ZczRLqqfcKCGFU9QjSY0eY5ueYpEVi4VpDw2BvQiDyF4ZtinI5knCrIPiykqDFQ5bJOd7X4_UzamyAdNFtjgH-GyLEGhvef_Xuvmm70i8SSOTTqTnWrMhzwnMZv1A--VMHWmgI6-kLqXsz2Kn2xCOuc5huPl4oMcXY7-roa0FyyceXQPp-GDg04Q7yKeKj7E_yqh36U-J6sYFq_UfqLL7sH35sY3-xPyPRB5bPMchHnEHzPI1U0t1ZSBusJZvpgaY81JzA3PiHTM9HOTU6AHHCKbssmt8t9qRmepzZ9oHf-ZnUw2Eb53ghf07uuXRKwblwGuHdLVCaCt1N0tM4iX80Su2_hFzDBUdRSS_RSnp5p-5uVecmb0PJVcSb5__iWhgBqPlaCxPn79zRum7dFkGTg964nMctaYK4mRa3oq1F2rI8F3LOhYT0nL08C6mBbthPe3zEZqNXfzlZ69kf6cXaF-MnVxiLLz8CsIaF6bf8c9bFKKJNHxc3bGovJvdr3qQJUo_59PioFsmmUi77GdQUkuE42MbLpHyZhQ3OSAVPWm5L-uvRCq4RmMu_DXTVemCd0Sa_QbxeK8Ur-CAJKhKOxwq7mHQBT3kkyJTG1Ym15MyzSllglezGt_8OyzIR-pxeZ-Ey0EG0gUukt_rRfDLX8Go_c5CjmwNaGiVwO6_21zs_scICFFyli7oq_t7RxKmX650eQX9_gxVe_glMHKttl2cvuluqLpazLFK1VcS581jPKxR0Vhm5sthP6V2npfifrbTZ20LHySjL52WtDntJMRXKPbcyDiq-EHadvfV_SIcrRrM3FrI8V7raOV_xKcAwgPEOltuJ8GtSuKjim1oFEqyg5Ak7GMWCO6e9_IGJcX6pX6tfQ=s96-c",
-      "last_login_at": "2026-10-31T18:02:11.145Z"
+      "last_login_at": "2026-11-03T05:11:18.374Z"
     },
     "usr-admin-com": {
       "id": "usr-admin-com",
@@ -35805,7 +36047,7 @@
       "name": "Joshua Hernandez",
       "updated_at": "2026-10-30T00:51:27.428Z",
       "role": "pm",
-      "last_login_at": "2026-10-31T18:13:37.516Z"
+      "last_login_at": "2026-11-03T05:10:38.745Z"
     },
     "usr_1793141848610_ilsyi": {
       "id": "usr_1793141848610_ilsyi",
@@ -35974,5 +36216,178 @@
   "attendance_exceptions": {},
   "contractors": {},
   "contractor_payments": {},
-  "payroll_runs": {}
+  "payroll_runs": {},
+  "payout_methods": {},
+  "banks": {
+    "BNK-1793680133531-o8u0": {
+      "id": "BNK-1793680133531-o8u0",
+      "name": "Banco Popular Dominicano",
+      "country": "República Dominicana",
+      "swift": null,
+      "active": 1,
+      "created_by": "Admin System",
+      "created_at": "2026-11-03T04:28:53.533Z",
+      "updated_at": "2026-11-03T04:28:53.533Z"
+    },
+    "BNK-1793680133556-cpi8": {
+      "id": "BNK-1793680133556-cpi8",
+      "name": "Banreservas",
+      "country": "República Dominicana",
+      "swift": null,
+      "active": 1,
+      "created_by": "Admin System",
+      "created_at": "2026-11-03T04:28:53.556Z",
+      "updated_at": "2026-11-03T04:28:53.556Z"
+    },
+    "BNK-1793680133558-gpjj": {
+      "id": "BNK-1793680133558-gpjj",
+      "name": "Banco BHD",
+      "country": "República Dominicana",
+      "swift": null,
+      "active": 1,
+      "created_by": "Admin System",
+      "created_at": "2026-11-03T04:28:53.558Z",
+      "updated_at": "2026-11-03T04:28:53.558Z"
+    },
+    "BNK-1793680133559-dda5": {
+      "id": "BNK-1793680133559-dda5",
+      "name": "Scotiabank",
+      "country": "República Dominicana",
+      "swift": null,
+      "active": 1,
+      "created_by": "Admin System",
+      "created_at": "2026-11-03T04:28:53.559Z",
+      "updated_at": "2026-11-03T04:28:53.559Z"
+    },
+    "BNK-1793680133560-mja8": {
+      "id": "BNK-1793680133560-mja8",
+      "name": "Banco Santa Cruz",
+      "country": "República Dominicana",
+      "swift": null,
+      "active": 1,
+      "created_by": "Admin System",
+      "created_at": "2026-11-03T04:28:53.560Z",
+      "updated_at": "2026-11-03T04:28:53.560Z"
+    },
+    "BNK-1793680133561-6cp3": {
+      "id": "BNK-1793680133561-6cp3",
+      "name": "Banco Promerica",
+      "country": "República Dominicana",
+      "swift": null,
+      "active": 1,
+      "created_by": "Admin System",
+      "created_at": "2026-11-03T04:28:53.561Z",
+      "updated_at": "2026-11-03T04:28:53.561Z"
+    },
+    "BNK-1793680133563-awbo": {
+      "id": "BNK-1793680133563-awbo",
+      "name": "Banesco",
+      "country": "República Dominicana",
+      "swift": null,
+      "active": 1,
+      "created_by": "Admin System",
+      "created_at": "2026-11-03T04:28:53.564Z",
+      "updated_at": "2026-11-03T04:28:53.564Z"
+    },
+    "BNK-1793680133564-2mg2": {
+      "id": "BNK-1793680133564-2mg2",
+      "name": "Banco Caribe",
+      "country": "República Dominicana",
+      "swift": null,
+      "active": 1,
+      "created_by": "Admin System",
+      "created_at": "2026-11-03T04:28:53.564Z",
+      "updated_at": "2026-11-03T04:28:53.564Z"
+    },
+    "BNK-1793680133564-6hwo": {
+      "id": "BNK-1793680133564-6hwo",
+      "name": "Banco BDI",
+      "country": "República Dominicana",
+      "swift": null,
+      "active": 1,
+      "created_by": "Admin System",
+      "created_at": "2026-11-03T04:28:53.564Z",
+      "updated_at": "2026-11-03T04:28:53.564Z"
+    },
+    "BNK-1793680133564-2cnk": {
+      "id": "BNK-1793680133564-2cnk",
+      "name": "Banco Vimenca",
+      "country": "República Dominicana",
+      "swift": null,
+      "active": 1,
+      "created_by": "Admin System",
+      "created_at": "2026-11-03T04:28:53.564Z",
+      "updated_at": "2026-11-03T04:28:53.564Z"
+    },
+    "BNK-1793680133565-war4": {
+      "id": "BNK-1793680133565-war4",
+      "name": "Banco López de Haro",
+      "country": "República Dominicana",
+      "swift": null,
+      "active": 1,
+      "created_by": "Admin System",
+      "created_at": "2026-11-03T04:28:53.565Z",
+      "updated_at": "2026-11-03T04:28:53.565Z"
+    },
+    "BNK-1793680133565-7a9w": {
+      "id": "BNK-1793680133565-7a9w",
+      "name": "Banco Ademi",
+      "country": "República Dominicana",
+      "swift": null,
+      "active": 1,
+      "created_by": "Admin System",
+      "created_at": "2026-11-03T04:28:53.565Z",
+      "updated_at": "2026-11-03T04:28:53.565Z"
+    },
+    "BNK-1793680133568-xuim": {
+      "id": "BNK-1793680133568-xuim",
+      "name": "Banco Lafise",
+      "country": "República Dominicana",
+      "swift": null,
+      "active": 1,
+      "created_by": "Admin System",
+      "created_at": "2026-11-03T04:28:53.568Z",
+      "updated_at": "2026-11-03T04:28:53.568Z"
+    },
+    "BNK-1793680133568-ziv4": {
+      "id": "BNK-1793680133568-ziv4",
+      "name": "Asociación Popular de Ahorros y Préstamos (APAP)",
+      "country": "República Dominicana",
+      "swift": null,
+      "active": 1,
+      "created_by": "Admin System",
+      "created_at": "2026-11-03T04:28:53.568Z",
+      "updated_at": "2026-11-03T04:28:53.568Z"
+    },
+    "BNK-1793680133569-hwlw": {
+      "id": "BNK-1793680133569-hwlw",
+      "name": "Asociación Cibao de Ahorros y Préstamos",
+      "country": "República Dominicana",
+      "swift": null,
+      "active": 1,
+      "created_by": "Admin System",
+      "created_at": "2026-11-03T04:28:53.569Z",
+      "updated_at": "2026-11-03T04:29:08.976Z"
+    },
+    "BNK-1793680133569-3xhb": {
+      "id": "BNK-1793680133569-3xhb",
+      "name": "Asociación La Nacional",
+      "country": "República Dominicana",
+      "swift": null,
+      "active": 1,
+      "created_by": "Admin System",
+      "created_at": "2026-11-03T04:28:53.569Z",
+      "updated_at": "2026-11-03T04:28:53.569Z"
+    },
+    "BNK-1793680133570-w17m": {
+      "id": "BNK-1793680133570-w17m",
+      "name": "Qik Banco Digital",
+      "country": "República Dominicana",
+      "swift": null,
+      "active": 1,
+      "created_by": "Admin System",
+      "created_at": "2026-11-03T04:28:53.570Z",
+      "updated_at": "2026-11-03T04:28:53.570Z"
+    }
+  }
 }
