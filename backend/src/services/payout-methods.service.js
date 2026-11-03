@@ -106,11 +106,7 @@ function validate(type, input = {}, { keepBank = null } = {}) {
   if (type === 'bank') {
     // Once the catalog exists, the bank comes from it (name normalized to the catalog's spelling)
     const banks = require('./banks.service');
-    if (banks.inUse() && !(keepBank && out.bank_name.toLowerCase() === String(keepBank).toLowerCase())) {
-      const name = banks.match(out.bank_name);
-      if (!name) throw fail(400, `El banco "${out.bank_name}" no está en la lista de bancos: pide a HR o a un administrador que lo añada.`);
-      out.bank_name = name;
-    }
+    out.bank_name = banks.resolve(out.bank_name, keepBank);
   }
   return out;
 }

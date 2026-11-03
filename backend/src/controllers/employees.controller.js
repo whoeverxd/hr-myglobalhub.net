@@ -165,6 +165,9 @@ function createEmployee(data, user = 'System', ip = '127.0.0.1', actorRole = nul
     }
   }
 
+  // The primary bank comes from the bank catalog (#banks) once it has banks
+  if (data.bank) data = { ...data, bank: require('../services/banks.service').resolve(data.bank) };
+
   const id = getNextEmployeeId();
   const pending = Array.isArray(data.pending) ? data.pending : [];
   const status = pending.length ? 'Pending Onboarding' : 'Active';
@@ -409,7 +412,7 @@ function updateEmployee(id, data, { user = 'System', ip = '127.0.0.1' } = {}) {
   const ot = data.ot !== undefined ? (data.ot ? 1 : 0) : (current.ot ? 1 : 0);
   const tax = data.tax !== undefined ? data.tax : current.tax;
   const pmethod = data.pmethod !== undefined ? data.pmethod : current.pmethod;
-  const bank = data.bank !== undefined ? data.bank : current.bank;
+  const bank = data.bank !== undefined ? (require('../services/banks.service').resolve(data.bank, current.bank) || null) : current.bank;
   const acct = data.acct !== undefined ? data.acct : current.acct;
   const routing = data.routing !== undefined ? data.routing : current.routing;
   const alloc = data.alloc !== undefined ? Number(data.alloc) : current.alloc;

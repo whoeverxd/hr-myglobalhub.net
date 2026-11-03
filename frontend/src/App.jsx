@@ -2,6 +2,7 @@ import React, { Fragment } from 'react';
 import { DS } from './design-system';
 import { KitScreen } from './kit/kit.jsx';
 import MyTimeView from './kit/MyTimeView.jsx';
+import { bankOptions } from './kit/BanksAdmin.jsx';
 import { api } from './lib/api';
 import { getCurrentPeriod, getQuincenaForDate, getPeriodsForYear, localDateStr } from './lib/periodService';
 import { DAY, MON, U, add, f, fy, LOCKED, STATUSES, SHORT, TONE, KIT, NAV, STAGE_INFO, RULES, RTONE, ADJ, ATONE, PAYCALC, fmtC, money, CATS, CAT_PH, DOW, tm, hm, h1 } from './lib/payroll';
@@ -809,7 +810,7 @@ export default class App extends React.Component {
     if (!myEmpId) return;
     (days||this.state.myDays).forEach(e=>{if(e.type==='Regular'&&(e.in||e.out))A.setPunches(myEmpId,e.d.toISOString().slice(0,10),e);});
   }
-  componentDidUpdate(pp,ps){if(ps&&ps.myDays!==this.state.myDays)this.syncAtt();const st=window.__mghStub,sp=this.state.stubPay;if((st?st.id+'|'+st.period:null)!==(sp?sp.key:null))this.loadStubPayout();}
+  componentDidUpdate(pp,ps){if(ps&&ps.myDays!==this.state.myDays)this.syncAtt();if(this.state.route==='addEmployee'&&this.state.bankCatalog===undefined)this.loadBankCatalog();const st=window.__mghStub,sp=this.state.stubPay;if((st?st.id+'|'+st.period:null)!==(sp?sp.key:null))this.loadStubPayout();}
   applyLeave(){
     const A=window.MGH_ATT;if(!A)return;
     const myEmpId = this.state.currentUser && (this.state.currentUser.employeeId || this.state.currentUser.employee_id);
@@ -963,6 +964,9 @@ export default class App extends React.Component {
     };
   }
 
+  // Bank catalog (#banks) for Add Employee: once it has banks, the bank is picked from it
+  loadBankCatalog(){this.setState({bankCatalog:null});api.banks().then(b=>this.setState({bankCatalog:Array.isArray(b)?b:[]})).catch(()=>this.setState({bankCatalog:[]}));}
+
   addVals(){
     const n=this.state.ne,S=k=>v=>this.setNE(k,typeof v==='string'||typeof v==='boolean'?v:(v&&v.target?(v.target.type==='checkbox'?v.target.checked:v.target.value):v));
     const T=(k,label,o={})=>({isText:true,isSelect:false,isToggle:false,label,value:n[k],set:S(k),ph:o.ph||'',hint:o.hint||'',err:o.err||'',mono:!!o.mono,type:o.type||'text',prefix:o.prefix,suffix:o.suffix});
@@ -981,7 +985,7 @@ export default class App extends React.Component {
     const sd=/^\d{4}-\d{2}-\d{2}$/.test(n.start||'')?new Date(n.start+'T00:00:00'):null;let firstP='—';if(sd&&!isNaN(sd)){const q=getQuincenaForDate(sd);firstP=q.code+' ('+q.rangeShort+')'}
     // Approval route comes from the live workflow configuration (Approval Workflows), not a typed list
     const WFa=window.MGH_WF,flowText=['Empleado',...(WFa?WFa.steps().map(x=>x.label):[]),'Pagado'].join(' → ');
-    const SEL={value:'',label:'Seleccione…'},sup=n.mgr||'—';
+    const SEL={value:'',label:'Seleccione…'},sup=n.mgr||'—',cat=this.state.bankCatalog;
     const st=b=>b?'done':'pending';const cur=[personal,employ,pay,bank,jira].indexOf(false);
     const missing=[];if(!personal)missing.push('personal info');if(!employ)missing.push('job title & start date');if(!pay)missing.push('hourly rate');if(useBank&&!(n.bank&&n.acct&&n.route&&allocOk))missing.push('bank details');if(!cbOk)missing.push('Coinbase payout details');
     return {
@@ -995,7 +999,7 @@ export default class App extends React.Component {
         {icon:'payments',title:'Payroll & Compensation',sub:'Quincenal • 24 períodos al año (1–15 y 16–fin de mes)',fields:[L('freq','Pay frequency',[{value:'Semi-Monthly',label:'Quincenal (1–15 / 16–fin de mes)'}]),T('rate','Hourly rate',{ph:'0.00',prefix:'$',suffix:'/ hr'}),L('cur','Pay currency',['USD','DOP']),L('tax','Tax profile',['DGII ISR + TSS (Dominican Republic)','Exempt (no tax deductions)']),G('ot','Overtime eligible','1.5× after 44h / week')]},
         ...(n.etype==='Contractor / Exempt'?[{icon:'handshake',title:'Contract Details',sub:'Contractors appear on the Contractors page and stay out of payroll tax reports',fields:[T('cStart','Contract start',{type:'date'}),T('cEnd','Contract end',{type:'date'}),L('cTax','Tax form',[SEL,'W-8BEN (non-US individual)','W-8BEN-E (non-US entity)','Local invoice + RNC (DR)']),G('cInvoice','Invoice required per period','Contractor uploads an invoice before payout')]}]:[]),
         {icon:'payments',title:'Payment Method',sub:'International employees can be paid in USDC through Coinbase Business',fields:[Object.assign(L('pmethod','How is this employee paid?',['Bank Deposit','Coinbase Only','Split: Bank + Coinbase']),{set:v=>{const m=typeof v==='string'?v:v.target.value;this.setState(s=>({ne:{...s.ne,pmethod:m,...(m==='Split: Bank + Coinbase'?{cbAlloc:'20',alloc:'80',bank2:''}:m==='Bank Deposit'?{alloc:'100'}:{})}}))}})]},
-        ...(useBank?[{icon:'account_balance',title:'Bank Accounts',sub:'Split deposits across banks • bank share '+bankTarget+'% of net pay',fields:[L('bank','Primary bank',[SEL,'Banco BHD León','Banco Popular','Banreservas']),T('acct','Account number / IBAN',{ph:'DO28 BHDL 0000 0000 0000 0000',mono:true}),T('route','Routing / SWIFT',{ph:'BHDLDOSD',mono:true}),T('alloc','Primary allocation',{suffix:'%',err:allocOk||(useCb&&!(cbA>0&&cbA<100))?'':(n.bank2?'Primary must be under '+bankTarget+'% when a secondary bank is set':'Must be '+bankTarget+'% of net pay')}),T('bank2','Secondary bank (optional)',{ph:'Banco Popular',hint:n.bank2?'Receives '+Math.max(0,bankTarget-alloc)+'%':''})]}]:[]),
+        ...(useBank?[{icon:'account_balance',title:'Bank Accounts',sub:'Split deposits across banks • bank share '+bankTarget+'% of net pay',fields:[(cat&&cat.length?L('bank','Primary bank',bankOptions(cat,n.bank,'Seleccione…')):T('bank','Primary bank',{ph:'Nombre del banco',hint:cat?'La lista de bancos está vacía: se escribe a mano hasta que se añada el primero en el menú Bancos.':''})),T('acct','Account number / IBAN',{ph:'DO28 BHDL 0000 0000 0000 0000',mono:true}),T('route','Routing / SWIFT',{ph:'BHDLDOSD',mono:true}),T('alloc','Primary allocation',{suffix:'%',err:allocOk||(useCb&&!(cbA>0&&cbA<100))?'':(n.bank2?'Primary must be under '+bankTarget+'% when a secondary bank is set':'Must be '+bankTarget+'% of net pay')}),(cat&&cat.length?L('bank2','Secondary bank (optional)',bankOptions(cat,n.bank2,'Ninguno')):T('bank2','Secondary bank (optional)',{ph:'Nombre del banco',hint:n.bank2?'Receives '+Math.max(0,bankTarget-alloc)+'%':''}))]}]:[]),
         ...(useCb?[{icon:'currency_bitcoin',title:'Coinbase Payout (International)',sub:'Paid through Coinbase Business on pay date • USD net pay sent 1:1 as USDC',fields:[
           T('cbEmail','Coinbase account email',{ph:'name@email.com',err:n.cbEmail&&!emOk?'Enter a valid email':''}),
           T('cbId','Coinbase user / account ID (optional)',{ph:'cb_8f2a…',mono:true}),

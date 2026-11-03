@@ -111,7 +111,8 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   legacy employee fields (bank/acct + crypto_alloc) are used. Payout columns on `PUT /employees` only for
   hr/finance/admin. Queue for reviewers in `#admin`. Bank catalog `#banks` "Bancos" (menu System / Administration, permission `banks.manage`; `BanksAdmin.jsx`,
   `banks.service.js`, table `banks`, admin/hr/finance; deactivate, never delete; "Cargar bancos de RD"): once it has
-  any bank, a "Banco" method must pick one of its ACTIVE banks (an edit keeps the bank it already had). Legacy data → `node scripts/migrate-payout-methods.js` (dry run) /
+  any bank, a "Banco" method, the profile "Primary Bank" and Add Employee banks must pick one of its ACTIVE banks
+  (`banks.resolve`; an edit keeps the bank it already had; UI `useBankCatalog` / `bankOptions`). Legacy data → `node scripts/migrate-payout-methods.js` (dry run) /
   `--apply` (asks MIGRAR).
 - Contractors are employees: `employees.type` (Full-time / Contractor) is only a profile field — hours, tasks and payroll
   ignore it, and it never sets the login role (`ensureUserForEmployee({ keepExistingRole: true })`; new logins = employee).

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useBankCatalog, bankOptions } from './BanksAdmin.jsx';
 
 /*
  * "Datos de pago" (employee profile): where a person is paid. Several methods may be saved; payroll pays 100% to the
@@ -142,16 +143,14 @@ function PayoutForm({ form, setForm, busy, onSave, onClose }) {
   const M = window.Modal;
   const set = (key) => (x) => { const v = typeof x === 'string' ? x : x && x.target ? x.target.value : x; setForm((f) => ({ ...f, details: { ...f.details, [key]: v } })); };
   const crypto = CRYPTO[form.type];
-  // Bank catalog (#admin → Bancos): once it has banks, the bank is picked from it
-  const [banks, setBanks] = useState(null);
-  useEffect(() => { if (form.type === 'bank' && banks == null) window.api.banks().then((b) => setBanks(Array.isArray(b) ? b : [])).catch(() => setBanks([])); }, [form.type]);
+  // Bank catalog (#banks): once it has banks, the bank is picked from it
+  const banks = useBankCatalog();
   // Explicit option values: a string option's value is its (auto-translated) text
   const opts = (list) => list.map((o) => ({ value: o, label: o }));
   const field = ([key, label, placeholder, options]) => {
     if (form.type === 'bank' && key === 'bank_name' && banks && banks.length) {
       const cur = form.details.bank_name || '';
-      const names = banks.map((b) => b.name);
-      const list = [{ value: '', label: 'Elige tu banco…' }, ...(cur && !names.includes(cur) ? [{ value: cur, label: cur + ' (actual)' }] : []), ...opts(names)];
+      const list = bankOptions(banks, cur, 'Elige tu banco…');
       return <div key={key}>
         <Select label={label} value={cur} onChange={set(key)} options={list} />
         <div style={{ marginTop: 4, font: '500 11px/15px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>¿No está tu banco? Pide a HR o a un administrador que lo añada.</div>

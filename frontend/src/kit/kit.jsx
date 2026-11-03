@@ -4,7 +4,7 @@ import AgileWorkspace from './AgileWorkspace.jsx';
 import MyProjects from './MyProjects.jsx';
 import PayoutMethods, { PendingPayoutMethods } from './PayoutMethods.jsx';
 import MyTasks, { SelfTaskBadge } from './MyTasks.jsx';
-import BanksAdmin from './BanksAdmin.jsx';
+import BanksAdmin, { useBankCatalog, bankOptions, BANK_HINT } from './BanksAdmin.jsx';
 import { api, errorMessage } from '../lib/api.js';
 import { getCurrentPeriod, getQuincenaForDate, getPeriodsForYear } from '../lib/periodService.js';
 
@@ -1434,6 +1434,7 @@ function EmployeeProfileInner({ empId, go, notify }) {
   // Form starts from the stored values only (no sample cédula / bank / rate)
   // Direct manager = another active employee. Stored by name, as Add Employee, the profile and the supervisor filters
   // read it; a value that is no longer an employee (e.g. "Board of Directors") stays selectable so saving keeps it.
+  const bankCatalog = useBankCatalog();
   const managerOptions = (() => {
     const people = (window.EMPLOYEES || []).filter(x => x.id !== e.id && x.name && !['Terminated', 'Inactive'].includes(x.status))
       .slice().sort((a, b) => String(a.name).localeCompare(String(b.name)))
@@ -1605,7 +1606,9 @@ function EmployeeProfileInner({ empId, go, notify }) {
         <TextField label="Base Rate (USD/hr)" type="number" value={String(form.rate)} onChange={x => setForm(f => ({ ...f, rate: typeof x === 'string' ? x : x.target.value }))} />
         <Select label="Empresa" value={form.entity} onChange={x => setForm(f => ({ ...f, entity: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={['MGH Dominicana SRL']} />
         <Select label="Direct Manager" value={form.mgr} onChange={x => setForm(f => ({ ...f, mgr: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={managerOptions} />
-        <TextField label="Primary Bank" value={form.bank} onChange={x => setForm(f => ({ ...f, bank: typeof x === 'string' ? x : x.target.value }))} />
+        {bankCatalog && bankCatalog.length
+          ? <div><Select label="Primary Bank" value={form.bank} onChange={x => setForm(f => ({ ...f, bank: typeof x === 'string' ? x : x.target ? x.target.value : x }))} options={bankOptions(bankCatalog, form.bank, 'Sin banco')} /><div style={{ marginTop: 4, font: '500 11px/15px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>{BANK_HINT}</div></div>
+          : <TextField label="Primary Bank" value={form.bank} onChange={x => setForm(f => ({ ...f, bank: typeof x === 'string' ? x : x.target.value }))} hint={bankCatalog ? 'La lista de bancos está vacía: se escribe a mano hasta que se añada el primero en el menú Bancos.' : undefined} />}
         <TextField label="RNC / Cédula Personal" value={form.nid} mono onChange={x => setForm(f => ({ ...f, nid: typeof x === 'string' ? x : x.target.value }))} />
         <TextField label="Work Location" value={form.loc} onChange={x => setForm(f => ({ ...f, loc: typeof x === 'string' ? x : x.target.value }))} />
         <TextField label="Assigned Project" value={form.project} onChange={x => setForm(f => ({ ...f, project: typeof x === 'string' ? x : x.target.value }))} />

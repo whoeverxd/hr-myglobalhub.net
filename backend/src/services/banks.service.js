@@ -45,6 +45,18 @@ const service = {
     return service.list({ includeInactive: true }).length > 0;
   },
 
+  /**
+   * The bank name to store for `name`: once the catalog is in use it must be one of its ACTIVE banks (returned in the
+   * catalog's spelling) unless it is `keep` (the bank already stored, kept on edit). Empty → ''. Otherwise 400.
+   */
+  resolve(name, keep) {
+    const n = norm(name);
+    if (!n || !service.inUse() || (keep && key(n) === key(keep))) return n;
+    const found = service.match(n);
+    if (!found) throw fail(400, `El banco "${n}" no está en la lista de bancos: pide a HR o a un administrador que lo añada.`);
+    return found;
+  },
+
   create({ name, country, swift } = {}, user) {
     assertManager(user);
     const n = norm(name);

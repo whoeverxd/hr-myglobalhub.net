@@ -50,3 +50,23 @@ test('Bank catalog: managed by admin/HR/finance; once it exists the "Banco" payo
     employees.purgeEmployee(emp.id, ADMIN, '127.0.0.1', { confirm: emp.id });
   }
 });
+
+test('Bank catalog: the profile "Primary Bank" and Add Employee only take catalog banks once it exists', () => {
+  db.execute('DELETE FROM banks');
+  const free = employees.createEmployee({ name: 'Bank Free', email: `bankfree-${Date.now()}@example.test`, title: 'Dev', dept: 'Engineering', etype: 'Full-Time', rate: 10, bank: 'Banco Viejo' });
+  let created = null;
+  try {
+    assert.equal(free.bank, 'Banco Viejo', 'empty catalog: free text as before');
+    banks.create({ name: 'Qik Banco Digital' }, ADMIN);
+    assert.throws(() => employees.createEmployee({ name: 'Bank New', email: `banknew-${Date.now()}@example.test`, title: 'Dev', dept: 'Engineering', etype: 'Full-Time', rate: 10, bank: 'Banco Inventado' }), (e) => e.status === 400);
+    created = employees.createEmployee({ name: 'Bank New', email: `banknew2-${Date.now()}@example.test`, title: 'Dev', dept: 'Engineering', etype: 'Full-Time', rate: 10, bank: 'qik banco digital' });
+    assert.equal(created.bank, 'Qik Banco Digital', 'stored in the catalog spelling');
+    assert.throws(() => employees.updateEmployee(free.id, { bank: 'Otro Banco' }), (e) => e.status === 400);
+    assert.equal(employees.updateEmployee(free.id, { bank: 'Banco Viejo', name: 'Bank Free 2' }).bank, 'Banco Viejo', 'the bank already stored is kept');
+    assert.equal(employees.updateEmployee(free.id, { bank: 'Qik Banco Digital' }).bank, 'Qik Banco Digital');
+  } finally {
+    db.execute('DELETE FROM banks');
+    employees.purgeEmployee(free.id, ADMIN, '127.0.0.1', { confirm: free.id });
+    if (created) employees.purgeEmployee(created.id, ADMIN, '127.0.0.1', { confirm: created.id });
+  }
+});

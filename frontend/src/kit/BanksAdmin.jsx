@@ -1,7 +1,23 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
+/** Active banks of the catalog (null while loading, [] when the catalog is empty or unreachable) */
+export function useBankCatalog() {
+  const [banks, setBanks] = useState(null);
+  useEffect(() => { let off = false; window.api.banks().then((b) => { if (!off) setBanks(Array.isArray(b) ? b : []); }).catch(() => { if (!off) setBanks([]); }); return () => { off = true; }; }, []);
+  return banks;
+}
+
+/** Select options from the catalog; a stored bank that is not (or no longer) in it stays selectable as "(actual)" */
+export function bankOptions(banks, current, placeholder = 'Elige un banco…') {
+  const names = (banks || []).map((b) => b.name);
+  const cur = String(current || '').trim();
+  return [{ value: '', label: placeholder }, ...(cur && !names.includes(cur) ? [{ value: cur, label: cur + ' (actual)' }] : []), ...names.map((n) => ({ value: n, label: n }))];
+}
+
+export const BANK_HINT = '¿No está el banco? Un administrador, HR o finanzas lo añade en el menú Bancos.';
+
 /*
- * #admin → "Bancos": the catalog people pick from in "Datos de pago" → Banco (banks.service.js).
+ * #banks "Bancos": the catalog people pick from in "Datos de pago" → Banco (banks.service.js).
  * Admin / HR / finance add, rename and (de)activate banks. A bank is never deleted: deactivating it stops offering it
  * for new registrations while existing methods keep it.
  */
