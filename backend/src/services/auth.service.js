@@ -513,6 +513,7 @@ function deleteUser({ userId, actor, ip = '127.0.0.1' }) {
     if (admins.filter((a) => a.id !== user.id).length === 0) throw fail(409, 'This is the last active administrator');
   }
   db.transaction(() => {
+    require('./reminders.service').forgetUser(user.id);
     db.execute(`DELETE FROM sessions WHERE user_id = ?`, [user.id]);
     db.execute(`DELETE FROM users WHERE id = ?`, [user.id]);
     logAction({ actor: actor.name, action: 'USER_DELETED', entityType: 'user', entityId: user.id, oldValues: { email: user.email, role: user.role, employeeId: user.employee_id || null }, ip });

@@ -3,6 +3,7 @@ import { calculateQuincena, localDateStr } from '../lib/periodService.js';
 import { MySheets, MyHistory, EDITABLE, statusLabel, statusTone } from './MyTimesheets.jsx';
 import ActivityFormModal, { WORK_TYPES, isMeetingCopy, fmtDuration } from './ActivityFormModal.jsx';
 import ActivityViewModal from './ActivityViewModal.jsx';
+import RemindersBoard from './Reminders.jsx';
 
 const DAILY_GOAL = 8; // hours per working day
 export { calculateQuincena };
@@ -238,6 +239,9 @@ function MyTimeEntry({ user, empId, notify, go }) {
   return (
     <div style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '22px', maxWidth: '1600px', margin: '0 auto' }}>
       
+      {/* Pending reminders (Recordatorios) first, only when there are some */}
+      <RemindersBoard notify={notify} go={go} compact hideWhenEmpty limit={3} />
+
       {/* HEADER & QUINCENA CONTROLS */}
       <div style={{
         background: '#fff',

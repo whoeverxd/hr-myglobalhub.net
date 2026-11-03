@@ -614,6 +614,29 @@ function initSchema() {
   // Subtasks: a project task may hang from a parent task of the same project (one level only)
   try { exec(`ALTER TABLE project_tasks ADD COLUMN parent_id TEXT;`); } catch (_) {}
   try { exec(`CREATE INDEX IF NOT EXISTS idx_ptasks_parent ON project_tasks (parent_id);`); } catch (_) {}
+  // Recordatorios between team members (reminders.service.js): private to the author and the recipients
+  try {
+    exec(`CREATE TABLE IF NOT EXISTS reminders (
+      id TEXT PRIMARY KEY,
+      text TEXT NOT NULL,
+      color TEXT,
+      due_date TEXT,
+      author_user_id TEXT NOT NULL,
+      author_name TEXT,
+      created_at TEXT,
+      updated_at TEXT
+    );`);
+    exec(`CREATE TABLE IF NOT EXISTS reminder_recipients (
+      id TEXT PRIMARY KEY,
+      reminder_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      user_name TEXT,
+      done INTEGER DEFAULT 0,
+      done_at TEXT
+    );`);
+    exec(`CREATE INDEX IF NOT EXISTS idx_reminder_recipients_user ON reminder_recipients (user_id);`);
+    exec(`CREATE INDEX IF NOT EXISTS idx_reminder_recipients_rem ON reminder_recipients (reminder_id);`);
+  } catch (_) {}
   // Bank catalog for "Banco" payout methods (banks.service.js); banks are deactivated, never deleted
   try {
     exec(`CREATE TABLE IF NOT EXISTS banks (

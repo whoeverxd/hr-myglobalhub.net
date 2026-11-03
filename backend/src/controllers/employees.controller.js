@@ -592,6 +592,7 @@ function deleteEmployee(employeeId, actor, ip = '127.0.0.1') {
       db.execute('DELETE FROM contractors WHERE id = ?', [c.id]);
     }
     if (user) {
+      require('../services/reminders.service').forgetUser(user.id);
       db.execute('DELETE FROM sessions WHERE user_id = ?', [user.id]);
       db.execute('DELETE FROM users WHERE id = ?', [user.id]);
     }
@@ -638,6 +639,7 @@ function purgeEmployee(employeeId, actor, ip = '127.0.0.1', { confirm } = {}) {
     }
     for (const p of proofs) db.execute('DELETE FROM payment_proofs WHERE id = ?', [p.id]);
     if (user) {
+      require('../services/reminders.service').forgetUser(user.id);
       db.execute('DELETE FROM sessions WHERE user_id = ?', [user.id]);
       db.execute('DELETE FROM users WHERE id = ?', [user.id]);
     }

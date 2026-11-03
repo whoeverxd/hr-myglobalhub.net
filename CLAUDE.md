@@ -74,6 +74,12 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   Wokokai moderation plan (Carmen design + Zain implementation per screen): `node scripts/create-moderation-tasks.js`
   (dry run) / `--apply` (asks CREAR), data in `scripts/data/wokokai-moderacion.js`.
   Backend enforcement in `routes.js` (`requireProjectMember`, `taskAccess`); task search is membership-scoped.
+- Recordatorios (sticky notes, `kit/Reminders.jsx`, `reminders.service.js`, tables `reminders` + `reminder_recipients`):
+  board on the Dashboard, on top of #myentry when there are pending ones, full page `#reminders` (menu, every user).
+  PRIVATE: only the author and the recipients (user ids; none = note to self) see one — no role, admin included,
+  sees others'; another person's reminder answers 404. Author edits/deletes; each recipient marks "Hecho" for
+  themselves. Not in the audit log (its text would reach audit viewers). Deleting a login drops its reminders
+  (`forgetUser`).
 - Accounts: never a shared default password. New employee/contractor logins get a random one-time password
   (`initialPassword`, shown once); a password typed by the admin must pass `passwordProblem`. Either way the account gets
   `must_change_password=1`: `authenticate` answers 403 `PASSWORD_CHANGE_REQUIRED` (except /auth/me, /auth/password,

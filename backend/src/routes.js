@@ -462,6 +462,27 @@ router.put('/banks/:id', authenticate, requireRole('admin', 'hr', 'finance'), (r
   try { res.json(banksService.update(req.params.id, req.body || {}, req.user)); } catch (err) { next(err); }
 });
 
+/* ---------- Recordatorios (private: author + recipients only) ---------- */
+const reminders = require('./services/reminders.service');
+router.get('/reminders', authenticate, (req, res, next) => {
+  try { res.json(reminders.list(req.user, { includeDone: req.query.done === '1' })); } catch (err) { next(err); }
+});
+router.get('/reminders/people', authenticate, (req, res, next) => {
+  try { res.json(reminders.people()); } catch (err) { next(err); }
+});
+router.post('/reminders', authenticate, (req, res, next) => {
+  try { res.status(201).json(reminders.create(req.user, req.body || {})); } catch (err) { next(err); }
+});
+router.put('/reminders/:id', authenticate, (req, res, next) => {
+  try { res.json(reminders.update(req.user, req.params.id, req.body || {})); } catch (err) { next(err); }
+});
+router.post('/reminders/:id/done', authenticate, (req, res, next) => {
+  try { res.json(reminders.setDone(req.user, req.params.id, !(req.body && req.body.done === false))); } catch (err) { next(err); }
+});
+router.delete('/reminders/:id', authenticate, (req, res, next) => {
+  try { res.json(reminders.remove(req.user, req.params.id)); } catch (err) { next(err); }
+});
+
 /* ---------- Datos de pago (payout methods) ---------- */
 const payoutMethods = require('./services/payout-methods.service');
 router.get('/payout-methods/pending', authenticate, (req, res, next) => {

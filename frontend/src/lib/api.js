@@ -140,7 +140,14 @@ export const api = {
   changePassword: (payload) => request('POST', '/auth/password', payload),
   employeeRemoval: (employeeId) => request('GET', `/employees/${encodeURIComponent(employeeId)}/removal`),
   deleteEmployee: (employeeId) => request('DELETE', `/employees/${encodeURIComponent(employeeId)}`),
-  // Bank catalog (#admin → Bancos; banks.service.js)
+  // Recordatorios (reminders.service.js): only the ones I wrote or received
+  reminders: (params = {}) => { const q = new URLSearchParams(params).toString(); return request('GET', `/reminders${q ? `?${q}` : ''}`); },
+  reminderPeople: () => request('GET', '/reminders/people'),
+  createReminder: (body) => request('POST', '/reminders', body),
+  updateReminder: (id, body) => request('PUT', `/reminders/${encodeURIComponent(id)}`, body),
+  setReminderDone: (id, done = true) => request('POST', `/reminders/${encodeURIComponent(id)}/done`, { done }),
+  deleteReminder: (id) => request('DELETE', `/reminders/${encodeURIComponent(id)}`),
+  // Bank catalog (#banks; banks.service.js)
   banks: (params = {}) => { const q = new URLSearchParams(params).toString(); return request('GET', `/banks${q ? `?${q}` : ''}`); },
   createBank: (body) => request('POST', '/banks', body),
   updateBank: (id, body) => request('PUT', `/banks/${encodeURIComponent(id)}`, body),
