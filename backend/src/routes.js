@@ -446,6 +446,22 @@ router.put('/employees/:id/account/role', authenticate, requireRole('admin'), (r
 });
 router.post('/employees/:id/reset-password', authenticate, requireRole('pm', 'hr', 'admin'), authController.resetEmployeePassword);
 
+/* ---------- Bank catalog ("Bancos" in #admin) ---------- */
+const banksService = require('./services/banks.service');
+router.get('/banks', authenticate, (req, res, next) => {
+  // Everyone sees the active banks (payout form); managers may ask for the deactivated ones too
+  try { res.json(banksService.list({ includeInactive: req.query.all === '1' && ['admin', 'hr', 'finance'].includes(req.user && req.user.role) })); } catch (err) { next(err); }
+});
+router.post('/banks', authenticate, requireRole('admin', 'hr', 'finance'), (req, res, next) => {
+  try { res.status(201).json(banksService.create(req.body || {}, req.user)); } catch (err) { next(err); }
+});
+router.post('/banks/dominican', authenticate, requireRole('admin', 'hr', 'finance'), (req, res, next) => {
+  try { res.json({ added: banksService.addDominicanBanks(req.user) }); } catch (err) { next(err); }
+});
+router.put('/banks/:id', authenticate, requireRole('admin', 'hr', 'finance'), (req, res, next) => {
+  try { res.json(banksService.update(req.params.id, req.body || {}, req.user)); } catch (err) { next(err); }
+});
+
 /* ---------- Datos de pago (payout methods) ---------- */
 const payoutMethods = require('./services/payout-methods.service');
 router.get('/payout-methods/pending', authenticate, (req, res, next) => {

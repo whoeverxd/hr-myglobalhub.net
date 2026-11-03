@@ -614,6 +614,19 @@ function initSchema() {
   // Subtasks: a project task may hang from a parent task of the same project (one level only)
   try { exec(`ALTER TABLE project_tasks ADD COLUMN parent_id TEXT;`); } catch (_) {}
   try { exec(`CREATE INDEX IF NOT EXISTS idx_ptasks_parent ON project_tasks (parent_id);`); } catch (_) {}
+  // Bank catalog for "Banco" payout methods (banks.service.js); banks are deactivated, never deleted
+  try {
+    exec(`CREATE TABLE IF NOT EXISTS banks (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      country TEXT,
+      swift TEXT,
+      active INTEGER DEFAULT 1,
+      created_by TEXT,
+      created_at TEXT,
+      updated_at TEXT
+    );`);
+  } catch (_) {}
   // "Datos de pago": one row per registered method; payroll pays the verified primary (payout-methods.service.js)
   try {
     exec(`CREATE TABLE IF NOT EXISTS payout_methods (

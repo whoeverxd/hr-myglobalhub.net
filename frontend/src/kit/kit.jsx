@@ -4,6 +4,7 @@ import AgileWorkspace from './AgileWorkspace.jsx';
 import MyProjects from './MyProjects.jsx';
 import PayoutMethods, { PendingPayoutMethods } from './PayoutMethods.jsx';
 import MyTasks, { SelfTaskBadge } from './MyTasks.jsx';
+import BanksAdmin from './BanksAdmin.jsx';
 import { api, errorMessage } from '../lib/api.js';
 import { getCurrentPeriod, getQuincenaForDate, getPeriodsForYear } from '../lib/periodService.js';
 
@@ -4370,6 +4371,7 @@ function Administration({ notify, go }) {
         ...(canEdit ? [{ key: 'del', label: '', align: 'right', render: r => isMe(r.u) ? null : <IconButton icon="delete" size={28} title={'Eliminar la cuenta ' + r.u.email} onClick={() => { if (!busy) removeUser(r.u); }} /> }] : [])]} />}
     </Card>
     {MGH_RBAC.user && ['hr', 'finance', 'admin'].includes(MGH_RBAC.user.role) ? <PendingPayoutMethods notify={notify} go={go} /> : null}
+    {MGH_RBAC.user && ['hr', 'finance', 'admin'].includes(MGH_RBAC.user.role) ? <BanksAdmin notify={notify} /> : null}
     {canEdit ? <EmployeePurge notify={notify} onPurged={e => setUsers(list => (list || []).filter(u => u.employee_id !== e.id))} /> : null}
     <Card icon="account_tree" title="Approval workflow policy" subtitle="Configured in Approval Workflows" actions={<Button size="sm" variant="ghost" iconRight="arrow_forward" onClick={() => go('workflows')}>Open Approval Workflows</Button>} />
   </Page>;

@@ -140,6 +140,11 @@ export const api = {
   changePassword: (payload) => request('POST', '/auth/password', payload),
   employeeRemoval: (employeeId) => request('GET', `/employees/${encodeURIComponent(employeeId)}/removal`),
   deleteEmployee: (employeeId) => request('DELETE', `/employees/${encodeURIComponent(employeeId)}`),
+  // Bank catalog (#admin → Bancos; banks.service.js)
+  banks: (params = {}) => { const q = new URLSearchParams(params).toString(); return request('GET', `/banks${q ? `?${q}` : ''}`); },
+  createBank: (body) => request('POST', '/banks', body),
+  updateBank: (id, body) => request('PUT', `/banks/${encodeURIComponent(id)}`, body),
+  addDominicanBanks: () => request('POST', '/banks/dominican'),
   // "Datos de pago" (payout-methods.service.js)
   payoutMethods: (employeeId) => request('GET', `/employees/${encodeURIComponent(employeeId)}/payout-methods`),
   createPayoutMethod: (employeeId, body) => request('POST', `/employees/${encodeURIComponent(employeeId)}/payout-methods`, body),

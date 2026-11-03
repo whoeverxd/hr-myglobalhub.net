@@ -81,7 +81,8 @@ const isOwner = (user, empId) => Boolean(empIdOf(user) && empIdOf(user) === empI
 const actorName = (user) => (user && user.name) || 'System';
 
 /** Normalized details for a type, or throws 400 naming the first problem */
-function validate(type, input = {}) {
+// keepBank: the bank a method already had (still accepted on edit even if it left the catalog)
+function validate(type, input = {}, { keepBank = null } = {}) {
   const def = TYPES[type];
   if (!def) throw fail(400, `Método de pago no válido: "${type}". Usa Banco, Binance, Coinbase, Western Union o PayPal.`);
   const out = {};
@@ -102,6 +103,15 @@ function validate(type, input = {}) {
     else if (rule && !rule.test(out.address)) throw fail(400, `La dirección no es válida para la red ${out.network}.`);
   }
   if (type === 'paypal') out.email = out.email.toLowerCase();
+  if (type === 'bank') {
+    // Once the catalog exists, the bank comes from it (name normalized to the catalog's spelling)
+    const banks = require('./banks.service');
+    if (banks.inUse() && !(keepBank && out.bank_name.toLowerCase() === String(keepBank).toLowerCase())) {
+      const name = banks.match(out.bank_name);
+      if (!name) throw fail(400, `El banco "${out.bank_name}" no está en la lista de bancos: pide a HR o a un administrador que lo añada.`);
+      out.bank_name = name;
+    }
+  }
   return out;
 }
 
@@ -247,7 +257,7 @@ const service = {
   update(id, { details } = {}, user) {
     const row = getRow(id);
     assertCanEdit(user, row.employee_id);
-    const clean = validate(row.type, details);
+    const clean = validate(row.type, details, { keepBank: parse(row.details_json).bank_name });
     const now = new Date().toISOString();
     const verified = verifiesOnSave(user, row.employee_id);
     if (row.status === 'verified' && !verified) {
