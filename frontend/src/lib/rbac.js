@@ -64,6 +64,7 @@
     'languages.manage':           row('Administration', 'Manage languages',         G, O, N, N, N, N, N, N, N),
     'settings.manage':            row('Administration', 'Company settings',         G, O, N, N, N, N, N, N, N),
     'rbac.view':                  row('Administration', 'View roles & permissions', G, O, O, N, N, N, N, N, N),
+    'banks.manage':               row('Administration', 'Manage the bank catalog',  G, O, O, O, N, N, N, N, N),
   };
   // Every route declares its permission (any-of). Missing route → denied.
   const ROUTES = {
@@ -78,7 +79,7 @@
     periods: ['payroll.view'], adjustments: ['adjustments.manage'], processing: ['payroll.process'], paystub: ['payslips.view'], banking: ['banking.view'], reports: ['reports.view'],
     contractors: ['contractors.view'], contractorPayments: ['contractors.pay'],
     projects: ['projects.view'],
-    admin: ['admin.org'], workflows: ['workflows.manage'], audit: ['audit.view'], languages: ['languages.manage'], settings: ['settings.manage'], permissions: ['rbac.view'],
+    admin: ['admin.org'], workflows: ['workflows.manage'], audit: ['audit.view'], languages: ['languages.manage'], settings: ['settings.manage'], permissions: ['rbac.view'], banks: ['banks.manage'],
     login: [],
   };
 

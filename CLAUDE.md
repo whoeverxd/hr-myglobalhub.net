@@ -109,7 +109,7 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   stored (payment files need them); owner + reviewers see them, PM/supervisor masked. Channel: bank → BHD/NACHA file,
   USDC on Base → USDC batch, everything else → `GET /payroll/export/manual` CSV. Without a verified primary the
   legacy employee fields (bank/acct + crypto_alloc) are used. Payout columns on `PUT /employees` only for
-  hr/finance/admin. Queue for reviewers in `#admin`. Bank catalog `#admin` → "Bancos" (`BanksAdmin.jsx`,
+  hr/finance/admin. Queue for reviewers in `#admin`. Bank catalog `#banks` "Bancos" (menu System / Administration, permission `banks.manage`; `BanksAdmin.jsx`,
   `banks.service.js`, table `banks`, admin/hr/finance; deactivate, never delete; "Cargar bancos de RD"): once it has
   any bank, a "Banco" method must pick one of its ACTIVE banks (an edit keeps the bank it already had). Legacy data → `node scripts/migrate-payout-methods.js` (dry run) /
   `--apply` (asks MIGRAR).

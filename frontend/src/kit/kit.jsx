@@ -4294,6 +4294,14 @@ function EmployeePurge({ notify, onPurged }) {
   </Card>;
 }
 
+// #banks "Bancos": the bank catalog CRUD (admin / HR / finance)
+function Banks({ notify }) {
+  return <Page>
+    <PageHeader breadcrumbs={['System / Administration', 'Bancos']} title="Bancos" description='Catálogo de bancos que se pueden elegir en "Datos de pago" → Banco. Un banco no se borra: se desactiva.' />
+    <BanksAdmin notify={notify} />
+  </Page>;
+}
+
 function Administration({ notify, go }) {
   const [users, setUsers] = React.useState(null);
   React.useEffect(() => {
@@ -4371,7 +4379,6 @@ function Administration({ notify, go }) {
         ...(canEdit ? [{ key: 'del', label: '', align: 'right', render: r => isMe(r.u) ? null : <IconButton icon="delete" size={28} title={'Eliminar la cuenta ' + r.u.email} onClick={() => { if (!busy) removeUser(r.u); }} /> }] : [])]} />}
     </Card>
     {MGH_RBAC.user && ['hr', 'finance', 'admin'].includes(MGH_RBAC.user.role) ? <PendingPayoutMethods notify={notify} go={go} /> : null}
-    {MGH_RBAC.user && ['hr', 'finance', 'admin'].includes(MGH_RBAC.user.role) ? <BanksAdmin notify={notify} /> : null}
     {canEdit ? <EmployeePurge notify={notify} onPurged={e => setUsers(list => (list || []).filter(u => u.employee_id !== e.id))} /> : null}
     <Card icon="account_tree" title="Approval workflow policy" subtitle="Configured in Approval Workflows" actions={<Button size="sm" variant="ghost" iconRight="arrow_forward" onClick={() => go('workflows')}>Open Approval Workflows</Button>} />
   </Page>;
@@ -4519,7 +4526,7 @@ function AuditLog({ notify }) {
   </Page>;
 }
 
-window.__MGH_KIT = Object.assign(window.__MGH_KIT || {}, { mytasks: MyTasks, projects: Projects, reports: Reports, admin: Administration, settings: CompanySettings, audit: AuditLog });
+window.__MGH_KIT = Object.assign(window.__MGH_KIT || {}, { mytasks: MyTasks, projects: Projects, reports: Reports, admin: Administration, banks: Banks, settings: CompanySettings, audit: AuditLog });
 
 })();
 
