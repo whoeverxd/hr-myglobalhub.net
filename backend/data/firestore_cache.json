@@ -27346,6 +27346,28 @@
       "created_at": "2026-11-03T05:11:18.374Z",
       "id": "2337"
     },
+    "2338": {
+      "actor": "User",
+      "action": "USER_LOGOUT",
+      "entity_type": "session",
+      "entity_id": "usr-admin",
+      "old_values": null,
+      "new_values": null,
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-04T19:59:03.888Z",
+      "id": "2338"
+    },
+    "2339": {
+      "actor": "Joshua Hernandez",
+      "action": "USER_LOGIN",
+      "entity_type": "user",
+      "entity_id": "usr_1793131618127_8yfuy",
+      "old_values": null,
+      "new_values": "{\"ip\":\"127.0.0.1\",\"role\":\"pm\"}",
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-11-04T19:59:06.389Z",
+      "id": "2339"
+    },
     "BGtgrxiGlfggBaSVC0F5": {
       "id": "BGtgrxiGlfggBaSVC0F5",
       "actor": "set-admin-password script",
@@ -35423,13 +35445,13 @@
       "ip_address": "127.0.0.1",
       "token": "e4314d016fc2bd667adc0e94ee05f4e4e18bca42f900eb795ca78945940cffd4"
     },
-    "doc_1793682678373_7u6nl": {
-      "token": "6ec02ec471ed9d5cb710c32aa0c36bd265e001503bd4c83b30e0ec54195051cf",
-      "user_id": "usr-admin",
+    "doc_1793822346388_6w4o5": {
+      "token": "53f90c02b3d6aed6b5663a5948f6b9ca9536c7731c678468cc61bdd21539fbc4",
+      "user_id": "usr_1793131618127_8yfuy",
       "ip_address": "127.0.0.1",
-      "expires_at": "2026-11-10T05:11:18.373Z",
-      "created_at": "2026-11-03T05:11:18.373Z",
-      "id": "doc_1793682678373_7u6nl"
+      "expires_at": "2026-11-11T19:59:06.388Z",
+      "created_at": "2026-11-04T19:59:06.388Z",
+      "id": "doc_1793822346388_6w4o5"
     }
   },
   "sprints": {
@@ -36047,7 +36069,7 @@
       "name": "Joshua Hernandez",
       "updated_at": "2026-10-30T00:51:27.428Z",
       "role": "pm",
-      "last_login_at": "2026-11-03T05:10:38.745Z"
+      "last_login_at": "2026-11-04T19:59:06.389Z"
     },
     "usr_1793141848610_ilsyi": {
       "id": "usr_1793141848610_ilsyi",
@@ -36388,6 +36410,48 @@
       "created_by": "Admin System",
       "created_at": "2026-11-03T04:28:53.570Z",
       "updated_at": "2026-11-03T04:28:53.570Z"
+    }
+  },
+  "reminder_recipients": {
+    "RMR-1793822266377-zscgw": {
+      "id": "RMR-1793822266377-zscgw",
+      "reminder_id": "REM-1793822266249-ogvoz",
+      "user_id": "usr_1793131618127_8yfuy",
+      "user_name": "Joshua Hernandez",
+      "done": 0,
+      "done_at": null,
+      "created_at": "2026-11-04T19:57:46.377Z"
+    },
+    "RMR-1793822330660-1fc0d": {
+      "id": "RMR-1793822330660-1fc0d",
+      "reminder_id": "REM-1793822330659-26o9y",
+      "user_id": "usr_1793141848610_ilsyi",
+      "user_name": "Carmen Perez De La Matta",
+      "done": 0,
+      "done_at": null,
+      "created_at": "2026-11-04T19:58:50.660Z"
+    }
+  },
+  "reminders": {
+    "REM-1793822266249-ogvoz": {
+      "id": "REM-1793822266249-ogvoz",
+      "text": "recuerda crear las vistas del frontend para zain",
+      "color": "blue",
+      "due_date": "2026-11-05",
+      "author_user_id": "usr-admin",
+      "author_name": "Admin System",
+      "created_at": "2026-11-04T19:57:46.249Z",
+      "updated_at": "2026-11-04T19:57:46.249Z"
+    },
+    "REM-1793822330659-26o9y": {
+      "id": "REM-1793822330659-26o9y",
+      "text": "hola, esto es un recordatorio para que no olvides sonreir hoy. \nesooo! que guapa. feliz dia belleza.",
+      "color": "pink",
+      "due_date": "2026-11-29",
+      "author_user_id": "usr-admin",
+      "author_name": "Admin System",
+      "created_at": "2026-11-04T19:58:50.659Z",
+      "updated_at": "2026-11-04T19:58:50.659Z"
     }
   }
 }
