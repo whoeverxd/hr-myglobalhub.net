@@ -298,7 +298,8 @@ export default class App extends React.Component {
       }
       const empId = res.user.employeeId || res.user.employee_id || this.state.empId;
       const home = window.MGH_RBAC ? window.MGH_RBAC.homeRoute() : 'mytime';
-      const targetRoute = window.MGH_RBAC && !window.MGH_RBAC.canRoute(this.state.route) ? home : this.state.route;
+      // Signing in lands on Recordatorios (home) unless the URL asked for another screen the user may open
+      const targetRoute = window.MGH_RBAC && (!window.MGH_RBAC.canRoute(this.state.route) || ['login', 'dashboard'].includes(this.state.route)) ? home : this.state.route;
       location.hash = '#' + targetRoute;
       this.setState({
         currentUser: res.user,
@@ -344,7 +345,8 @@ export default class App extends React.Component {
       }
       const empId = res.user.employeeId || res.user.employee_id || this.state.empId;
       const home = window.MGH_RBAC ? window.MGH_RBAC.homeRoute() : 'mytime';
-      const targetRoute = window.MGH_RBAC && !window.MGH_RBAC.canRoute(this.state.route) ? home : this.state.route;
+      // Signing in lands on Recordatorios (home) unless the URL asked for another screen the user may open
+      const targetRoute = window.MGH_RBAC && (!window.MGH_RBAC.canRoute(this.state.route) || ['login', 'dashboard'].includes(this.state.route)) ? home : this.state.route;
       location.hash = '#' + targetRoute;
       this.setState({
         currentUser: res.user,
@@ -383,7 +385,7 @@ export default class App extends React.Component {
       loginEmail: '',
       loginPassword: '',
       loginError: '',
-      route: 'dashboard'
+      route: 'reminders'
     });
     this.flash('Signed out of My Global Hub');
   };

@@ -236,7 +236,7 @@
     visible(list, perm) { return list.filter(e => API.can(perm, e)); },
     canRoute(route) { const p = ROUTES[route]; if (!p) return false; return !p.length || API.canAny(p); },
     routePerms(route) { return ROUTES[route] || null; },
-    homeRoute() { const order = ['dashboard', 'mytime', 'approvals', 'periods', 'attDaily', 'attendance', 'contractors', 'reports', 'permissions']; return order.find(x => API.canRoute(x)) || 'login'; },
+    homeRoute() { const order = ['reminders', 'dashboard', 'mytime', 'approvals', 'periods', 'attDaily', 'attendance', 'contractors', 'reports', 'permissions']; return order.find(x => API.canRoute(x)) || 'login'; },
   };
   window.MGH_RBAC = API;
 })();

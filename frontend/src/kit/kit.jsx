@@ -4,7 +4,7 @@ import AgileWorkspace from './AgileWorkspace.jsx';
 import MyProjects from './MyProjects.jsx';
 import PayoutMethods, { PendingPayoutMethods } from './PayoutMethods.jsx';
 import MyTasks, { SelfTaskBadge } from './MyTasks.jsx';
-import RemindersBoard, { RemindersPage } from './Reminders.jsx';
+import { RemindersPage } from './Reminders.jsx';
 import BanksAdmin, { useBankCatalog, bankOptions, BANK_HINT } from './BanksAdmin.jsx';
 import { api, errorMessage } from '../lib/api.js';
 import { getCurrentPeriod, getQuincenaForDate, getPeriodsForYear } from '../lib/periodService.js';
@@ -1279,7 +1279,6 @@ function Dashboard({ go, notify }) {
   const reviewMeta = (periodStatus ? 'Estado del período: ' + periodStatus : 'Estado del período no disponible') + ' • ' + inReviewCount + ' en revisión';
   return <Page>
     <PageHeader breadcrumbs={['Overview']} title={greet + (first ? ', ' + first : '')} description={periodDesc} actions={<><Button variant="secondary" icon="calendar_month" onClick={() => (window.__mghGo ? window.__mghGo('periods') : go('periods'))}>{curPeriod.rangeShort}</Button>{R.canRoute('approvals') && <Button icon="assignment_turned_in" onClick={() => go('approvals')}>{pend ? 'Review ' + pend + ' Approval' + (pend === 1 ? '' : 's') : 'Open Approvals'}</Button>}</>} />
-    <RemindersBoard notify={notify} go={go} compact />
     <Grid min={220}>
       <StatCard label="Active workforce" value={String(E.length)} unit="employees" icon="groups" footer={O.short + ' • ' + R.SCOPE_LABEL[R.scopeOf('dashboard.executive.view')] + ' scope'} />
       <StatCard label="Period payroll" value={'$' + gk.toFixed(1) + 'k'} unit="USD" icon="payments" tone="accent" footer={timesheetCount + ' timesheet' + (timesheetCount === 1 ? '' : 's') + ' this period • Local currency ' + O.currency} />

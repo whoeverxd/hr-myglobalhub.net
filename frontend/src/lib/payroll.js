@@ -12,7 +12,7 @@ const SHORT={'Awaiting Employee Submission':'Awaiting Employee','Awaiting Superv
 const TONE=s=>s==='Draft'?'neutral':s==='Archived'||s==='Closed'?'dark':s==='Paid'||s==='Approved'?'success':s==='Open'?'info':'warning';
 const KIT=['mytasks','reminders','ops','permissions','attendance','attDaily','actDaily','attCalendar','attExceptions','attLeave','attHolidays','attReports','attRules','languages','dashboard','approvals','queue','timesheets','employees','profile','payroll','processing','paystub','banking','projects','reports','admin','banks','settings','audit','contractors','contractorPayments'];
 const NAV=[
- {label:'Overview',items:[{key:'mytasks',label:'Mis tareas',icon:'checklist'},{key:'reminders',label:'Recordatorios',icon:'sticky_note_2'},{key:'ops',label:'Operations Center',icon:'monitor_heart'},{key:'dashboard',label:'Executive Dashboard',icon:'space_dashboard'},{key:'payroll',label:'Payroll Dashboard',icon:'monitoring'}]},
+ {label:'Overview',items:[{key:'reminders',label:'Recordatorios',icon:'sticky_note_2'},{key:'mytasks',label:'Mis tareas',icon:'checklist'},{key:'ops',label:'Operations Center',icon:'monitor_heart'},{key:'dashboard',label:'Executive Dashboard',icon:'space_dashboard'},{key:'payroll',label:'Payroll Dashboard',icon:'monitoring'}]},
  {label:'Workforce',items:[{key:'mytime',label:'My Work',icon:'schedule'},{key:'addEmployee',label:'Add Employee',icon:'person_add'},{key:'approvals',label:'Approval Workspace',icon:'assignment_turned_in'},{key:'queue',label:'Team Approval Queue',icon:'fact_check'},{key:'timesheets',label:'Team Timesheets',icon:'more_time'},{key:'employees',label:'Employee Directory',icon:'badge'}]},
  {label:'Attendance',items:[
    {key:'attendance',label:'Attendance Dashboard',icon:'how_to_reg'},
