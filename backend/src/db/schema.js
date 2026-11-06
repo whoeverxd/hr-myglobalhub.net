@@ -594,6 +594,12 @@ function initSchema() {
   try { exec(`ALTER TABLE daily_activities ADD COLUMN reviewed_at TEXT;`); } catch (_) {}
   // Meeting logged by a PM/supervisor for several attendees: shared id + who logged it (null = the owner)
   // Proofs belong to one payslip line: transfer + employee + period (it used to be one proof per transfer for everybody)
+  // QA workflow: status role ('ready' = Listo para QA, 'bug' = Bug encontrado) and the last QA review of a task
+  try { exec(`ALTER TABLE project_statuses ADD COLUMN qa_step TEXT;`); } catch (_) {}
+  try { exec(`ALTER TABLE project_tasks ADD COLUMN qa_note TEXT;`); } catch (_) {}
+  try { exec(`ALTER TABLE project_tasks ADD COLUMN qa_by TEXT;`); } catch (_) {}
+  try { exec(`ALTER TABLE project_tasks ADD COLUMN qa_at TEXT;`); } catch (_) {}
+  try { exec(`ALTER TABLE project_tasks ADD COLUMN qa_result TEXT;`); } catch (_) {}
   try { exec(`ALTER TABLE payment_proofs ADD COLUMN emp_id TEXT;`); } catch (_) {}
   try { exec(`ALTER TABLE payment_proofs ADD COLUMN period_id TEXT;`); } catch (_) {}
   try { exec(`DROP INDEX IF EXISTS idx_proofs_transfer;`); } catch (_) {}

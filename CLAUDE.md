@@ -10,6 +10,8 @@
     which the DS bundle defines with wrong asset paths). `KitScreen` rewrites avatar paths to `assets/avatars/`.
   - `src/design-system/` — My Global Hub Design System bundle + tokens. Do not edit `_ds_bundle.js`;
     it needs `window.React` (set in `src/setup-globals.js`). Components via `DS.<Name>`.
+    `TopBar.jsx` and `Sidebar.jsx` there replace the bundle's versions (`index.js`); the Sidebar's sections
+    collapse (first section + the active screen's section open by default, choice kept in localStorage).
   - `public/assets/` — logos and avatars (`assets/logo-mgh.png` is the sphere mark).
 - `backend/` — Express 5 API. `server.js` → `src/routes.js`, JSON store `src/db.js`, seed `src/seed.js`,
   period rules `src/payroll.js`. Default port 5050 (macOS uses 5000 for AirPlay).
@@ -57,6 +59,9 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   → owner step (stepIdx ≥ 1, admin only) → Approved. `#processing`: run pays only Approved sheets (`notIncluded` lists the
   rest) → approve run → bank/USDC files (only from an approved run) → `POST /payroll/runs/:id/paid` (admin) marks run,
   sheets and period Paid. Employee sees decisions on each activity (`#myentry`) and in `#myhistory`.
+  `#processing` shows only live state: stepper = sheets approved → run calculated → approved → paid; "Pre-run checklist"
+  (`PreRunChecklist` in kit.jsx) from `GET /payroll/readiness?periodId` (pm/finance/admin: sheets, payout readiness per
+  approved person via `payoutMethods.readiness` — no details —, run, company bank env ids) + open exceptions. No hand-ticked boxes.
 - Projects (`jira_projects`): MSHP "Wokokai" (keeps the Jira key), ARW "Arawaki", TR3 "Tr3slog"
   (`backend/scripts/setup-mgh-projects.js`). Membership = `project_members.user_id` = employee id (or the employee
   profile's `project`). Employees/contractors/supervisors see only member projects (`#projects` → `MyProjects.jsx`),
@@ -66,8 +71,16 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
   subtask follows its parent's sprint, deleting a parent deletes its subtasks; lists/search carry `parent_key`,
   `subtask_count/done/logged_hours`, `GET /tasks/:id` includes `subtasks`. Activities can be logged on a subtask.
   `#mytasks` "Mis tareas" (`MyTasks.jsx`, first menu item, every worker): own tasks + subtasks across member projects
-  (`GET /my/tasks` → { tasks, sprints }), sprint filter (default: active sprint), done/reopen via
-  `POST /tasks/:id/complete` { done } (first done status / project default; same `taskAccess` write rule).
+  (`GET /my/tasks` → { tasks, sprints, qaQueue }), sprint filter (default: active sprint), done/reopen via
+  `POST /tasks/:id/complete` { done } (assignee → "Listo para QA"; admin / projects without QA → first done status;
+  reopen → project default; same `taskAccess` write rule).
+  QA workflow (every project): Por hacer → En progreso → Listo para QA (`project_statuses.qa_step='ready'`) → Bug
+  encontrado (`qa_step='bug'`) → Completado. Only PM/admin may move their OWN task to Completado / Bug (any status; their "terminé"
+  in #mytasks closes it); any other project member (or PM/admin) takes a task in Listo para QA to Completado or Bug encontrado (note required) —
+  `agileService.checkStatusChange` (+ `qaStatusRule` on PUT/PATCH, `taskAccess` QA exception, `POST /tasks/:id/qa`
+  { result: passed|bug, note }). Last review on the task: `qa_note`, `qa_by`, `qa_at`, `qa_result`. UI: `kit/QaReview.jsx`
+  (#mytasks "Por revisar (QA)", MyProjects, AgileWorkspace). Existing projects: `node scripts/setup-qa-workflow.js`
+  (dry run) / `--apply` (live, asks QA) / `--local` (SQLite).
   "Agregar tarea propia" (unplanned work, reason required): tasks store `creator_employee_id` + `creator_role`;
   `self_created` = the assignee created it and is not pm/admin. Shown as "Tarea propia" (accent, `SelfTaskBadge`) in
   #mytasks, AgileWorkspace cards + "Creador" line, and on activities in #approvals (`activity.selfTask`).
@@ -84,7 +97,8 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
 - Accounts: never a shared default password. New employee/contractor logins get a random one-time password
   (`initialPassword`, shown once); a password typed by the admin must pass `passwordProblem`. Either way the account gets
   `must_change_password=1`: `authenticate` answers 403 `PASSWORD_CHANGE_REQUIRED` (except /auth/me, /auth/password,
-  /auth/logout) until the user replaces it, and App.jsx shows a non-dismissable modal. Create responses carry
+  /auth/logout) until the user replaces it, and App.jsx shows a non-dismissable modal. Date of birth is optional but
+  never a minor (< 18), future or > 100 years (`dobProblem`, backend `employees.controller.js` + `periodService.js`). Create responses carry
   `account.status` (created | linked | conflict | failed | none); an email already linked to another employee is never
   taken over: `createEmployee` refuses it (409, nothing saved) when another employee's record or login uses it. Forgotten password: "Restablecer contraseña" on the employee profile (HR/admin/PM, not own profile; only admin
   for an admin; a PM only for employee/contractor/supervisor accounts)

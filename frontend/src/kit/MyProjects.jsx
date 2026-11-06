@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { QaBugNote, QaReviewButtons, isQaReady } from './QaReview.jsx';
 
 /*
  * "Mis proyectos" — what an employee, contractor or supervisor sees at #projects.
  * Data comes only from projects they are a member of (the backend scopes GET /projects, /tasks/search and
  * /projects/:key/* by membership). They can: see project tasks, create tasks (assigned to themselves),
- * move the status of tasks assigned to them, and jump to the activity log to record hours against a task.
+ * move the status of tasks assigned to them (up to "Listo para QA": closing is someone else's QA review), review other
+ * people's tasks in "Listo para QA" (Completado / Bug encontrado), and jump to the activity log to record hours.
  * Project setup (members, sprints, statuses, assignment to others) is done by the PM in the full workspace.
  */
 export default function MyProjects({ notify, go, currentUser }) {
@@ -95,10 +97,13 @@ export default function MyProjects({ notify, go, currentUser }) {
   const statusSelect = (task) => {
     const sts = statusesByProject[task.project_key] || statusesByProject[sel] || [];
     if (!sts.length) return <Badge size="sm">{task.status_name || '—'}</Badge>;
+    // QA workflow: your own task goes up to "Listo para QA"; "Completado" and "Bug encontrado" are the reviewer's
+    const qaFlow = sts.some((s) => s.qa_step === 'ready');
+    const reviewerOnly = (s) => qaFlow && (Number(s.is_done) === 1 || s.qa_step === 'bug') && s.id !== task.status_id;
     return (
       <select value={task.status_id || ''} onChange={(e) => move(task, e.target.value)} disabled={!!task.assignee_id && task.assignee_id !== me}
         style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--mgh-surface-3)', font: '500 12px var(--font-sans)', background: '#fff' }}>
-        {sts.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+        {sts.map((s) => <option key={s.id} value={s.id} disabled={reviewerOnly(s)}>{s.name}{reviewerOnly(s) ? ' (lo marca QA)' : ''}</option>)}
       </select>
     );
   };
@@ -126,7 +131,7 @@ export default function MyProjects({ notify, go, currentUser }) {
               <thead><tr>{['Tarea', 'Proyecto', 'Estado', 'Estimado', 'Registrado', ''].map((c) => <th key={c} style={th}>{c}</th>)}</tr></thead>
               <tbody>{myTasks.map((t) => (
                 <tr key={t.id}>
-                  <td style={td}><b style={{ fontFamily: 'var(--font-mono)' }}>{t.task_key}</b> {t.title}<SubtaskNote t={t} /></td>
+                  <td style={td}><b style={{ fontFamily: 'var(--font-mono)' }}>{t.task_key}</b> {t.title}<SubtaskNote t={t} /><QaBugNote t={t} style={{ marginTop: 6 }} /></td>
                   <td style={td}>{t.project_name || t.project_key}</td>
                   <td style={td}>{statusSelect(t)}</td>
                   <td style={td}>{(Number(t.estimate_hours) || 0).toFixed(1)}h</td>
@@ -161,7 +166,13 @@ export default function MyProjects({ notify, go, currentUser }) {
                 <tr key={t.id}>
                   <td style={td}><b style={{ fontFamily: 'var(--font-mono)' }}>{t.task_key}</b> {t.title}<SubtaskNote t={t} /></td>
                   <td style={td}>{t.assignee_name || 'Sin asignar'}{t.assignee_id === me ? ' (tú)' : ''}</td>
-                  <td style={td}>{t.assignee_id === me ? statusSelect({ ...t, project_key: sel }) : <Badge size="sm">{t.status_name || '—'}</Badge>}</td>
+                  <td style={td}>{t.assignee_id === me ? statusSelect({ ...t, project_key: sel })
+                    : isQaReady(t) && t.assignee_id ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+                        <Badge size="sm" tone="info">{t.status_name}</Badge>
+                        <QaReviewButtons t={t} notify={notify} onDone={async () => { await load(); setProjTasks(await window.api.projectTasks(sel, { sort: 'recent' })); }} />
+                      </div>
+                    ) : <Badge size="sm">{t.status_name || '—'}</Badge>}</td>
                   <td style={td}>{t.sprint_name || 'Backlog'}</td>
                   <td style={td}>{(Number(t.estimate_hours) || 0).toFixed(1)}h</td>
                 </tr>

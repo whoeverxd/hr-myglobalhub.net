@@ -24,6 +24,25 @@ export function localDateStr(d = new Date()) {
   return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
 }
 
+/** Minimum age to be registered as a worker (same rule as backend `dobProblem` in employees.controller.js). */
+export const MIN_WORKER_AGE = 18;
+
+/**
+ * Checks an optional date of birth (YYYY-MM-DD) against `today` (YYYY-MM-DD). Returns '' when it is empty or
+ * valid, otherwise the problem: not a date, in the future, under 18 or over 100 years.
+ */
+export function dobProblem(dob, today = localDateStr()) {
+  if (!dob) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dob));
+  const d = m && new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  if (!m || Number.isNaN(d.getTime()) || d.getUTCDate() !== +m[3]) return 'Enter a valid date';
+  if (dob > today) return 'The date of birth cannot be in the future';
+  const [y, mm, dd] = today.split('-');
+  if (dob > `${+y - MIN_WORKER_AGE}-${mm}-${dd}`) return 'The person must be at least 18 years old';
+  if (dob < `${+y - 100}-${mm}-${dd}`) return 'Check the date of birth';
+  return '';
+}
+
 /**
  * Returns the exact quincenal pay period for any date.
  * If day <= 15: 1 al 15 del mes.

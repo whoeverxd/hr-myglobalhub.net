@@ -161,6 +161,8 @@ export const api = {
   verifyPayoutMethod: (id) => request('POST', `/payout-methods/${encodeURIComponent(id)}/verify`),
   rejectPayoutMethod: (id, note) => request('POST', `/payout-methods/${encodeURIComponent(id)}/reject`, { note }),
   pendingPayoutMethods: () => request('GET', '/payout-methods/pending'),
+  // Pre-run checklist of #processing (sheets, payout data, run, company bank ids) — GET /payroll/readiness
+  payrollReadiness: (periodId) => request('GET', `/payroll/readiness?periodId=${encodeURIComponent(periodId)}`),
   purgeEmployee: (employeeId, confirm) => request('POST', `/employees/${encodeURIComponent(employeeId)}/purge`, { confirm }),
   deactivateEmployee: (employeeId) => request('POST', `/employees/${encodeURIComponent(employeeId)}/deactivate`),
   employeeAccount: (employeeId) => request('GET', `/employees/${encodeURIComponent(employeeId)}/account`),
@@ -363,6 +365,8 @@ export const api = {
   // #mytasks: my own queue across my projects, and done / reopen
   myTasks: () => request('GET', '/my/tasks'),
   completeTask: (taskId, done = true) => request('POST', `/tasks/${encodeURIComponent(taskId)}/complete`, { done }),
+  // QA review of a task in "Listo para QA": result 'passed' (Completado) | 'bug' (Bug encontrado, note required)
+  qaReview: (taskId, result, note) => request('POST', `/tasks/${encodeURIComponent(taskId)}/qa`, { result, note }),
   updateTask: (taskId, payload) => request('PUT', `/tasks/${encodeURIComponent(taskId)}`, payload),
   moveTask: (taskId, payload) => request('PATCH', `/tasks/${encodeURIComponent(taskId)}/move`, payload),
   deleteTask: (taskId) => request('DELETE', `/tasks/${encodeURIComponent(taskId)}`),

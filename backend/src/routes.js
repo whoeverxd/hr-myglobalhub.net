@@ -553,6 +553,39 @@ router.post(
   payrollController.calculateRun
 );
 
+// Pre-run checklist of #processing, computed from live data: sheets of the quincena, payout readiness of everyone with
+// an approved sheet (no payout details), the saved run and the company bank identifiers the payout files need
+router.get('/payroll/readiness', authenticate, requireRole('pm', 'finance', 'admin'), (req, res, next) => {
+  try {
+    const periodId = String((req.query && req.query.periodId) || '').trim();
+    if (!periodId) return res.status(400).json({ error: 'periodId es obligatorio' });
+    const sheets = db.query('SELECT employee_id, employee_name, status FROM timesheets WHERE period_id = ?', [periodId]);
+    const paid = (s) => /^(Approved|Paid)$/.test(s.status);
+    const approved = sheets.filter(paid);
+    const names = new Map(sheets.map((s) => [s.employee_id, s.employee_name]));
+    const payout = payoutMethods.readiness([...new Set(approved.map((s) => s.employee_id))])
+      .map((p) => ({ ...p, name: names.get(p.employeeId) || p.employeeId }));
+    const run = db.query('SELECT id, status FROM payroll_runs WHERE period_id = ?', [periodId])[0] || null;
+    const channels = new Set(payout.filter((p) => p.status === 'ready').map((p) => p.channel));
+    res.json({
+      periodId,
+      sheets: {
+        total: sheets.length,
+        approved: approved.length,
+        pending: sheets.filter((s) => !paid(s)).map((s) => ({ employeeId: s.employee_id, name: s.employee_name, status: s.status })),
+      },
+      payout,
+      run: run ? { id: run.id, status: run.status } : null,
+      // Only the files this run will actually need: BHD/NACHA for bank payees
+      companyBank: {
+        needed: channels.has('bank'),
+        achCompanyId: Boolean(process.env.MGH_ACH_COMPANY_ID),
+        bhdCompanyAccount: Boolean(process.env.MGH_BHD_COMPANY_ACCOUNT),
+      },
+    });
+  } catch (err) { next(err); }
+});
+
 // List all processed payroll runs
 router.get('/payroll/runs', authenticate, requireRole('pm', 'finance', 'admin'), payrollController.listRuns);
 
@@ -1205,13 +1238,35 @@ function taskAccess({ write = false } = {}) {
     if (!task) return res.status(404).json({ error: 'Tarea no encontrada' });
     if (!agileService.isMember(task.project_id, req.user.employeeId)) return res.status(403).json({ error: 'You are not a member of this project' });
     if (write) {
-      if (task.assignee_id && task.assignee_id !== req.user.employeeId) return res.status(403).json({ error: 'You can only update tasks assigned to you' });
       const b = req.body || {};
+      if (task.assignee_id && task.assignee_id !== req.user.employeeId) {
+        // QA exception: another member takes a task in "Listo para QA" to "Completado" / "Bug encontrado" — status
+        // (+ note, board order) only, nothing else of someone else's task
+        const target = b.statusId || b.status_id;
+        const onlyStatus = Object.keys(b).every((k) => ['statusId', 'status_id', 'qaNote', 'qa_note', 'orderIndex', 'order_index'].includes(k));
+        if (!(req.method !== 'POST' && onlyStatus && agileService.isQaReview(task, target))) {
+          return res.status(403).json({ error: 'You can only update tasks assigned to you' });
+        }
+      }
       const newAssignee = b.assignee_id || b.assigneeId;
       if (newAssignee && newAssignee !== req.user.employeeId) return res.status(403).json({ error: 'Only a PM can assign tasks to other people' });
     }
     return next();
   };
+}
+// QA workflow rules on every status change (PUT /tasks/:id, PATCH /tasks/:id/move), PM and admin included
+function qaStatusRule(req, res, next) {
+  try {
+    const b = req.body || {};
+    const target = b.statusId || b.status_id;
+    if (target) {
+      const task = agileService.getTask(req.params.id);
+      if (task) agileService.checkStatusChange(task, target, req.user || {}, { qaNote: b.qaNote || b.qa_note });
+    }
+    return next();
+  } catch (err) {
+    return res.status(err.status || 400).json({ error: err.message, code: err.code });
+  }
 }
 function listProjectsScoped(req, res, next) {
   try {
@@ -1276,6 +1331,15 @@ router.post('/projects/:key/tasks', authenticate, requireProjectMember, (req, re
     delete body.assignee_id; delete body.assignee_name; delete body.assigneeName;
     req.body = { ...body, assigneeId: req.user.employeeId };
   }
+  // A task you are assigned to cannot be born "Completado" or in a QA status (that would skip the QA review)
+  const b = req.body || {};
+  const sid = b.statusId || b.status_id;
+  const assignee = b.assigneeId || b.assignee_id;
+  if (sid && assignee && req.user && assignee === req.user.employeeId && !['admin', 'pm'].includes(String(req.user.role || '').toLowerCase())) {
+    const st = agileService.qaStatuses(req.params.key);
+    const target = st.ready && st.all.find((s) => s.id === sid);
+    if (target && (Number(target.is_done) === 1 || target.qa_step)) { delete req.body.statusId; delete req.body.status_id; }
+  }
   return agileController.createTask(req, res, next);
 });
 // "Mis tareas": the caller's own queue, and done / reopen (same rule as moving a task: only your own, or PM/admin)
@@ -1286,12 +1350,20 @@ router.get('/my/tasks', authenticate, (req, res, next) => {
 router.post('/tasks/:id/complete', authenticate, taskAccess({ write: true }), (req, res, next) => {
   try {
     const done = !(req.body && req.body.done === false);
-    res.json(agileService.completeTask(req.params.id, done, getUserName(req), getClientIp(req)));
+    res.json(agileService.completeTask(req.params.id, done, getUserName(req), getClientIp(req), req.user || {}));
+  } catch (err) { next(err); }
+});
+// QA review of someone else's task in "Listo para QA" (any project member but the assignee; PM/admin) — rules in
+// agileService.checkStatusChange
+router.post('/tasks/:id/qa', authenticate, taskAccess(), (req, res, next) => {
+  try {
+    const b = req.body || {};
+    res.json(agileService.qaReview(req.params.id, b.result, b.note, getUserName(req), getClientIp(req), req.user || {}));
   } catch (err) { next(err); }
 });
 router.get('/tasks/:id', authenticate, taskAccess(), agileController.getTask);
-router.put('/tasks/:id', authenticate, taskAccess({ write: true }), agileController.updateTask);
-router.patch('/tasks/:id/move', authenticate, taskAccess({ write: true }), agileController.moveTask);
+router.put('/tasks/:id', authenticate, taskAccess({ write: true }), qaStatusRule, agileController.updateTask);
+router.patch('/tasks/:id/move', authenticate, taskAccess({ write: true }), qaStatusRule, agileController.moveTask);
 router.delete('/tasks/:id', authenticate, requireRole('pm', 'admin'), agileController.deleteTask);
 
 // Workflow Statuses (Configurable per project)

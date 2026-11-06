@@ -1131,6 +1131,11 @@ Enter a valid email|Ingresa un correo válido
 Phone|Teléfono
 Cédula / SSN / NI number|Cédula / SSN / NI
 Date of birth|Fecha de nacimiento
+Optional • must be 18 or older|Opcional • debe tener 18 años o más
+Enter a valid date|Ingresa una fecha válida
+The date of birth cannot be in the future|La fecha de nacimiento no puede ser futura
+The person must be at least 18 years old|La persona debe tener al menos 18 años
+Check the date of birth|Revisa la fecha de nacimiento
 Entity, reporting line and contract|Entidad, línea de reporte y contrato
 Engineering|Ingeniería
 Product|Producto

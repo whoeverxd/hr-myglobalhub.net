@@ -6,6 +6,7 @@ import '../setup-globals.js';
 import './styles.css';
 import './_ds_bundle.js';
 import TopBar from './TopBar.jsx';
+import Sidebar from './Sidebar.jsx';
 
 // The bundle was exported from the design prototype and injects demo globals (sample people such as
 // "Carlos Mendez", a frozen PERIOD, its own SCREENS/App with wrong asset paths). Production shows backend
@@ -22,8 +23,10 @@ export const DS = window.MyGlobalHubDesignSystem_2a603d;
 
 if (DS) {
   DS.TopBar = TopBar;
+  DS.Sidebar = Sidebar;
   if (typeof window !== 'undefined' && window.MyGlobalHubDesignSystem_2a603d) {
     window.MyGlobalHubDesignSystem_2a603d.TopBar = TopBar;
+    window.MyGlobalHubDesignSystem_2a603d.Sidebar = Sidebar;
   }
 }
 

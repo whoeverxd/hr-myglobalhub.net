@@ -209,6 +209,25 @@ const service = {
     return r ? rowOut(r, { full: true }) : null;
   },
 
+  /**
+   * Payroll pre-run check: for each employee, can payroll pay them? No details are returned (PMs may call it).
+   * status: 'ready' (verified primary method) | 'pending' (a method awaits verification) | 'missing' (none usable:
+   * the payout file would use the legacy profile fields, which usually fail with 409).
+   */
+  readiness(employeeIds = []) {
+    return employeeIds.map((empId) => {
+      const rows = db.query(`SELECT * FROM payout_methods WHERE employee_id = ?`, [empId]);
+      const primary = rows.find((r) => Number(r.is_primary) === 1 && r.status === 'verified');
+      if (primary) {
+        const d = parse(primary.details_json);
+        return { employeeId: empId, status: 'ready', type: (TYPES[primary.type] || {}).label || primary.type, channel: channelOf(primary.type, d) };
+      }
+      const pending = rows.find((r) => r.status === 'pending');
+      if (pending) return { employeeId: empId, status: 'pending', type: (TYPES[pending.type] || {}).label || pending.type, channel: null };
+      return { employeeId: empId, status: 'missing', type: null, channel: null };
+    });
+  },
+
   byId(id) {
     const r = db.getOne(`SELECT * FROM payout_methods WHERE id = ?`, [id]);
     return r ? rowOut(r, { full: true }) : null;

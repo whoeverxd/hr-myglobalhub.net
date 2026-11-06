@@ -1707,12 +1707,20 @@ function PayrollProcessing({ notify }) {
   const calculateRun = () => runAction(() => window.api.calculatePayroll({ periodId: periodCode, saveAsRun: true }), r => `Corrida calculada • ${r.totalEmployees} pagados${r.notIncluded && r.notIncluded.length ? ' • ' + r.notIncluded.length + ' sin hoja aprobada (no incluidos)' : ''}`);
   const approveRun = () => runAction(() => window.api.approvePayrollRun(run.id), 'Corrida aprobada • ya puedes generar los archivos de pago');
   const markPaid = () => { if (window.confirm('¿Confirmas que el pago de ' + periodCode + ' ya fue ejecutado? La corrida, las hojas y el periodo quedarán como Pagados y no se podrán modificar.')) runAction(() => window.api.markPayrollRunPaid(run.id), r => `${periodCode} marcado como pagado • ${r.timesheetsPaid || 0} hojas pagadas`); };
-  const [step, setStep] = React.useState(0);
-  const [sel, setSel] = React.useState([]);
-  const [disbursedModal, setDisbursedModal] = React.useState(false);
-  const [disbursing, setDisbursing] = React.useState(false);
-  const names = ['Pre-checks', 'Import Hours', 'Review Exceptions', 'Calculate', 'Approve & Lock', 'Disburse'];
-  const steps = names.map((l, i) => ({ label: l, state: i < step ? 'done' : i === step ? 'current' : 'pending', icon: ['rule', 'download', 'report', 'calculate', 'lock', 'send_money'][i], status: i < step ? 'Visto' : i === step ? 'Paso actual' : 'Pendiente' }));
+  // Pre-run checklist from live data (GET /payroll/readiness): sheets, payout data, run, company bank identifiers
+  const [sel, setSel] = React.useState([]); // selected exceptions (bulk "Mark resolved")
+  const [ready, setReady] = React.useState(null);
+  React.useEffect(() => {
+    let cancel = false;
+    setReady(null);
+    if (!canPayrollRuns()) return undefined;
+    window.api.payrollReadiness(periodCode).then(r => { if (!cancel) setReady(r); }).catch(() => { if (!cancel) setReady({ error: true }); });
+    return () => { cancel = true; };
+  }, [periodCode, runTick]);
+  // Real progress of the quincena: sheets approved → run calculated → run approved → paid
+  const stage = !run ? (approvedSheets.length ? 1 : 0) : run.status === 'Paid' ? 4 : run.status === 'Approved' ? 3 : 2;
+  const names = ['Hojas aprobadas', 'Corrida calculada', 'Corrida aprobada', 'Pagada'];
+  const steps = names.map((l, i) => ({ label: l, state: i < stage ? 'done' : i === stage ? 'current' : 'pending', icon: ['fact_check', 'calculate', 'verified', 'paid'][i], status: i < stage ? 'Hecho' : i === stage ? 'Siguiente' : 'Pendiente' }));
   // Open attendance exceptions from the backend (no invented issues)
   const [rawEx, setRawEx] = React.useState([]);
   const loadEx = React.useCallback(() => {
@@ -1729,30 +1737,9 @@ function PayrollProcessing({ notify }) {
     setSel([]); loadEx();
   };
 
-  const handleNext = async () => {
-    if (step < 5) {
-      setStep(s => s + 1);
-      return;
-    }
-    // Release = approve the saved payroll run for this period. Only report success if the backend confirms it.
-    setDisbursing(true);
-    try {
-      if (!run) { notify(`Primero calcula la corrida de ${periodCode}`); return; }
-      if (!runLocked) await window.api.approvePayrollRun(run.id);
-      setRunTick(n => n + 1);
-      setDisbursedModal(true);
-    } catch (err) {
-      notify('Could not approve the payroll run • ' + err.message);
-    } finally {
-      setDisbursing(false);
-    }
-  };
-
   return <Page>
-    <PageHeader breadcrumbs={['Payroll & Finance', 'Pay Periods', curPeriod.code]} title="Payroll Processing" status={<Badge tone="warning" dot>{`${curPeriod.code} • Step ${step + 1} of 6`}</Badge>}
-      actions={<><Button variant="secondary" icon="arrow_back" disabled={step === 0} onClick={() => setStep(s => s - 1)}>Back</Button><Button icon={step === 5 ? 'send_money' : 'arrow_forward'} disabled={disbursing} onClick={handleNext}>{disbursing ? 'Releasing...' : step === 5 ? 'Release Funds' : 'Continue to ' + names[step + 1]}</Button></>} />
-    <Card padding={24}><Stepper steps={steps} /></Card>
-    <Card icon="account_balance" title={`Corrida de nómina • ${periodCode}`} subtitle="Solo se pagan hojas aprobadas por el PM y por el dueño. Los archivos bancarios salen de la corrida aprobada."
+    <PageHeader breadcrumbs={['Payroll & Finance', 'Pay Periods', curPeriod.code]} title="Payroll Processing" status={<Badge tone={!run ? 'neutral' : run.status === 'Paid' ? 'success' : run.status === 'Approved' ? 'primary' : 'warning'} dot>{`${curPeriod.code} • ${runStatus}`}</Badge>} />
+    <Card padding={24}><Stepper steps={steps} /></Card>    <Card icon="account_balance" title={`Corrida de nómina • ${periodCode}`} subtitle="Solo se pagan hojas aprobadas por el PM y por el dueño. Los archivos bancarios salen de la corrida aprobada."
       actions={<Select size="sm" value={periodCode} onChange={x => setPeriodCode(typeof x === 'string' ? x : x.target.value)} options={periodOpts.map(p => ({ value: p.code, label: p.label }))} />}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1786,92 +1773,80 @@ function PayrollProcessing({ notify }) {
     </div>
     <div style={{ font: '500 12px var(--font-sans)', color: 'var(--mgh-ink-3)', marginTop: -12 }}>{run ? 'Totales de la corrida guardada de ' + periodCode + '.' : periodCode === getCurrentPeriod().code ? 'Estimación del período actual a partir de las hojas de tiempo; la corrida calcula los montos definitivos.' : 'Esta quincena aún no tiene corrida calculada.'}</div>
 
-    {step === 5 ? (
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(300px,1fr)', gap: 20 }}>
-        <Card icon="send_money" title="Ready to Release Funds • Banking Rails" subtitle="Generate NACHA ACH and Banco BHD direct deposit dispersal files.">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
-              <div style={{ padding: 16, borderRadius: 10, border: '1px solid var(--mgh-surface-2)', background: 'var(--mgh-surface-1)' }}>
-                <div style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>Banco BHD León (DR ACH)</div>
-                
-                
-                <div style={{ marginTop: 12 }}>
-                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => downloadApi(`/payroll/export/bhd?periodId=${encodeURIComponent(curPeriod.code)}&download=true`, `bhd-${curPeriod.code}.txt`, notify)}>Download BHD File</Button>
-                </div>
-              </div>
-              <div style={{ padding: 16, borderRadius: 10, border: '1px solid var(--mgh-surface-2)', background: 'var(--mgh-surface-1)' }}>
-                <div style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>NACHA US FedWire / ACH</div>
-                
-                
-                <div style={{ marginTop: 12 }}>
-                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => downloadApi(`/payroll/export/nacha?periodId=${encodeURIComponent(curPeriod.code)}&download=true`, `nacha-${curPeriod.code}.ach`, notify)}>Download NACHA (.ach)</Button>
-                </div>
-              </div>
-              <div style={{ padding: 16, borderRadius: 10, border: '1px solid var(--mgh-surface-2)', background: 'var(--mgh-surface-1)' }}>
-                <div style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>Crypto USDC (Base)</div>
-                
-                
-                <div style={{ marginTop: 12 }}>
-                  <Button size="sm" variant="secondary" icon="download" disabled={!runLocked} onClick={() => downloadApi(`/payroll/export/usdc?periodId=${encodeURIComponent(curPeriod.code)}&download=true`, `usdc-${curPeriod.code}.json`, notify)}>Download USDC Batch</Button>
-                </div>
-              </div>
-            </div>
-            <div style={{ padding: 14, borderRadius: 8, background: 'var(--mgh-success-50)', border: '1px solid var(--mgh-success-200)', display: 'flex', gap: 12, alignItems: 'center' }}>
-              <Icon name="verified" size={24} color="var(--mgh-success)" />
-              <div style={{ font: '500 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>
-                {runLocked ? 'La corrida está aprobada: descarga los archivos de pago.' : <>Pulsa <b>Release Funds</b> para aprobar la corrida guardada de esta quincena. Los archivos de pago se habilitan solo desde la corrida aprobada.</>}
-              </div>
-            </div>
-          </div>
-        </Card>
-        <Card icon="checklist" title="Disbursement verification">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {['Dual-control authorization confirmed', 'Sufficient liquidity in Treasury', 'BHD & NACHA batches reviewed', 'Exchange rate confirmed'].map((t) => <Checkbox key={t} label={t} />)}
-          </div>
-        </Card>
-      </div>
-    ) : (
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(300px,1fr)', gap: 20 }}>
-        <Card icon="report" title="Exceptions to resolve" subtitle="Revisa y resuelve las excepciones abiertas antes de aprobar la corrida (el sistema no lo bloquea automáticamente)." bodyStyle={{ paddingTop: 14 }}>
-          <DataTable selectable selected={sel} onSelectedChange={setSel} bulkBar={<Button size="sm" icon="done" onClick={resolveSelected}>Mark resolved</Button>} rows={ex} columns={[
-            { key: 'emp', label: 'Employee', render: r => <EmployeeCell e={r.emp} sub={r.emp.id} /> }, { key: 'issue', label: 'Issue', wrap: true },
-            { key: 'sev', label: 'Severity', render: r => <Badge size="sm" tone={r.sev === 'High' ? 'danger' : r.sev === '—' ? 'neutral' : 'warning'}>{r.sev}</Badge> }, { key: 'act', label: 'Suggested action', wrap: true }]} />
-        </Card>
-        <Card icon="checklist" title="Pre-run checklist">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{['Exchange rates confirmed', 'TSS & ISR tables up to date', 'Jira worklogs synced', 'Bank cut-off times confirmed', 'Dual control approver assigned'].map((t) => <Checkbox key={t} label={t} />)}</div>
-        </Card>
-      </div>
-    )}
-
-    <Modal open={disbursedModal} title="Payroll run approved" onClose={() => setDisbursedModal(false)} width={540}
-      actions={<Button variant="primary" onClick={() => setDisbursedModal(false)}>Close</Button>}
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 8, background: 'var(--mgh-success-50)', border: '1px solid var(--mgh-success-200)' }}>
-          <Icon name="check_circle" size={32} color="var(--mgh-success)" />
-          <div>
-            <div style={{ font: '700 15px var(--font-sans)', color: 'var(--mgh-ink)' }}>{`${curPeriod.code} approved`}</div>
-            <div style={{ font: '400 13px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>Download the dispersal files below and submit them to each bank.</div>
-          </div>
-        </div>
-        <div style={{ font: '600 13px var(--font-sans)', color: 'var(--mgh-ink)' }}>Generated Dispersal Files:</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--mgh-surface-1)', borderRadius: 8 }}>
-            <span>NACHA FedWire ACH (US)</span>
-            <Button size="sm" variant="secondary" icon="download" onClick={() => downloadApi(`/payroll/export/nacha?periodId=${encodeURIComponent(curPeriod.code)}&download=true`, `nacha-${curPeriod.code}.ach`, notify)}>Download .ach</Button>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--mgh-surface-1)', borderRadius: 8 }}>
-            <span>Banco BHD León Format (DR)</span>
-            <Button size="sm" variant="secondary" icon="download" onClick={() => downloadApi(`/payroll/export/bhd?periodId=${encodeURIComponent(curPeriod.code)}&download=true`, `bhd-${curPeriod.code}.txt`, notify)}>Download .txt</Button>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--mgh-surface-1)', borderRadius: 8 }}>
-            <span>Crypto USDC Batch (Base)</span>
-            <Button size="sm" variant="secondary" icon="download" onClick={() => downloadApi(`/payroll/export/usdc?periodId=${encodeURIComponent(curPeriod.code)}&download=true`, `usdc-${curPeriod.code}.json`, notify)}>Download .json</Button>
-          </div>
-        </div>
-      </div>
-    </Modal>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(300px,1fr)', gap: 20 }}>
+      <Card icon="report" title="Exceptions to resolve" subtitle="Revisa y resuelve las excepciones abiertas antes de aprobar la corrida (el sistema no lo bloquea automáticamente)." bodyStyle={{ paddingTop: 14 }}>
+        <DataTable selectable selected={sel} onSelectedChange={setSel} bulkBar={<Button size="sm" icon="done" onClick={resolveSelected}>Mark resolved</Button>} rows={ex} columns={[
+          { key: 'emp', label: 'Employee', render: r => <EmployeeCell e={r.emp} sub={r.emp.id} /> }, { key: 'issue', label: 'Issue', wrap: true },
+          { key: 'sev', label: 'Severity', render: r => <Badge size="sm" tone={r.sev === 'High' ? 'danger' : r.sev === '—' ? 'neutral' : 'warning'}>{r.sev}</Badge> }, { key: 'act', label: 'Suggested action', wrap: true }]} />
+      </Card>
+      <PreRunChecklist ready={ready} run={run} periodCode={periodCode} openExceptions={ex.length} />
+    </div>
   </Page>;
+}
+
+// "Lista previa a la corrida": each line is computed from live data (GET /payroll/readiness + open exceptions). Nothing
+// here is ticked by hand. 'ok' = ready, 'warn' = can continue but look at it, 'bad' = the run or its files will fail.
+function PreRunChecklist({ ready, run, periodCode, openExceptions }) {
+  const TONE = { ok: ['check_circle', 'var(--mgh-success)'], warn: ['error', 'var(--mgh-warning)'], bad: ['cancel', 'var(--mgh-danger)'], wait: ['radio_button_unchecked', 'var(--mgh-ink-3)'] };
+  const names = (list, max = 4) => list.slice(0, max).map(x => x.name || x.employeeId).join(', ') + (list.length > max ? ` y ${list.length - max} más` : '');
+  let items = [];
+  if (!canPayrollRuns()) {
+    items = [{ tone: 'wait', title: 'Solo para PM, finanzas y admin', detail: 'Tu rol no puede ver la preparación de la corrida.' }];
+  } else if (!ready) {
+    items = [{ tone: 'wait', title: 'Comprobando…', detail: '' }];
+  } else if (ready.error) {
+    items = [{ tone: 'warn', title: 'No se pudo comprobar', detail: 'Recarga la página para intentarlo de nuevo.' }];
+  } else {
+    const sh = ready.sheets || { total: 0, approved: 0, pending: [] };
+    items.push(sh.approved === 0
+      ? { tone: 'bad', title: 'Hojas aprobadas', detail: sh.total ? `Ninguna de las ${sh.total} hojas de ${periodCode} está aprobada: no hay nada que pagar todavía.` : `No hay hojas de tiempo en ${periodCode}.` }
+      : sh.pending.length
+        ? { tone: 'warn', title: 'Hojas aprobadas', detail: `${sh.approved} de ${sh.total} aprobadas. Sin aprobar (no se pagan en esta corrida): ${names(sh.pending)}.` }
+        : { tone: 'ok', title: 'Hojas aprobadas', detail: `Las ${sh.approved} hojas de ${periodCode} están aprobadas por el PM y el dueño.` });
+
+    const pay = ready.payout || [];
+    const missing = pay.filter(p => p.status === 'missing'), pending = pay.filter(p => p.status === 'pending');
+    items.push(!pay.length
+      ? { tone: 'wait', title: 'Datos de pago verificados', detail: 'Se comprueba cuando haya hojas aprobadas.' }
+      : missing.length
+        ? { tone: 'bad', title: 'Datos de pago verificados', detail: `Sin método de pago verificado: ${names(missing)}. Su línea fallará al generar el archivo; regístralo en su perfil → Datos de pago.${pending.length ? ` Pendientes de verificar: ${names(pending)}.` : ''}` }
+        : pending.length
+          ? { tone: 'warn', title: 'Datos de pago verificados', detail: `Pendientes de verificar (Administración → cola de datos de pago): ${names(pending)}.` }
+          : { tone: 'ok', title: 'Datos de pago verificados', detail: `Las ${pay.length} personas tienen un método de pago principal verificado.` });
+
+    const cb = ready.companyBank || {};
+    const missingEnv = [!cb.bhdCompanyAccount && 'MGH_BHD_COMPANY_ACCOUNT (archivo BHD)', !cb.achCompanyId && 'MGH_ACH_COMPANY_ID (archivo NACHA)'].filter(Boolean);
+    items.push(!cb.needed
+      ? { tone: 'ok', title: 'Datos bancarios de la empresa', detail: 'Nadie cobra por banco en esta corrida: no hacen falta.' }
+      : missingEnv.length
+        ? { tone: 'warn', title: 'Datos bancarios de la empresa', detail: `Falta configurar en el servidor: ${missingEnv.join(' y ')}. Sin eso, ese archivo bancario no se genera.` }
+        : { tone: 'ok', title: 'Datos bancarios de la empresa', detail: 'Cuenta BHD e identificador ACH de la empresa configurados.' });
+
+    items.push(openExceptions
+      ? { tone: 'warn', title: 'Excepciones de asistencia', detail: `${openExceptions} abierta${openExceptions === 1 ? '' : 's'}. No bloquean la corrida, pero revísalas antes de aprobarla.` }
+      : { tone: 'ok', title: 'Excepciones de asistencia', detail: 'No hay excepciones abiertas.' });
+
+    const st = run && run.status;
+    items.push(!run
+      ? { tone: 'wait', title: 'Corrida', detail: 'Todavía no está calculada: pulsa "Calcular corrida" arriba.' }
+      : st === 'Paid'
+        ? { tone: 'ok', title: 'Corrida', detail: 'Pagada. La quincena está cerrada.' }
+        : st === 'Approved'
+          ? { tone: 'ok', title: 'Corrida', detail: 'Aprobada: descarga los archivos de pago y, cuando el banco confirme, márcala como pagada.' }
+          : { tone: 'wait', title: 'Corrida', detail: `Calculada (${st}). Falta aprobarla para habilitar los archivos de pago.` });
+  }
+  const bad = items.filter(i => i.tone === 'bad').length, warn = items.filter(i => i.tone === 'warn').length;
+  return <Card icon="checklist" title="Pre-run checklist" subtitle={!ready || ready.error ? null : bad ? `${bad} punto${bad === 1 ? '' : 's'} a corregir` : warn ? `${warn} aviso${warn === 1 ? '' : 's'}` : 'Todo listo'}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {items.map((it, i) => <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+        <Icon name={TONE[it.tone][0]} size={20} color={TONE[it.tone][1]} />
+        <div style={{ minWidth: 0 }}>
+          <div style={{ font: '600 13px/18px var(--font-sans)', color: 'var(--mgh-ink)' }}>{it.title}</div>
+          {it.detail ? <div style={{ font: '400 12px/17px var(--font-sans)', color: 'var(--mgh-ink-2)' }}>{it.detail}</div> : null}
+        </div>
+      </div>)}
+    </div>
+  </Card>;
 }
 
 // Pay stubs come only from saved payroll runs (GET /payroll/paystubs); nothing is shown until a run includes the employee.

@@ -37,6 +37,7 @@ test('Projects: members-only visibility, own tasks, PM assignment by employee, o
   for (const k of ['TQA', 'TQB']) {
     db.execute('DELETE FROM project_tasks WHERE project_id IN (SELECT id FROM jira_projects WHERE key = ?)', [k]);
     db.execute('DELETE FROM project_members WHERE project_id IN (SELECT id FROM jira_projects WHERE key = ?)', [k]);
+    db.execute('DELETE FROM project_statuses WHERE project_id IN (SELECT id FROM jira_projects WHERE key = ?)', [k]);
     db.execute('DELETE FROM jira_projects WHERE key = ?', [k]);
   }
   assert.equal((await call(admin, 'POST', '/projects', { key: 'TQA', name: 'Test Project A' })).status, 201);
@@ -69,7 +70,9 @@ test('Projects: members-only visibility, own tasks, PM assignment by employee, o
   // Luis moves his own task, but cannot touch Zain's or reassign his own to someone else
   const statuses = (await call(luis, 'GET', '/projects/TQA/statuses')).data;
   const done = statuses.find((s) => s.is_done);
-  assert.equal((await call(luis, 'PATCH', `/tasks/${own.data.id}/move`, { statusId: done.id })).status, 200);
+  const inProgress = statuses.find((s) => s.category === 'in_progress' && !s.qa_step);
+  assert.equal((await call(luis, 'PATCH', `/tasks/${own.data.id}/move`, { statusId: inProgress.id })).status, 200);
+  assert.equal((await call(luis, 'PATCH', `/tasks/${own.data.id}/move`, { statusId: done.id })).status, 403, 'own task: QA closes it');
   assert.equal((await call(luis, 'PATCH', `/tasks/${forZain.data.id}/move`, { statusId: done.id })).status, 403);
   assert.equal((await call(luis, 'PUT', `/tasks/${own.data.id}`, { assigneeId: 'MGH-1043' })).status, 403);
   assert.equal((await call(luis, 'DELETE', `/tasks/${own.data.id}`)).status, 403);

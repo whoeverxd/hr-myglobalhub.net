@@ -23,7 +23,7 @@ test('Mis tareas: only my tasks in my projects, with their sprints; complete and
   assert.ok(r.sprints.some((s) => s.id === sprint.id && s.projectKey === project.key));
   assert.equal(r.tasks.find((t) => t.id === sub.id).parent_key, mine.task_key);
   assert.equal(r.tasks.find((t) => t.id === mine.id).project_key, project.key);
-  assert.deepEqual(agileService.myTasks(null), { tasks: [], sprints: [] });
+  assert.deepEqual(agileService.myTasks(null), { tasks: [], sprints: [], qaQueue: [] });
 
   const done = agileService.completeTask(backlog.id, true, 'Juan');
   assert.equal(Number(done.status_is_done), 1);

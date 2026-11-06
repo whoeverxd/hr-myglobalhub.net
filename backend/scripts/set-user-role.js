@@ -52,6 +52,7 @@ async function main() {
   require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
   process.env.DATABASE_CLIENT = 'firestore';
   process.env.SKIP_SEED = 'true';
+  process.env.SKIP_REMOTE_INIT = 'false'; // .env may boot from the local snapshot: --apply must read the live data
   const db = require('../src/db/connection');
   await db.initDatabase();
   const adapter = db.getAdapter();

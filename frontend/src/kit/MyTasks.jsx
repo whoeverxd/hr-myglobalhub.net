@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { QaBugNote, QaReviewButtons, isQaReady, isQaBug } from './QaReview.jsx';
 
 /*
  * #mytasks "Mis tareas": the signed-in worker's own queue — every task and subtask assigned to them in their projects.
- * Filter by sprint / status / text, mark done or reopen (POST /tasks/:id/complete), jump to #myentry to log time.
- * Data: GET /my/tasks → { tasks, sprints } (agile.service myTasks).
+ * Filter by sprint / status / text, send to QA ("Listo para QA") or reopen (POST /tasks/:id/complete), jump to #myentry.
+ * "Por revisar (QA)": other people's tasks in "Listo para QA" in my projects → Completado / Bug encontrado (QaReview.jsx).
+ * Data: GET /my/tasks → { tasks, sprints, qaQueue } (agile.service myTasks).
  */
 
 const fmtH = (n) => { const t = Math.round((Number(n) || 0) * 60), h = Math.floor(t / 60), m = t % 60; return h && m ? `${h}h ${m}m` : m ? `${m}m` : `${h}h`; };
@@ -24,6 +26,8 @@ export default function MyTasks({ go, notify }) {
   const { PageHeader, Card, StatCard, FilterChips, Badge, Button, Icon } = DS;
   const R = window.MGH_RBAC;
   const empId = (R && R.user && (R.user.employeeId || R.user.employee_id)) || (R && R.me() && R.me().emp) || null;
+  // PM / admin close their own tasks directly; everyone else sends them to "Listo para QA"
+  const manager = ['pm', 'admin'].includes(String((R && R.user && R.user.role) || '').toLowerCase());
   const [data, setData] = useState(null);
   const [sprint, setSprint] = useState('current'); // current | all | backlog | <sprint id>
   const [state, setState] = useState('open'); // open | done | all
@@ -71,7 +75,7 @@ export default function MyTasks({ go, notify }) {
     try {
       const updated = await window.api.completeTask(t.id, done);
       setData((d) => ({ ...d, tasks: d.tasks.map((x) => (x.id === t.id ? { ...x, ...updated, project_key: x.project_key, project_name: x.project_name } : x)) }));
-      if (notify) notify(done ? `${t.task_key} completada` : `${t.task_key} reabierta`);
+      if (notify) notify(!done ? `${t.task_key} reabierta` : isQaReady(updated) ? `${t.task_key} enviada a QA • otra persona del proyecto la revisa` : `${t.task_key} completada`);
       if (t.parent_id) load(); // the parent's done/total count changes
     } catch (err) { if (notify) notify(err.message); }
     finally { setBusy(null); }
@@ -86,6 +90,7 @@ export default function MyTasks({ go, notify }) {
   }
 
   const counts = { open: inSprint.filter((t) => !isDone(t)).length, done: inSprint.filter(isDone).length };
+  const qaQueue = (data && data.qaQueue) || [];
   const sprintOptions = [
     { value: 'current', label: activeIds.length ? 'Sprint actual' : 'Sprint actual (no hay uno activo)' },
     { value: 'all', label: 'Todos los sprints' },
@@ -98,7 +103,7 @@ export default function MyTasks({ go, notify }) {
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 1600, margin: '0 auto' }}>
       {PageHeader ? <PageHeader breadcrumbs={['Mi trabajo', 'Mis tareas']} title="Mis tareas"
-        description="Las tareas y subtareas que tienes asignadas en tus proyectos. Márcalas como completadas al terminarlas y registra tus horas en ellas."
+        description="Las tareas y subtareas que tienes asignadas en tus proyectos. Al terminar una, márcala: pasa a Listo para QA y otra persona del proyecto la revisa. Registra tus horas en ellas."
         actions={<>
           <Button icon="add_task" onClick={() => setOwn({})}>Agregar tarea propia</Button>
           {go ? <Button variant="secondary" icon="more_time" onClick={() => go('myentry')}>Registrar horas</Button> : null}
@@ -107,6 +112,7 @@ export default function MyTasks({ go, notify }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14 }}>
         <StatCard label="Pendientes" value={String(counts.open)} icon="pending_actions" tone="warning" footer={curSprint ? curSprint.name : sprint === 'backlog' ? 'Sin sprint' : 'En el filtro actual'} />
         <StatCard label="Completadas" value={String(counts.done)} icon="task_alt" tone="success" footer={inSprint.length ? Math.round((counts.done / inSprint.length) * 100) + '% del total' : '—'} />
+        <StatCard label="Por revisar (QA)" value={String(qaQueue.length)} icon="fact_check" tone={qaQueue.length ? 'info' : undefined} footer="Tareas de otros listas para QA" />
         <StatCard label="Horas registradas" value={fmtH(inSprint.reduce((a, t) => a + (Number(t.logged_hours) || 0), 0))} icon="schedule" footer="En estas tareas" />
         <StatCard label="Sprint" value={curSprint ? curSprint.name : sprint === 'all' ? 'Todos' : sprint === 'backlog' ? 'Backlog' : '—'} icon="sprint" footer={curSprint && curSprint.endDate ? 'Termina el ' + fmtDay(curSprint.endDate) : ' '} />
       </div>
@@ -129,14 +135,14 @@ export default function MyTasks({ go, notify }) {
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
                   <thead><tr>{['', 'Tarea', 'Proyecto / Sprint', 'Estado', 'Horas', ''].map((c, i) => <th key={i} style={{ textAlign: i === 4 ? 'right' : 'left', padding: '10px 12px', background: 'var(--mgh-surface-1)', font: '700 11px/14px var(--font-sans)', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--mgh-ink-2)', width: i === 0 ? 44 : undefined }}>{c}</th>)}</tr></thead>
                   <tbody>{ordered.map(({ t, depth }) => {
-                    const done = isDone(t), expanded = open === t.id;
+                    const done = isDone(t), expanded = open === t.id, inQa = isQaReady(t);
                     return (
                       <React.Fragment key={t.id}>
                         <tr style={{ background: done ? 'var(--mgh-surface-1)' : '#fff' }}>
                           <td style={{ ...td, paddingLeft: 12 + depth * 22 }}>
-                            <button type="button" disabled={busy === t.id} onClick={() => toggle(t)} title={done ? 'Reabrir' : 'Marcar como completada'} aria-label={done ? 'Reabrir ' + t.task_key : 'Completar ' + t.task_key}
-                              style={{ border: 'none', background: 'transparent', padding: 0, cursor: busy === t.id ? 'wait' : 'pointer', display: 'inline-flex' }}>
-                              {Icon ? <Icon name={done ? 'check_circle' : 'radio_button_unchecked'} size={22} color={done ? 'var(--mgh-success)' : 'var(--mgh-ink-3)'} /> : (done ? '✓' : '○')}
+                            <button type="button" disabled={busy === t.id || (inQa && !manager)} onClick={() => toggle(t)} title={done ? 'Reabrir' : inQa ? 'En revisión de QA' : manager ? 'Marcar como completada' : 'Terminé: enviar a QA'} aria-label={done ? 'Reabrir ' + t.task_key : inQa ? t.task_key + ' en revisión de QA' : 'Enviar a QA ' + t.task_key}
+                              style={{ border: 'none', background: 'transparent', padding: 0, cursor: busy === t.id ? 'wait' : inQa ? 'default' : 'pointer', display: 'inline-flex' }}>
+                              {Icon ? <Icon name={done ? 'check_circle' : inQa ? 'hourglass_top' : isQaBug(t) ? 'bug_report' : 'radio_button_unchecked'} size={22} color={done ? 'var(--mgh-success)' : inQa ? 'var(--mgh-primary)' : isQaBug(t) ? 'var(--mgh-danger,#dc2626)' : 'var(--mgh-ink-3)'} /> : null}
                             </button>
                           </td>
                           <td style={td}>
@@ -152,12 +158,13 @@ export default function MyTasks({ go, notify }) {
                                 {t.subtask_count > 0 ? `${t.subtask_done}/${t.subtask_count} subtareas hechas` : null}
                               </span>
                             </button>
+                            <QaBugNote t={t} style={{ marginTop: 6, maxWidth: 640 }} />
                           </td>
                           <td style={td}>
                             <div style={{ fontWeight: 600 }}>{t.project_name || t.project_key}</div>
                             <div style={{ font: '500 12px/16px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>{t.sprint_name || 'Backlog'}</div>
                           </td>
-                          <td style={td}>{Badge ? <Badge size="sm" dot tone={done ? 'success' : t.status_category === 'in_progress' ? 'info' : 'neutral'}>{t.status_name || '—'}</Badge> : t.status_name}</td>
+                          <td style={td}>{Badge ? <Badge size="sm" dot tone={done ? 'success' : isQaBug(t) ? 'danger' : t.status_category === 'in_progress' ? 'info' : 'neutral'}>{t.status_name || '—'}</Badge> : t.status_name}</td>
                           <td style={{ ...td, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                             {fmtH(t.logged_hours)}{Number(t.estimate_hours) > 0 ? <span style={{ color: 'var(--mgh-ink-3)' }}> / {fmtH(t.estimate_hours)}</span> : null}
                           </td>
@@ -176,6 +183,27 @@ export default function MyTasks({ go, notify }) {
                 </table>
               </div>}
       </Card>
+      {qaQueue.length ? (
+        <Card padding={20} title="Por revisar (QA)" icon="fact_check">
+          <div className="mgh-body" style={{ color: 'var(--mgh-ink-2)', marginBottom: 10 }}>Tareas de tus compañeros listas para QA. Revísalas: si están bien, márcalas <b>Completado</b>; si falta algo o hay un bug, devuélvelas con una nota.</div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
+              <thead><tr>{['Tarea', 'Hecha por', 'Proyecto / Sprint', ''].map((c, i) => <th key={i} style={{ textAlign: 'left', padding: '10px 12px', background: 'var(--mgh-surface-1)', font: '700 11px/14px var(--font-sans)', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--mgh-ink-2)' }}>{c}</th>)}</tr></thead>
+              <tbody>{qaQueue.map((t) => (
+                <tr key={t.id}>
+                  <td style={td}>
+                    <b style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--mgh-primary)' }}>{t.task_key}</b> <span style={{ fontWeight: 600 }}>{t.title}</span>
+                    {t.description ? <div style={{ font: '400 12px/17px var(--font-sans)', color: 'var(--mgh-ink-3)', marginTop: 3, maxWidth: 560, whiteSpace: 'pre-wrap' }}>{String(t.description).slice(0, 240)}{String(t.description).length > 240 ? '…' : ''}</div> : null}
+                  </td>
+                  <td style={td}>{t.assignee_name || 'Sin asignar'}</td>
+                  <td style={td}><div style={{ fontWeight: 600 }}>{t.project_name || t.project_key}</div><div style={{ font: '500 12px/16px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>{t.sprint_name || 'Backlog'}</div></td>
+                  <td style={{ ...td, textAlign: 'right' }}><QaReviewButtons t={t} notify={notify} onDone={load} /></td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </Card>
+      ) : null}
       {own ? <OwnTaskForm myTasks={tasks} sprintsHint={sprint} onClose={() => setOwn(null)} notify={notify} onCreated={() => { setOwn(null); load(); }} /> : null}
     </div>
   );

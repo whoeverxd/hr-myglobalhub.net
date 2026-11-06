@@ -4,12 +4,16 @@ const { logAction } = require('../controllers/audit.controller');
 const jiraService = require('./jira.service');
 const { todayLocal, nowStamp } = require('../utils/today');
 
+// QA workflow: whoever did the task moves it to "Listo para QA" (qa_step 'ready'); another project member (or a PM)
+// takes it to "Completado" or to "Bug encontrado" (qa_step 'bug', a note is required). See checkStatusChange().
 const DEFAULT_STATUS_TEMPLATES = [
-  { name: 'To Do', category: 'todo', color: '#64748b', is_default: 1, is_done: 0 },
-  { name: 'In Progress', category: 'in_progress', color: '#3b82f6', is_default: 0, is_done: 0 },
-  { name: 'Code Review', category: 'in_progress', color: '#8b5cf6', is_default: 0, is_done: 0 },
-  { name: 'Done', category: 'done', color: '#10b981', is_default: 0, is_done: 1 },
+  { name: 'Por hacer', category: 'todo', color: '#64748b', is_default: 1, is_done: 0, qa_step: null },
+  { name: 'En progreso', category: 'in_progress', color: '#3b82f6', is_default: 0, is_done: 0, qa_step: null },
+  { name: 'Listo para QA', category: 'in_progress', color: '#8b5cf6', is_default: 0, is_done: 0, qa_step: 'ready' },
+  { name: 'Bug encontrado', category: 'in_progress', color: '#dc2626', is_default: 0, is_done: 0, qa_step: 'bug' },
+  { name: 'Completado', category: 'done', color: '#10b981', is_default: 0, is_done: 1, qa_step: null },
 ];
+const httpError = (status, message, code) => Object.assign(new Error(message), { status, code });
 
 // The assignee created it: always when it came from "Agregar tarea propia" (label), otherwise only for non-PM/admin roles
 const isSelfCreated = (t) => Boolean(t && t.creator_employee_id && t.creator_employee_id === t.assignee_id &&
@@ -51,9 +55,9 @@ class AgileService {
       DEFAULT_STATUS_TEMPLATES.forEach((tmpl, idx) => {
         const id = `stat_${proj.id.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}_${idx}_${Date.now()}`;
         db.execute(
-          `INSERT INTO project_statuses (id, project_id, name, category, color, position, is_default, is_done)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [id, proj.id, tmpl.name, tmpl.category, tmpl.color, idx, tmpl.is_default, tmpl.is_done]
+          `INSERT INTO project_statuses (id, project_id, name, category, color, position, is_default, is_done, qa_step)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [id, proj.id, tmpl.name, tmpl.category, tmpl.color, idx, tmpl.is_default, tmpl.is_done, tmpl.qa_step]
         );
       });
     });
@@ -70,6 +74,75 @@ class AgileService {
 
   getStatuses(projectKeyOrId) {
     return this.ensureDefaultStatuses(projectKeyOrId);
+  }
+
+  /** The QA statuses of a project: { ready, bug, done } (null when the project has no QA workflow) */
+  qaStatuses(projectKeyOrId) {
+    const statuses = this.ensureDefaultStatuses(projectKeyOrId);
+    return {
+      ready: statuses.find((s) => s.qa_step === 'ready') || null,
+      bug: statuses.find((s) => s.qa_step === 'bug') || null,
+      done: statuses.find((s) => Number(s.is_done) === 1) || null,
+      all: statuses,
+    };
+  }
+
+  /**
+   * QA workflow rules for moving `task` to `targetStatusId` (only in projects that have a "Listo para QA" status).
+   * actor = { employeeId, role }. Throws 403/409/400; returns nothing when the move is allowed.
+   *  - Nobody but a PM or admin closes or "bugs" their own task: the assignee sends it to "Listo para QA".
+   *    PM and admin may move any task, their own included, to any status.
+   *  - A project member who is not the assignee may only take a task that is in "Listo para QA" to
+   *    "Completado" or "Bug encontrado" (PM/admin may move any task).
+   *  - "Bug encontrado" needs a note saying what is missing or broken.
+   */
+  checkStatusChange(task, targetStatusId, actor = {}, { qaNote } = {}) {
+    if (!task || !targetStatusId || targetStatusId === task.status_id) return;
+    const qa = this.qaStatuses(task.project_id);
+    const target = qa.all.find((s) => s.id === targetStatusId);
+    if (!target) throw httpError(400, 'Ese estado no pertenece al proyecto de la tarea.');
+    if (!qa.ready) return; // project without QA workflow: previous behavior
+    if (!actor || !actor.role) return; // internal call (scripts, services): no signed-in user to check
+    const role = String(actor.role || '').toLowerCase();
+    const isManager = role === 'admin' || role === 'pm';
+    const isAssignee = Boolean(task.assignee_id && actor.employeeId && task.assignee_id === actor.employeeId);
+    const toDone = Number(target.is_done) === 1;
+    const toBug = target.qa_step === 'bug';
+    const fromReady = qa.ready.id === task.status_id;
+
+    if ((toDone || toBug) && isAssignee && !isManager) {
+      throw httpError(403, toDone
+        ? `No puedes completar tu propia tarea: muévela a "${qa.ready.name}" y otra persona del proyecto la revisa.`
+        : 'No puedes marcar un bug en tu propia tarea: la revisa otra persona del proyecto.', 'QA_OWN_TASK');
+    }
+    if ((toDone || toBug) && !isManager && !fromReady) {
+      throw httpError(409, `Solo una tarea en "${qa.ready.name}" pasa a "${target.name}".`, 'QA_NOT_READY');
+    }
+    if (toBug && !String(qaNote || '').trim()) {
+      throw httpError(400, `Explica en una nota qué falta o qué bug encontraste: quien hizo la tarea la necesita para corregirla.`, 'QA_NOTE_REQUIRED');
+    }
+  }
+
+  /** QA decision on a task in "Listo para QA": result 'passed' → Completado, 'bug' → Bug encontrado (note required) */
+  qaReview(taskId, result, note, user = 'System', ip = '127.0.0.1', actor = {}) {
+    const task = this.getTask(taskId);
+    if (!task) throw httpError(404, 'Tarea no encontrada.');
+    const qa = this.qaStatuses(task.project_id);
+    if (!qa.ready) throw httpError(409, 'Este proyecto no tiene el flujo de QA: pide al PM que lo configure.', 'QA_NOT_CONFIGURED');
+    const target = result === 'bug' ? qa.bug : result === 'passed' ? qa.done : null;
+    if (!target) throw httpError(400, 'Indica el resultado de la revisión: completado o bug encontrado.');
+    if (task.status_id !== qa.ready.id) throw httpError(409, `${task.task_key} ya no está en "${qa.ready.name}".`, 'QA_NOT_READY');
+    this.checkStatusChange(task, target.id, actor, { qaNote: note });
+    return this.updateTask(task.id, { statusId: target.id, qaNote: note }, user, ip);
+  }
+
+  /** True when `actor` (not the assignee) is only doing a QA step: a task in "Listo para QA" → done or bug */
+  isQaReview(task, targetStatusId) {
+    if (!task || !targetStatusId) return false;
+    const qa = this.qaStatuses(task.project_id);
+    if (!qa.ready || task.status_id !== qa.ready.id) return false;
+    const target = qa.all.find((s) => s.id === targetStatusId);
+    return Boolean(target && (Number(target.is_done) === 1 || target.qa_step === 'bug'));
   }
 
   createStatus(projectKeyOrId, data, user = 'System', ip = '127.0.0.1') {
@@ -418,7 +491,7 @@ class AgileService {
              ps.name as status_name,
              ps.category as status_category,
              ps.color as status_color,
-             ps.is_done as status_is_done,
+             ps.is_done as status_is_done, ps.qa_step as status_qa_step,
              s.name as sprint_name,
              s.status as sprint_status
       FROM project_tasks pt
@@ -475,7 +548,7 @@ class AgileService {
     const all = [];
     for (const pid of projects) {
       all.push(...db.query(
-        `SELECT pt.id, pt.task_key, pt.title, pt.parent_id, pt.logged_hours, ps.is_done as status_is_done
+        `SELECT pt.id, pt.task_key, pt.title, pt.parent_id, pt.logged_hours, ps.is_done as status_is_done, ps.qa_step as status_qa_step
          FROM project_tasks pt LEFT JOIN project_statuses ps ON pt.status_id = ps.id WHERE pt.project_id = ?`, [pid]
       ));
     }
@@ -504,12 +577,12 @@ class AgileService {
    * those tasks are in (for the sprint filter). Newest sprint first; backlog tasks have no sprint.
    */
   myTasks(employeeId, { allProjects = false } = {}) {
-    if (!employeeId) return { tasks: [], sprints: [] };
+    if (!employeeId) return { tasks: [], sprints: [], qaQueue: [] };
     const projects = allProjects ? db.query('SELECT * FROM jira_projects') : this.projectsForEmployee(employeeId);
     const allowed = new Set(projects.map((p) => p.id));
     const byProject = new Map(projects.map((p) => [p.id, p]));
     const tasks = db.query(
-      `SELECT pt.*, ps.name as status_name, ps.category as status_category, ps.color as status_color, ps.is_done as status_is_done,
+      `SELECT pt.*, ps.name as status_name, ps.category as status_category, ps.color as status_color, ps.is_done as status_is_done, ps.qa_step as status_qa_step,
               s.name as sprint_name, s.status as sprint_status
        FROM project_tasks pt
        LEFT JOIN project_statuses ps ON pt.status_id = ps.id
@@ -521,19 +594,40 @@ class AgileService {
     const sprints = sprintIds.map((id) => db.getOne('SELECT * FROM sprints WHERE id = ?', [id])).filter(Boolean)
       .map((s) => ({ id: s.id, name: s.name, status: s.status, startDate: s.start_date, endDate: s.end_date, projectKey: (byProject.get(s.project_id) || {}).key }))
       .sort((a, b) => (a.status === 'ACTIVE' ? -1 : 0) - (b.status === 'ACTIVE' ? -1 : 0) || String(b.startDate || '').localeCompare(String(a.startDate || '')));
-    return { tasks: this.withSubtaskInfo(tasks), sprints };
+    // QA queue: other people's tasks in "Listo para QA" in the same projects (nobody reviews their own)
+    const readyIds = db.query(`SELECT id, project_id FROM project_statuses WHERE qa_step = 'ready'`)
+      .filter((s) => allowed.has(s.project_id)).map((s) => s.id);
+    const qaQueue = readyIds.flatMap((sid) => db.query(
+      `SELECT pt.*, ps.name as status_name, ps.category as status_category, ps.color as status_color, ps.is_done as status_is_done, ps.qa_step as status_qa_step,
+              s.name as sprint_name, s.status as sprint_status
+       FROM project_tasks pt
+       LEFT JOIN project_statuses ps ON pt.status_id = ps.id
+       LEFT JOIN sprints s ON pt.sprint_id = s.id
+       WHERE pt.status_id = ?`, [sid]))
+      .filter((t) => t.assignee_id !== employeeId)
+      .map((t) => ({ ...t, project_key: (byProject.get(t.project_id) || {}).key, project_name: (byProject.get(t.project_id) || {}).name }))
+      .sort((a, b) => String(a.updated_at || '').localeCompare(String(b.updated_at || '')));
+    return { tasks: this.withSubtaskInfo(tasks), sprints, qaQueue: this.withSubtaskInfo(qaQueue) };
   }
 
-  /** Marks a task done (first "done" status of its project) or reopens it (the project's default status) */
-  completeTask(taskId, done, user = 'System', ip = '127.0.0.1') {
+  /**
+   * "Terminé" / reopen from #mytasks. done: the assignee's task goes to "Listo para QA" when the project has a QA
+   * workflow (PM/admin and projects without QA: the first "done" status); reopen: the project's default status.
+   */
+  completeTask(taskId, done, user = 'System', ip = '127.0.0.1', actor = {}) {
     const task = this.getTask(taskId);
     if (!task) throw Object.assign(new Error('Tarea no encontrada.'), { status: 404 });
-    const statuses = this.ensureDefaultStatuses(task.project_id);
-    const target = done
-      ? statuses.find((s) => Number(s.is_done) === 1)
-      : statuses.find((s) => Number(s.is_default) === 1 && Number(s.is_done) !== 1) || statuses.find((s) => s.category === 'todo') || statuses.find((s) => Number(s.is_done) !== 1);
+    const qa = this.qaStatuses(task.project_id);
+    const statuses = qa.all;
+    const isAssignee = Boolean(task.assignee_id && actor.employeeId && task.assignee_id === actor.employeeId);
+    // PM / admin close their own tasks directly (they may still drag them to "Listo para QA" on the board)
+    const toQa = done && qa.ready && isAssignee && !['admin', 'pm'].includes(String(actor.role || '').toLowerCase());
+    const target = toQa ? qa.ready
+      : done ? qa.done
+        : statuses.find((s) => Number(s.is_default) === 1 && Number(s.is_done) !== 1) || statuses.find((s) => s.category === 'todo') || statuses.find((s) => Number(s.is_done) !== 1);
     if (!target) throw Object.assign(new Error('El proyecto no tiene un estado para esto: pide al PM que lo configure.'), { status: 409 });
     if (target.id === task.status_id) return task;
+    this.checkStatusChange(task, target.id, actor);
     return this.updateTask(task.id, { statusId: target.id }, user, ip);
   }
 
@@ -542,7 +636,7 @@ class AgileService {
     const task = this.getTask(taskIdOrKey);
     if (!task) return [];
     return db.query(
-      `SELECT pt.*, ps.name as status_name, ps.category as status_category, ps.color as status_color, ps.is_done as status_is_done
+      `SELECT pt.*, ps.name as status_name, ps.category as status_category, ps.color as status_color, ps.is_done as status_is_done, ps.qa_step as status_qa_step
        FROM project_tasks pt LEFT JOIN project_statuses ps ON pt.status_id = ps.id WHERE pt.parent_id = ?`, [task.id]
     ).sort((a, b) => String(a.task_key).localeCompare(String(b.task_key), undefined, { numeric: true }));
   }
@@ -555,7 +649,7 @@ class AgileService {
               ps.name as status_name,
               ps.category as status_category,
               ps.color as status_color,
-              ps.is_done as status_is_done,
+              ps.is_done as status_is_done, ps.qa_step as status_qa_step,
               s.name as sprint_name,
               s.status as sprint_status
        FROM project_tasks pt
@@ -697,6 +791,17 @@ class AgileService {
         existing.id
       ]
     );
+    // QA review: "Bug encontrado" keeps the note for whoever did the task; completing a task under review records who
+    // checked it. The last QA note stays on the task (shown while it is in "Bug encontrado").
+    if (statusId && statusId !== existing.status_id) {
+      const target = db.getOne('SELECT qa_step, is_done FROM project_statuses WHERE id = ?', [statusId]);
+      const from = db.getOne('SELECT qa_step FROM project_statuses WHERE id = ?', [existing.status_id]);
+      const note = String(data.qaNote || data.qa_note || '').trim();
+      if (target && (target.qa_step === 'bug' || (Number(target.is_done) === 1 && from && from.qa_step === 'ready'))) {
+        db.execute('UPDATE project_tasks SET qa_note = ?, qa_by = ?, qa_at = ?, qa_result = ? WHERE id = ?',
+          [note || (target.qa_step === 'bug' ? existing.qa_note || null : null), user, nowStamp(), target.qa_step === 'bug' ? 'bug' : 'passed', existing.id]);
+      }
+    }
     // Moving a parent to another sprint (or the backlog) takes its subtasks along
     if ((sprintId || null) !== (existing.sprint_id || null)) {
       for (const k of db.query('SELECT id FROM project_tasks WHERE parent_id = ?', [existing.id])) {
@@ -727,6 +832,7 @@ class AgileService {
     if (typeof moveData.sprintId !== 'undefined') patch.sprintId = moveData.sprintId;
     if (typeof moveData.sprint_id !== 'undefined') patch.sprintId = moveData.sprint_id;
     if (typeof moveData.orderIndex !== 'undefined') patch.orderIndex = moveData.orderIndex;
+    if (moveData.qaNote || moveData.qa_note) patch.qaNote = moveData.qaNote || moveData.qa_note;
 
     return this.updateTask(task.id, patch, user, ip);
   }

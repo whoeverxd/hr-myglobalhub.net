@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { SelfTaskBadge } from './MyTasks.jsx';
+import { QaBugNote, QaNoteModal } from './QaReview.jsx';
 
 export default function AgileWorkspace({
   currentProjectKey = null,
@@ -202,11 +203,29 @@ export default function AgileWorkspace({
   }, [tasks]);
 
   // Manejo de cambio de estado de una tarea (mover columna)
-  const handleMoveStatus = async (task, newStatusId) => {
+  // "Bug encontrado" (QA workflow) needs a note for whoever did the task: asked in QaNoteModal first
+  const [bugAsk, setBugAsk] = useState(null); // { task, statusId }
+  // Drag & drop on the board: a card dropped on another column is saved at once (handleMoveStatus)
+  const [dragTaskId, setDragTaskId] = useState(null);
+  const [dragOverStatus, setDragOverStatus] = useState(null);
+  const dropOnStatus = (e, statusId) => {
+    e.preventDefault();
+    const id = (e.dataTransfer && e.dataTransfer.getData('text/plain')) || dragTaskId;
+    setDragTaskId(null);
+    setDragOverStatus(null);
+    const task = tasks.find(t => t.id === id);
+    if (task && task.status_id !== statusId) handleMoveStatus(task, statusId);
+  };
+  const handleMoveStatus = async (task, newStatusId, qaNote) => {
+    const target = statuses.find(s => s.id === newStatusId);
+    if (target && target.qa_step === 'bug' && !qaNote && newStatusId !== task.status_id) {
+      setBugAsk({ task, statusId: newStatusId });
+      return;
+    }
     try {
       setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status_id: newStatusId } : t));
       if (window.api && window.api.moveTask) {
-        await window.api.moveTask(task.id, { statusId: newStatusId });
+        await window.api.moveTask(task.id, qaNote ? { statusId: newStatusId, qaNote } : { statusId: newStatusId });
       }
       if (notify) notify(`Tarea ${task.task_key} movida de estado.`);
       loadProjectData(selectedProjectKey);
@@ -514,8 +533,8 @@ export default function AgileWorkspace({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0, maxWidth: '100%' }}>
+
       {/* Barra de Proyecto Activo y Navegación Ágil */}
       <Card padding={16}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
@@ -675,7 +694,7 @@ export default function AgileWorkspace({
           TAB 1: TABLERO KANBAN
           ========================================================================= */}
       {activeTab === 'board' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
           
           {/* Filtros de Tablero */}
           <Card padding={12}>
@@ -773,32 +792,54 @@ export default function AgileWorkspace({
             </div>
           </Card>
 
-          {/* Columnas Kanban Dinámicas */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${Math.max(1, statuses.length)}, minmax(280px, 1fr))`,
+          {/* Columnas Kanban (estilo Trello): ancho fijo por columna, scroll horizontal cuando no caben,
+              y cada columna con su propio scroll vertical. Nada se encoge. */}
+          <div className="mgh-scroll" style={{
+            display: 'flex',
+            alignItems: 'flex-start',
             gap: 14,
             overflowX: 'auto',
-            paddingBottom: 16
+            overflowY: 'hidden',
+            width: '100%',
+            maxWidth: '100%',
+            minWidth: 0,
+            paddingBottom: 16,
+            scrollSnapType: 'x proximity',
+            overscrollBehaviorX: 'contain'
           }}>
             {statuses.map(status => {
               const columnTasks = boardTasks.filter(t => t.status_id === status.id);
               return (
                 <div
                   key={status.id}
+                  onDragOver={e => {
+                    if (!dragTaskId) return;
+                    e.preventDefault();
+                    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+                    if (dragOverStatus !== status.id) setDragOverStatus(status.id);
+                  }}
+                  onDragLeave={e => {
+                    if (!e.currentTarget.contains(e.relatedTarget)) setDragOverStatus(s => (s === status.id ? null : s));
+                  }}
+                  onDrop={e => dropOnStatus(e, status.id)}
                   style={{
-                    background: 'var(--mgh-surface-1)',
+                    flex: '0 0 300px',
+                    width: 300,
+                    scrollSnapAlign: 'start',
+                    background: dragOverStatus === status.id ? 'rgba(51,66,150,.06)' : 'var(--mgh-surface-1)',
                     borderRadius: 12,
-                    border: '1px solid var(--mgh-surface-2)',
+                    border: dragOverStatus === status.id ? '1px dashed var(--mgh-primary)' : '1px solid var(--mgh-surface-2)',
+                    transition: 'background 120ms, border-color 120ms',
                     display: 'flex',
                     flexDirection: 'column',
-                    minHeight: 520,
                     maxHeight: 'calc(100vh - 280px)',
+                    minHeight: 160,
                     boxShadow: 'var(--shadow-sm)'
                   }}
                 >
                   {/* Header de Columna */}
                   <div style={{
+                    flexShrink: 0,
                     padding: '12px 14px',
                     borderBottom: '2px solid ' + (status.color || '#3b82f6'),
                     background: '#fff',
@@ -855,10 +896,11 @@ export default function AgileWorkspace({
                   </div>
 
                   {/* Listado de Tarjetas */}
-                  <div style={{
+                  <div className="mgh-scroll" style={{
                     padding: 10,
                     overflowY: 'auto',
-                    flex: 1,
+                    flex: '1 1 auto',
+                    minHeight: 0,
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 10
@@ -880,13 +922,26 @@ export default function AgileWorkspace({
                         <div
                           key={task.id}
                           onClick={() => handleOpenEditTask(task)}
+                          draggable
+                          title="Arrastra la tarjeta a otra columna para cambiar su estado"
+                          onDragStart={e => {
+                            if (e.dataTransfer) {
+                              e.dataTransfer.setData('text/plain', task.id);
+                              e.dataTransfer.effectAllowed = 'move';
+                            }
+                            setDragTaskId(task.id);
+                          }}
+                          onDragEnd={() => { setDragTaskId(null); setDragOverStatus(null); }}
                           style={{
+                            flexShrink: 0,
+                            minWidth: 0,
+                            opacity: dragTaskId === task.id ? 0.45 : 1,
                             background: '#fff',
                             borderRadius: 10,
                             padding: 12,
                             border: '1px solid var(--mgh-surface-2)',
                             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                            cursor: 'pointer',
+                            cursor: 'grab',
                             display: 'flex',
                             flexDirection: 'column',
                             gap: 8,
@@ -942,6 +997,7 @@ export default function AgileWorkspace({
                           }}>
                             {task.title}
                           </div>
+                          <QaBugNote t={task} />
 
                           {/* Métricas: Prioridad, Estimación, Puntos, Horas */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--mgh-ink-3)' }}>
@@ -1001,6 +1057,8 @@ export default function AgileWorkspace({
                               value={task.status_id}
                               onChange={e => handleMoveStatus(task, e.target.value)}
                               style={{
+                                maxWidth: 140,
+                                flexShrink: 0,
                                 fontSize: 11,
                                 padding: '2px 6px',
                                 borderRadius: 4,
@@ -1544,6 +1602,12 @@ export default function AgileWorkspace({
                   )}
                   {status.is_done === 1 && (
                     <Badge size="xs" tone="success">Cierre / Completada</Badge>
+                  )}
+                  {status.qa_step === 'ready' && (
+                    <Badge size="xs" tone="info">QA: la revisa otro miembro</Badge>
+                  )}
+                  {status.qa_step === 'bug' && (
+                    <Badge size="xs" tone="danger">QA: vuelve con nota</Badge>
                   )}
                 </div>
 
@@ -2127,6 +2191,11 @@ export default function AgileWorkspace({
           </div>
         </div>
       )}
+
+      {bugAsk ? (
+        <QaNoteModal task={bugAsk.task} onCancel={() => setBugAsk(null)}
+          onConfirm={async (note) => { const { task, statusId } = bugAsk; setBugAsk(null); await handleMoveStatus(task, statusId, note); }} />
+      ) : null}
 
       {/* =========================================================================
           MODAL: CREAR ESTADO PERSONALIZADO DE FLUJO

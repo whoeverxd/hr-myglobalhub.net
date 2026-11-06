@@ -5,6 +5,23 @@ const { passwordProblem } = require('../utils/crypto');
 const { todayLocal } = require('../utils/today');
 
 const EMAIL_REGEX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const MIN_WORKER_AGE = 18;
+
+/**
+ * Optional date of birth (YYYY-MM-DD): '' when empty or valid, otherwise the problem. Minors cannot be
+ * registered as workers. Same rule as `dobProblem` in frontend/src/lib/periodService.js.
+ */
+function dobProblem(dob, today = todayLocal()) {
+  if (dob === undefined || dob === null || dob === '') return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dob));
+  const d = m && new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  if (!m || Number.isNaN(d.getTime()) || d.getUTCDate() !== +m[3]) return 'La fecha de nacimiento no es válida (AAAA-MM-DD).';
+  if (dob > today) return 'La fecha de nacimiento no puede ser futura.';
+  const [y, mm, dd] = today.split('-');
+  if (dob > `${+y - MIN_WORKER_AGE}-${mm}-${dd}`) return `No se pueden registrar menores de edad: la persona debe tener al menos ${MIN_WORKER_AGE} años.`;
+  if (dob < `${+y - 100}-${mm}-${dd}`) return 'Revisa la fecha de nacimiento: indica más de 100 años.';
+  return '';
+}
 
 function getUserAvatarMap() {
   const map = new Map();
@@ -138,6 +155,12 @@ function createEmployee(data, user = 'System', ip = '127.0.0.1', actorRole = nul
   }
   if (data.email && !EMAIL_REGEX.test(data.email)) {
     const err = new Error('El email no es válido.');
+    err.status = 400;
+    throw err;
+  }
+  const dobErr = dobProblem(data.dob);
+  if (dobErr) {
+    const err = new Error(dobErr);
     err.status = 400;
     throw err;
   }
@@ -677,4 +700,5 @@ module.exports = {
   deleteEmployee,
   purgeEmployee,
   deactivateEmployee,
+  dobProblem,
 };

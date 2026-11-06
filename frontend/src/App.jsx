@@ -4,7 +4,7 @@ import { KitScreen } from './kit/kit.jsx';
 import MyTimeView from './kit/MyTimeView.jsx';
 import { bankOptions } from './kit/BanksAdmin.jsx';
 import { api } from './lib/api';
-import { getCurrentPeriod, getQuincenaForDate, getPeriodsForYear, localDateStr } from './lib/periodService';
+import { getCurrentPeriod, getQuincenaForDate, getPeriodsForYear, localDateStr, dobProblem } from './lib/periodService';
 import { DAY, MON, U, add, f, fy, LOCKED, STATUSES, SHORT, TONE, KIT, NAV, STAGE_INFO, RULES, RTONE, ADJ, ATONE, PAYCALC, fmtC, money, CATS, CAT_PH, DOW, tm, hm, h1 } from './lib/payroll';
 
 /**
@@ -812,7 +812,7 @@ export default class App extends React.Component {
     if (!myEmpId) return;
     (days||this.state.myDays).forEach(e=>{if(e.type==='Regular'&&(e.in||e.out))A.setPunches(myEmpId,e.d.toISOString().slice(0,10),e);});
   }
-  componentDidUpdate(pp,ps){if(ps&&ps.myDays!==this.state.myDays)this.syncAtt();if(this.state.route==='addEmployee'&&this.state.bankCatalog===undefined)this.loadBankCatalog();const st=window.__mghStub,sp=this.state.stubPay;if((st?st.id+'|'+st.period:null)!==(sp?sp.key:null))this.loadStubPayout();}
+  componentDidUpdate(pp,ps){if(ps&&ps.myDays!==this.state.myDays)this.syncAtt();if(this.state.route==='addEmployee'&&(this.state.bankCatalog===undefined||(ps&&ps.route!=='addEmployee')))this.loadBankCatalog();const st=window.__mghStub,sp=this.state.stubPay;if((st?st.id+'|'+st.period:null)!==(sp?sp.key:null))this.loadStubPayout();}
   applyLeave(){
     const A=window.MGH_ATT;if(!A)return;
     const myEmpId = this.state.currentUser && (this.state.currentUser.employeeId || this.state.currentUser.employee_id);
@@ -975,6 +975,7 @@ export default class App extends React.Component {
     const L=(k,label,options)=>({isText:false,isSelect:true,isToggle:false,label,value:n[k],options,set:S(k)});
     const G=(k,label,hint)=>({isText:false,isSelect:false,isToggle:true,label,hint,value:!!n[k],set:()=>this.setNE(k,!n[k])});
     const emailOk=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(n.email);
+    const dobErr=dobProblem(n.dob,localDateStr());
     const useCb=n.pmethod!=='Bank Deposit',useBank=n.pmethod!=='Coinbase Only';
     const cbA=n.pmethod==='Coinbase Only'?100:(useCb?Math.min(100,Math.max(0,Number(n.cbAlloc)||0)):0);
     const alloc=Number(n.alloc)||0,bankTarget=100-cbA;
@@ -982,7 +983,7 @@ export default class App extends React.Component {
     const emOk=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(n.cbEmail);
     const wOk=n.cbNetwork==='Solana'?/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(n.cbWallet):/^0x[a-fA-F0-9]{40}$/.test(n.cbWallet);
     const cbOk=!useCb||(emOk&&wOk&&n.cbKyc&&n.cbW8&&(n.pmethod==='Coinbase Only'||(cbA>0&&cbA<100)));
-    const personal=!!(n.first&&n.last&&emailOk&&n.nid),employ=!!(n.title&&n.start),pay=Number(n.rate)>0,bank=(!useBank||!!(n.bank&&n.acct&&n.route&&allocOk))&&cbOk,jira=!!n.jira;
+    const personal=!!(n.first&&n.last&&emailOk&&n.nid&&!dobErr),employ=!!(n.title&&n.start),pay=Number(n.rate)>0,bank=(!useBank||!!(n.bank&&n.acct&&n.route&&allocOk))&&cbOk,jira=!!n.jira;
     const pc=PAYCALC(n.rate,n.freq,n.tax,n.cur);const fullName=(n.first||n.last)?(n.first+' '+n.last).trim():'New Employee';
     const sd=/^\d{4}-\d{2}-\d{2}$/.test(n.start||'')?new Date(n.start+'T00:00:00'):null;let firstP='—';if(sd&&!isNaN(sd)){const q=getQuincenaForDate(sd);firstP=q.code+' ('+q.rangeShort+')'}
     // Approval route comes from the live workflow configuration (Approval Workflows), not a typed list
@@ -996,7 +997,7 @@ export default class App extends React.Component {
           if(missing.length){this.setState({dialog:{title:'Create with missing details?',body:'Still missing: '+missing.join(', ')+'. The record will be created as Pending Onboarding and excluded from payroll until these are completed.',confirm:'Create as Pending',variant:'primary',icon:'person_add',run:()=>make(missing)}});return}make([])}]]),
       addSteps:['Personal','Employment','Payroll','Banking','Jira & Approvals'].map((l,i)=>({label:l,state:i===cur?'current':st([personal,employ,pay,bank,jira][i])})),
       addSections:[
-        {icon:'person',title:'Personal Information',sub:'Legal identity used on pay stubs and statutory filings',fields:[T('first','First name',{ph:'Ana'}),T('last','Last name',{ph:'Martínez'}),T('email','Work email',{ph:'nombre@myglobalhub.net',err:n.email&&!emailOk?'Enter a valid email':''}),T('password','Initial access password (optional)',{ph:'Leave empty to generate a secure one',hint:'If empty, a random password is generated and shown once after saving'}),T('phone','Phone',{ph:'+1 (809) 555-0142'}),T('nid','Cédula / SSN / NI number',{ph:'001-0000000-0',mono:true}),T('dob','Date of birth',{type:'date'})]},
+        {icon:'person',title:'Personal Information',sub:'Legal identity used on pay stubs and statutory filings',fields:[T('first','First name',{ph:'Ana'}),T('last','Last name',{ph:'Martínez'}),T('email','Work email',{ph:'nombre@myglobalhub.net',err:n.email&&!emailOk?'Enter a valid email':''}),T('password','Initial access password (optional)',{ph:'Leave empty to generate a secure one',hint:'If empty, a random password is generated and shown once after saving'}),T('phone','Phone',{ph:'+1 (809) 555-0142'}),T('nid','Cédula / SSN / NI number',{ph:'001-0000000-0',mono:true}),T('dob','Date of birth',{type:'date',hint:'Optional • must be 18 or older',err:dobErr})]},
         {icon:'work',title:'Employment',sub:'Entity, reporting line and contract',fields:[L('entity','Operating entity',['MGH Dominicana SRL']),L('dept','Department',['Engineering','Product','Infrastructure','Quality','Analytics','Finance','Security','HR & People']),T('title','Job title',{ph:'Backend Engineer'}),L('mgr','Supervisor',[{value:'',label:'—'},...(window.EMPLOYEES||[]).map(e=>e.name).filter(Boolean)]),L('etype','Employment type',['Full-time','Part-time','Contractor / Exempt']),T('start','Start date',{type:'date',hint:'First period: '+firstP}),T('loc','Work location',{ph:'Santo Domingo, DR'})]},
         {icon:'payments',title:'Payroll & Compensation',sub:'Quincenal • 24 períodos al año (1–15 y 16–fin de mes)',fields:[L('freq','Pay frequency',[{value:'Semi-Monthly',label:'Quincenal (1–15 / 16–fin de mes)'}]),T('rate','Hourly rate',{ph:'0.00',prefix:'$',suffix:'/ hr'}),L('cur','Pay currency',['USD','DOP']),L('tax','Tax profile',['DGII ISR + TSS (Dominican Republic)','Exempt (no tax deductions)']),G('ot','Overtime eligible','1.5× after 44h / week')]},
         ...(n.etype==='Contractor / Exempt'?[{icon:'handshake',title:'Contract Details',sub:'Contractors appear on the Contractors page and stay out of payroll tax reports',fields:[T('cStart','Contract start',{type:'date'}),T('cEnd','Contract end',{type:'date'}),L('cTax','Tax form',[SEL,'W-8BEN (non-US individual)','W-8BEN-E (non-US entity)','Local invoice + RNC (DR)']),G('cInvoice','Invoice required per period','Contractor uploads an invoice before payout')]}]:[]),
