@@ -29,6 +29,19 @@ const BUG_COLOR = '#dc2626';
  * [{ op: 'update', id, name?, qa_step?, color?, position } | { op: 'insert', id, name, category, color, qa_step, position }]
  */
 function planProject(project, statuses, newId = (n) => `stat_qa_${n}_${Date.now().toString(36)}`) {
+  // UN PROYECTO SIN ESTADOS NO ES NUESTRO PARA ARREGLAR, y tocarlo lo rompe para
+  // siempre. `agileService.ensureDefaultStatuses()` crea el flujo COMPLETO -- los
+  // dos pasos de QA incluidos, ya estan en DEFAULT_STATUS_TEMPLATES -- la primera
+  // vez que se lee el tablero, y solo lo hace mientras el proyecto tenga CERO
+  // estados (`if (existing.length > 0) return existing`). Si aca insertamos el par
+  // de QA, `existing.length` pasa a 2 y esa creacion no vuelve a ocurrir NUNCA: el
+  // tablero se queda con "Listo para QA" y "Bug encontrado" y sin "Por hacer", sin
+  // "En progreso" y sin "Completado". Una tarea no puede empezar ni cerrarse.
+  //
+  // Paso el 2026-11-17 en la base local de desarrollo: 6 proyectos quedaron con dos
+  // estados y el plan habia anunciado «se crearan los nuevos por defecto».
+  if (!statuses.length) return [];
+
   const list = [...statuses].sort((a, b) => Number(a.position) - Number(b.position)).map((s) => ({ ...s }));
   const changes = new Map(); // id → fields
   const set = (s, fields) => { Object.assign(s, fields); changes.set(s.id, { ...(changes.get(s.id) || {}), ...fields }); };
@@ -67,8 +80,14 @@ function show(projects, statusesOf) {
   const plans = projects.map((p) => ({ p, steps: planProject(p, statusesOf(p.id)) }));
   for (const { p, steps } of plans) {
     const before = statusesOf(p.id).sort((a, b) => a.position - b.position).map((s) => s.name).join(' → ');
-    console.log(`\n${p.key} ${p.name || ''}\n  ahora:   ${before || '(sin estados: se crearán los nuevos por defecto)'}`);
-    if (!steps.length) { console.log('  ya tiene el flujo de QA'); continue; }
+    console.log(`\n${p.key} ${p.name || ''}\n  ahora:   ${before || '(sin estados)'}`);
+    // El mensaje era la otra mitad del bug: decia «se crearan los nuevos por
+    // defecto» mientras el plan insertaba solo el par de QA, que es justo lo que
+    // impedia que se crearan. Ahora dice quien los crea y cuando.
+    if (!steps.length) {
+      console.log(before ? '  ya tiene el flujo de QA' : '  sin tocar: el tablero crea el flujo completo al abrirse por primera vez');
+      continue;
+    }
     for (const s of steps) {
       if (s.op === 'insert') console.log(`  + crear "${s.name}" (posición ${s.position + 1})`);
       else {
@@ -113,6 +132,15 @@ async function main() {
   else process.env.DATABASE_CLIENT = 'sqlite';
   const db = require('../src/db/connection');
   await db.initDatabase();
+  // EL ESQUEMA, ANTES DE LEER UNA COLUMNA QUE PODRIA NO EXISTIR. Los `ALTER TABLE
+  // ... ADD COLUMN qa_step` viven en `initSchema()`, que corre al requerir
+  // `src/db/index.js` -- y este script carga `src/db/connection` directo, asi que
+  // nunca corrian. `--local` fallaba con «table project_statuses has no column
+  // named qa_step` sobre cualquier base que no hubiera arrancado con el servidor
+  // despues del cambio de esquema, que es exactamente el caso de quien acaba de
+  // hacer un pull. Va solo en el camino local: `initSchema` es de SQLite, y el de
+  // `--apply` ya hidrata su propio esquema desde Firestore.
+  if (LOCAL) require('../src/db/schema').initSchema();
   if (APPLY) {
     const adapter = db.getAdapter();
     if (!adapter.hydratedFromRemote) {
