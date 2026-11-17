@@ -129,3 +129,20 @@ test('setup-qa-workflow plan: renames the old defaults in place and adds Bug enc
     { id: 'e', name: 'Bug encontrado', qa_step: 'bug', position: 2 }, { id: 'd', name: 'Completado', is_done: 1, position: 3 },
   ]), []);
 });
+
+// A project with NO statuses is left alone, and this is the case the plan used to get wrong.
+//
+// `agileService.ensureDefaultStatuses()` creates the FULL flow -- both QA steps included, they
+// are in DEFAULT_STATUS_TEMPLATES -- the first time the board is read, and only while the
+// project has zero statuses (`if (existing.length > 0) return existing`). Planning just the QA
+// pair here took `existing.length` to 2, so that creation never happened again: the board kept
+// "Listo para QA" and "Bug encontrado" and never got "Por hacer", "En progreso" or "Completado".
+// A task could not start or close. It hit 6 projects in the local database on 2026-11-17, while
+// the plan printed "se crearán los nuevos por defecto" -- the opposite of what it did.
+//
+// The two earlier cases in this file both start from a board that already has statuses, which is
+// why the gap survived: the test said the plan was right about every board that existed.
+test('setup-qa-workflow plan: a project with no statuses is left to ensureDefaultStatuses', () => {
+  assert.deepEqual(planProject({ key: 'NEW' }, []), [],
+    'planning the QA pair for an empty board blocks the default flow for good');
+});
