@@ -470,7 +470,10 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
         punchReg,
         history: ts ? ts.history : []
       };
-    });
+    })
+      // Only people who logged hours in this quincena, most hours first (the person opened by link stays visible)
+      .filter(r => (Number(r.total) || 0) > 0 || r.id === empId)
+      .sort((a, b) => (Number(b.total) || 0) - (Number(a.total) || 0) || String(a.name || '').localeCompare(String(b.name || '')));
   }, [backendTimesheets, backendPunches, periodCode, curPeriod, empActivities.length, reconcil, empId, currentUser]);
 
   const [cur, setCur] = React.useState(() => {
@@ -507,7 +510,11 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
   // (hooks must run before the early return below)
   const days = React.useMemo(() => buildDays(e, curPeriod, reconcil), [e && e.id, curPeriod, reconcil]);
 
-  if (!e) return <div style={{ padding: 28 }}><PageHeader breadcrumbs={['Approvals', 'Approval Workspace']} title="Approval Workspace" description="No timesheets in your scope for this organization." /></div>;
+  // Nobody with hours in this quincena (e.g. one that just started): keep the period selector so the reviewer can go
+  // back to the quincena that is waiting for approval
+  if (!e) return <div style={{ padding: 28 }}><PageHeader breadcrumbs={['Approvals', 'Approval Workspace']} title="Approval Workspace"
+    status={<Select size="sm" value={periodCode} onChange={x => setPeriodCode(typeof x === 'string' ? x : x.target.value)} options={availablePeriods.map(p => ({ value: p.code, label: p.code }))} />}
+    description={isLoading ? 'Cargando…' : `Nadie de tu equipo tiene horas registradas en ${periodCode}. Elige otra quincena arriba.`} /></div>;
 
   const rec = recOf(e.id, periodCode), can = WF.canAct(rec), canPay = WF.canPay(rec), why = WF.whyNot(rec);
   const shown = days.filter(d => week === 'all' || d.week === +week);
@@ -767,7 +774,7 @@ function ApprovalWorkspaceInner({ notify, empId, currentUser }) {
           {filtered.map(x => <QueueCard key={x.id} e={{ ...x, status: liveStatus(x, periodCode) }} active={x.id === e.id} checked={sel.includes(x.id)} onCheck={() => setSel(s => s.includes(x.id) ? s.filter(i => i !== x.id) : [...s, x.id])} onClick={() => setCur(x.id)} />)}
           {!filtered.length && <div style={{ padding: 28, textAlign: 'center', font: '500 13px var(--font-sans)', color: 'var(--mgh-ink-3)' }}>No hay empleados en este filtro.</div>}
         </div>
-        <div style={{ font: '600 12px var(--font-sans)', color: 'var(--mgh-ink-2)', padding: '0 4px' }}>Mostrando {filtered.length} de {list.length} empleados</div>
+        <div style={{ font: '600 12px var(--font-sans)', color: 'var(--mgh-ink-2)', padding: '0 4px' }}>Mostrando {filtered.length} de {list.length} empleados con horas en {periodCode} • de más a menos horas</div>
       </div>
 
       {/* Review pane */}
