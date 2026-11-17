@@ -35,7 +35,7 @@ Toggle, FilterChips, Stepper, ActivityFeed…).
 - Company: My Global Hub (Dominicana SRL, RNC 133-474018, Punta Cana) is the single umbrella company and the only
   organization/tenant (`MGH Dominicana SRL` in RBAC). Arawaki (e-commerce), Wokokai (social network) and Treslog
   (shipping app) are PROJECTS inside it — not legal entities, tenants or clients. No "MGH USA Inc." / "MGH UK Ltd.".
-- My time (employee, contractor, PM, supervisor — always their OWN record), `src/kit/MyTimeView.jsx` + `MyTimesheets.jsx`:
+- My time (employee, contractor, PM, supervisor, admin — always their OWN record; RBAC `timesheets.self/edit/submit`), `src/kit/MyTimeView.jsx` + `MyTimesheets.jsx`:
   `#myentry` log daily activities (only while that quincena's sheet is Draft/Returned) • `#mysheets` one row per quincena,
   live hours while editable, submit • `#myhistory` status timeline of own sheets + leave. One activity form for
   `#myentry` and `#actDaily`: `ActivityFormModal.jsx` (centered; task search, evidence upload, links, meeting
